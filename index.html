@@ -478,11 +478,19 @@ function playAlertSound(){
       const o=audioCtx.createOscillator(),g=audioCtx.createGain();
       o.connect(g);g.connect(audioCtx.destination);
       o.frequency.value=freq;o.type='square';
-      g.gain.setValueAtTime(0.15,audioCtx.currentTime+start);
+      g.gain.setValueAtTime(0.7,audioCtx.currentTime+start);
       g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+start+dur);
       o.start(audioCtx.currentTime+start);o.stop(audioCtx.currentTime+start+dur+0.05);
     };
-    beep(880,0,0.12);beep(660,0.16,0.12);beep(880,0.32,0.2);
+    // Secuencia larga y fuerte ~3 segundos
+    beep(880,0.00,0.3);
+    beep(660,0.35,0.3);
+    beep(880,0.70,0.3);
+    beep(660,1.05,0.3);
+    beep(880,1.40,0.3);
+    beep(660,1.75,0.3);
+    beep(880,2.10,0.3);
+    beep(1000,2.50,0.5);
   }catch(e){}
 }
 
@@ -559,11 +567,11 @@ function elegirArea(area){
 // ══════════════════════════════════════════════════════════════════
 function submitModuloLogin(){
   const modulo=document.getElementById('modulo-sel').value;
-  const pass=document.getElementById('modulo-pass').value;
+  const pass=document.getElementById('modulo-pass').value.toUpperCase();
   const err=document.getElementById('modulo-error');
   const inp=document.getElementById('modulo-pass');
   if(!modulo){err.textContent='Selecciona tu módulo';return;}
-  if(pass!==USUARIOS['Modulos'].pass){
+  if(pass!==modulo){
     inp.classList.add('error');err.textContent='Contraseña incorrecta';inp.value='';
     setTimeout(()=>{inp.classList.remove('error');inp.focus();},400);return;
   }
@@ -682,6 +690,7 @@ function commitChange(id,s,mecanico){
   logChange(id,prev,s,dur,mecanico);
   states[id]=s;timers[id]=ahora;
   if(mecanico) lastMec[id]=mecanico;
+  if(s==='red') lastMec[id]=''; // Resetear mecánico al volver a alerta
   if(s==='red'&&currentUser==='Televisor') playAlertSound();
   // Enviar cambio al servidor para sincronizar otros dispositivos
   wsSend({type:'change', id, state:s, mecanico:mecanico||''});
