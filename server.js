@@ -44,7 +44,8 @@ wss.on('connection', (ws) => {
       const msg = JSON.parse(raw);
       if (msg.type === 'change' && states[msg.id] !== undefined) {
         states[msg.id] = msg.state;
-        if (msg.mecanico) lastMec[msg.id] = msg.mecanico;
+        if (msg.state === 'red') lastMec[msg.id] = '';
+        else if (msg.mecanico) lastMec[msg.id] = msg.mecanico;
         // Retransmitir a todos los demás clientes
         const broadcast = JSON.stringify({
           type: 'change',
