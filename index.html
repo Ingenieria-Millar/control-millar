@@ -361,8 +361,6 @@ const LABELS={green:'Operativo',yellow:'Atendiendo',red:'Alerta'};
 const NEXT={green:'red',red:'yellow',yellow:'green'};
 const MECANICOS=['ANDRES RIOS','CESAR CIFUENTES','DAIRON ZAPATA','ELKIN LOPEZ','JUAN C GONZALEZ','OSCAR ZEA','RICARDO SERNA','WALTER PEREZ','YON CANO'];
 
-// area_mecanicos → botón MECÁNICOS → Tablero Planta
-// area_produccion → botón PRODUCCIÓN → Login Módulo
 const USUARIOS={
   'Programador':  {pass:'1',perms:['area_mecanicos','area_produccion','tablero','modulos','excel','fix']},
   'Administrador':{pass:'1',perms:['area_mecanicos','tablero','excel']},
@@ -378,7 +376,88 @@ let selectedMod=null, activeFilter=null, currentView=null, pendingTransicion=nul
 function hasPerm(p){ return currentUser&&USUARIOS[currentUser]&&USUARIOS[currentUser].perms.includes(p); }
 function isProg(){ return hasPerm('fix')&&hasPerm('modulos')&&hasPerm('tablero'); }
 
-// ── HISTORIAL ─────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════
+// WEBSOCKET — Conexión en tiempo real
+// ══════════════════════════════════════════════════════════════════
+let ws=null, wsReady=false, reconnectTimer=null;
+
+function connectWS(){
+  const proto=location.protocol==='https:'?'wss':'ws';
+  const url=`${proto}://${location.host}`;
+  ws=new WebSocket(url);
+
+  ws.onopen=()=>{
+    wsReady=true;
+    clearTimeout(reconnectTimer);
+    setConnStatus(true);
+  };
+
+  ws.onmessage=(e)=>{
+    try{
+      const msg=JSON.parse(e.data);
+      if(msg.type==='init'){
+        // Recibir estado completo del servidor al conectar
+        MODULES.forEach(id=>{
+          if(msg.states[id] && msg.states[id]!==states[id]){
+            states[id]=msg.states[id];
+            timers[id]=Date.now();
+          }
+          if(msg.lastMec[id]) lastMec[id]=msg.lastMec[id];
+        });
+        updateStats();
+        if(currentView==='grid') renderGrid();
+        if(currentView==='single') renderBig();
+      } else if(msg.type==='change'){
+        // Cambio de otro dispositivo — aplicar localmente sin reenviar
+        const id=msg.id, s=msg.state;
+        const prev=states[id];
+        const dur=Date.now()-(timers[id]||Date.now());
+        if(prev==='red')    acumRed[id]   +=dur;
+        if(prev==='yellow') acumYellow[id]+=dur;
+        states[id]=s; timers[id]=Date.now();
+        if(msg.mecanico) lastMec[id]=msg.mecanico;
+        if(s==='red'&&currentUser==='Televisor') playAlertSound();
+        updateStats();
+        if(selectedMod===id) renderBig();
+        renderGrid();
+      }
+    }catch(err){}
+  };
+
+  ws.onclose=()=>{
+    wsReady=false;
+    setConnStatus(false);
+    // Reconectar automáticamente cada 3 segundos
+    reconnectTimer=setTimeout(connectWS, 3000);
+  };
+
+  ws.onerror=()=>{ ws.close(); };
+}
+
+function setConnStatus(online){
+  const dot=document.getElementById('live-dot');
+  const lbl=document.getElementById('conn-label');
+  if(online){
+    dot.className='live-dot online';
+    lbl.textContent='EN LÍNEA ✓';
+    lbl.style.color='var(--green)';
+  } else {
+    dot.className='live-dot offline';
+    lbl.textContent='RECONECTANDO...';
+    lbl.style.color='var(--red)';
+  }
+}
+
+function wsSend(payload){
+  if(ws && wsReady && ws.readyState===1){
+    ws.send(JSON.stringify(payload));
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// HISTORIAL — Se guarda en localStorage del servidor (server.js lo persiste si quieres)
+// Por ahora sigue en localStorage del navegador para el Excel
+// ══════════════════════════════════════════════════════════════════
 const STORAGE_KEY='mant_historial_v2';
 function loadHistory(){ try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');}catch(e){return[];} }
 function saveHistory(h){ try{localStorage.setItem(STORAGE_KEY,JSON.stringify(h));}catch(e){} }
@@ -410,6 +489,8 @@ function playAlertSound(){
 // ── INIT ──────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded',()=>{
   updateStats();
+  setConnStatus(false);
+  connectWS();
   document.getElementById('login-pass').addEventListener('keydown',e=>{if(e.key==='Enter')submitLogin();});
   document.getElementById('modulo-pass').addEventListener('keydown',e=>{if(e.key==='Enter')submitModuloLogin();});
   const msel=document.getElementById('modulo-sel');
@@ -441,7 +522,7 @@ function submitLogin(){
 // PANTALLA 2 — SELECCIÓN DE ÁREA
 // ══════════════════════════════════════════════════════════════════
 function mostrarAreaScreen(){
-  const btns=document.getElementById('area-btns'); btns.innerHTML='';
+  const btns=document.getElementById('area-btns');btns.innerHTML='';
   document.getElementById('area-title').textContent='Bienvenido, '+currentUser;
   if(hasPerm('area_mecanicos')){
     const b=document.createElement('button');b.className='sel-btn mec-btn';
@@ -461,12 +542,8 @@ function mostrarAreaScreen(){
 function elegirArea(area){
   document.getElementById('area-screen').classList.add('hidden');
   if(area==='mecanicos'){
-    // → Tablero Planta directamente
     entrarTablero();
   } else {
-    // PRODUCCIÓN:
-    // Módulos → pide contraseña de módulo individual
-    // Programador (u otros con perms) → entra directo a tabla de módulos sin contraseña
     if(currentUser==='Modulos'){
       document.getElementById('modulo-pass').value='';
       document.getElementById('modulo-error').textContent='';
@@ -518,7 +595,6 @@ function ocultarTodo(){
   currentView=null;
 }
 function entrarTablero(){ setView('grid'); }
-function entrarModulos(){ abrirModtable(); }
 function abrirModtable(){
   const grid=document.getElementById('modtable-grid');grid.innerHTML='';
   MODULES.forEach(id=>{
@@ -529,7 +605,6 @@ function abrirModtable(){
   document.getElementById('modtable-screen').classList.remove('hidden');
 }
 function cambiarModulo(){
-  // Solo usuario Módulos necesita re-autenticarse
   if(currentUser==='Modulos'){
     document.getElementById('modulo-pass').value='';
     document.getElementById('modulo-error').textContent='';
@@ -539,7 +614,6 @@ function cambiarModulo(){
     document.getElementById('modulo-login-screen').classList.remove('hidden');
     return;
   }
-  // Programador u otros: entra directo
   document.getElementById('single-view').classList.remove('active');
   document.getElementById('nav-single').style.display='none';
   currentView=null;abrirModtable();
@@ -547,14 +621,12 @@ function cambiarModulo(){
 function atrasDesdeTablero(){
   document.getElementById('stats-bar').style.display='none';
   document.getElementById('grid-view').classList.add('hidden');
-  currentView=null;
-  mostrarAreaScreen();
+  currentView=null;mostrarAreaScreen();
 }
 function atrasDesdeModulo(){
   document.getElementById('nav-single').style.display='none';
   document.getElementById('single-view').classList.remove('active');
-  currentView=null;
-  volverAArea();
+  currentView=null;volverAArea();
 }
 
 // ── VISTAS ────────────────────────────────────────────────────────
@@ -610,8 +682,9 @@ function commitChange(id,s,mecanico){
   logChange(id,prev,s,dur,mecanico);
   states[id]=s;timers[id]=ahora;
   if(mecanico) lastMec[id]=mecanico;
-  // Sonido alerta para Televisor cuando pasa a rojo
   if(s==='red'&&currentUser==='Televisor') playAlertSound();
+  // Enviar cambio al servidor para sincronizar otros dispositivos
+  wsSend({type:'change', id, state:s, mecanico:mecanico||''});
   updateStats();if(selectedMod===id)renderBig();showToast(id,s);renderGrid();
 }
 
@@ -674,9 +747,7 @@ function renderBig(){
 
 // ── MODAL ACUMULADO ───────────────────────────────────────────────
 let acumSortDesc=true;
-
 function openAcumuladoModal(){
-  // Poblar filtro de módulos
   const fMod=document.getElementById('acum-f-modulo');
   const prev=fMod.value;
   fMod.innerHTML='<option value="">Todos los módulos</option>';
@@ -687,19 +758,15 @@ function openAcumuladoModal(){
   document.getElementById('modal-acumulado').classList.remove('hidden');
   renderAcumulado();
 }
-
 function toggleAcumSort(){
   acumSortDesc=!acumSortDesc;
   document.getElementById('acum-sort-btn').textContent=acumSortDesc?'↓ Mayor tiempo':'↑ Menor tiempo';
   renderAcumulado();
 }
-
 function renderAcumulado(){
   const now=Date.now();
   const filtMod=document.getElementById('acum-f-modulo').value;
   const filtEst=document.getElementById('acum-f-estado').value;
-
-  // Construir datos
   let rows=MODULES.map(id=>{
     const s=states[id];
     const cur=now-timers[id];
@@ -708,19 +775,12 @@ function renderAcumulado(){
     const total=totalR+totalY;
     return{id,s,totalR,totalY,total};
   });
-
-  // Filtrar por módulo
   if(filtMod) rows=rows.filter(r=>r.id===filtMod);
-
-  // Filtrar por estado
-  if(filtEst==='red')       rows=rows.filter(r=>r.s==='red');
-  else if(filtEst==='yellow')rows=rows.filter(r=>r.s==='yellow');
-  else if(filtEst==='green') rows=rows.filter(r=>r.s==='green');
+  if(filtEst==='red')            rows=rows.filter(r=>r.s==='red');
+  else if(filtEst==='yellow')    rows=rows.filter(r=>r.s==='yellow');
+  else if(filtEst==='green')     rows=rows.filter(r=>r.s==='green');
   else if(filtEst==='contiempo') rows=rows.filter(r=>r.total>0);
-
-  // Ordenar
   rows.sort((a,b)=>acumSortDesc?(b.total-a.total):(a.total-b.total));
-
   const tbody=document.getElementById('acum-tbody');tbody.innerHTML='';
   rows.forEach(({id,s,totalR,totalY,total})=>{
     let badge='';
@@ -736,7 +796,6 @@ function renderAcumulado(){
   });
   document.getElementById('acum-count').textContent=`${rows.length} de ${MODULES.length} módulos`;
 }
-
 function closeAcumuladoModal(){document.getElementById('modal-acumulado').classList.add('hidden');}
 
 // ── CORREGIR MECÁNICO ─────────────────────────────────────────────
@@ -786,8 +845,8 @@ function downloadExcel(){
   const rows=filteredHistory();
   if(!rows.length){document.getElementById('excel-info').innerHTML='<span style="color:var(--red)">No hay registros en ese rango</span>';return;}
   const data=rows.map(r=>({'Fecha':r.fecha,'Módulo':r.modulo,'Transición':`${LABELS[r.estadoAnterior]} → ${LABELS[r.estadoNuevo]}`,'Duración (minutos)':r.durMinutos,'Mecánico':r.mecanico||''}));
-  const ws=XLSX.utils.json_to_sheet(data);ws['!cols']=[{wch:12},{wch:8},{wch:28},{wch:20},{wch:22}];
-  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Historial');
+  const ws2=XLSX.utils.json_to_sheet(data);ws2['!cols']=[{wch:12},{wch:8},{wch:28},{wch:20},{wch:22}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws2,'Historial');
   const desde=document.getElementById('date-from').value.replace(/-/g,''),hasta=document.getElementById('date-to').value.replace(/-/g,'');
   XLSX.writeFile(wb,`mecanicos_millar_${desde}_${hasta}.xlsx`);
   closeExcelModal();showToastSimple('✅ Excel descargado correctamente');
@@ -799,5 +858,6 @@ function showToastSimple(msg){const t=document.createElement('div');t.className=
 function addRipple(el,e){const r=el.getBoundingClientRect(),rip=document.createElement('div');rip.className='ripple';const sz=Math.max(r.width,r.height);rip.style.cssText=`width:${sz}px;height:${sz}px;left:${e.clientX-r.left-sz/2}px;top:${e.clientY-r.top-sz/2}px`;el.appendChild(rip);setTimeout(()=>rip.remove(),650);}
 setInterval(()=>{const n=new Date();document.getElementById('clock').textContent=[n.getHours(),n.getMinutes(),n.getSeconds()].map(x=>String(x).padStart(2,'0')).join(':');},1000);
 </script>
+
 </body>
 </html>
