@@ -218,6 +218,7 @@ main{position:relative;z-index:1;padding:24px;max-width:1200px;margin:0 auto;pad
     <button class="btn-bar green"  id="btn-excel-bar" style="display:none;" onclick="openExcelModal()">📥 Excel</button>
     <button class="btn-bar yellow" id="btn-fix-mec"   style="display:none;" onclick="openFixMecModal()">🔧 Corregir</button>
     <button class="btn-bar red"    id="btn-cambiar-user" style="display:none;" onclick="volverLogin()">👤 Cambiar usuario</button>
+    <button class="btn-bar purple" id="btn-config"       style="display:none;" onclick="openConfigModal()">⚙️ Config</button>
     <button class="btn-bar blue"   onclick="atrasDesdeTablero()">⬅ Atrás</button>
   </div>
 </div>
@@ -415,7 +416,8 @@ function connectWS(){
         if(prev==='red')    acumRed[id]   +=dur;
         if(prev==='yellow') acumYellow[id]+=dur;
         states[id]=s; timers[id]=Date.now();
-        if(msg.mecanico) lastMec[id]=msg.mecanico;
+        if(s==='red') lastMec[id]='';
+        else if(msg.mecanico) lastMec[id]=msg.mecanico;
         if(s==='red'&&currentUser==='Televisor') playAlertSound();
         updateStats();
         if(selectedMod===id) renderBig();
@@ -498,6 +500,7 @@ function playAlertSound(){
 
 // ── INIT ──────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded',()=>{
+  applyConfig();
   updateStats();
   setConnStatus(false);
   connectWS();
@@ -517,6 +520,14 @@ function submitLogin(){
   const inp=document.getElementById('login-pass');
   if(!usuario){err.textContent='Selecciona un usuario';return;}
   if(!USUARIOS[usuario]){err.textContent='Usuario no válido';return;}
+  // Usuario Módulos entra sin contraseña
+  if(usuario==='Modulos'){
+    currentUser=usuario;
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('login-pass').value='';
+    document.getElementById('login-error').textContent='';
+    mostrarAreaScreen();return;
+  }
   if(pass!==USUARIOS[usuario].pass){
     inp.classList.add('error');err.textContent='Contraseña incorrecta';inp.value='';
     setTimeout(()=>{inp.classList.remove('error');inp.focus();},400);return;
@@ -650,6 +661,7 @@ function setView(v){
     document.getElementById('btn-excel-bar').style.display  =hasPerm('excel')?'':'none';
     document.getElementById('btn-fix-mec').style.display    =hasPerm('fix')  ?'':'none';
     document.getElementById('btn-cambiar-user').style.display=isProg()       ?'':'none';
+    document.getElementById('btn-config').style.display     =isProg()        ?'':'none';
   }
   if(v==='grid')   renderGrid();
   if(v==='single') renderBig();
@@ -863,12 +875,139 @@ function downloadExcel(){
   closeExcelModal();showToastSimple('✅ Excel descargado correctamente');
 }
 
+
+// ══════════════════════════════════════════════════════════════════
+// CONFIGURACIONES
+// ══════════════════════════════════════════════════════════════════
+const CONFIG_PERMS = {
+  'Administrador': {label:'Administrador', available:['area_mecanicos','tablero','excel']},
+  'Televisor':     {label:'Televisor',     available:['area_mecanicos','tablero']},
+  'Mecanicos':     {label:'Mecánicos',     available:['area_mecanicos','tablero']},
+  'Modulos':       {label:'Módulos',       available:['area_produccion','modulos']},
+};
+const PERM_LABELS = {
+  'area_mecanicos':'Ver Tablero Mecánicos',
+  'area_produccion':'Área Producción',
+  'tablero':'Tablero Planta',
+  'modulos':'Módulos',
+  'excel':'Descargar Excel',
+};
+const CONFIG_KEY = 'millar_config_v1';
+
+function loadConfig(){
+  try{ return JSON.parse(localStorage.getItem(CONFIG_KEY)||'{}'); }catch(e){ return {}; }
+}
+function saveConfig(cfg){ localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg)); }
+
+function applyConfig(){
+  const cfg = loadConfig();
+  Object.keys(CONFIG_PERMS).forEach(user=>{
+    if(!cfg[user]) return;
+    if(cfg[user].disabled){ delete USUARIOS[user]; return; }
+    if(cfg[user].perms) USUARIOS[user].perms = cfg[user].perms;
+  });
+}
+
+function openConfigModal(){
+  renderConfigContent();
+  document.getElementById('modal-config').classList.remove('hidden');
+}
+function closeConfigModal(){ document.getElementById('modal-config').classList.add('hidden'); }
+
+function renderConfigContent(){
+  const cfg = loadConfig();
+  const container = document.getElementById('config-content');
+  container.innerHTML = '';
+
+  Object.entries(CONFIG_PERMS).forEach(([user, meta])=>{
+    const userCfg = cfg[user] || {};
+    const isDisabled = !!userCfg.disabled;
+    const activePerms = userCfg.perms || USUARIOS[user]?.perms || meta.available;
+
+    const card = document.createElement('div');
+    card.style.cssText = 'background:#080c14;border:1px solid #1a2236;border-radius:12px;padding:16px;margin-bottom:12px;';
+
+    // Header row with user name and enable/disable toggle
+    const header = document.createElement('div');
+    header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;';
+    header.innerHTML = `
+      <span style="font-size:14px;font-weight:700;letter-spacing:1px;color:#f1f5f9;">${meta.label}</span>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:var(--muted);">
+        <span>${isDisabled?'Deshabilitado':'Habilitado'}</span>
+        <div onclick="toggleUserEnabled('${user}',this)" style="width:40px;height:22px;border-radius:11px;background:${isDisabled?'#1a2236':'var(--green)'};border:1px solid ${isDisabled?'#2d3f5a':'var(--green)'};cursor:pointer;position:relative;transition:all 0.2s;">
+          <div style="position:absolute;top:3px;${isDisabled?'left:3px':'left:19px'};width:14px;height:14px;border-radius:50%;background:${isDisabled?'var(--muted)':'#080c14'};transition:all 0.2s;"></div>
+        </div>
+      </label>`;
+    card.appendChild(header);
+
+    if(!isDisabled){
+      // Permissions checkboxes
+      const permsDiv = document.createElement('div');
+      permsDiv.style.cssText = 'display:flex;flex-direction:column;gap:8px;';
+      meta.available.forEach(perm=>{
+        const checked = activePerms.includes(perm);
+        const row = document.createElement('label');
+        row.style.cssText = 'display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:var(--muted);';
+        row.innerHTML = `
+          <input type="checkbox" data-user="${user}" data-perm="${perm}" ${checked?'checked':''} 
+            onchange="togglePerm('${user}','${perm}',this.checked)"
+            style="width:16px;height:16px;accent-color:var(--green);cursor:pointer;">
+          <span>${PERM_LABELS[perm]||perm}</span>`;
+        permsDiv.appendChild(row);
+      });
+      card.appendChild(permsDiv);
+    }
+    container.appendChild(card);
+  });
+}
+
+function toggleUserEnabled(user, toggleEl){
+  const cfg = loadConfig();
+  if(!cfg[user]) cfg[user] = {};
+  cfg[user].disabled = !cfg[user].disabled;
+  saveConfig(cfg);
+  // Re-apply to USUARIOS
+  if(cfg[user].disabled){
+    USUARIOS[user] = {pass:'1', perms:[]};
+  } else {
+    const meta = CONFIG_PERMS[user];
+    USUARIOS[user] = {pass:'1', perms: cfg[user].perms || meta.available};
+  }
+  renderConfigContent();
+}
+
+function togglePerm(user, perm, enabled){
+  const cfg = loadConfig();
+  if(!cfg[user]) cfg[user] = {};
+  const meta = CONFIG_PERMS[user];
+  const base = cfg[user].perms || USUARIOS[user]?.perms || meta.available;
+  if(enabled){ if(!base.includes(perm)) base.push(perm); }
+  else { const idx=base.indexOf(perm); if(idx>-1) base.splice(idx,1); }
+  cfg[user].perms = base;
+  saveConfig(cfg);
+  if(USUARIOS[user]) USUARIOS[user].perms = base;
+}
+
+// Apply saved config on load
+applyConfig();
+
 // ── UTILS ─────────────────────────────────────────────────────────
 function showToast(id,state){const msgs={red:`🔴 ${id} — Solicita mecánico`,yellow:`🟡 ${id} — Mecánico en camino`,green:`🟢 ${id} — Resuelto`};const t=document.createElement('div');t.className=`toast ${state}`;t.textContent=msgs[state];document.getElementById('toasts').appendChild(t);setTimeout(()=>t.remove(),3200);}
 function showToastSimple(msg){const t=document.createElement('div');t.className='toast green';t.textContent=msg;document.getElementById('toasts').appendChild(t);setTimeout(()=>t.remove(),3200);}
 function addRipple(el,e){const r=el.getBoundingClientRect(),rip=document.createElement('div');rip.className='ripple';const sz=Math.max(r.width,r.height);rip.style.cssText=`width:${sz}px;height:${sz}px;left:${e.clientX-r.left-sz/2}px;top:${e.clientY-r.top-sz/2}px`;el.appendChild(rip);setTimeout(()=>rip.remove(),650);}
 setInterval(()=>{const n=new Date();document.getElementById('clock').textContent=[n.getHours(),n.getMinutes(),n.getSeconds()].map(x=>String(x).padStart(2,'0')).join(':');},1000);
 </script>
+
+
+<!-- MODAL: Configuraciones -->
+<div class="modal-overlay hidden" id="modal-config">
+  <div class="modal-box" style="max-width:480px;width:95%;max-height:85vh;overflow-y:auto;gap:14px;align-items:stretch;">
+    <div class="modal-title" style="text-align:center;">⚙️ CONFIGURACIONES</div>
+    <div class="modal-sub" style="text-align:center;">Administra usuarios y permisos</div>
+    <div id="config-content"></div>
+    <button class="modal-btn secondary" onclick="closeConfigModal()" style="margin-top:8px;">Cerrar</button>
+  </div>
+</div>
 
 </body>
 </html>
