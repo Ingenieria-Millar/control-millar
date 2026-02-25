@@ -469,28 +469,30 @@ function logChange(modulo,prev,next,durMs,mecanico){
   saveHistory(h);
 }
 
-// ── SONIDO ALERTA ─────────────────────────────────────────────────
+// ── SONIDO ALERTA (SIRENA AMBULANCIA) ────────────────────────────
 let audioCtx=null;
 function playAlertSound(){
   try{
     if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();
-    const beep=(freq,start,dur)=>{
-      const o=audioCtx.createOscillator(),g=audioCtx.createGain();
-      o.connect(g);g.connect(audioCtx.destination);
-      o.frequency.value=freq;o.type='square';
-      g.gain.setValueAtTime(0.7,audioCtx.currentTime+start);
-      g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+start+dur);
-      o.start(audioCtx.currentTime+start);o.stop(audioCtx.currentTime+start+dur+0.05);
-    };
-    // Secuencia larga y fuerte ~3 segundos
-    beep(880,0.00,0.3);
-    beep(660,0.35,0.3);
-    beep(880,0.70,0.3);
-    beep(660,1.05,0.3);
-    beep(880,1.40,0.3);
-    beep(660,1.75,0.3);
-    beep(880,2.10,0.3);
-    beep(1000,2.50,0.5);
+    const durTotal=6;
+    const ciclo=0.6;
+    const o=audioCtx.createOscillator();
+    const g=audioCtx.createGain();
+    o.connect(g); g.connect(audioCtx.destination);
+    o.type='sawtooth';
+    g.gain.setValueAtTime(0.85, audioCtx.currentTime);
+    g.gain.setValueAtTime(0.85, audioCtx.currentTime+durTotal-0.1);
+    g.gain.linearRampToValueAtTime(0, audioCtx.currentTime+durTotal);
+    const t0=audioCtx.currentTime;
+    for(let i=0;i<Math.floor(durTotal/ciclo);i++){
+      const t=t0+(i*ciclo);
+      const freqStart=i%2===0?700:1050;
+      const freqEnd  =i%2===0?1050:700;
+      o.frequency.setValueAtTime(freqStart, t);
+      o.frequency.linearRampToValueAtTime(freqEnd, t+ciclo);
+    }
+    o.start(audioCtx.currentTime);
+    o.stop(audioCtx.currentTime+durTotal);
   }catch(e){}
 }
 
