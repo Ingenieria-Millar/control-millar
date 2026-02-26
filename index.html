@@ -358,8 +358,8 @@ const NEXT={green:'red',red:'yellow',yellow:'green'};
 const MECANICOS=['ANDRES RIOS','CESAR CIFUENTES','DAIRON ZAPATA','ELKIN LOPEZ','JUAN C GONZALEZ','OSCAR ZEA','RICARDO SERNA','WALTER PEREZ','YON CANO'];
 
 const USUARIOS={
-  'Programador':  {pass:'1',perms:['area_mecanicos','area_produccion','tablero','modulos','excel','fix']},
-  'Administrador':{pass:'1',perms:['area_mecanicos','tablero','excel']},
+  'Programador':  {pass:'1',perms:['area_mecanicos','area_produccion','tablero','modulos','excel','fix','area_ingreso']},
+  'Administrador':{pass:'1',perms:['area_mecanicos','tablero','excel','area_ingreso']},
   'Modulos':      {pass:'1',perms:['area_produccion','modulos']},
   'Televisor':    {pass:'1',perms:['area_mecanicos','tablero']},
   'Mecanicos':    {pass:'1',perms:['area_mecanicos','tablero']},
@@ -391,20 +391,24 @@ function connectWS(){
   ws.onmessage=(e)=>{
     try{
       const msg=JSON.parse(e.data);
+
+      // ── Control de Piso ──────────────────────────────────────
       if(msg.type==='init'){
-        // Recibir estado completo del servidor al conectar
         MODULES.forEach(id=>{
           if(msg.states[id] && msg.states[id]!==states[id]){
-            states[id]=msg.states[id];
-            timers[id]=Date.now();
+            states[id]=msg.states[id]; timers[id]=Date.now();
           }
           if(msg.lastMec[id]) lastMec[id]=msg.lastMec[id];
         });
+        // ── Control de Asistencia: recibir datos del servidor ──
+        if(msg.iaState)   iaState   = msg.iaState;
+        if(msg.iaRecords) iaRecords = msg.iaRecords;
+        iaReady = true;
         updateStats();
-        if(currentView==='grid') renderGrid();
+        if(currentView==='grid')   renderGrid();
         if(currentView==='single') renderBig();
+
       } else if(msg.type==='change'){
-        // Cambio de otro dispositivo — aplicar localmente sin reenviar
         const id=msg.id, s=msg.state;
         const prev=states[id];
         const dur=Date.now()-(timers[id]||Date.now());
@@ -417,8 +421,35 @@ function connectWS(){
         updateStats();
         if(selectedMod===id) renderBig();
         renderGrid();
+
+      // ── Control de Asistencia: sincronización entre dispositivos ──
+      } else if(msg.type==='ia_add_record'){
+        if(!iaRecords) iaRecords=[];
+        iaRecords = iaRecords.filter(r=>
+          !(r.empName===msg.record.empName && r.date===msg.record.date && r.supervisor===msg.record.supervisor)
+        );
+        iaRecords.push(msg.record);
+        if(typeof iaUpdateStats==='function') iaUpdateStats();
+        if(typeof iaRenderTodayChips==='function') iaRenderTodayChips();
+        if(typeof iaRenderHistory==='function' && document.getElementById('ia-tab-history') && !document.getElementById('ia-tab-history').classList.contains('hidden')) iaRenderHistory();
+        if(typeof iaRenderAdminTable==='function' && document.getElementById('ia-tab-records') && !document.getElementById('ia-tab-records').classList.contains('hidden')) iaRenderAdminTable();
+
+      } else if(msg.type==='ia_delete_record'){
+        if(iaRecords) iaRecords = iaRecords.filter(r=>r.id!==msg.id);
+        if(typeof iaUpdateStats==='function') iaUpdateStats();
+        if(typeof iaRenderTodayChips==='function') iaRenderTodayChips();
+        if(typeof iaRenderAdminTable==='function') iaRenderAdminTable();
+
+      } else if(msg.type==='ia_edit_record'){
+        if(iaRecords){ const idx=iaRecords.findIndex(r=>r.id===msg.record.id); if(idx>-1) iaRecords[idx]=msg.record; }
+        if(typeof iaRenderAdminTable==='function') iaRenderAdminTable();
+
+      } else if(msg.type==='ia_save_state'){
+        iaState = msg.state;
+        if(typeof iaBuildLoginSelect==='function') iaBuildLoginSelect();
       }
-    }catch(err){}
+
+    }catch(err){ console.error('WS error:', err); }
   };
 
   ws.onclose=()=>{
@@ -574,6 +605,15 @@ function mostrarAreaScreen(){
     const b=document.createElement('button');b.className='sel-btn prod-btn';
     b.innerHTML='🏭&nbsp; PRODUCCIÓN';
     b.onclick=()=>elegirArea('produccion');
+    btns.appendChild(b);
+  }
+  if(hasPerm('area_ingreso')){
+    const b=document.createElement('button');b.className='sel-btn';
+    b.style.cssText='border-color:rgba(99,179,237,0.35);';
+    b.innerHTML='🏢&nbsp; CONTROL DE INGRESO';
+    b.onmouseover=()=>b.style.cssText='border-color:rgba(99,179,237,0.7);box-shadow:0 4px 20px rgba(99,179,237,0.15);';
+    b.onmouseout=()=>b.style.cssText='border-color:rgba(99,179,237,0.35);';
+    b.onclick=()=>{ document.getElementById('area-screen').classList.add('hidden'); abrirControlIngreso(); };
     btns.appendChild(b);
   }
   if(isProg()){
@@ -919,6 +959,7 @@ const ALL_PERMS = [
   {key:'area_produccion',label:'Área Producción'},
   {key:'modulos',        label:'Módulos (Vista Módulo)'},
   {key:'fix',            label:'Corregir Mecánico'},
+  {key:'area_ingreso',   label:'Control de Ingreso'},
 ];
 const PERM_LABELS = Object.fromEntries(ALL_PERMS.map(p=>[p.key,p.label]));
 
@@ -1468,6 +1509,989 @@ setInterval(()=>{const n=new Date();document.getElementById('clock').textContent
     </div>
   </div>
 </div>
+
+<!-- ══════════════════════════════════════════════════════════
+     CONTROL DE INGRESO — Pantalla completa superpuesta
+     ═══════════════════════════════════════════════════════════ -->
+<div id="ingreso-screen" style="
+  display:none;
+  position:fixed;inset:0;z-index:800;
+  background:#0a0e1a;
+  flex-direction:column;
+  overflow:hidden;
+">
+  <!-- Barra superior con botón volver -->
+  <div style="
+    position:sticky;top:0;z-index:900;
+    display:flex;align-items:center;gap:14px;
+    padding:12px 20px;
+    background:rgba(10,14,26,0.97);
+    border-bottom:1px solid #1f2d44;
+    backdrop-filter:blur(10px);
+    flex-shrink:0;
+  ">
+    <button onclick="cerrarControlIngreso()" style="
+      display:flex;align-items:center;gap:8px;
+      padding:8px 16px;border-radius:8px;
+      border:1px solid rgba(99,179,237,0.35);
+      background:rgba(99,179,237,0.06);
+      color:#93c5fd;font-family:'Segoe UI',Arial,sans-serif;
+      font-size:13px;font-weight:700;letter-spacing:1px;
+      cursor:pointer;transition:all 0.2s;
+    "
+    onmouseover="this.style.background='rgba(99,179,237,0.14)'"
+    onmouseout="this.style.background='rgba(99,179,237,0.06)'"
+    >⬅ Volver a Millar</button>
+    <span style="font-size:11px;color:#4b5a72;letter-spacing:3px;text-transform:uppercase;">
+      Control de Piso — Confecciones Millar
+    </span>
+  </div>
+
+  <!-- Contenedor scrolleable donde se inyecta el Control de Asistencia -->
+  <div id="ingreso-body" style="flex:1;overflow-y:auto;"></div>
+</div>
+
+<script>
+// ── CONTROL DE INGRESO ────────────────────────────────────────────
+function abrirControlIngreso(){
+  const screen = document.getElementById('ingreso-screen');
+  screen.style.display = 'flex';
+  // Solo inicializar la primera vez
+  if(!document.getElementById('ingreso-app-root')){
+    // Mostrar loader mientras esperamos datos del servidor
+    const body = document.getElementById('ingreso-body');
+    body.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;gap:16px;color:#6b7a99;font-family:Segoe UI,sans-serif;">' +
+      '<div style="width:40px;height:40px;border:3px solid #1f2d44;border-top-color:#00e5a0;border-radius:50%;animation:spin 0.8s linear infinite;"></div>' +
+      '<span style="font-size:13px;letter-spacing:2px;text-transform:uppercase;">Cargando datos del servidor...</span>' +
+      '<style>@keyframes spin{to{transform:rotate(360deg)}}</style></div>';
+    // Esperar datos del servidor antes de cargar la app
+    iaWaitReady(function(){
+      body.innerHTML = '';
+      cargarAppIngreso();
+    });
+  }
+}
+
+function cerrarControlIngreso(){
+  document.getElementById('ingreso-screen').style.display = 'none';
+  mostrarAreaScreen();
+}
+
+function cargarAppIngreso(){
+  const body = document.getElementById('ingreso-body');
+
+  // ── Inyectar CSS del Control de Asistencia ─────────────────────
+  const style = document.createElement('style');
+  style.id = 'ingreso-styles';
+  style.textContent = `
+    #ingreso-body { font-family: 'Syne', sans-serif; }
+    #ingreso-app-root { min-height:100vh; }
+
+    /* Reset scoped al contenedor */
+    #ingreso-body *{ box-sizing:border-box; }
+
+    /* Variables propias del Control de Asistencia */
+    #ingreso-body {
+      --ia-bg:#0a0e1a; --ia-surface:#111827; --ia-surface2:#1a2235;
+      --ia-accent:#00e5a0; --ia-accent2:#0077ff;
+      --ia-text:#e8ecf4; --ia-muted:#6b7a99; --ia-border:#1f2d44;
+      --ia-danger:#ff4d6d; --ia-warn:#ffa63d; --ia-absent:#ff4d6d;
+    }
+  `;
+  document.head.appendChild(style);
+
+  // Cargar fuentes si no están
+  if(!document.getElementById('syne-font')){
+    const link = document.createElement('link');
+    link.id = 'syne-font';
+    link.rel = 'stylesheet';
+    link.href = 'https://fonts.googleapis.com/css2?family=Syne:wght@400;600;800&family=DM+Mono:wght@400;500&display=swap';
+    document.head.appendChild(link);
+  }
+
+  // ── Inyectar HTML del Control de Asistencia ────────────────────
+  const wrapper = document.createElement('div');
+  wrapper.id = 'ingreso-app-root';
+  wrapper.innerHTML = getIngresoHTML();
+  body.appendChild(wrapper);
+
+  // ── Ejecutar scripts del Control de Asistencia ─────────────────
+  runIngresoScript();
+}
+
+// ── HTML del Control de Asistencia (sin <html>,<head>,<body>) ─────
+function getIngresoHTML(){
+  return `
+<style>
+/* ─── Estilos Control de Asistencia ─── */
+#ingreso-app-root{color:#e8ecf4;background:#0a0e1a;
+  background-image:radial-gradient(ellipse 80% 50% at 50% -20%,rgba(0,229,160,.08) 0%,transparent 70%);}
+#ia-login{min-height:calc(100vh - 54px);display:flex;align-items:center;justify-content:center;padding:2rem;}
+.ia-login-card{background:#111827;border:1px solid #1f2d44;border-radius:20px;padding:3rem 2.5rem;
+  width:100%;max-width:420px;box-shadow:0 40px 80px rgba(0,0,0,.5);animation:iaSlideUp .4s cubic-bezier(.22,1,.36,1);}
+@keyframes iaSlideUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+.ia-login-logo{text-align:center;margin-bottom:2.5rem;}
+.ia-login-logo .ia-icon{display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;
+  border-radius:16px;background:linear-gradient(135deg,rgba(0,229,160,.2),rgba(0,119,255,.2));
+  border:1px solid rgba(0,229,160,.3);font-size:28px;margin-bottom:1rem;}
+.ia-login-logo h2{font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800;letter-spacing:-.03em;color:#e8ecf4;}
+.ia-login-logo h2 span{color:#00e5a0;}
+.ia-login-logo p{color:#6b7a99;font-size:.85rem;margin-top:.3rem;}
+.ia-fg{margin-bottom:1.2rem;}
+.ia-fg label{display:block;font-size:.8rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#6b7a99;margin-bottom:.5rem;}
+.ia-fg input,.ia-fg select{width:100%;padding:.85rem 1rem;background:#1a2235;border:1px solid #1f2d44;
+  border-radius:10px;color:#e8ecf4;font-family:'DM Mono',monospace;font-size:.9rem;outline:none;transition:border-color .2s;}
+.ia-fg select option{background:#1a2235;}
+.ia-fg input:focus,.ia-fg select:focus{border-color:#00e5a0;}
+.ia-btn-primary{width:100%;padding:1rem;background:#00e5a0;color:#0a0e1a;border:none;border-radius:10px;
+  font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;cursor:pointer;transition:opacity .2s;margin-top:.5rem;}
+.ia-btn-primary:hover{opacity:.9;}
+.ia-err{color:#ff4d6d;font-size:.82rem;text-align:center;margin-top:.8rem;display:none;}
+
+/* App principal */
+#ia-app{display:none;}
+.ia-header{padding:1rem 2rem;border-bottom:1px solid #1f2d44;display:flex;align-items:center;
+  justify-content:space-between;background:rgba(10,14,26,.95);flex-wrap:wrap;gap:.8rem;}
+.ia-header-left h3{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;letter-spacing:-.02em;color:#e8ecf4;}
+.ia-header-left h3 span{color:#00e5a0;}
+.ia-header-left p{font-size:.78rem;color:#6b7a99;font-family:'DM Mono',monospace;}
+.ia-header-right{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;}
+.ia-sup-badge{display:flex;align-items:center;gap:.5rem;background:#1a2235;border:1px solid #1f2d44;
+  padding:.5rem 1rem;border-radius:8px;font-size:.82rem;color:#e8ecf4;}
+.ia-sup-dot{width:8px;height:8px;border-radius:50%;background:#00e5a0;animation:iaPulse 2s infinite;}
+@keyframes iaPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.3)}}
+.ia-badge-admin{display:inline-flex;align-items:center;gap:.4rem;background:rgba(255,166,61,.1);
+  border:1px solid rgba(255,166,61,.3);color:#ffa63d;padding:.3rem .8rem;border-radius:20px;font-size:.75rem;font-weight:700;}
+.ia-btn-logout{background:transparent;border:1px solid #1f2d44;color:#6b7a99;padding:.5rem 1rem;
+  border-radius:8px;font-family:'Syne',sans-serif;font-size:.82rem;cursor:pointer;transition:all .2s;}
+.ia-btn-logout:hover{border-color:#ff4d6d;color:#ff4d6d;}
+
+/* Main */
+.ia-main{max-width:1200px;margin:0 auto;padding:2rem;display:grid;gap:1.5rem;}
+.ia-tabs{display:flex;gap:.5rem;background:#111827;border:1px solid #1f2d44;padding:.4rem;border-radius:12px;width:fit-content;flex-wrap:wrap;}
+.ia-tab-btn{padding:.55rem 1.2rem;border-radius:8px;border:none;font-family:'Syne',sans-serif;
+  font-size:.85rem;font-weight:600;cursor:pointer;background:transparent;color:#6b7a99;transition:all .2s;}
+.ia-tab-btn.active{background:#00e5a0;color:#0a0e1a;}
+.ia-tab-btn.admin-tab.active{background:#ffa63d;color:#0a0e1a;}
+
+/* Stats */
+.ia-stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;}
+.ia-stat-card{background:#111827;border:1px solid #1f2d44;border-radius:12px;padding:1.2rem 1.5rem;}
+.ia-stat-card .ia-slabel{font-size:.75rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#6b7a99;margin-bottom:.4rem;}
+.ia-stat-card .ia-value{font-size:2rem;font-weight:800;color:#00e5a0;line-height:1;font-family:'DM Mono',monospace;}
+.ia-stat-card .ia-value.absent{color:#ff4d6d;}
+.ia-stat-card .ia-sub{font-size:.78rem;color:#6b7a99;margin-top:.3rem;}
+
+/* Panel */
+.ia-panel{background:#111827;border:1px solid #1f2d44;border-radius:16px;padding:2rem;}
+.ia-panel h3{font-size:1rem;font-weight:800;letter-spacing:-.02em;margin-bottom:1.5rem;display:flex;align-items:center;gap:.5rem;color:#e8ecf4;}
+.ia-panel h3::before{content:'';display:inline-block;width:4px;height:18px;background:#00e5a0;border-radius:2px;}
+.ia-panel.ia-warn-panel h3::before{background:#ffa63d;}
+.ia-panel-subtitle{font-size:.8rem;color:#6b7a99;margin-top:-.8rem;margin-bottom:1.2rem;}
+
+/* Register grid */
+.ia-reg-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+@media(max-width:600px){.ia-reg-grid{grid-template-columns:1fr;}}
+.ia-search-wrapper{position:relative;}
+.ia-clear-btn{position:absolute;right:.8rem;top:50%;transform:translateY(-50%);background:none;border:none;color:#6b7a99;cursor:pointer;font-size:1rem;}
+.ia-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#1a2235;
+  border:1px solid #1f2d44;border-radius:10px;max-height:220px;overflow-y:auto;
+  z-index:200;display:none;box-shadow:0 20px 40px rgba(0,0,0,.4);}
+.ia-dropdown.open{display:block;}
+.ia-dd-item{padding:.7rem 1rem;cursor:pointer;font-size:.85rem;font-family:'DM Mono',monospace;
+  border-bottom:1px solid rgba(31,45,68,.5);color:#e8ecf4;transition:background .15s;}
+.ia-dd-item:last-child{border-bottom:none;}
+.ia-dd-item:hover{background:rgba(0,229,160,.08);color:#00e5a0;}
+.ia-dd-item mark{background:transparent;color:#00e5a0;font-weight:700;}
+.ia-action-btns{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+.ia-btn-register{padding:1rem;background:linear-gradient(135deg,#00e5a0,#00c47a);border:none;
+  border-radius:10px;color:#0a0e1a;font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:.5rem;transition:opacity .2s;}
+.ia-btn-register:hover{opacity:.9;}
+.ia-btn-absent{padding:1rem;background:transparent;border:2px solid #ff4d6d;border-radius:10px;
+  color:#ff4d6d;font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:.5rem;transition:all .2s;}
+.ia-btn-absent:hover{background:rgba(255,77,109,.1);}
+.ia-toast{grid-column:1/-1;padding:1rem;border-radius:10px;font-size:.9rem;display:none;text-align:center;font-weight:600;}
+.ia-toast.ok{background:rgba(0,229,160,.1);border:1px solid rgba(0,229,160,.3);color:#00e5a0;}
+.ia-toast.bad{background:rgba(255,77,109,.1);border:1px solid rgba(255,77,109,.3);color:#ff4d6d;}
+.ia-today-section{margin-top:1.5rem;}
+.ia-today-section h4{font-size:.85rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#6b7a99;margin-bottom:1rem;}
+.ia-chips{display:flex;flex-wrap:wrap;gap:.5rem;}
+.ia-chip{display:inline-flex;align-items:center;gap:.4rem;padding:.35rem .9rem;border-radius:20px;
+  background:rgba(0,229,160,.08);border:1px solid rgba(0,229,160,.2);font-size:.78rem;font-family:'DM Mono',monospace;color:#00e5a0;}
+.ia-chip.absent{background:rgba(255,77,109,.08);border-color:rgba(255,77,109,.2);color:#ff4d6d;}
+.ia-chip .ia-area-tag{background:rgba(0,119,255,.15);color:#7ab8ff;padding:.1rem .4rem;border-radius:4px;font-size:.7rem;}
+
+/* History controls */
+.ia-hist-controls{margin-bottom:1.2rem;}
+.ia-date-row{display:flex;align-items:flex-end;gap:1rem;flex-wrap:wrap;}
+.ia-ctrl-grp{display:flex;flex-direction:column;gap:.4rem;}
+.ia-ctrl-grp label{font-size:.75rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#6b7a99;}
+.ia-ctrl-grp input[type="date"],.ia-ctrl-grp select{width:auto;padding:.55rem 1rem;background:#1a2235;border:1px solid #1f2d44;border-radius:8px;color:#e8ecf4;outline:none;font-family:'DM Mono',monospace;}
+.ia-sort-controls{display:flex;gap:.5rem;align-items:center;}
+.ia-sort-label{font-size:.75rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#6b7a99;}
+.ia-sort-btn{padding:.4rem .9rem;background:transparent;border:1px solid #1f2d44;color:#6b7a99;
+  border-radius:7px;font-family:'Syne',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .2s;}
+.ia-sort-btn.active{border-color:#00e5a0;color:#00e5a0;background:rgba(0,229,160,.08);}
+.ia-btn-excel{padding:.6rem 1.3rem;background:rgba(34,139,34,.15);border:1px solid rgba(34,139,34,.4);
+  color:#4caf50;border-radius:8px;font-family:'Syne',sans-serif;font-size:.82rem;font-weight:700;
+  cursor:pointer;transition:all .2s;white-space:nowrap;}
+.ia-btn-excel:hover{background:rgba(34,139,34,.25);}
+
+/* Table */
+.ia-table-wrap{overflow-x:auto;}
+.ia-table{width:100%;border-collapse:collapse;font-size:.88rem;}
+.ia-table thead tr{border-bottom:1px solid #1f2d44;}
+.ia-table th{text-align:left;padding:.8rem 1rem;font-size:.75rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#6b7a99;}
+.ia-table td{padding:.9rem 1rem;border-bottom:1px solid rgba(31,45,68,.5);font-family:'DM Mono',monospace;font-size:.85rem;color:#e8ecf4;vertical-align:middle;}
+.ia-table tr:hover td{background:rgba(255,255,255,.02);}
+.ia-badge{display:inline-flex;align-items:center;gap:.3rem;padding:.25rem .7rem;border-radius:20px;font-size:.75rem;font-weight:600;font-family:'Syne',sans-serif;}
+.ia-badge.in{background:rgba(0,229,160,.12);color:#00e5a0;border:1px solid rgba(0,229,160,.2);}
+.ia-badge.out{background:rgba(255,77,109,.12);color:#ff4d6d;border:1px solid rgba(255,77,109,.2);}
+.ia-badge.area{background:rgba(0,119,255,.12);color:#7ab8ff;border:1px solid rgba(0,119,255,.2);}
+.ia-btn-edit{padding:.3rem .8rem;background:transparent;border:1px solid #ffa63d;color:#ffa63d;
+  border-radius:6px;font-family:'Syne',sans-serif;font-size:.75rem;font-weight:600;cursor:pointer;transition:all .2s;}
+.ia-btn-edit:hover{background:rgba(255,166,61,.1);}
+.ia-empty{text-align:center;padding:3rem;color:#6b7a99;font-size:.9rem;display:none;}
+
+/* Admin config */
+.ia-admin-sections{display:grid;gap:2rem;}
+.ia-admin-section{background:#1a2235;border:1px solid #1f2d44;border-radius:12px;padding:1.5rem;}
+.ia-admin-section h4{font-size:.9rem;font-weight:800;margin-bottom:1.2rem;display:flex;align-items:center;gap:.5rem;color:#ffa63d;}
+.ia-input-row{display:flex;gap:1rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:1rem;}
+.ia-input-row .ia-fg{flex:1;min-width:160px;margin-bottom:0;}
+.ia-btn-add{padding:.85rem 1.4rem;background:#00e5a0;color:#0a0e1a;border:none;border-radius:10px;
+  font-family:'Syne',sans-serif;font-size:.88rem;font-weight:800;cursor:pointer;white-space:nowrap;transition:opacity .2s;}
+.ia-btn-add:hover{opacity:.85;}
+.ia-btn-sec{padding:.85rem 1.4rem;background:transparent;color:#0077ff;border:1px solid #0077ff;border-radius:10px;
+  font-family:'Syne',sans-serif;font-size:.88rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .2s;}
+.ia-btn-sec:hover{background:rgba(0,119,255,.1);}
+.ia-search-filter{margin-bottom:.8rem;}
+.ia-search-filter input{width:100%;padding:.6rem 1rem;background:#1a2235;border:1px solid #1f2d44;border-radius:8px;color:#e8ecf4;font-family:'DM Mono',monospace;font-size:.85rem;outline:none;}
+.ia-list-grid{display:flex;flex-direction:column;gap:.4rem;max-height:320px;overflow-y:auto;}
+.ia-list-item{display:flex;align-items:center;gap:.8rem;padding:.65rem 1rem;background:rgba(255,255,255,.03);
+  border:1px solid #1f2d44;border-radius:8px;flex-wrap:wrap;}
+.ia-item-name{flex:1;font-size:.85rem;font-family:'DM Mono',monospace;min-width:0;word-break:break-word;color:#e8ecf4;}
+.ia-item-actions{display:flex;gap:.4rem;flex-shrink:0;}
+.ia-tag{padding:.2rem .6rem;border-radius:12px;font-size:.72rem;font-weight:600;font-family:'Syne',sans-serif;}
+.ia-tag.sup{background:rgba(0,229,160,.12);color:#00e5a0;border:1px solid rgba(0,229,160,.2);}
+.ia-tag.none{background:rgba(107,122,153,.12);color:#6b7a99;border:1px solid #1f2d44;}
+.ia-areas-grid{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.8rem;}
+.ia-area-chip{display:inline-flex;align-items:center;gap:.4rem;padding:.3rem .8rem;border-radius:20px;
+  background:rgba(0,229,160,.08);border:1px solid rgba(0,229,160,.2);font-size:.8rem;font-family:'DM Mono',monospace;color:#00e5a0;}
+.ia-area-chip .rm{background:none;border:none;color:#ff4d6d;cursor:pointer;font-size:.9rem;line-height:1;padding:0 0 0 4px;}
+.ia-import-result{padding:.8rem 1rem;border-radius:8px;font-size:.85rem;font-weight:600;display:none;margin-top:.8rem;}
+.ia-import-result.ok{background:rgba(0,229,160,.1);border:1px solid rgba(0,229,160,.3);color:#00e5a0;}
+.ia-import-result.err{background:rgba(255,77,109,.1);border:1px solid rgba(255,77,109,.3);color:#ff4d6d;}
+.ia-divider{border:none;border-top:1px solid #1f2d44;margin:1.2rem 0;}
+
+/* Modal */
+.ia-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);
+  z-index:1000;display:none;align-items:center;justify-content:center;padding:1rem;}
+.ia-modal-overlay.open{display:flex;}
+.ia-modal{background:#111827;border:1px solid #1f2d44;border-radius:16px;padding:2rem;
+  width:100%;max-width:480px;box-shadow:0 40px 80px rgba(0,0,0,.7);animation:iaSlideUp .3s cubic-bezier(.22,1,.36,1);}
+.ia-modal h4{font-size:1rem;font-weight:800;margin-bottom:1.5rem;color:#ffa63d;}
+.ia-modal-actions{display:flex;gap:1rem;margin-top:1.5rem;flex-wrap:wrap;}
+.ia-btn-save{flex:1;padding:.85rem;background:#ffa63d;color:#0a0e1a;border:none;border-radius:10px;
+  font-family:'Syne',sans-serif;font-size:.95rem;font-weight:800;cursor:pointer;transition:opacity .2s;}
+.ia-btn-save:hover{opacity:.9;}
+.ia-btn-cancel{flex:1;padding:.85rem;background:transparent;border:1px solid #1f2d44;color:#6b7a99;
+  border-radius:10px;font-family:'Syne',sans-serif;font-size:.95rem;font-weight:600;cursor:pointer;transition:all .2s;}
+.ia-btn-cancel:hover{border-color:#ff4d6d;color:#ff4d6d;}
+.ia-btn-del{padding:.85rem 1.2rem;background:transparent;border:1px solid #ff4d6d;color:#ff4d6d;
+  border-radius:10px;font-family:'Syne',sans-serif;font-size:.95rem;font-weight:600;cursor:pointer;transition:all .2s;}
+.ia-btn-del:hover{background:rgba(255,77,109,.15);}
+</style>
+
+<!-- Login del Control de Asistencia -->
+<div id="ia-login">
+  <div class="ia-login-card">
+    <div class="ia-login-logo">
+      <div class="ia-icon">🏢</div>
+      <h2>Control de <span>Asistencia</span></h2>
+      <p>Sistema de registro de ingresos</p>
+    </div>
+    <div class="ia-fg">
+      <label>Usuario</label>
+      <select id="ia-login-user"></select>
+    </div>
+    <div class="ia-fg">
+      <label>Contraseña</label>
+      <input type="password" id="ia-login-pass" placeholder="••••••••">
+    </div>
+    <button class="ia-btn-primary" onclick="iaDoLogin()">Ingresar al sistema</button>
+    <p class="ia-err" id="ia-login-error">⚠ Usuario o contraseña incorrectos</p>
+  </div>
+</div>
+
+<!-- App principal del Control de Asistencia -->
+<div id="ia-app">
+  <div class="ia-header">
+    <div class="ia-header-left">
+      <h3>Control de <span>Asistencia</span></h3>
+      <p id="ia-header-date">—</p>
+    </div>
+    <div class="ia-header-right">
+      <div id="ia-admin-badge-wrap"></div>
+      <div class="ia-sup-badge"><div class="ia-sup-dot"></div><span id="ia-sup-name">—</span></div>
+      <button class="ia-btn-logout" onclick="iaDoLogout()">Cerrar sesión</button>
+    </div>
+  </div>
+
+  <div class="ia-main">
+    <div class="ia-tabs">
+      <button class="ia-tab-btn active" id="ia-tab-btn-register" onclick="iaShowTab('register',this)">➕ Registrar</button>
+      <button class="ia-tab-btn" id="ia-tab-btn-history" onclick="iaShowTab('history',this)">📋 Historial</button>
+      <button class="ia-tab-btn admin-tab hidden" id="ia-tab-btn-records" onclick="iaShowTab('records',this)">🛠 Editar Registros</button>
+      <button class="ia-tab-btn admin-tab hidden" id="ia-tab-btn-config" onclick="iaShowTab('config',this)">⚙️ Configuración</button>
+    </div>
+
+    <div class="ia-stats-row">
+      <div class="ia-stat-card"><div class="ia-slabel">Presentes hoy</div><div class="ia-value" id="ia-stat-today">0</div><div class="ia-sub" id="ia-stat-date">—</div></div>
+      <div class="ia-stat-card"><div class="ia-slabel">Faltas hoy</div><div class="ia-value absent" id="ia-stat-absent">0</div><div class="ia-sub">registradas</div></div>
+      <div class="ia-stat-card"><div class="ia-slabel">Pendientes</div><div class="ia-value" id="ia-stat-pending">0</div><div class="ia-sub">sin registrar</div></div>
+      <div class="ia-stat-card"><div class="ia-slabel">Total registros</div><div class="ia-value" id="ia-stat-total">0</div><div class="ia-sub">todos los días</div></div>
+    </div>
+
+    <!-- REGISTRAR -->
+    <div class="ia-panel" id="ia-tab-register">
+      <h3>Nuevo Ingreso</h3>
+      <div class="ia-reg-grid">
+        <div class="ia-fg hidden" id="ia-admin-sup-filter-wrap" style="grid-column:1/-1">
+          <label>Supervisor (filtrar empleados)</label>
+          <select id="ia-admin-sup-filter" onchange="iaBuildAdminAreaSelect(); iaFilterEmployees()">
+            <option value="">— Todos los empleados —</option>
+          </select>
+        </div>
+        <div class="ia-fg" style="grid-column:1/-1">
+          <label>Buscar empleado</label>
+          <div class="ia-search-wrapper">
+            <input type="text" id="ia-emp-search" placeholder="Escribe el nombre..." autocomplete="off"
+              oninput="iaFilterEmployees()" onfocus="iaOpenDropdown()" onblur="iaDelayClose()">
+            <button class="ia-clear-btn" onclick="iaClearEmployee()">✕</button>
+            <div class="ia-dropdown" id="ia-emp-dropdown"></div>
+          </div>
+          <input type="hidden" id="ia-emp-selected">
+        </div>
+        <div class="ia-fg" style="grid-column:1/-1">
+          <label>Área</label>
+          <select id="ia-emp-area"><option value="">— Seleccionar área —</option></select>
+        </div>
+        <div class="ia-toast ok" id="ia-success-toast">✅ Ingreso registrado exitosamente</div>
+        <div class="ia-toast bad" id="ia-absent-toast">❌ Falta registrada</div>
+        <div class="ia-action-btns">
+          <button class="ia-btn-register" onclick="iaRegisterEntry('presente')">✅ Registrar Ingreso</button>
+          <button class="ia-btn-absent"   onclick="iaRegisterEntry('falto')">❌ Faltó</button>
+        </div>
+      </div>
+      <div class="ia-today-section">
+        <h4>Registrados hoy</h4>
+        <div class="ia-chips" id="ia-today-chips"><span style="color:#6b7a99;font-size:.85rem;">Aún no hay registros hoy</span></div>
+      </div>
+    </div>
+
+    <!-- HISTORIAL -->
+    <div class="ia-panel hidden" id="ia-tab-history">
+      <h3>Historial de Asistencia</h3>
+      <div class="ia-hist-controls">
+        <div class="ia-date-row">
+          <div class="ia-ctrl-grp"><label>Desde</label><input type="date" id="ia-filter-from" onchange="iaRenderHistory()"></div>
+          <div class="ia-ctrl-grp"><label>Hasta</label><input type="date" id="ia-filter-to" onchange="iaRenderHistory()"></div>
+          <div class="ia-sort-controls">
+            <span class="ia-sort-label">Ordenar:</span>
+            <button class="ia-sort-btn active" id="ia-sort-area-btn" onclick="iaSetSortHistory('area')">Por Área</button>
+            <button class="ia-sort-btn" id="ia-sort-name-btn" onclick="iaSetSortHistory('name')">Por Nombre</button>
+          </div>
+          <button class="ia-btn-excel hidden" id="ia-btn-export-hist" onclick="iaExportExcel('history')">📊 Descargar Excel</button>
+        </div>
+      </div>
+      <div class="ia-table-wrap">
+        <table class="ia-table">
+          <thead><tr><th>#</th><th>Empleado</th><th>Área</th><th>Fecha</th><th>Supervisor</th><th>Estado</th></tr></thead>
+          <tbody id="ia-hist-body"></tbody>
+        </table>
+        <div class="ia-empty" id="ia-hist-empty">📭 No hay registros para este rango</div>
+      </div>
+    </div>
+
+    <!-- EDITAR REGISTROS (admin) -->
+    <div class="ia-panel ia-warn-panel hidden" id="ia-tab-records">
+      <h3>Editar Registros</h3>
+      <div class="ia-hist-controls">
+        <div class="ia-date-row">
+          <div class="ia-ctrl-grp"><label>Desde</label><input type="date" id="ia-admin-from" onchange="iaRenderAdminTable()"></div>
+          <div class="ia-ctrl-grp"><label>Hasta</label><input type="date" id="ia-admin-to" onchange="iaRenderAdminTable()"></div>
+          <div class="ia-ctrl-grp">
+            <label>Supervisor</label>
+            <select id="ia-admin-filter-sup" onchange="iaRenderAdminTable()"><option value="">— Todos —</option></select>
+          </div>
+          <div class="ia-sort-controls">
+            <span class="ia-sort-label">Ordenar:</span>
+            <button class="ia-sort-btn active" id="ia-sort-adm-area-btn" onclick="iaSetSortAdmin('area')">Por Área</button>
+            <button class="ia-sort-btn" id="ia-sort-adm-name-btn" onclick="iaSetSortAdmin('name')">Por Nombre</button>
+          </div>
+          <button class="ia-btn-excel" onclick="iaExportExcel('admin')">📊 Descargar Excel</button>
+        </div>
+        <div style="margin-top:.8rem;">
+          <input type="text" id="ia-admin-search-emp" placeholder="🔍 Buscar por nombre..." oninput="iaRenderAdminTable()"
+            style="max-width:400px;padding:.6rem 1rem;font-size:.85rem;background:#1a2235;border:1px solid #1f2d44;border-radius:8px;color:#e8ecf4;font-family:'DM Mono',monospace;outline:none;">
+        </div>
+      </div>
+      <div class="ia-table-wrap">
+        <table class="ia-table">
+          <thead><tr><th>#</th><th>Empleado</th><th>Área</th><th>Fecha</th><th>Supervisor</th><th>Estado</th><th>Editar</th></tr></thead>
+          <tbody id="ia-admin-body"></tbody>
+        </table>
+        <div class="ia-empty" id="ia-admin-empty">📭 No hay registros</div>
+      </div>
+    </div>
+
+    <!-- CONFIG (admin) -->
+    <div class="ia-panel ia-warn-panel hidden" id="ia-tab-config">
+      <h3>⚙️ Configuración del Sistema</h3>
+      <div class="ia-admin-sections">
+        <div class="ia-admin-section">
+          <h4>👤 Supervisores</h4>
+          <div class="ia-input-row">
+            <div class="ia-fg"><label>Nombre</label><input type="text" id="ia-new-sup-name" placeholder="Nombre del supervisor"></div>
+            <div class="ia-fg"><label>Contraseña</label><input type="password" id="ia-new-sup-pass" placeholder="Contraseña"></div>
+            <button class="ia-btn-add" onclick="iaAddSupervisor()">+ Agregar</button>
+          </div>
+          <div class="ia-list-grid" id="ia-supervisors-list"></div>
+        </div>
+        <div class="ia-admin-section">
+          <h4>👥 Empleados</h4>
+          <div class="ia-input-row">
+            <div class="ia-fg" style="flex:2"><label>Nombre completo</label><input type="text" id="ia-new-emp-name" placeholder="Nombre del empleado"></div>
+            <div class="ia-fg"><label>Supervisor</label><select id="ia-new-emp-sup"><option value="">— Sin asignar —</option></select></div>
+            <button class="ia-btn-add" onclick="iaAddEmployee()">+ Agregar</button>
+          </div>
+          <hr class="ia-divider">
+          <div class="ia-input-row" style="margin-bottom:.5rem;">
+            <button class="ia-btn-sec" onclick="iaDownloadTemplate()">⬇ Plantilla Excel</button>
+            <label class="ia-btn-add" style="cursor:pointer;display:flex;align-items:center;">
+              📂 Importar Excel
+              <input type="file" id="ia-import-file" accept=".xlsx,.xls" onchange="iaImportEmployees(this)" style="display:none;">
+            </label>
+          </div>
+          <div class="ia-import-result" id="ia-import-result"></div>
+          <hr class="ia-divider">
+          <div class="ia-search-filter"><input type="text" id="ia-emp-filter" placeholder="🔍 Buscar empleado..." oninput="iaRenderEmployeeList()"></div>
+          <div class="ia-list-grid" id="ia-employees-list"></div>
+        </div>
+        <div class="ia-admin-section">
+          <h4>🗂 Áreas por Supervisor</h4>
+          <div class="ia-input-row">
+            <div class="ia-fg"><label>Supervisor</label><select id="ia-area-sup-select" onchange="iaRenderAreaManager()"><option value="">— Seleccionar —</option></select></div>
+            <div class="ia-fg"><label>Nueva área</label><input type="text" id="ia-new-area-name" placeholder="Ej: M28, Corte"></div>
+            <button class="ia-btn-add" onclick="iaAddArea()">+ Agregar</button>
+          </div>
+          <div id="ia-area-manager-wrap"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modales del Control de Asistencia -->
+<div class="ia-modal-overlay" id="ia-edit-modal">
+  <div class="ia-modal">
+    <h4>✏️ Editar Registro</h4>
+    <div class="ia-fg"><label>Empleado</label><input type="text" id="ia-edit-emp" readonly style="opacity:.6;cursor:not-allowed;background:#1a2235;border:1px solid #1f2d44;border-radius:8px;color:#e8ecf4;padding:.75rem 1rem;width:100%;"></div>
+    <div class="ia-fg"><label>Área</label><select id="ia-edit-area" style="width:100%;padding:.75rem 1rem;background:#1a2235;border:1px solid #1f2d44;border-radius:8px;color:#e8ecf4;outline:none;"></select></div>
+    <div class="ia-fg"><label>Estado</label><select id="ia-edit-status" style="width:100%;padding:.75rem 1rem;background:#1a2235;border:1px solid #1f2d44;border-radius:8px;color:#e8ecf4;outline:none;"><option value="presente">✅ Presente</option><option value="falto">❌ Faltó</option></select></div>
+    <div class="ia-fg"><label>Supervisor</label><select id="ia-edit-supervisor" style="width:100%;padding:.75rem 1rem;background:#1a2235;border:1px solid #1f2d44;border-radius:8px;color:#e8ecf4;outline:none;"></select></div>
+    <div class="ia-modal-actions">
+      <button class="ia-btn-cancel" onclick="iaCloseModal('ia-edit-modal')">Cancelar</button>
+      <button class="ia-btn-del" onclick="iaDeleteRecord()">🗑 Eliminar</button>
+      <button class="ia-btn-save" onclick="iaSaveEdit()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+<div class="ia-modal-overlay" id="ia-sup-modal">
+  <div class="ia-modal">
+    <h4>✏️ Editar Supervisor</h4>
+    <div class="ia-fg"><label>Nombre</label><input type="text" id="ia-edit-sup-name" style="width:100%;padding:.75rem 1rem;background:#1a2235;border:1px solid #1f2d44;border-radius:8px;color:#e8ecf4;outline:none;font-family:'DM Mono',monospace;"></div>
+    <div class="ia-fg"><label>Nueva contraseña <span style="color:#6b7a99;font-weight:400;">(vacío = sin cambio)</span></label><input type="password" id="ia-edit-sup-pass" style="width:100%;padding:.75rem 1rem;background:#1a2235;border:1px solid #1f2d44;border-radius:8px;color:#e8ecf4;outline:none;font-family:'DM Mono',monospace;"></div>
+    <div class="ia-modal-actions">
+      <button class="ia-btn-cancel" onclick="iaCloseModal('ia-sup-modal')">Cancelar</button>
+      <button class="ia-btn-del" onclick="iaDeleteSupervisor()">🗑 Eliminar</button>
+      <button class="ia-btn-save" onclick="iaSaveSupervisor()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+<div class="ia-modal-overlay" id="ia-emp-modal">
+  <div class="ia-modal">
+    <h4>✏️ Editar Empleado</h4>
+    <div class="ia-fg"><label>Nombre completo</label><input type="text" id="ia-edit-emp-name" style="width:100%;padding:.75rem 1rem;background:#1a2235;border:1px solid #1f2d44;border-radius:8px;color:#e8ecf4;outline:none;font-family:'DM Mono',monospace;"></div>
+    <div class="ia-fg"><label>Supervisor</label><select id="ia-edit-emp-sup" style="width:100%;padding:.75rem 1rem;background:#1a2235;border:1px solid #1f2d44;border-radius:8px;color:#e8ecf4;outline:none;"><option value="">— Sin asignar —</option></select></div>
+    <div class="ia-modal-actions">
+      <button class="ia-btn-cancel" onclick="iaCloseModal('ia-emp-modal')">Cancelar</button>
+      <button class="ia-btn-del" onclick="iaDeleteEmployee()">🗑 Eliminar</button>
+      <button class="ia-btn-save" onclick="iaSaveEmployee()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+  `;
+}
+
+// ── LÓGICA JavaScript del Control de Asistencia ───────────────────
+function runIngresoScript(){
+
+const IA_INITIAL = {
+  supervisors:[
+    {id:'maria_pineda',  name:'María Pineda',  pass:'1234',isAdmin:false,areas:['M01','M02','M03','M04','M05','M06','M07','M08','M09']},
+    {id:'yurany_zapata', name:'Yurany Zapata', pass:'1234',isAdmin:false,areas:['M10','M15','M16','M17','M18','M19','M20','M21']},
+    {id:'mery_tabares',  name:'Mery Tabares',  pass:'1234',isAdmin:false,areas:['M22','M23','M24','M25','M26','M27']},
+    {id:'leidy_galeano', name:'Leidy Galeano', pass:'1234',isAdmin:false,areas:['M01','M02','M03','M04','M05','M06','M07','M08','M09','M10','M11','M12','M13','M14','M15','M16','M17','M18','M19','M20','M21','M22','M23','M24','M25','M26','M27']},
+    {id:'beiro',         name:'Beiro',          pass:'B1234',isAdmin:true, areas:[]}
+  ],
+  employees:[
+    {id:'e1',name:'ADRIANA MARIA RODRIGUEZ CORREA',supId:'maria_pineda'},{id:'e2',name:'ALBA LUCIA POSSO GIRALDO',supId:'maria_pineda'},{id:'e3',name:'ALEXANDRA MARIA RENDON GRISALES',supId:'maria_pineda'},{id:'e4',name:'AMANDA MEJIA GARCIA',supId:'maria_pineda'},{id:'e5',name:'ANA CATALINA MESA BETANCUR',supId:'maria_pineda'},{id:'e6',name:'ANA RAQUEL MARTINEZ PATIÑO',supId:'maria_pineda'},{id:'e7',name:'ANGELA MARIA GIRALDO ROJAS',supId:'maria_pineda'},{id:'e8',name:'ASTRID YURANY RAMIREZ ARCILA',supId:'maria_pineda'},{id:'e9',name:'BRILLIN ESTEFANI BOLAÑOS SEPULVEDA',supId:'maria_pineda'},{id:'e10',name:'CELENY PATRICIA TUBERQUIA PINO',supId:'maria_pineda'},{id:'e11',name:'DANEXY LISBETH PALENCIA ROMERO',supId:'maria_pineda'},{id:'e12',name:'DEISY ALEJANDRA VILLA YEPES',supId:'maria_pineda'},{id:'e13',name:'DEISY JULIANA RUIZ CESPEDES',supId:'maria_pineda'},{id:'e14',name:'DIANA CRISTINA GIRALDO MORA',supId:'maria_pineda'},{id:'e15',name:'DIANA MILENA MAZO GUERRA',supId:'maria_pineda'},{id:'e16',name:'DIDIER HERNAN CEBALLOS CIFUENTES',supId:'maria_pineda'},{id:'e17',name:'EDILMARY AREIZA AREIZA',supId:'maria_pineda'},{id:'e18',name:'EDISSON ALONSO ARISTIZABAL SALAZAR',supId:'maria_pineda'},{id:'e19',name:'ELIANA MARÍA JARAMILLO LÓPEZ',supId:'maria_pineda'},{id:'e20',name:'ESTEFANIA ZAPATA SIERRA',supId:'maria_pineda'},
+    {id:'e83',name:'ALDERIS DEL SOCORRO GARCIA GODOY',supId:'yurany_zapata'},{id:'e84',name:'ALICIA RODRIGUEZ RIOS',supId:'yurany_zapata'},{id:'e85',name:'ANDRES FELIPE LOPEZ CORREA',supId:'yurany_zapata'},{id:'e86',name:'ASTRID FERNANDA ESCOBAR CHAGUENDO',supId:'yurany_zapata'},{id:'e87',name:'BEATRIZ ELENA LEZCANO HERNANDEZ',supId:'yurany_zapata'},{id:'e88',name:'BLANCA OLIVA OQUENDO GIRALDO',supId:'yurany_zapata'},{id:'e89',name:'CRISTIAN CAMILO ORREGO BOHORQUEZ',supId:'yurany_zapata'},
+    {id:'e146',name:'ADRIANA JANNET ARENAS OSORNO',supId:'mery_tabares'},{id:'e147',name:'ALEJANDRO CARO VELASQUEZ',supId:'mery_tabares'},{id:'e148',name:'ANA CECILIA CORREA ORTIZ',supId:'mery_tabares'},{id:'e149',name:'ANA JOSEFINA ESPINEL GOMEZ',supId:'mery_tabares'},
+    {id:'e197',name:'ANGELA MARIA VANEGAS MARIN',supId:'leidy_galeano'},{id:'e198',name:'HELLEN VANESSA GUERRA MUNERA',supId:'leidy_galeano'},{id:'e199',name:'DIANA CAROLINA CORREA CARDONA',supId:'leidy_galeano'}
+  ]
+};
+
+// Datos vienen del servidor via WebSocket (init message)
+let iaState   = null;
+let iaRecords = [];
+let iaReady   = false;
+
+function iaSaveState(){
+  wsSend({ type: 'ia_save_state', state: JSON.parse(JSON.stringify(iaState)) });
+}
+function iaSaveRecords(){ /* registros se envian individualmente */ }
+
+function iaWaitReady(cb){
+  if(iaReady){ cb(); return; }
+  const t=setInterval(()=>{ if(iaReady){ clearInterval(t); cb(); }},100);
+}
+let iaCurrentUser=null, iaEditingRecordId=null, iaEditingSupId=null, iaEditingEmpId=null;
+let iaSortHistory='area', iaSortAdmin='area';
+let iaSelectedEmployee='';
+
+function iaTodayStr(){return new Date().toISOString().split('T')[0];}
+function iaFormatDateLong(s){return new Date(s+'T12:00:00').toLocaleDateString('es-CO',{weekday:'long',year:'numeric',month:'long',day:'numeric'});}
+function iaGenId(){return 'id_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);}
+function iaGetSup(id){return iaState.supervisors.find(s=>s.id===id);}
+function iaNonAdminSups(){return iaState.supervisors.filter(s=>!s.isAdmin);}
+function iaIsAdmin(){return iaGetSup(iaCurrentUser)?.isAdmin;}
+function iaAreaOrder(a){if(a==='—')return 9999;const m=a.match(/M(\d+)/);return m?parseInt(m[1]):9998;}
+function iaSortData(data,mode){
+  if(mode==='area')return[...data].sort((a,b)=>{const ao=iaAreaOrder(a.area),bo=iaAreaOrder(b.area);return ao!==bo?ao-bo:a.empName.localeCompare(b.empName);});
+  return[...data].sort((a,b)=>a.empName.localeCompare(b.empName));
+}
+function iaFilterByRange(data,fromId,toId){
+  const from=document.getElementById(fromId)?.value,to=document.getElementById(toId)?.value;
+  if(from)data=data.filter(r=>r.date>=from);
+  if(to)data=data.filter(r=>r.date<=to);
+  return data;
+}
+window.iaBuildLoginSelect=function(){
+  const sel=document.getElementById('ia-login-user');if(!sel)return;
+  sel.innerHTML='<option value="">— Seleccionar usuario —</option>';
+  iaState.supervisors.forEach(s=>{const o=document.createElement('option');o.value=s.id;o.textContent=s.isAdmin?`${s.name} (Administrador)`:s.name;sel.appendChild(o);});
+};
+window.iaDoLogin=function(){
+  const uid=document.getElementById('ia-login-user').value;
+  const pass=document.getElementById('ia-login-pass').value;
+  const sup=iaGetSup(uid);
+  if(!sup||sup.pass!==pass){document.getElementById('ia-login-error').style.display='block';return;}
+  document.getElementById('ia-login-error').style.display='none';
+  iaCurrentUser=uid; iaInitApp();
+};
+document.getElementById('ia-login-pass').addEventListener('keydown',e=>{if(e.key==='Enter')iaDoLogin();});
+window.iaDoLogout=function(){
+  iaCurrentUser=null;
+  document.getElementById('ia-app').style.display='none';
+  document.getElementById('ia-login').style.display='flex';
+  document.getElementById('ia-login-user').value='';
+  document.getElementById('ia-login-pass').value='';
+  iaBuildLoginSelect();
+};
+function iaInitApp(){
+  document.getElementById('ia-login').style.display='none';
+  document.getElementById('ia-app').style.display='block';
+  const sup=iaGetSup(iaCurrentUser);
+  document.getElementById('ia-sup-name').textContent=sup.name;
+  document.getElementById('ia-header-date').textContent=iaFormatDateLong(iaTodayStr());
+  document.getElementById('ia-stat-date').textContent=iaTodayStr();
+  const t=iaTodayStr();
+  document.getElementById('ia-filter-from').value=t;
+  document.getElementById('ia-filter-to').value=t;
+  const adminTabs=document.querySelectorAll('#ingreso-app-root .admin-tab');
+  if(sup.isAdmin){
+    document.getElementById('ia-admin-badge-wrap').innerHTML='<span class="ia-badge-admin">⚙️ ADMINISTRADOR</span>';
+    adminTabs.forEach(b=>b.classList.remove('hidden'));
+    document.getElementById('ia-admin-from').value=t;
+    document.getElementById('ia-admin-to').value=t;
+    document.getElementById('ia-btn-export-hist').classList.remove('hidden');
+    iaRebuildAdminFilterSup();
+    document.getElementById('ia-admin-sup-filter-wrap').classList.remove('hidden');
+    iaBuildAdminSupFilter();
+  } else {
+    document.getElementById('ia-admin-badge-wrap').innerHTML='';
+    adminTabs.forEach(b=>b.classList.add('hidden'));
+    document.getElementById('ia-btn-export-hist').classList.add('hidden');
+    document.getElementById('ia-admin-sup-filter-wrap').classList.add('hidden');
+  }
+  iaBuildAreaSelect();
+  iaShowTab('register',document.getElementById('ia-tab-btn-register'));
+  iaUpdateStats(); iaRenderTodayChips();
+}
+function iaBuildAdminSupFilter(){
+  const sel=document.getElementById('ia-admin-sup-filter');
+  sel.innerHTML='<option value="">— Todos los empleados —</option>';
+  iaNonAdminSups().forEach(s=>{const o=document.createElement('option');o.value=s.id;o.textContent=s.name;sel.appendChild(o);});
+}
+window.iaBuildAdminAreaSelect=function(){iaBuildAreaSelect();};
+function iaBuildAreaSelect(){
+  const asel=document.getElementById('ia-emp-area');
+  asel.innerHTML='<option value="">— Seleccionar área —</option>';
+  if(iaIsAdmin()){
+    const filtSupId=document.getElementById('ia-admin-sup-filter')?.value;
+    let areas=filtSupId?(iaGetSup(filtSupId)?.areas||[]):[...new Set(iaNonAdminSups().flatMap(s=>s.areas||[]))].sort((a,b)=>iaAreaOrder(a)-iaAreaOrder(b));
+    areas.forEach(a=>{const o=document.createElement('option');o.value=a;o.textContent=a;asel.appendChild(o);});
+  } else {
+    (iaGetSup(iaCurrentUser)?.areas||[]).forEach(a=>{const o=document.createElement('option');o.value=a;o.textContent=a;asel.appendChild(o);});
+  }
+}
+function iaRebuildAdminFilterSup(){
+  const sel=document.getElementById('ia-admin-filter-sup');const cur=sel.value;
+  sel.innerHTML='<option value="">— Todos —</option>';
+  iaNonAdminSups().forEach(s=>{const o=document.createElement('option');o.value=s.name;o.textContent=s.name;sel.appendChild(o);});
+  if(cur)sel.value=cur;
+}
+function iaGetAvailableEmployees(){
+  const today=iaTodayStr();
+  if(iaIsAdmin()){
+    const filtSupId=document.getElementById('ia-admin-sup-filter')?.value;
+    let pool=filtSupId?iaState.employees.filter(e=>e.supId===filtSupId):iaState.employees;
+    const reg=new Set(iaRecords.filter(r=>r.date===today).map(r=>r.empName));
+    return pool.filter(e=>!reg.has(e.name)).map(e=>e.name).sort();
+  } else {
+    const sup=iaGetSup(iaCurrentUser);
+    const reg=new Set(iaRecords.filter(r=>r.date===today&&r.supervisor===sup.name).map(r=>r.empName));
+    return iaState.employees.filter(e=>e.supId===iaCurrentUser&&!reg.has(e.name)).map(e=>e.name).sort();
+  }
+}
+window.iaFilterEmployees=function(){
+  iaSelectedEmployee='';document.getElementById('ia-emp-selected').value='';
+  const q=document.getElementById('ia-emp-search').value.trim().toLowerCase();
+  const list=iaGetAvailableEmployees();
+  iaBuildDropdown(q?list.filter(e=>e.toLowerCase().includes(q)).slice(0,80):list.slice(0,80),q);
+  document.getElementById('ia-emp-dropdown').classList.add('open');
+};
+window.iaOpenDropdown=function(){
+  const q=document.getElementById('ia-emp-search').value.trim().toLowerCase();
+  const list=iaGetAvailableEmployees();
+  iaBuildDropdown(q?list.filter(e=>e.toLowerCase().includes(q)).slice(0,80):list.slice(0,80),q);
+  document.getElementById('ia-emp-dropdown').classList.add('open');
+};
+function iaBuildDropdown(items,q){
+  const dd=document.getElementById('ia-emp-dropdown');
+  if(!items.length){dd.innerHTML='<div class="ia-dd-item" style="color:#6b7a99">Sin empleados pendientes</div>';return;}
+  dd.innerHTML=items.map(name=>{
+    const safe=q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    const hi=q?name.replace(new RegExp('('+safe+')','gi'),'<mark>$1</mark>'):name;
+    return`<div class="ia-dd-item" onmousedown="iaSelectEmployee('${name.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">${hi}</div>`;
+  }).join('');
+}
+window.iaDelayClose=function(){setTimeout(()=>document.getElementById('ia-emp-dropdown').classList.remove('open'),200);};
+window.iaSelectEmployee=function(name){
+  iaSelectedEmployee=name;
+  document.getElementById('ia-emp-search').value=name;
+  document.getElementById('ia-emp-selected').value=name;
+  document.getElementById('ia-emp-dropdown').classList.remove('open');
+};
+window.iaClearEmployee=function(){
+  iaSelectedEmployee='';
+  document.getElementById('ia-emp-search').value='';
+  document.getElementById('ia-emp-selected').value='';
+  document.getElementById('ia-emp-search').focus();
+};
+window.iaRegisterEntry=function(status){
+  const empName=document.getElementById('ia-emp-selected').value||document.getElementById('ia-emp-search').value.trim();
+  const area=document.getElementById('ia-emp-area').value;
+  if(!empName){alert('Por favor selecciona un empleado.');return;}
+  if(status==='presente'&&!area){alert('Por favor selecciona un área.');return;}
+  let supName;
+  if(iaIsAdmin()){
+    const filtSupId=document.getElementById('ia-admin-sup-filter')?.value;
+    if(filtSupId){supName=iaGetSup(filtSupId)?.name||'Admin';}
+    else{const emp=iaState.employees.find(e=>e.name===empName);supName=emp&&emp.supId?iaGetSup(emp.supId)?.name:'Admin';}
+  } else {supName=iaGetSup(iaCurrentUser).name;}
+  const today=iaTodayStr();
+  const newRecord={id:iaGenId(),empName,area:status==='falto'?'—':area,status,date:today,supervisor:supName};
+  // Actualizar localmente
+  iaRecords=iaRecords.filter(r=>!(r.empName===empName&&r.date===today&&r.supervisor===supName));
+  iaRecords.push(newRecord);
+  // Enviar al servidor para todos los dispositivos
+  wsSend({type:'ia_add_record', record:newRecord});
+  iaClearEmployee(); document.getElementById('ia-emp-area').value='';
+  const toastId=status==='presente'?'ia-success-toast':'ia-absent-toast';
+  const t=document.getElementById(toastId);t.style.display='block';setTimeout(()=>t.style.display='none',3000);
+  iaUpdateStats(); iaRenderTodayChips();
+};
+function iaUpdateStats(){
+  const today=iaTodayStr(),sup=iaGetSup(iaCurrentUser);
+  if(iaIsAdmin()){
+    const tr=iaRecords.filter(r=>r.date===today);
+    document.getElementById('ia-stat-today').textContent=tr.filter(r=>r.status==='presente').length;
+    document.getElementById('ia-stat-absent').textContent=tr.filter(r=>r.status==='falto').length;
+    document.getElementById('ia-stat-total').textContent=iaRecords.length;
+    document.getElementById('ia-stat-pending').textContent=Math.max(0,iaState.employees.length-[...new Set(tr.map(r=>r.empName))].length);
+  } else {
+    const tr=iaRecords.filter(r=>r.date===today&&r.supervisor===sup.name);
+    document.getElementById('ia-stat-today').textContent=tr.filter(r=>r.status==='presente').length;
+    document.getElementById('ia-stat-absent').textContent=tr.filter(r=>r.status==='falto').length;
+    document.getElementById('ia-stat-total').textContent=iaRecords.filter(r=>r.supervisor===sup.name).length;
+    const empCount=iaState.employees.filter(e=>e.supId===iaCurrentUser).length;
+    document.getElementById('ia-stat-pending').textContent=Math.max(0,empCount-[...new Set(tr.map(r=>r.empName))].length);
+  }
+}
+function iaRenderTodayChips(){
+  const today=iaTodayStr(),sup=iaGetSup(iaCurrentUser);
+  let recs=iaIsAdmin()?iaSortData(iaRecords.filter(r=>r.date===today),'area'):iaSortData(iaRecords.filter(r=>r.date===today&&r.supervisor===sup.name),'area');
+  const c=document.getElementById('ia-today-chips');
+  if(!recs.length){c.innerHTML='<span style="color:#6b7a99;font-size:.85rem;">Aún no hay registros hoy</span>';return;}
+  c.innerHTML=recs.map(r=>r.status==='falto'
+    ?`<span class="ia-chip absent">❌ ${r.empName}</span>`
+    :`<span class="ia-chip">✓ ${r.empName} <span class="ia-area-tag">${r.area}</span></span>`).join('');
+}
+window.iaShowTab=function(name,btn){
+  document.querySelectorAll('#ingreso-app-root .ia-tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  ['ia-tab-register','ia-tab-history','ia-tab-records','ia-tab-config'].forEach(id=>document.getElementById(id).classList.add('hidden'));
+  document.getElementById('ia-tab-'+name).classList.remove('hidden');
+  if(name==='history') iaRenderHistory();
+  if(name==='records') iaRenderAdminTable();
+  if(name==='config')  iaRenderConfig();
+};
+window.iaSetSortHistory=function(mode){
+  iaSortHistory=mode;
+  document.getElementById('ia-sort-area-btn').classList.toggle('active',mode==='area');
+  document.getElementById('ia-sort-name-btn').classList.toggle('active',mode==='name');
+  iaRenderHistory();
+};
+window.iaSetSortAdmin=function(mode){
+  iaSortAdmin=mode;
+  document.getElementById('ia-sort-adm-area-btn').classList.toggle('active',mode==='area');
+  document.getElementById('ia-sort-adm-name-btn').classList.toggle('active',mode==='name');
+  iaRenderAdminTable();
+};
+function iaRenderHistory(){
+  const sup=iaGetSup(iaCurrentUser);
+  let data=iaIsAdmin()?iaFilterByRange([...iaRecords],'ia-filter-from','ia-filter-to'):iaFilterByRange(iaRecords.filter(r=>r.supervisor===sup.name),'ia-filter-from','ia-filter-to');
+  data=iaSortData(data,iaSortHistory);
+  const tbody=document.getElementById('ia-hist-body'),empty=document.getElementById('ia-hist-empty');
+  if(!data.length){tbody.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  tbody.innerHTML=data.map((r,i)=>`<tr>
+    <td>${i+1}</td><td>${r.empName}</td>
+    <td>${r.status==='falto'?'<span style="color:#ff4d6d">—</span>':`<span class="ia-badge area">${r.area}</span>`}</td>
+    <td>${r.date}</td><td>${r.supervisor}</td>
+    <td>${r.status==='falto'?'<span class="ia-badge out">❌ Faltó</span>':'<span class="ia-badge in">✅ Presente</span>'}</td>
+  </tr>`).join('');
+}
+function iaRenderAdminTable(){
+  let data=iaFilterByRange([...iaRecords],'ia-admin-from','ia-admin-to');
+  const fs=document.getElementById('ia-admin-filter-sup')?.value;if(fs)data=data.filter(r=>r.supervisor===fs);
+  const q=(document.getElementById('ia-admin-search-emp')?.value||'').toLowerCase().trim();if(q)data=data.filter(r=>r.empName.toLowerCase().includes(q));
+  data=iaSortData(data,iaSortAdmin);
+  const tbody=document.getElementById('ia-admin-body'),empty=document.getElementById('ia-admin-empty');
+  if(!data.length){tbody.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  tbody.innerHTML=data.map((r,i)=>`<tr>
+    <td>${i+1}</td><td>${r.empName}</td>
+    <td>${r.status==='falto'?'<span style="color:#ff4d6d">—</span>':`<span class="ia-badge area">${r.area}</span>`}</td>
+    <td>${r.date}</td><td>${r.supervisor}</td>
+    <td>${r.status==='falto'?'<span class="ia-badge out">❌ Faltó</span>':'<span class="ia-badge in">✅ Presente</span>'}</td>
+    <td><button class="ia-btn-edit" onclick="iaOpenEditRecord('${r.id}')">✏️ Editar</button></td>
+  </tr>`).join('');
+}
+window.iaExportExcel=function(panel){
+  let data,fromId,toId;
+  if(panel==='history'){
+    fromId='ia-filter-from';toId='ia-filter-to';
+    data=iaIsAdmin()?iaFilterByRange([...iaRecords],fromId,toId):iaFilterByRange(iaRecords.filter(r=>r.supervisor===iaGetSup(iaCurrentUser).name),fromId,toId);
+    data=iaSortData(data,iaSortHistory);
+  } else {
+    fromId='ia-admin-from';toId='ia-admin-to';
+    data=iaFilterByRange([...iaRecords],fromId,toId);
+    const fs=document.getElementById('ia-admin-filter-sup')?.value;if(fs)data=data.filter(r=>r.supervisor===fs);
+    data=iaSortData(data,iaSortAdmin);
+  }
+  if(!data.length){alert('No hay registros para exportar.');return;}
+  const from=document.getElementById(fromId).value||'todos',to=document.getElementById(toId).value||'todos';
+  const wsData=[['#','Empleado','Área','Fecha','Supervisor','Estado'],...data.map((r,i)=>[i+1,r.empName,r.area,r.date,r.supervisor,r.status==='falto'?'Faltó':'Presente'])];
+  const wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols']=[{wch:5},{wch:40},{wch:8},{wch:12},{wch:20},{wch:12}];
+  XLSX.utils.book_append_sheet(wb,ws,'Asistencia');
+  XLSX.writeFile(wb,`Asistencia_${from}_${to}.xlsx`);
+};
+window.iaOpenEditRecord=function(id){
+  const r=iaRecords.find(x=>x.id===id);if(!r)return;
+  iaEditingRecordId=id;
+  document.getElementById('ia-edit-emp').value=r.empName;
+  document.getElementById('ia-edit-status').value=r.status;
+  const allAreas=[...new Set(iaNonAdminSups().flatMap(s=>s.areas||[]))].sort((a,b)=>iaAreaOrder(a)-iaAreaOrder(b));
+  const asel=document.getElementById('ia-edit-area');
+  asel.innerHTML='<option value="">— Sin área —</option>';
+  allAreas.forEach(a=>{const o=document.createElement('option');o.value=a;o.textContent=a;if(a===r.area)o.selected=true;asel.appendChild(o);});
+  const ssel=document.getElementById('ia-edit-supervisor');ssel.innerHTML='';
+  iaNonAdminSups().forEach(s=>{const o=document.createElement('option');o.value=s.name;o.textContent=s.name;if(s.name===r.supervisor)o.selected=true;ssel.appendChild(o);});
+  iaOpenModal('ia-edit-modal');
+};
+window.iaSaveEdit=function(){
+  const r=iaRecords.find(x=>x.id===iaEditingRecordId);if(!r)return;
+  r.status=document.getElementById('ia-edit-status').value;
+  r.area=r.status==='falto'?'—':(document.getElementById('ia-edit-area').value||'—');
+  r.supervisor=document.getElementById('ia-edit-supervisor').value;
+  wsSend({type:'ia_edit_record', record:{...r}});
+  iaCloseModal('ia-edit-modal');iaRenderAdminTable();
+};
+window.iaDeleteRecord=function(){
+  if(!confirm('¿Eliminar este registro?'))return;
+  iaRecords=iaRecords.filter(x=>x.id!==iaEditingRecordId);
+  wsSend({type:'ia_delete_record', id:iaEditingRecordId});
+  iaCloseModal('ia-edit-modal');iaRenderAdminTable();
+};
+window.iaOpenModal=function(id){document.getElementById(id).classList.add('open');};
+window.iaCloseModal=function(id){document.getElementById(id).classList.remove('open');};
+document.querySelectorAll('.ia-modal-overlay').forEach(m=>m.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');}));
+
+// CONFIG
+function iaRenderConfig(){iaRenderSupervisorList();iaBuildSupSelects();iaRenderEmployeeList();iaBuildAreaSupSelect();iaRenderAreaManager();}
+function iaRenderSupervisorList(){
+  const c=document.getElementById('ia-supervisors-list');const sups=iaNonAdminSups();
+  if(!sups.length){c.innerHTML='<div style="color:#6b7a99;padding:1rem;text-align:center;font-size:.85rem;">No hay supervisores</div>';return;}
+  c.innerHTML=sups.map(s=>`<div class="ia-list-item"><span class="ia-item-name">👤 ${s.name}</span><span class="ia-tag sup">${(s.areas||[]).length} áreas · ${iaState.employees.filter(e=>e.supId===s.id).length} emp.</span><div class="ia-item-actions"><button class="ia-btn-edit" onclick="iaOpenEditSup('${s.id}')">✏️ Editar</button></div></div>`).join('');
+}
+window.iaAddSupervisor=function(){
+  const name=document.getElementById('ia-new-sup-name').value.trim();
+  const pass=document.getElementById('ia-new-sup-pass').value.trim();
+  if(!name||!pass){alert('Completa nombre y contraseña.');return;}
+  const id='sup_'+Date.now();
+  iaState.supervisors.push({id,name,pass,isAdmin:false,areas:[]});
+  iaSaveState();document.getElementById('ia-new-sup-name').value='';document.getElementById('ia-new-sup-pass').value='';
+  iaRenderSupervisorList();iaBuildSupSelects();iaBuildAdminSupFilter();iaRebuildAdminFilterSup();iaBuildAreaSupSelect();
+};
+window.iaOpenEditSup=function(id){
+  const s=iaGetSup(id);if(!s)return;
+  iaEditingSupId=id;document.getElementById('ia-edit-sup-name').value=s.name;document.getElementById('ia-edit-sup-pass').value='';
+  iaOpenModal('ia-sup-modal');
+};
+window.iaSaveSupervisor=function(){
+  const s=iaGetSup(iaEditingSupId);if(!s)return;
+  const name=document.getElementById('ia-edit-sup-name').value.trim();const pass=document.getElementById('ia-edit-sup-pass').value.trim();
+  if(!name)return;const oldName=s.name;s.name=name;if(pass)s.pass=pass;
+  iaRecords.forEach(r=>{if(r.supervisor===oldName)r.supervisor=name;});
+  iaSaveState();iaSaveRecords();iaCloseModal('ia-sup-modal');
+  iaRenderSupervisorList();iaBuildSupSelects();iaBuildAdminSupFilter();iaRebuildAdminFilterSup();iaBuildAreaSupSelect();
+};
+window.iaDeleteSupervisor=function(){
+  if(!confirm(`¿Eliminar supervisor "${iaGetSup(iaEditingSupId)?.name}"?`))return;
+  iaState.employees.forEach(e=>{if(e.supId===iaEditingSupId)e.supId='';});
+  iaState.supervisors=iaState.supervisors.filter(s=>s.id!==iaEditingSupId);
+  iaSaveState();iaCloseModal('ia-sup-modal');
+  iaRenderSupervisorList();iaRenderEmployeeList();iaBuildSupSelects();iaBuildAdminSupFilter();iaRebuildAdminFilterSup();iaBuildAreaSupSelect();
+};
+function iaBuildSupSelects(){
+  const sups=iaNonAdminSups();
+  ['ia-new-emp-sup','ia-edit-emp-sup'].forEach(selId=>{
+    const sel=document.getElementById(selId);if(!sel)return;const cur=sel.value;
+    sel.innerHTML='<option value="">— Sin asignar —</option>';
+    sups.forEach(s=>{const o=document.createElement('option');o.value=s.id;o.textContent=s.name;sel.appendChild(o);});
+    if(cur)sel.value=cur;
+  });
+}
+function iaRenderEmployeeList(){
+  const q=(document.getElementById('ia-emp-filter')?.value||'').toLowerCase();
+  const c=document.getElementById('ia-employees-list');
+  let emps=[...iaState.employees];if(q)emps=emps.filter(e=>e.name.toLowerCase().includes(q));
+  emps.sort((a,b)=>a.name.localeCompare(b.name));
+  if(!emps.length){c.innerHTML='<div style="color:#6b7a99;padding:1rem;text-align:center;font-size:.85rem;">No hay empleados</div>';return;}
+  c.innerHTML=emps.map(e=>{const sup=iaGetSup(e.supId);return`<div class="ia-list-item"><span class="ia-item-name">${e.name}</span><span class="ia-tag ${sup?'sup':'none'}">${sup?sup.name:'Sin asignar'}</span><div class="ia-item-actions"><button class="ia-btn-edit" onclick="iaOpenEditEmp('${e.id}')">✏️</button></div></div>`;}).join('');
+}
+window.iaAddEmployee=function(){
+  const name=document.getElementById('ia-new-emp-name').value.trim().toUpperCase();const supId=document.getElementById('ia-new-emp-sup').value;
+  if(!name){alert('Ingresa el nombre.');return;}
+  if(iaState.employees.find(e=>e.name===name)){alert('Ya existe.');return;}
+  iaState.employees.push({id:iaGenId(),name,supId});iaSaveState();document.getElementById('ia-new-emp-name').value='';iaRenderEmployeeList();
+};
+window.iaOpenEditEmp=function(id){
+  const e=iaState.employees.find(x=>x.id===id);if(!e)return;
+  iaEditingEmpId=id;document.getElementById('ia-edit-emp-name').value=e.name;iaBuildSupSelects();document.getElementById('ia-edit-emp-sup').value=e.supId||'';iaOpenModal('ia-emp-modal');
+};
+window.iaSaveEmployee=function(){
+  const e=iaState.employees.find(x=>x.id===iaEditingEmpId);if(!e)return;
+  const name=document.getElementById('ia-edit-emp-name').value.trim().toUpperCase();if(!name)return;
+  e.name=name;e.supId=document.getElementById('ia-edit-emp-sup').value;iaSaveState();iaCloseModal('ia-emp-modal');iaRenderEmployeeList();
+};
+window.iaDeleteEmployee=function(){
+  if(!confirm(`¿Eliminar "${iaState.employees.find(x=>x.id===iaEditingEmpId)?.name}"?`))return;
+  iaState.employees=iaState.employees.filter(x=>x.id!==iaEditingEmpId);iaSaveState();iaCloseModal('ia-emp-modal');iaRenderEmployeeList();
+};
+window.iaDownloadTemplate=function(){
+  const wsData=[['Empleado','Supervisor'],['NOMBRE APELLIDO APELLIDO','María Pineda']];
+  const wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet(wsData);ws['!cols']=[{wch:45},{wch:25}];
+  XLSX.utils.book_append_sheet(wb,ws,'Plantilla');XLSX.writeFile(wb,'Plantilla_Empleados.xlsx');
+};
+window.iaImportEmployees=function(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const wb=XLSX.read(e.target.result,{type:'binary'});const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});if(rows.length<2)return;
+      const header=rows[0].map(h=>String(h).toLowerCase().trim());
+      const empCol=header.findIndex(h=>h.includes('empleado')||h.includes('nombre'));const supCol=header.findIndex(h=>h.includes('supervisor'));
+      if(empCol===-1)return;
+      let added=0,skipped=0;
+      rows.slice(1).forEach(row=>{
+        const name=String(row[empCol]||'').trim().toUpperCase();const supName=supCol>=0?String(row[supCol]||'').trim():'';
+        if(!name||iaState.employees.find(e=>e.name===name)){skipped++;return;}
+        let supId='';if(supName){const found=iaNonAdminSups().find(s=>s.name.toLowerCase()===supName.toLowerCase());if(found)supId=found.id;}
+        iaState.employees.push({id:iaGenId(),name,supId});added++;
+      });
+      iaSaveState();iaRenderEmployeeList();
+      const el=document.getElementById('ia-import-result');el.textContent=`✅ ${added} importados, ${skipped} omitidos.`;el.className='ia-import-result ok';el.style.display='block';setTimeout(()=>el.style.display='none',5000);
+    }catch(err){const el=document.getElementById('ia-import-result');el.textContent='Error: '+err.message;el.className='ia-import-result err';el.style.display='block';}
+    input.value='';
+  };reader.readAsBinaryString(file);
+};
+function iaBuildAreaSupSelect(){
+  const sel=document.getElementById('ia-area-sup-select');const cur=sel.value;
+  sel.innerHTML='<option value="">— Seleccionar —</option>';
+  iaNonAdminSups().forEach(s=>{const o=document.createElement('option');o.value=s.id;o.textContent=s.name;sel.appendChild(o);});
+  if(cur)sel.value=cur;
+}
+window.iaRenderAreaManager=function(){
+  const supId=document.getElementById('ia-area-sup-select').value;const wrap=document.getElementById('ia-area-manager-wrap');
+  if(!supId){wrap.innerHTML='';return;}const sup=iaGetSup(supId);const areas=sup.areas||[];
+  if(!areas.length){wrap.innerHTML='<p style="color:#6b7a99;font-size:.85rem;margin-top:.8rem;">Sin áreas.</p>';return;}
+  wrap.innerHTML=`<div class="ia-areas-grid">${areas.map(a=>`<span class="ia-area-chip">${a}<button class="rm" onclick="iaRemoveArea('${supId}','${a}')">✕</button></span>`).join('')}</div>`;
+};
+window.iaAddArea=function(){
+  const supId=document.getElementById('ia-area-sup-select').value;const name=document.getElementById('ia-new-area-name').value.trim().toUpperCase();
+  if(!supId||!name)return;const sup=iaGetSup(supId);if(!sup.areas)sup.areas=[];if(sup.areas.includes(name))return;
+  sup.areas.push(name);sup.areas.sort((a,b)=>iaAreaOrder(a)-iaAreaOrder(b));iaSaveState();document.getElementById('ia-new-area-name').value='';iaRenderAreaManager();if(iaIsAdmin())iaBuildAreaSelect();
+};
+window.iaRemoveArea=function(supId,area){
+  if(!confirm(`¿Quitar "${area}"?`))return;const sup=iaGetSup(supId);sup.areas=sup.areas.filter(a=>a!==area);iaSaveState();iaRenderAreaManager();if(iaIsAdmin())iaBuildAreaSelect();
+};
+
+// Inicializar: esperar datos del servidor antes de mostrar login
+iaWaitReady(function(){
+  iaBuildLoginSelect();
+});
+} // end runIngresoScript
+</script>
 
 </body>
 </html>
