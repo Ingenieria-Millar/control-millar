@@ -372,6 +372,23 @@ let selectedMod=null, activeFilter=null, currentView=null, pendingTransicion=nul
 function hasPerm(p){ return currentUser&&USUARIOS[currentUser]&&USUARIOS[currentUser].perms.includes(p); }
 function isProg(){ return hasPerm('fix')&&hasPerm('modulos')&&hasPerm('tablero'); }
 
+// ── Variables globales Control de Asistencia ─────────────────────
+// Deben estar en scope global para que el WebSocket las llene
+// antes de que se ejecute runIngresoScript()
+let iaState   = null;
+let iaRecords = [];
+let iaReady   = false;
+
+function iaSaveState(){
+  wsSend({ type: 'ia_save_state', state: JSON.parse(JSON.stringify(iaState)) });
+}
+function iaSaveRecords(){ /* registros se envian individualmente */ }
+
+function iaWaitReady(cb){
+  if(iaReady){ cb(); return; }
+  const t=setInterval(()=>{ if(iaReady){ clearInterval(t); cb(); }},100);
+}
+
 // ══════════════════════════════════════════════════════════════════
 // WEBSOCKET — Conexión en tiempo real
 // ══════════════════════════════════════════════════════════════════
@@ -2056,20 +2073,8 @@ const IA_INITIAL = {
   ]
 };
 
-// Datos vienen del servidor via WebSocket (init message)
-let iaState   = null;
-let iaRecords = [];
-let iaReady   = false;
-
-function iaSaveState(){
-  wsSend({ type: 'ia_save_state', state: JSON.parse(JSON.stringify(iaState)) });
-}
-function iaSaveRecords(){ /* registros se envian individualmente */ }
-
-function iaWaitReady(cb){
-  if(iaReady){ cb(); return; }
-  const t=setInterval(()=>{ if(iaReady){ clearInterval(t); cb(); }},100);
-}
+// Variables de asistencia — declaradas globalmente (el WS las llena antes de runIngresoScript)
+// (declaradas arriba en el scope global, ver justo antes de connectWS)
 let iaCurrentUser=null, iaEditingRecordId=null, iaEditingSupId=null, iaEditingEmpId=null;
 let iaSortHistory='area', iaSortAdmin='area';
 let iaSelectedEmployee='';
