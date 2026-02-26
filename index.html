@@ -218,7 +218,7 @@ main{position:relative;z-index:1;padding:24px;max-width:1200px;margin:0 auto;pad
     <button class="btn-bar green"  id="btn-excel-bar" style="display:none;" onclick="openExcelModal()">📥 Excel</button>
     <button class="btn-bar yellow" id="btn-fix-mec"   style="display:none;" onclick="openFixMecModal()">🔧 Corregir</button>
     <button class="btn-bar red"    id="btn-cambiar-user" style="display:none;" onclick="volverLogin()">👤 Cambiar usuario</button>
-    <button class="btn-bar purple" id="btn-config"       style="display:none;" onclick="openConfigModal()">⚙️ Config</button>
+
     <button class="btn-bar blue"   onclick="atrasDesdeTablero()">⬅ Atrás</button>
   </div>
 </div>
@@ -241,11 +241,6 @@ main{position:relative;z-index:1;padding:24px;max-width:1200px;margin:0 auto;pad
     <div class="login-title">Control de Piso<span>Confecciones Millar</span></div>
     <select class="login-select" id="login-user">
       <option value="">— Selecciona tu usuario —</option>
-      <option value="Programador">Programador</option>
-      <option value="Administrador">Administrador</option>
-      <option value="Modulos">Módulos</option>
-      <option value="Televisor">Televisor</option>
-      <option value="Mecanicos">Mecánicos</option>
     </select>
     <input class="login-input" id="login-pass" type="password" maxlength="30" placeholder="••••" autocomplete="off">
     <div class="login-error" id="login-error"></div>
@@ -499,8 +494,32 @@ function playAlertSound(){
 }
 
 // ── INIT ──────────────────────────────────────────────────────────
+function populateLoginSelect(){
+  const sel = document.getElementById('login-user');
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">— Selecciona tu usuario —</option>';
+  // Usuarios activos ordenados alfabéticamente
+  const cfg = loadConfig();
+  const extras = (cfg._usuarios_extra||[]).filter(u=>!u.disabled);
+  const allNames = Object.entries(USUARIOS)
+    .filter(([k,v])=> v.perms && v.perms.length > 0) // solo habilitados
+    .map(([k])=>k)
+    .concat(extras.map(u=>u.nombre))
+    .filter((v,i,a)=>a.indexOf(v)===i) // deduplicar
+    .sort((a,b)=>a.localeCompare(b));
+  allNames.forEach(nombre=>{
+    const o = document.createElement('option');
+    o.value = nombre;
+    o.textContent = nombre;
+    sel.appendChild(o);
+  });
+  if(prev) sel.value = prev;
+}
+
 window.addEventListener('DOMContentLoaded',()=>{
   applyConfig();
+  rebuildModules();
+  populateLoginSelect();
   updateStats();
   setConnStatus(false);
   connectWS();
@@ -557,6 +576,15 @@ function mostrarAreaScreen(){
     b.onclick=()=>elegirArea('produccion');
     btns.appendChild(b);
   }
+  if(isProg()){
+    const b=document.createElement('button');b.className='sel-btn';
+    b.style.cssText='border-color:rgba(167,139,250,0.35);';
+    b.innerHTML='⚙️&nbsp; CONFIGURACIÓN';
+    b.onmouseover=()=>b.style.cssText='border-color:rgba(167,139,250,0.7);box-shadow:0 4px 20px rgba(167,139,250,0.12);';
+    b.onmouseout=()=>b.style.cssText='border-color:rgba(167,139,250,0.35);';
+    b.onclick=()=>{ document.getElementById('area-screen').classList.add('hidden'); openConfigModal(); };
+    btns.appendChild(b);
+  }
   document.getElementById('area-screen').classList.remove('hidden');
 }
 
@@ -580,11 +608,15 @@ function elegirArea(area){
 // ══════════════════════════════════════════════════════════════════
 function submitModuloLogin(){
   const modulo=document.getElementById('modulo-sel').value;
-  const pass=document.getElementById('modulo-pass').value.toUpperCase();
+  const pass=document.getElementById('modulo-pass').value;
   const err=document.getElementById('modulo-error');
   const inp=document.getElementById('modulo-pass');
   if(!modulo){err.textContent='Selecciona tu módulo';return;}
-  if(pass!==modulo){
+  // Contraseña personalizada o por defecto el nombre del módulo
+  const cfg=loadConfig();
+  const customPass=(cfg._modulos_pass||{})[modulo];
+  const expected = customPass || modulo;
+  if(pass.toUpperCase()!==expected.toUpperCase()){
     inp.classList.add('error');err.textContent='Contraseña incorrecta';inp.value='';
     setTimeout(()=>{inp.classList.remove('error');inp.focus();},400);return;
   }
@@ -598,6 +630,7 @@ function submitModuloLogin(){
 // ── NAVEGACIÓN ────────────────────────────────────────────────────
 function volverLogin(){
   ocultarTodo();currentUser=null;selectedMod=null;
+  populateLoginSelect();
   document.getElementById('login-user').value='';
   document.getElementById('login-pass').value='';
   document.getElementById('login-error').textContent='';
@@ -661,7 +694,6 @@ function setView(v){
     document.getElementById('btn-excel-bar').style.display  =hasPerm('excel')?'':'none';
     document.getElementById('btn-fix-mec').style.display    =hasPerm('fix')  ?'':'none';
     document.getElementById('btn-cambiar-user').style.display=isProg()       ?'':'none';
-    document.getElementById('btn-config').style.display     =isProg()        ?'':'none';
   }
   if(v==='grid')   renderGrid();
   if(v==='single') renderBig();
@@ -879,18 +911,22 @@ function downloadExcel(){
 // ══════════════════════════════════════════════════════════════════
 // CONFIGURACIONES
 // ══════════════════════════════════════════════════════════════════
+// Lista maestra de permisos — agregar aquí cada nueva pantalla/función
+const ALL_PERMS = [
+  {key:'area_mecanicos', label:'Ver Tablero Mecánicos'},
+  {key:'tablero',        label:'Tablero Planta'},
+  {key:'excel',          label:'Descargar Excel'},
+  {key:'area_produccion',label:'Área Producción'},
+  {key:'modulos',        label:'Módulos (Vista Módulo)'},
+  {key:'fix',            label:'Corregir Mecánico'},
+];
+const PERM_LABELS = Object.fromEntries(ALL_PERMS.map(p=>[p.key,p.label]));
+
 const CONFIG_PERMS = {
-  'Administrador': {label:'Administrador', available:['area_mecanicos','tablero','excel']},
-  'Televisor':     {label:'Televisor',     available:['area_mecanicos','tablero']},
-  'Mecanicos':     {label:'Mecánicos',     available:['area_mecanicos','tablero']},
-  'Modulos':       {label:'Módulos',       available:['area_produccion','modulos']},
-};
-const PERM_LABELS = {
-  'area_mecanicos':'Ver Tablero Mecánicos',
-  'area_produccion':'Área Producción',
-  'tablero':'Tablero Planta',
-  'modulos':'Módulos',
-  'excel':'Descargar Excel',
+  'Administrador': {label:'Administrador', available:ALL_PERMS.map(p=>p.key)},
+  'Televisor':     {label:'Televisor',     available:ALL_PERMS.map(p=>p.key)},
+  'Mecanicos':     {label:'Mecánicos',     available:ALL_PERMS.map(p=>p.key)},
+  'Modulos':       {label:'Módulos',       available:ALL_PERMS.map(p=>p.key)},
 };
 const CONFIG_KEY = 'millar_config_v1';
 
@@ -901,33 +937,364 @@ function saveConfig(cfg){ localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg));
 
 function applyConfig(){
   const cfg = loadConfig();
+  // Aplicar cambios a usuarios base
   Object.keys(CONFIG_PERMS).forEach(user=>{
     if(!cfg[user]) return;
     if(cfg[user].disabled){ delete USUARIOS[user]; return; }
     if(cfg[user].perms) USUARIOS[user].perms = cfg[user].perms;
   });
+  // Cargar usuarios extra creados manualmente
+  (cfg._usuarios_extra||[]).forEach(u=>{
+    if(u.disabled){ delete USUARIOS[u.nombre]; return; }
+    USUARIOS[u.nombre] = {pass: u.pass, perms: u.perms||[]};
+  });
 }
+
+// ══════════════════════════════════════════════════════════════════
+// CONFIGURACIONES — 3 pestañas: Usuarios | Módulos | Permisos
+// ══════════════════════════════════════════════════════════════════
+let currentCfgTab = 'usuarios';
+let userFormMode = null; // 'create' | 'edit'
+let userFormTarget = null; // nombre del usuario editado
+let modFormMode = null;
+let modFormTarget = null;
+let deleteCallback = null;
 
 function openConfigModal(){
-  renderConfigContent();
+  currentCfgTab = 'usuarios';
   document.getElementById('modal-config').classList.remove('hidden');
+  const s = document.getElementById('cfg-search');
+  if(s) s.value = '';
+  switchCfgTab('usuarios');
 }
-function closeConfigModal(){ document.getElementById('modal-config').classList.add('hidden'); }
 
-function renderConfigContent(){
+function onCfgSearch(){
+  if(currentCfgTab==='usuarios')  renderCfgUsuarios();
+  if(currentCfgTab==='modulos')   renderCfgModulos();
+  if(currentCfgTab==='permisos')  renderCfgPermisos();
+}
+
+function getCfgSearchQuery(){
+  const el = document.getElementById('cfg-search');
+  return el ? el.value.trim().toLowerCase() : '';
+}
+
+function onCfgCrear(){
+  if(currentCfgTab==='usuarios') openUserForm('create');
+  if(currentCfgTab==='modulos')  openModForm('create');
+}
+function closeConfigModal(){
+  document.getElementById('modal-config').classList.add('hidden');
+  populateLoginSelect();
+  if(currentView===null) mostrarAreaScreen();
+}
+function switchCfgTab(tab){
+  currentCfgTab = tab;
+  const s = document.getElementById('cfg-search');
+  if(s) s.value = '';
+  const btnCrear = document.getElementById('cfg-btn-crear');
+  if(btnCrear) btnCrear.style.display = tab==='permisos' ? 'none' : '';
+  ['usuarios','modulos','permisos'].forEach(t=>{
+    const btn = document.getElementById('cfg-tab-'+t);
+    if(t===tab){ btn.style.background='var(--green)'; btn.style.color='#080c14'; btn.style.borderColor='var(--green)'; }
+    else { btn.style.background='transparent'; btn.style.color='var(--muted)'; btn.style.borderColor='var(--border)'; }
+  });
+  if(tab==='usuarios')  renderCfgUsuarios();
+  if(tab==='modulos')   renderCfgModulos();
+  if(tab==='permisos')  renderCfgPermisos();
+}
+
+// ── PESTAÑA USUARIOS ─────────────────────────────────────────────
+function getCfgUsuarios(){
+  // Usuarios base del sistema (no editables = Programador)
+  const base = {};
+  Object.entries(USUARIOS).forEach(([k,v])=>{ base[k]={pass:v.pass, perms:v.perms, builtin: k==='Programador'}; });
+  // Merge con extras guardados en config
   const cfg = loadConfig();
-  const container = document.getElementById('config-content');
+  if(cfg._usuarios_extra){ cfg._usuarios_extra.forEach(u=>{ base[u.nombre]={pass:u.pass, perms:u.perms||[], disabled:!!u.disabled, extra:true}; }); }
+  return base;
+}
+function getUsuariosExtra(){
+  const cfg = loadConfig(); return cfg._usuarios_extra||[];
+}
+function saveUsuariosExtra(arr){
+  const cfg = loadConfig(); cfg._usuarios_extra=arr; saveConfig(cfg);
+}
+
+function renderCfgUsuarios(){
+  const container = document.getElementById('cfg-content');
   container.innerHTML = '';
 
-  Object.entries(CONFIG_PERMS).forEach(([user, meta])=>{
+
+  const q = getCfgSearchQuery();
+  const allUsers = getCfgUsuarios();
+  Object.entries(allUsers)
+    .sort(([a],[b])=>a.localeCompare(b))
+    .filter(([nombre])=> !q || nombre.toLowerCase().includes(q)).forEach(([nombre, data])=>{
+    const card = document.createElement('div');
+    const isDisabled = !!data.disabled;
+    const isBuiltin = !!data.builtin;
+    card.style.cssText='background:#080c14;border:1px solid #1a2236;border-radius:10px;padding:13px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;';
+    // Info
+    const info = document.createElement('div');
+    info.style.cssText='flex:1;min-width:0;';
+    info.innerHTML=`
+      <div style="font-size:14px;font-weight:700;color:${isDisabled?'var(--muted)':'#f1f5f9'};display:flex;align-items:center;gap:8px;">
+        ${nombre} ${isBuiltin?'<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(167,139,250,0.15);color:#c4b5fd;letter-spacing:1px;">SISTEMA</span>':''}
+        ${isDisabled?'<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(239,68,68,0.12);color:var(--red);">INACTIVO</span>':''}
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:3px;font-family:Courier New,monospace;letter-spacing:2px;">${isBuiltin?'••••••':'Pass: '+data.pass}</div>`;
+    card.appendChild(info);
+    // Acciones
+    const actions = document.createElement('div');
+    actions.style.cssText='display:flex;gap:6px;flex-shrink:0;';
+    if(!isBuiltin){
+      const btnEdit = document.createElement('button');
+      btnEdit.style.cssText='padding:6px 12px;border-radius:6px;border:1px solid rgba(99,179,237,0.3);background:transparent;color:#93c5fd;font-size:12px;font-weight:600;cursor:pointer;';
+      btnEdit.textContent='✏️ Editar';
+      btnEdit.onclick=()=>openUserForm('edit', nombre, data.pass);
+      actions.appendChild(btnEdit);
+
+      const btnToggle = document.createElement('button');
+      btnToggle.style.cssText=`padding:6px 12px;border-radius:6px;border:1px solid ${isDisabled?'rgba(34,197,94,0.3)':'rgba(234,179,8,0.3)'};background:transparent;color:${isDisabled?'var(--green)':'var(--yellow)'};font-size:12px;font-weight:600;cursor:pointer;`;
+      btnToggle.textContent=isDisabled?'✅ Habilitar':'⏸ Inhabilitar';
+      btnToggle.onclick=()=>toggleExtraUser(nombre);
+      actions.appendChild(btnToggle);
+
+      const btnDel = document.createElement('button');
+      btnDel.style.cssText='padding:6px 12px;border-radius:6px;border:1px solid rgba(239,68,68,0.3);background:transparent;color:var(--red);font-size:12px;font-weight:600;cursor:pointer;';
+      btnDel.textContent='🗑 Eliminar';
+      btnDel.onclick=()=>confirmDelete(`¿Eliminar usuario "${nombre}"?`, 'Esta acción no se puede deshacer.', ()=>deleteExtraUser(nombre));
+      actions.appendChild(btnDel);
+    } else {
+      // Usuarios builtin: solo inhabilitar/habilitar (excepto Programador)
+      if(nombre!=='Programador'){
+        const cfg=loadConfig(); const isOff=!!(cfg[nombre]&&cfg[nombre].disabled);
+        const btnToggle = document.createElement('button');
+        btnToggle.style.cssText=`padding:6px 12px;border-radius:6px;border:1px solid ${isOff?'rgba(34,197,94,0.3)':'rgba(234,179,8,0.3)'};background:transparent;color:${isOff?'var(--green)':'var(--yellow)'};font-size:12px;font-weight:600;cursor:pointer;`;
+        btnToggle.textContent=isOff?'✅ Habilitar':'⏸ Inhabilitar';
+        btnToggle.onclick=()=>{ toggleUserEnabled(nombre,null); renderCfgUsuarios(); };
+        actions.appendChild(btnToggle);
+      }
+    }
+    card.appendChild(actions);
+    container.appendChild(card);
+  });
+}
+
+function openUserForm(mode, nombre='', pass=''){
+  userFormMode=mode; userFormTarget=nombre;
+  document.getElementById('user-form-title').textContent = mode==='create'?'Nuevo Usuario':'Editar Usuario';
+  document.getElementById('uf-nombre').value=nombre;
+  document.getElementById('uf-nombre').disabled=(mode==='edit');
+  document.getElementById('uf-nombre').style.opacity=(mode==='edit')?'0.5':'1';
+  document.getElementById('uf-pass').value=pass;
+  document.getElementById('uf-error').textContent='';
+  document.getElementById('modal-user-form').classList.remove('hidden');
+  setTimeout(()=>document.getElementById(mode==='create'?'uf-nombre':'uf-pass').focus(),100);
+}
+function closeUserForm(){ document.getElementById('modal-user-form').classList.add('hidden'); }
+function saveUserForm(){
+  const nombre = document.getElementById('uf-nombre').value.trim();
+  const pass   = document.getElementById('uf-pass').value.trim();
+  const errEl  = document.getElementById('uf-error');
+  if(!nombre){ errEl.textContent='El nombre no puede estar vacío'; document.getElementById('uf-nombre').style.borderColor='var(--red)'; return; }
+  if(!pass)  { errEl.textContent='La contraseña no puede estar vacía'; document.getElementById('uf-pass').style.borderColor='var(--red)'; return; }
+  const extras = getUsuariosExtra();
+  if(userFormMode==='create'){
+    if(USUARIOS[nombre]||extras.find(u=>u.nombre===nombre)){ errEl.textContent='Ya existe un usuario con ese nombre'; return; }
+    extras.push({nombre, pass, perms:[], disabled:false});
+    USUARIOS[nombre]={pass, perms:[]};
+  } else {
+    const idx=extras.findIndex(u=>u.nombre===userFormTarget);
+    if(idx>-1){ extras[idx].pass=pass; }
+    if(USUARIOS[userFormTarget]) USUARIOS[userFormTarget].pass=pass;
+  }
+  saveUsuariosExtra(extras);
+  closeUserForm();
+  renderCfgUsuarios();
+  showToastSimple(`✅ Usuario ${userFormMode==='create'?'creado':'actualizado'}`);
+}
+function toggleExtraUser(nombre){
+  const extras=getUsuariosExtra();
+  const idx=extras.findIndex(u=>u.nombre===nombre);
+  if(idx>-1){ extras[idx].disabled=!extras[idx].disabled; if(USUARIOS[nombre]) USUARIOS[nombre].perms=extras[idx].disabled?[]:extras[idx].perms; }
+  saveUsuariosExtra(extras); renderCfgUsuarios();
+}
+function deleteExtraUser(nombre){
+  const extras=getUsuariosExtra().filter(u=>u.nombre!==nombre);
+  saveUsuariosExtra(extras);
+  delete USUARIOS[nombre];
+  renderCfgUsuarios();
+  showToastSimple(`🗑 Usuario "${nombre}" eliminado`);
+}
+
+// ── PESTAÑA MÓDULOS ──────────────────────────────────────────────
+function getCfgModulos(){
+  const cfg=loadConfig();
+  const disabled=cfg._modulos_disabled||[];
+  const extra=cfg._modulos_extra||[];
+  return {disabled, extra};
+}
+function saveCfgModulos(disabled, extra){
+  const cfg=loadConfig(); cfg._modulos_disabled=disabled; cfg._modulos_extra=extra; saveConfig(cfg);
+  // Reconstruir array MODULES global
+  rebuildModules();
+}
+function rebuildModules(){
+  const cfg=loadConfig();
+  const base=['M01','M02','M03','M04','M05','M06','M07','M08','M09','M10','M11','M12','M13','M14','M15','M16','M17','M18','M19','M20','M21','M22','M23','M24','M25','M26','M27'];
+  const extra=cfg._modulos_extra||[];
+  const disabled=cfg._modulos_disabled||[];
+  const renamed=cfg._modulos_renamed||{};
+  // Rebuild global MODULES
+  MODULES.length=0;
+  [...base,...extra].forEach(id=>{
+    if(!disabled.includes(id)) MODULES.push(renamed[id]||id);
+  });
+  // Init states for new modules
+  MODULES.forEach(id=>{ if(states[id]===undefined){states[id]='green';timers[id]=Date.now();lastMec[id]='';acumRed[id]=0;acumYellow[id]=0;} });
+}
+
+function renderCfgModulos(){
+  const container=document.getElementById('cfg-content');
+  container.innerHTML='';
+  const cfg=loadConfig();
+  const disabled=cfg._modulos_disabled||[];
+  const extra=cfg._modulos_extra||[];
+  const renamed=cfg._modulos_renamed||{};
+  const base=['M01','M02','M03','M04','M05','M06','M07','M08','M09','M10','M11','M12','M13','M14','M15','M16','M17','M18','M19','M20','M21','M22','M23','M24','M25','M26','M27'];
+
+
+
+  // Grid de módulos
+  const grid=document.createElement('div');
+  grid.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:8px;';
+
+  const allMods=[...base.map(id=>({id,extra:false})),...extra.map(id=>({id,extra:true}))];
+  const qm = getCfgSearchQuery();
+  allMods.filter(({id})=> !qm || id.toLowerCase().includes(qm) || (renamed[id]||'').toLowerCase().includes(qm)).forEach(({id,extra:isExtra})=>{
+    const isDisabled=disabled.includes(id);
+    const displayName=renamed[id]||id;
+    const card=document.createElement('div');
+    card.style.cssText=`background:#080c14;border:1px solid ${isDisabled?'#1a2236':'rgba(34,197,94,0.15)'};border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:8px;opacity:${isDisabled?'0.5':'1'};`;
+    const modPassVal = (cfg._modulos_pass||{})[id]||id;
+    card.innerHTML=`<div style="flex:1;min-width:0;">
+      <div style="font-family:Courier New,monospace;font-size:13px;font-weight:700;color:${isDisabled?'var(--muted)':'#cbd5e1'};letter-spacing:2px;">${displayName}</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:2px;letter-spacing:1px;">🔑 ${modPassVal}</div>
+    </div>`;
+    const acts=document.createElement('div');
+    acts.style.cssText='display:flex;gap:4px;';
+    // Editar nombre
+    const bEdit=document.createElement('button');
+    bEdit.style.cssText='padding:4px 8px;border-radius:5px;border:1px solid rgba(99,179,237,0.3);background:transparent;color:#93c5fd;font-size:11px;cursor:pointer;';
+    bEdit.textContent='✏️';bEdit.title='Renombrar';
+    bEdit.onclick=()=>openModForm('edit',id,displayName);
+    acts.appendChild(bEdit);
+    // Inhabilitar/habilitar
+    const bToggle=document.createElement('button');
+    bToggle.style.cssText=`padding:4px 8px;border-radius:5px;border:1px solid ${isDisabled?'rgba(34,197,94,0.3)':'rgba(234,179,8,0.3)'};background:transparent;color:${isDisabled?'var(--green)':'var(--yellow)'};font-size:11px;cursor:pointer;`;
+    bToggle.textContent=isDisabled?'✅':'⏸';bToggle.title=isDisabled?'Habilitar':'Inhabilitar';
+    bToggle.onclick=()=>toggleModulo(id);
+    acts.appendChild(bToggle);
+    // Eliminar (solo extras)
+    if(isExtra){
+      const bDel=document.createElement('button');
+      bDel.style.cssText='padding:4px 8px;border-radius:5px;border:1px solid rgba(239,68,68,0.3);background:transparent;color:var(--red);font-size:11px;cursor:pointer;';
+      bDel.textContent='🗑';bDel.title='Eliminar';
+      bDel.onclick=()=>confirmDelete(`¿Eliminar módulo "${displayName}"?`,'Esta acción no se puede deshacer.',()=>deleteModulo(id));
+      acts.appendChild(bDel);
+    }
+    card.appendChild(acts);
+    grid.appendChild(card);
+  });
+  container.appendChild(grid);
+}
+
+function getModPass(id){
+  const cfg=loadConfig();
+  const passes=cfg._modulos_pass||{};
+  return passes[id]||'';
+}
+function openModForm(mode, id='', nombre=''){
+  modFormMode=mode; modFormTarget=id;
+  document.getElementById('mod-form-title').textContent=mode==='create'?'Nuevo Módulo':'Editar Módulo';
+  const nombreInput=document.getElementById('mf-nombre');
+  nombreInput.value=nombre;
+  nombreInput.disabled=(mode==='edit');
+  nombreInput.style.opacity=(mode==='edit')?'0.5':'1';
+  document.getElementById('mf-pass').value=getModPass(id);
+  document.getElementById('mf-error').textContent='';
+  document.getElementById('modal-mod-form').classList.remove('hidden');
+  setTimeout(()=>document.getElementById(mode==='create'?'mf-nombre':'mf-pass').focus(),100);
+}
+function closeModForm(){ document.getElementById('modal-mod-form').classList.add('hidden'); }
+function saveModForm(){
+  const nombre=document.getElementById('mf-nombre').value.trim().toUpperCase();
+  const pass=document.getElementById('mf-pass').value.trim();
+  const errEl=document.getElementById('mf-error');
+  if(!nombre){ errEl.textContent='El nombre no puede estar vacío'; return; }
+  const cfg=loadConfig();
+  const base=['M01','M02','M03','M04','M05','M06','M07','M08','M09','M10','M11','M12','M13','M14','M15','M16','M17','M18','M19','M20','M21','M22','M23','M24','M25','M26','M27'];
+  const extra=cfg._modulos_extra||[];
+  if(!cfg._modulos_pass) cfg._modulos_pass={};
+  if(modFormMode==='create'){
+    if([...base,...extra].includes(nombre)){ errEl.textContent='Ya existe un módulo con ese nombre'; return; }
+    extra.push(nombre);
+    cfg._modulos_extra=extra;
+    states[nombre]='green'; timers[nombre]=Date.now(); lastMec[nombre]=''; acumRed[nombre]=0; acumYellow[nombre]=0;
+  } else {
+    if(!cfg._modulos_renamed) cfg._modulos_renamed={};
+    cfg._modulos_renamed[modFormTarget]=nombre;
+  }
+  // Guardar contraseña si se definió
+  const targetId = modFormMode==='create' ? nombre : modFormTarget;
+  if(pass) cfg._modulos_pass[targetId]=pass;
+  else delete cfg._modulos_pass[targetId];
+  saveConfig(cfg);
+  rebuildModules();
+  closeModForm();
+  renderCfgModulos();
+  showToastSimple(`✅ Módulo ${modFormMode==='create'?'creado':'actualizado'}`);
+}
+function toggleModulo(id){
+  const cfg=loadConfig();
+  const disabled=cfg._modulos_disabled||[];
+  const idx=disabled.indexOf(id);
+  if(idx>-1) disabled.splice(idx,1); else disabled.push(id);
+  cfg._modulos_disabled=disabled; saveConfig(cfg);
+  rebuildModules(); renderCfgModulos();
+}
+function deleteModulo(id){
+  const cfg=loadConfig();
+  cfg._modulos_extra=(cfg._modulos_extra||[]).filter(m=>m!==id);
+  cfg._modulos_disabled=(cfg._modulos_disabled||[]).filter(m=>m!==id);
+  if(cfg._modulos_renamed) delete cfg._modulos_renamed[id];
+  saveConfig(cfg);
+  rebuildModules(); renderCfgModulos();
+  showToastSimple(`🗑 Módulo "${id}" eliminado`);
+}
+
+// ── PESTAÑA PERMISOS ─────────────────────────────────────────────
+function renderCfgPermisos(){
+  const cfg = loadConfig();
+  const container = document.getElementById('cfg-content');
+  container.innerHTML = '';
+  const qp = getCfgSearchQuery();
+
+  // Combinar usuarios base (CONFIG_PERMS) + usuarios extra creados manualmente
+  const extraUsers = (cfg._usuarios_extra||[]).map(u=>([u.nombre, {label: u.nombre, isExtra: true}]));
+  const baseEntries = Object.entries(CONFIG_PERMS).map(([k,v])=>([k, {...v, isExtra:false}]));
+  const allEntries = [...baseEntries, ...extraUsers]
+    .sort(([a],[b])=>a.localeCompare(b))
+    .filter(([user, meta])=> !qp || user.toLowerCase().includes(qp) || (meta.label||'').toLowerCase().includes(qp));
+
+  allEntries.forEach(([user, meta])=>{
     const userCfg = cfg[user] || {};
     const isDisabled = !!userCfg.disabled;
-    const activePerms = userCfg.perms || USUARIOS[user]?.perms || meta.available;
-
+    const activePerms = userCfg.perms !== undefined ? userCfg.perms : (USUARIOS[user]?.perms || []);
     const card = document.createElement('div');
     card.style.cssText = 'background:#080c14;border:1px solid #1a2236;border-radius:12px;padding:16px;margin-bottom:12px;';
-
-    // Header row with user name and enable/disable toggle
     const header = document.createElement('div');
     header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;';
     header.innerHTML = `
@@ -939,20 +1306,18 @@ function renderConfigContent(){
         </div>
       </label>`;
     card.appendChild(header);
-
     if(!isDisabled){
-      // Permissions checkboxes
       const permsDiv = document.createElement('div');
-      permsDiv.style.cssText = 'display:flex;flex-direction:column;gap:8px;';
-      meta.available.forEach(perm=>{
-        const checked = activePerms.includes(perm);
+      permsDiv.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:8px;';
+      ALL_PERMS.forEach(({key, label})=>{
+        const checked = activePerms.includes(key);
         const row = document.createElement('label');
         row.style.cssText = 'display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:var(--muted);';
         row.innerHTML = `
-          <input type="checkbox" data-user="${user}" data-perm="${perm}" ${checked?'checked':''} 
-            onchange="togglePerm('${user}','${perm}',this.checked)"
+          <input type="checkbox" data-user="${user}" data-perm="${key}" ${checked?'checked':''}
+            onchange="togglePerm('${user}','${key}',this.checked)"
             style="width:16px;height:16px;accent-color:var(--green);cursor:pointer;">
-          <span>${PERM_LABELS[perm]||perm}</span>`;
+          <span>${label}</span>`;
         permsDiv.appendChild(row);
       });
       card.appendChild(permsDiv);
@@ -961,31 +1326,49 @@ function renderConfigContent(){
   });
 }
 
+// ── CONFIRM DELETE ────────────────────────────────────────────────
+function confirmDelete(titulo, sub, cb){
+  deleteCallback=cb;
+  document.getElementById('confirm-delete-title').textContent=titulo;
+  document.getElementById('confirm-delete-sub').textContent=sub;
+  document.getElementById('modal-confirm-delete').classList.remove('hidden');
+}
+function closeConfirmDelete(){ document.getElementById('modal-confirm-delete').classList.add('hidden'); deleteCallback=null; }
+function executeDelete(){ const cb=deleteCallback; closeConfirmDelete(); if(cb) cb(); }
+
+// ── CONFIG helpers (mantener compatibilidad) ───────────────────────
+// renderConfigContent ahora redirige a la pestaña de permisos
+function renderConfigContent(){ renderCfgPermisos(); }
+
 function toggleUserEnabled(user, toggleEl){
   const cfg = loadConfig();
   if(!cfg[user]) cfg[user] = {};
   cfg[user].disabled = !cfg[user].disabled;
   saveConfig(cfg);
-  // Re-apply to USUARIOS
   if(cfg[user].disabled){
-    USUARIOS[user] = {pass:'1', perms:[]};
+    USUARIOS[user] = {pass: USUARIOS[user]?.pass||'1', perms:[]};
   } else {
     const meta = CONFIG_PERMS[user];
-    USUARIOS[user] = {pass:'1', perms: cfg[user].perms || meta.available};
+    USUARIOS[user] = {pass: USUARIOS[user]?.pass||'1', perms: cfg[user].perms || meta.available};
   }
-  renderConfigContent();
+  if(currentCfgTab==='permisos') renderCfgPermisos();
+  if(currentCfgTab==='usuarios') renderCfgUsuarios();
 }
 
 function togglePerm(user, perm, enabled){
   const cfg = loadConfig();
   if(!cfg[user]) cfg[user] = {};
-  const meta = CONFIG_PERMS[user];
-  const base = cfg[user].perms || USUARIOS[user]?.perms || meta.available;
+  const base = cfg[user].perms !== undefined ? cfg[user].perms : (USUARIOS[user]?.perms ? [...USUARIOS[user].perms] : []);
   if(enabled){ if(!base.includes(perm)) base.push(perm); }
   else { const idx=base.indexOf(perm); if(idx>-1) base.splice(idx,1); }
   cfg[user].perms = base;
+  // Si es usuario extra, también actualizar en _usuarios_extra
+  const extras = cfg._usuarios_extra||[];
+  const ei = extras.findIndex(u=>u.nombre===user);
+  if(ei>-1){ extras[ei].perms=base; cfg._usuarios_extra=extras; }
   saveConfig(cfg);
   if(USUARIOS[user]) USUARIOS[user].perms = base;
+  else USUARIOS[user] = {pass: (extras[ei]?.pass||''), perms: base};
 }
 
 // Apply saved config on load
@@ -1001,11 +1384,88 @@ setInterval(()=>{const n=new Date();document.getElementById('clock').textContent
 
 <!-- MODAL: Configuraciones -->
 <div class="modal-overlay hidden" id="modal-config">
-  <div class="modal-box" style="max-width:480px;width:95%;max-height:85vh;overflow-y:auto;gap:14px;align-items:stretch;">
-    <div class="modal-title" style="text-align:center;">⚙️ CONFIGURACIONES</div>
-    <div class="modal-sub" style="text-align:center;">Administra usuarios y permisos</div>
-    <div id="config-content"></div>
-    <button class="modal-btn secondary" onclick="closeConfigModal()" style="margin-top:8px;">Cerrar</button>
+  <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:28px 28px 24px;display:flex;flex-direction:column;gap:16px;width:96%;max-width:580px;max-height:90vh;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.7);animation:slup 0.25s ease;">
+    <div style="text-align:center;font-size:15px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#f1f5f9;">⚙️ CONFIGURACIONES</div>
+    <!-- Pestañas -->
+    <div style="display:flex;gap:6px;border-bottom:1px solid var(--border);padding-bottom:12px;">
+      <button id="cfg-tab-usuarios"  onclick="switchCfgTab('usuarios')"  style="flex:1;padding:9px 6px;border-radius:8px 8px 0 0;border:1px solid var(--border);border-bottom:none;background:var(--green);color:#080c14;font-size:12px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all 0.2s;">👤 USUARIOS</button>
+      <button id="cfg-tab-modulos"   onclick="switchCfgTab('modulos')"   style="flex:1;padding:9px 6px;border-radius:8px 8px 0 0;border:1px solid var(--border);border-bottom:none;background:transparent;color:var(--muted);font-size:12px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all 0.2s;">🏭 MÓDULOS</button>
+      <button id="cfg-tab-permisos"  onclick="switchCfgTab('permisos')"  style="flex:1;padding:9px 6px;border-radius:8px 8px 0 0;border:1px solid var(--border);border-bottom:none;background:transparent;color:var(--muted);font-size:12px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all 0.2s;">🔑 PERMISOS</button>
+    </div>
+    <!-- Buscador + Crear -->
+    <div style="display:flex;gap:8px;align-items:center;">
+      <div style="position:relative;flex:1;">
+        <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px;pointer-events:none;">🔍</span>
+        <input id="cfg-search" type="text" placeholder="Buscar..." oninput="onCfgSearch()"
+          style="width:100%;padding:10px 14px 10px 36px;border-radius:8px;border:1px solid var(--border);background:#080c14;color:var(--text);font-size:14px;outline:none;transition:border-color 0.2s;"
+          onfocus="this.style.borderColor='#3d5a8a'" onblur="this.style.borderColor='var(--border)'">
+      </div>
+      <button id="cfg-btn-crear" onclick="onCfgCrear()"
+        style="padding:10px 16px;border-radius:8px;border:1px solid rgba(34,197,94,0.4);background:rgba(34,197,94,0.08);color:var(--green);font-size:13px;font-weight:700;white-space:nowrap;cursor:pointer;transition:all 0.2s;flex-shrink:0;"
+        onmouseover="this.style.background='rgba(34,197,94,0.15)'" onmouseout="this.style.background='rgba(34,197,94,0.08)'">
+        + Crear
+      </button>
+    </div>
+    <!-- Contenido pestañas -->
+    <div id="cfg-content" style="overflow-y:auto;flex:1;min-height:0;"></div>
+    <button class="modal-btn secondary" onclick="closeConfigModal()" style="margin-top:4px;flex-shrink:0;">Cerrar</button>
+  </div>
+</div>
+
+<!-- MODAL: Formulario usuario (crear/editar) -->
+<div class="modal-overlay hidden" id="modal-user-form" style="z-index:700;">
+  <div class="modal-box" style="max-width:360px;width:92%;gap:14px;">
+    <div class="modal-title" id="user-form-title">Nuevo Usuario</div>
+    <div style="width:100%;display:flex;flex-direction:column;gap:10px;">
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <label style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Nombre de usuario</label>
+        <input id="uf-nombre" type="text" placeholder="Ej: Supervisor" style="padding:11px 14px;border-radius:8px;border:1px solid var(--border);background:#080c14;color:var(--text);font-size:14px;outline:none;" oninput="this.style.borderColor='var(--border)'">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <label style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Contraseña</label>
+        <input id="uf-pass" type="text" placeholder="Contraseña" style="padding:11px 14px;border-radius:8px;border:1px solid var(--border);background:#080c14;color:var(--text);font-size:14px;font-family:'Courier New',monospace;letter-spacing:3px;outline:none;" oninput="this.style.borderColor='var(--border)'">
+      </div>
+    </div>
+    <div id="uf-error" style="font-size:12px;color:var(--red);min-height:16px;text-align:center;"></div>
+    <div style="display:flex;gap:8px;width:100%;">
+      <button class="modal-btn secondary" style="flex:1;" onclick="closeUserForm()">Cancelar</button>
+      <button class="modal-btn" style="flex:1;" onclick="saveUserForm()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Formulario módulo (crear/editar) -->
+<div class="modal-overlay hidden" id="modal-mod-form" style="z-index:700;">
+  <div class="modal-box" style="max-width:360px;width:92%;gap:14px;">
+    <div class="modal-title" id="mod-form-title">Nuevo Módulo</div>
+    <div style="width:100%;display:flex;flex-direction:column;gap:10px;">
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <label style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Nombre del módulo</label>
+        <input id="mf-nombre" type="text" placeholder="Ej: M28" maxlength="10" style="padding:11px 14px;border-radius:8px;border:1px solid var(--border);background:#080c14;color:var(--text);font-size:16px;font-family:'Courier New',monospace;letter-spacing:4px;outline:none;" oninput="this.style.borderColor='var(--border)'">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <label style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Contraseña del módulo</label>
+        <input id="mf-pass" type="text" placeholder="Dejar vacío = usar nombre como clave" style="padding:11px 14px;border-radius:8px;border:1px solid var(--border);background:#080c14;color:var(--text);font-size:14px;font-family:'Courier New',monospace;letter-spacing:3px;outline:none;" oninput="this.style.borderColor='var(--border)'">
+      </div>
+    </div>
+    <div id="mf-error" style="font-size:12px;color:var(--red);min-height:16px;text-align:center;"></div>
+    <div style="display:flex;gap:8px;width:100%;">
+      <button class="modal-btn secondary" style="flex:1;" onclick="closeModForm()">Cancelar</button>
+      <button class="modal-btn" style="flex:1;" onclick="saveModForm()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Confirmación eliminar -->
+<div class="modal-overlay hidden" id="modal-confirm-delete" style="z-index:700;">
+  <div class="modal-box" style="max-width:340px;width:92%;gap:16px;">
+    <div class="modal-icon">⚠️</div>
+    <div class="modal-title" id="confirm-delete-title">¿Eliminar?</div>
+    <div class="modal-sub" id="confirm-delete-sub">Esta acción no se puede deshacer.</div>
+    <div style="display:flex;gap:8px;width:100%;">
+      <button class="modal-btn secondary" style="flex:1;" onclick="closeConfirmDelete()">Cancelar</button>
+      <button style="flex:1;padding:13px;border-radius:8px;border:none;background:var(--red);color:#fff;font-size:13px;font-weight:700;letter-spacing:1px;cursor:pointer;" onclick="executeDelete()">Eliminar</button>
+    </div>
   </div>
 </div>
 
