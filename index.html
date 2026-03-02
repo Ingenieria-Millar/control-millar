@@ -813,7 +813,7 @@ function iaWaitReady(cb){
 // ══════════════════════════════════════════════════════════════════
 // WEBSOCKET — Conexión en tiempo real
 // ══════════════════════════════════════════════════════════════════
-let ws=null, wsReady=false, reconnectTimer=null;
+let ws=null, wsReady=false, reconnectTimer=null, reconnectDelay=1000;
 
 function connectWS(){
   const proto=location.protocol==='https:'?'wss':'ws';
@@ -822,6 +822,7 @@ function connectWS(){
 
   ws.onopen=()=>{
     wsReady=true;
+    reconnectDelay=1000; // reset backoff on successful connect
     clearTimeout(reconnectTimer);
     setConnStatus(true);
   };
@@ -893,8 +894,11 @@ function connectWS(){
   ws.onclose=()=>{
     wsReady=false;
     setConnStatus(false);
-    // Reconectar automáticamente cada 3 segundos
-    reconnectTimer=setTimeout(connectWS, 3000);
+    // Reconexión con backoff exponencial: 1s → 2s → 4s → ... → 30s max
+    reconnectTimer=setTimeout(()=>{
+      reconnectDelay=Math.min(reconnectDelay*2, 30000);
+      connectWS();
+    }, reconnectDelay);
   };
 
   ws.onerror=()=>{ ws.close(); };
@@ -1693,6 +1697,7 @@ function openConfigModal(){
 function onCfgSearch(){
   if(currentCfgTab==='usuarios')  renderCfgUsuarios();
   if(currentCfgTab==='modulos')   renderCfgModulos();
+  if(currentCfgTab==='areas')     renderCfgAreas();
   if(currentCfgTab==='permisos')  renderCfgPermisos();
 }
 
@@ -1704,6 +1709,7 @@ function getCfgSearchQuery(){
 function onCfgCrear(){
   if(currentCfgTab==='usuarios') openUserForm('create');
   if(currentCfgTab==='modulos')  openModForm('create');
+  if(currentCfgTab==='areas')    openAreaForm('create');
 }
 function closeConfigModal(){
   document.getElementById('modal-config').classList.add('hidden');
@@ -1713,7 +1719,7 @@ function closeConfigModal(){
 function switchCfgTab(tab){
   currentCfgTab = tab;
   // Update side nav styles
-  ['usuarios','modulos','permisos'].forEach(t=>{
+  ['usuarios','modulos','areas','permisos'].forEach(t=>{
     const el=document.getElementById('cfg-side-'+t);
     if(!el) return;
     if(t===tab){
@@ -1733,6 +1739,7 @@ function switchCfgTab(tab){
   // cfg-tab-* buttons removed in new design — skip legacy tab styling
   if(tab==='usuarios')  renderCfgUsuarios();
   if(tab==='modulos')   renderCfgModulos();
+  if(tab==='areas')     renderCfgAreas();
   if(tab==='permisos')  renderCfgPermisos();
 }
 
@@ -2101,6 +2108,157 @@ function renderCfgPermisos(){
   });
 }
 
+// ── PESTAÑA ÁREAS ─────────────────────────────────────────────────
+// Áreas personalizadas guardadas en config
+function getCfgAreas(){
+  const cfg = loadConfig();
+  // Áreas base desde AREAS_CONFIG
+  const base = AREAS_CONFIG.map(a=>({
+    key: a.key, label: a.label, icon: a.icon, color: a.color, builtin: true,
+    disabled: !!(cfg._areas_disabled && cfg._areas_disabled.includes(a.key))
+  }));
+  // Áreas extra creadas manualmente
+  const extras = (cfg._areas_extra||[]).map(a=>({...a, builtin:false}));
+  return [...base, ...extras];
+}
+
+function saveAreaDisabled(areaKey, disabled){
+  const cfg = loadConfig();
+  if(!cfg._areas_disabled) cfg._areas_disabled = [];
+  if(disabled){
+    if(!cfg._areas_disabled.includes(areaKey)) cfg._areas_disabled.push(areaKey);
+  } else {
+    cfg._areas_disabled = cfg._areas_disabled.filter(k=>k!==areaKey);
+  }
+  saveConfig(cfg);
+}
+
+function deleteAreaExtra(areaKey){
+  const cfg = loadConfig();
+  cfg._areas_extra = (cfg._areas_extra||[]).filter(a=>a.key!==areaKey);
+  saveConfig(cfg);
+  renderCfgAreas();
+}
+
+let areaFormMode = null;
+let areaFormTarget = null;
+
+function openAreaForm(mode, key){
+  areaFormMode = mode;
+  areaFormTarget = key || null;
+  const title = document.getElementById('area-form-title');
+  const inputLabel = document.getElementById('af-label');
+  const inputKey   = document.getElementById('af-key');
+  const inputIcon  = document.getElementById('af-icon');
+  const inputColor = document.getElementById('af-color');
+  if(mode==='edit' && key){
+    title.textContent = 'Editar Área';
+    const cfg = loadConfig();
+    const extras = cfg._areas_extra||[];
+    const a = extras.find(x=>x.key===key);
+    if(a){
+      inputLabel.value = a.label||'';
+      inputKey.value   = a.key||'';
+      inputIcon.value  = a.icon||'📍';
+      inputColor.value = a.color||'#3b82f6';
+    }
+  } else {
+    title.textContent = 'Nueva Área';
+    inputLabel.value=''; inputKey.value=''; inputIcon.value='📍'; inputColor.value='#3b82f6';
+  }
+  document.getElementById('af-error').textContent='';
+  document.getElementById('modal-area-form').classList.remove('hidden');
+}
+function closeAreaForm(){ document.getElementById('modal-area-form').classList.add('hidden'); }
+
+function saveAreaForm(){
+  const label = document.getElementById('af-label').value.trim();
+  const icon  = document.getElementById('af-icon').value.trim() || '📍';
+  const color = document.getElementById('af-color').value || '#3b82f6';
+  const errEl = document.getElementById('af-error');
+  if(!label){ errEl.textContent='Ingresa un nombre para el área.'; return; }
+
+  const cfg = loadConfig();
+  if(!cfg._areas_extra) cfg._areas_extra=[];
+
+  if(areaFormMode==='edit' && areaFormTarget){
+    const idx = cfg._areas_extra.findIndex(a=>a.key===areaFormTarget);
+    if(idx>-1){ cfg._areas_extra[idx].label=label; cfg._areas_extra[idx].icon=icon; cfg._areas_extra[idx].color=color; }
+  } else {
+    // Generar key única
+    const key = 'area_custom_'+Date.now();
+    cfg._areas_extra.push({key, label, icon, color});
+  }
+  saveConfig(cfg);
+  closeAreaForm();
+  renderCfgAreas();
+}
+
+function renderCfgAreas(){
+  const container = document.getElementById('cfg-content');
+  if(!container) return;
+  container.innerHTML = '';
+  const qp = getCfgSearchQuery();
+  const allAreas = getCfgAreas().filter(a=> !qp || a.label.toLowerCase().includes(qp) || a.key.toLowerCase().includes(qp));
+
+  if(!allAreas.length){
+    container.innerHTML='<div style="text-align:center;padding:40px;color:#4b5a72;font-size:13px;">No hay áreas que coincidan.</div>';
+    return;
+  }
+
+  allAreas.forEach(area=>{
+    const card = document.createElement('div');
+    card.style.cssText = `background:${area.disabled?'#0f1623':'#141c2b'};border:1px solid ${area.disabled?'#1a2236':'#1e2d42'};border-radius:12px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:12px;opacity:${area.disabled?'.55':'1'};transition:all .2s;`;
+
+    const left = document.createElement('div');
+    left.style.cssText='display:flex;align-items:center;gap:12px;flex:1;min-width:0;';
+    left.innerHTML=`
+      <div style="width:38px;height:38px;border-radius:10px;background:${area.color}22;border:1px solid ${area.color}44;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">${area.icon}</div>
+      <div style="min-width:0;">
+        <div style="font-size:14px;font-weight:700;color:${area.disabled?'#4b5a72':'#f1f5f9'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${area.label}</div>
+        <div style="font-size:11px;color:#4b5a72;font-family:'Courier New',monospace;margin-top:2px;">${area.key}${area.builtin?' · <span style="color:#2563eb88;">incorporada</span>':''}</div>
+      </div>`;
+    card.appendChild(left);
+
+    const right = document.createElement('div');
+    right.style.cssText='display:flex;align-items:center;gap:8px;flex-shrink:0;';
+
+    // Toggle habilitar/deshabilitar
+    const toggleBtn = document.createElement('div');
+    toggleBtn.style.cssText=`width:38px;height:22px;border-radius:11px;background:${area.disabled?'#1a2236':'var(--green)'};border:1px solid ${area.disabled?'#2d3f5a':'rgba(34,197,94,.4)'};cursor:pointer;position:relative;transition:all .25s;`;
+    toggleBtn.innerHTML=`<div style="position:absolute;top:4px;${area.disabled?'left:4px':'left:18px'};width:12px;height:12px;border-radius:50%;background:${area.disabled?'#4b5a72':'#fff'};transition:all .25s;"></div>`;
+    toggleBtn.onclick=()=>{
+      saveAreaDisabled(area.key, !area.disabled);
+      renderCfgAreas();
+    };
+    right.appendChild(toggleBtn);
+
+    // Botón editar (solo áreas extra)
+    if(!area.builtin){
+      const editBtn = document.createElement('button');
+      editBtn.textContent='✏️';
+      editBtn.title='Editar';
+      editBtn.style.cssText='background:transparent;border:1px solid #1e2d42;color:#94a3b8;padding:5px 9px;border-radius:7px;cursor:pointer;font-size:13px;transition:all .2s;';
+      editBtn.onmouseover=()=>{editBtn.style.borderColor='#3b82f6';editBtn.style.color='#60a5fa';};
+      editBtn.onmouseout=()=>{editBtn.style.borderColor='#1e2d42';editBtn.style.color='#94a3b8';};
+      editBtn.onclick=()=>openAreaForm('edit', area.key);
+      right.appendChild(editBtn);
+
+      const delBtn = document.createElement('button');
+      delBtn.textContent='🗑️';
+      delBtn.title='Eliminar';
+      delBtn.style.cssText='background:transparent;border:1px solid #1e2d42;color:#94a3b8;padding:5px 9px;border-radius:7px;cursor:pointer;font-size:13px;transition:all .2s;';
+      delBtn.onmouseover=()=>{delBtn.style.borderColor='var(--red)';delBtn.style.color='var(--red)';};
+      delBtn.onmouseout=()=>{delBtn.style.borderColor='#1e2d42';delBtn.style.color='#94a3b8';};
+      delBtn.onclick=()=>confirmDelete('¿Eliminar Área?', `Se eliminará "${area.label}". Esta acción no se puede deshacer.`, ()=>deleteAreaExtra(area.key));
+      right.appendChild(delBtn);
+    }
+
+    card.appendChild(right);
+    container.appendChild(card);
+  });
+}
+
 // ── CONFIRM DELETE ────────────────────────────────────────────────
 function confirmDelete(titulo, sub, cb){
   deleteCallback=cb;
@@ -2207,6 +2365,7 @@ setInterval(()=>{const n=new Date();document.getElementById('clock').textContent
       <div style="position:relative;z-index:2;display:flex;flex-direction:column;gap:6px;width:100%;margin-top:8px;">
         <div id="cfg-side-usuarios" onclick="switchCfgTab('usuarios')" style="display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:8px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);cursor:pointer;transition:all .2s;font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;color:#fff;letter-spacing:.5px;">👤 Usuarios</div>
         <div id="cfg-side-modulos" onclick="switchCfgTab('modulos')" style="display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);cursor:pointer;transition:all .2s;font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:.5px;">🏭 Módulos</div>
+        <div id="cfg-side-areas" onclick="switchCfgTab('areas')" style="display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);cursor:pointer;transition:all .2s;font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:.5px;">📍 Áreas</div>
         <div id="cfg-side-permisos" onclick="switchCfgTab('permisos')" style="display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);cursor:pointer;transition:all .2s;font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:.5px;">🔑 Permisos</div>
       </div>
     </div>
@@ -2274,6 +2433,34 @@ setInterval(()=>{const n=new Date();document.getElementById('clock').textContent
     <div style="display:flex;gap:8px;width:100%;">
       <button class="modal-btn secondary" style="flex:1;" onclick="closeModForm()">Cancelar</button>
       <button class="modal-btn" style="flex:1;" onclick="saveModForm()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Formulario área (crear/editar) -->
+<div class="modal-overlay hidden" id="modal-area-form" style="z-index:700;">
+  <div class="modal-box" style="max-width:360px;width:92%;gap:14px;">
+    <div class="modal-title" id="area-form-title">Nueva Área</div>
+    <div style="width:100%;display:flex;flex-direction:column;gap:10px;">
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <label style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Nombre del área</label>
+        <input id="af-label" type="text" placeholder="Ej: Corte, Costura, Empaque" style="padding:11px 14px;border-radius:8px;border:1px solid var(--border);background:#080c14;color:var(--text);font-size:14px;outline:none;" oninput="this.style.borderColor='var(--border)'">
+      </div>
+      <div style="display:flex;gap:10px;">
+        <div style="display:flex;flex-direction:column;gap:5px;flex:0 0 80px;">
+          <label style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Ícono</label>
+          <input id="af-icon" type="text" placeholder="📍" maxlength="4" style="padding:11px 10px;border-radius:8px;border:1px solid var(--border);background:#080c14;color:var(--text);font-size:22px;text-align:center;outline:none;">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px;flex:1;">
+          <label style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Color</label>
+          <input id="af-color" type="color" value="#3b82f6" style="width:100%;height:44px;border-radius:8px;border:1px solid var(--border);background:#080c14;cursor:pointer;padding:4px;">
+        </div>
+      </div>
+    </div>
+    <div id="af-error" style="font-size:12px;color:var(--red);min-height:16px;text-align:center;"></div>
+    <div style="display:flex;gap:8px;width:100%;">
+      <button class="modal-btn secondary" style="flex:1;" onclick="closeAreaForm()">Cancelar</button>
+      <button class="modal-btn" style="flex:1;" onclick="saveAreaForm()">Guardar</button>
     </div>
   </div>
 </div>
