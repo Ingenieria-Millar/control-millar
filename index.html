@@ -5116,8 +5116,21 @@ function ci_setFilter(f){if(ci_currentView==='history')ci_switchView('board');ci
 function ci_applyFilter(f){document.querySelectorAll('.module-card').forEach(c=>{const id=c.id.replace('card-',''),isAlert=ci_getPendingReqs(id).length>0;let show=true;if(f==='op')show=!isAlert;if(f==='alert')show=isAlert;c.classList.toggle('hidden-filter',!show);});}
 
 setInterval(()=>{
-  ci_moduleList.forEach(id=>{const active=ci_getActiveReqs(id);if(!active.length)return;const oldest=active[active.length-1];const ct=document.getElementById('ct-'+id);if(ct)ct.textContent=ci_fmt(ci_getElapsed(oldest));if(ci_currentUser===id&&document.getElementById('s-module').classList.contains('active')){const dt=document.getElementById('mod-timer');if(dt)dt.textContent=ci_fmt(ci_getElapsed(oldest));}});
-  if(document.getElementById('view-history').classList.contains('active')){ci_requests.forEach((h,i)=>{if(h.status==='alert'){const el=document.getElementById('wt-'+i);if(el)el.textContent=ci_fmt(ci_getElapsed(h));}});}
+  ci_moduleList.forEach(id=>{
+    const active=ci_getActiveReqs(id);
+    const allPend=ci_getPendingReqs(id);
+    if(!allPend.length)return;
+    // Use oldest active; if none (all pending-confirm), use oldest pending
+    const oldest=active.length?active[active.length-1]:allPend[allPend.length-1];
+    const elapsed=oldest.status==='alert'?Math.floor((Date.now()-oldest.alertStart)/1000):(oldest.waitTime||0);
+    const ct=document.getElementById('ct-'+id);
+    if(ct)ct.textContent=ci_fmt(elapsed);
+    if(ci_currentUser===id&&document.getElementById('s-module').classList.contains('active')){
+      const dt=document.getElementById('mod-timer');
+      if(dt)dt.textContent=ci_fmt(elapsed);
+    }
+  });
+  if(document.getElementById('view-history').classList.contains('active')){ci_requests.forEach((h,i)=>{if(h.status==='alert'){const el=document.getElementById('wt-'+i);if(el)el.textContent=ci_fmt(Math.floor((Date.now()-h.alertStart)/1000))}});}
   if(document.getElementById('s-dashboard').classList.contains('active')){ci_updateCounters();ci_updateBanner();}
 },1000);
 
@@ -5175,6 +5188,12 @@ function ci_confirmResponse(accepted){
     ci_syncCard(id);ci_updateCounters();ci_updateBanner();ci_applyFilter(ci_currentFilter);
     if(document.getElementById('s-module').classList.contains('active')&&ci_currentUser===id)ci_refreshDetail();
     ci_wsSend({type:'ci_update_request',request:h});
+    // Cerrar panel CI y volver al tablero principal
+    closeCIPanel();
+    // Cambiar el módulo de naranja a verde en el tablero de planta
+    if(typeof commitChange==='function'&&typeof states!=='undefined'&&states[id]==='orange'){
+      commitChange(id,'green',null);
+    }
   } else {
     h.status='alert';
     h.waitTime=null;
