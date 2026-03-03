@@ -78,6 +78,17 @@ function saveModulesConfig(){ writeJSON(MODULES_CONFIG_FILE, modulesConfig); }
 
 // ── Servidor HTTP ─────────────────────────────────────────────────
 const server = http.createServer((req, res) => {
+  // Servir Tablero CI
+  if (req.url === '/ci' || req.url === '/ci/') {
+    const ciPath = path.join(__dirname, 'Tablero_CI.html');
+    fs.readFile(ciPath, (err, data) => {
+      if (err) { res.writeHead(404); res.end('CI not found'); return; }
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      res.end(data);
+    });
+    return;
+  }
+  // Servir index principal
   const filePath = path.join(__dirname, 'index.html');
   fs.readFile(filePath, (err, data) => {
     if (err) { res.writeHead(404); res.end('Not found'); return; }
