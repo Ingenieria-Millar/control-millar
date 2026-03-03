@@ -5126,9 +5126,10 @@ setInterval(()=>{
     const active=ci_getActiveReqs(id);
     const allPend=ci_getPendingReqs(id);
     if(!allPend.length)return;
-    // Use oldest active; if none (all pending-confirm), use oldest pending
     const oldest=active.length?active[active.length-1]:allPend[allPend.length-1];
-    const start=Number(oldest.alertStart)||Number((oldest._id||'').split('-')[0])||0;
+    const aStart=Number(oldest.alertStart);
+    const idStart=Number((oldest._id||'').split('-')[0]);
+    const start=aStart||idStart||0;
     const elapsed=oldest.status==='alert'&&start?Math.floor((Date.now()-start)/1000):(oldest.waitTime||0);
     const ct=document.getElementById('ct-'+id);
     if(ct)ct.textContent=ci_fmt(elapsed);
