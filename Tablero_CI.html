@@ -1103,7 +1103,18 @@ document.getElementById('mini-auth-overlay').addEventListener('click',function(e
 
 // ✅ CONECTAR WS Y ACTIVAR PANTALLA HOME AL CARGAR
 if(location.protocol!=='file:')wsConnect();
-showScreen('home');
+
+// ── Auto-login si viene desde Acceso Módulo con ?modulo=XXX ──────
+(function(){
+  const params = new URLSearchParams(location.search);
+  const mod = params.get('modulo');
+  if(mod && moduleList.includes(mod)){
+    currentUser = mod;
+    showScreen('module');
+  } else {
+    showScreen('home');
+  }
+})();
 </script>
 </body>
 </html>
