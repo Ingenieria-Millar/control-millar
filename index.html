@@ -59,7 +59,16 @@ main{position:relative;z-index:1;padding:24px;max-width:1200px;margin:0 auto;pad
 .module.green{background:#dcfce7;border-color:#4ade80;box-shadow:0 2px 16px rgba(34,197,94,0.15);}
 .module.yellow{background:#fef9c3;border-color:#fbbf24;box-shadow:0 2px 16px rgba(234,179,8,0.15);}
 .module.red{background:#fee2e2;border-color:#f87171;box-shadow:0 4px 24px rgba(239,68,68,0.18);}
-.module.green::before{background:#16a34a;}.module.yellow::before{background:#ca8a04;}.module.red::before{background:#dc2626;}
+.module.green::before{background:#16a34a;}.module.yellow::before{background:#ca8a04;}.module.red::before{background:#dc2626;}.module.blue::before{background:#1d4ed8;}.module.orange::before{background:#ea580c;}
+.module.blue{background:#dbeafe;border-color:#60a5fa;box-shadow:0 2px 16px rgba(37,99,235,0.18);}
+.module.orange{background:#ffedd5;border-color:#fb923c;box-shadow:0 2px 16px rgba(249,115,22,0.18);}
+.module.blue .light{background:radial-gradient(circle at 35% 35%,#93c5fd,#1d4ed8);box-shadow:0 0 16px rgba(37,99,235,0.7),0 0 32px rgba(37,99,235,0.3);animation:none;}
+.module.orange .light{background:radial-gradient(circle at 35% 35%,#fdba74,#c2410c);box-shadow:0 0 16px rgba(249,115,22,0.7),0 0 32px rgba(249,115,22,0.3);animation:none;}
+.module.blue .mod-label{color:#1e40af;background:rgba(37,99,235,0.15);}
+.module.orange .mod-label{color:#9a3412;background:rgba(249,115,22,0.15);}
+.module.blue .mod-timer{color:#1e40af;background:rgba(37,99,235,0.12);}
+.module.orange .mod-timer{color:#9a3412;background:rgba(249,115,22,0.12);}
+.module.blue .mod-id{color:#1e40af;}.module.orange .mod-id{color:#9a3412;}
 .mod-id{font-family:'Courier New',monospace;font-size:12px;font-weight:700;letter-spacing:2px;color:#475569;align-self:flex-start;}
 .light{width:50px;height:50px;border-radius:50%;transition:background 0.4s,box-shadow 0.4s;position:relative;}
 .light::after{content:'';position:absolute;top:8px;left:11px;width:14px;height:8px;border-radius:50%;background:rgba(255,255,255,0.22);transform:rotate(-30deg);}
@@ -82,6 +91,13 @@ main{position:relative;z-index:1;padding:24px;max-width:1200px;margin:0 auto;pad
 #single-view.active{display:flex;}
 #grid-view.hidden{display:none;}
 .big-wrap{display:flex;flex-direction:column;align-items:center;gap:22px;padding:48px 68px;background:#dbeafe;border-radius:20px;border:1.5px solid #93c5fd;cursor:pointer;min-width:280px;transition:transform 0.18s,box-shadow 0.4s,border-color 0.4s;user-select:none;box-shadow:0 4px 20px rgba(0,0,0,.07);}
+.big-wrap.green{background:#dcfce7;border-color:#4ade80;}
+.big-wrap.red{background:#fee2e2;border-color:#f87171;}
+.big-wrap.yellow{background:#fef9c3;border-color:#fbbf24;}
+.big-wrap.blue{background:#dbeafe;border-color:#60a5fa;}
+.big-wrap.orange{background:#ffedd5;border-color:#fb923c;}
+.big-wrap.blue .big-status,.big-wrap.blue .big-id,.big-wrap.blue .big-timer{color:#1e40af;}
+.big-wrap.orange .big-status,.big-wrap.orange .big-id,.big-wrap.orange .big-timer{color:#9a3412;}
 .big-wrap:active{transform:scale(0.97);}
 .big-wrap.green{border-color:rgba(34,197,94,0.35);box-shadow:0 8px 50px rgba(34,197,94,0.15);}
 .big-wrap.yellow{border-color:rgba(234,179,8,0.35);box-shadow:0 8px 50px rgba(234,179,8,0.15);}
@@ -705,6 +721,20 @@ select.sp-ctrl{background-color:#fff;
   </div>
 </div>
 
+<!-- MODAL: tipo de improductivo -->
+<div class="modal-overlay hidden" id="modal-improductivo" style="display:none">
+  <div class="modal-box" style="max-width:340px;">
+    <div class="modal-title">Tipo de improductivo</div>
+    <div class="modal-sub">Selecciona la causa</div>
+    <div style="width:100%;display:flex;flex-direction:column;gap:10px;margin-top:4px;">
+      <button class="mec-btn" onclick="onImpMec()" style="border-left:4px solid #dc2626;">ð´ Fallo MecÃ¡nico</button>
+      <button class="mec-btn" onclick="onImpRef()" style="border-left:4px solid #1d4ed8;">ðµ Cambio de Referencia</button>
+      <button class="mec-btn" onclick="onImpIns()" style="border-left:4px solid #ea580c;">ð  Falta de Insumos</button>
+    </div>
+    <button onclick="cancelImproductivo()" style="margin-top:6px;background:none;border:none;color:#94a3b8;font-size:13px;cursor:pointer;font-family:Nunito,sans-serif;">â Cancelar</button>
+  </div>
+</div>
+
 <!-- MODAL: mecánico -->
 <div class="modal-overlay hidden" id="modal-mecanico">
   <div class="modal-box" style="max-width:360px;width:90%;position:relative;">
@@ -781,8 +811,8 @@ select.sp-ctrl{background-color:#fff;
 
 <script>
 const MODULES=['M01','M02','M03','M04','M05','M06','M07','M08','M09','M10','M11','M12','M13','M14','M15','M16','M17','M18','M19','M20','M21','M22','M23','M24','M25','M26','M27'];
-const LABELS={green:'Operativo',yellow:'Atendiendo',red:'Alerta'};
-const NEXT={green:'red',red:'yellow',yellow:'green'};
+const LABELS={green:'Operativo',yellow:'Atendiendo',red:'Alerta',blue:'Cambio Ref.',orange:'En Espera'};
+const NEXT={green:'red',red:'yellow',yellow:'green'};  // used only for mec flow
 const MECANICOS=['ANDRES RIOS','CESAR CIFUENTES','DAIRON ZAPATA','ELKIN LOPEZ','JUAN C GONZALEZ','OSCAR ZEA','RICARDO SERNA','WALTER PEREZ','YON CANO'];
 
 const USUARIOS={
@@ -794,8 +824,8 @@ const USUARIOS={
   'Supervisoras': {pass:'1',perms:['area_ingreso','area_montajes']},
 };
 
-const states={}, timers={}, lastMec={}, acumRed={}, acumYellow={};
-MODULES.forEach(id=>{ states[id]='green'; timers[id]=Date.now(); lastMec[id]=''; acumRed[id]=0; acumYellow[id]=0; });
+const states={}, timers={}, lastMec={}, acumRed={}, acumYellow={}, acumBlue={}, acumOrange={};
+MODULES.forEach(id=>{ states[id]='green'; timers[id]=Date.now(); lastMec[id]=''; acumRed[id]=0; acumYellow[id]=0; acumBlue[id]=0; acumOrange[id]=0; });
 
 let selectedMod=null, activeFilter=null, currentView=null, pendingTransicion=null, currentUser=null;
 function hasPerm(p){ return currentUser&&USUARIOS[currentUser]&&USUARIOS[currentUser].perms.includes(p); }
@@ -1366,18 +1396,32 @@ function setView(v){
 }
 
 // ── ESTADOS ───────────────────────────────────────────────────────
-function applyChange(id,s){
-  const prev=states[id];if(prev===s)return;
-  const needsMec=(prev==='red'&&s==='yellow')||(prev==='yellow'&&s==='green');
-  if(needsMec){
-    pendingTransicion={id,estado:s};
-    openMecanicoModal(
-      prev==='red'?'¿Quién llegó a atender?':'¿Quién solucionó la falla?',
-      prev==='red'?'Mecánico que atendió el llamado':'Mecánico que resolvió el problema'
-    );return;
+let pendingMod=null;
+function applyChange(id){
+  const prev=states[id];
+  if(prev==='blue'||prev==='orange'){commitChange(id,'green',null);return;}
+  if(prev==='red'){
+    pendingTransicion={id,estado:'yellow'};
+    openMecanicoModal('¿Quién llegó a atender?','Mecánico que atendió el llamado');return;
   }
-  commitChange(id,s,null);
+  if(prev==='yellow'){
+    pendingTransicion={id,estado:'green'};
+    openMecanicoModal('¿Quién solucionó la falla?','Mecánico que resolvió el problema');return;
+  }
+  if(prev==='green'){
+    pendingMod=id;
+    const el=document.getElementById('modal-improductivo');
+    el.classList.remove('hidden');el.style.display='flex';return;
+  }
+  commitChange(id,'green',null);
 }
+function cancelImproductivo(){
+  const el=document.getElementById('modal-improductivo');
+  el.classList.add('hidden');el.style.display='none';pendingMod=null;
+}
+function onImpMec(){const id=pendingMod;cancelImproductivo();if(!id)return;commitChange(id,'red',null);}
+function onImpRef(){const id=pendingMod;cancelImproductivo();if(!id)return;commitChange(id,'blue',null);}
+function onImpIns(){const id=pendingMod;cancelImproductivo();if(!id)return;commitChange(id,'orange',null);}
 function openMecanicoModal(titulo,subtitulo){
   document.getElementById('mec-title').textContent=titulo;
   document.getElementById('mec-sub').textContent=subtitulo;
@@ -1428,13 +1472,13 @@ function renderGrid(){
     div.className=`module ${canClick?'clickable':'readonly'} ${s}`;div.id=`mod-${id}`;
     const mecHtml=(s==='yellow'||s==='red')&&lastMec[id]?`<span class="mod-mec">🔧 ${lastMec[id]}</span>`:`<span class="mod-mec"></span>`;
     div.innerHTML=`<span class="mod-id">${id}</span><div class="light"></div><span class="mod-label">${LABELS[s]}</span><span class="mod-timer" id="timer-${id}"></span>${mecHtml}`;
-    if(canClick) div.addEventListener('click',e=>{addRipple(div,e);applyChange(id,NEXT[states[id]]);});
+    if(canClick) div.addEventListener('click',e=>{addRipple(div,e);applyChange(id);});
     grid.appendChild(div);
   });
 }
 function updateStats(){
-  let g=0,y=0,r=0;
-  Object.values(states).forEach(s=>{if(s==='green')g++;else if(s==='yellow')y++;else r++;});
+  let g=0,y=0,r=0,b=0,o=0;
+  Object.values(states).forEach(s=>{if(s==='green')g++;else if(s==='yellow')y++;else if(s==='red')r++;else if(s==='blue')b++;else if(s==='orange')o++;});
   document.getElementById('cnt-g').textContent=g;
   document.getElementById('cnt-y').textContent=y;
   document.getElementById('cnt-r').textContent=r;
@@ -1447,15 +1491,15 @@ function formatTime(ms){
 }
 setInterval(()=>{
   const now=Date.now();
-  MODULES.forEach(id=>{const el=document.getElementById(`timer-${id}`);if(el)el.textContent=(states[id]==='red'||states[id]==='yellow')?'⏱ '+formatTime(now-timers[id]):'';});
+  MODULES.forEach(id=>{const el=document.getElementById(`timer-${id}`);if(el)el.textContent=(states[id]==='red'||states[id]==='yellow'||states[id]==='blue'||states[id]==='orange')?'⏱ '+formatTime(now-timers[id]):'';});
   const bt=document.getElementById('big-timer');
-  if(bt&&selectedMod&&(states[selectedMod]==='red'||states[selectedMod]==='yellow'))bt.textContent='⏱ '+formatTime(now-timers[selectedMod]);
+  if(bt&&selectedMod&&(states[selectedMod]==='red'||states[selectedMod]==='yellow'||states[selectedMod]==='blue'||states[selectedMod]==='orange'))bt.textContent='⏱ '+formatTime(now-timers[selectedMod]);
   else if(bt)bt.textContent='';
 },1000);
 function renderBig(){
   if(!selectedMod)return;
   const s=states[selectedMod];
-  const tt=(s==='red'||s==='yellow')?'⏱ '+formatTime(Date.now()-timers[selectedMod]):'';
+  const tt=(s==='red'||s==='yellow'||s==='blue'||s==='orange')?'⏱ '+formatTime(Date.now()-timers[selectedMod]):'';
   document.getElementById('big-container').innerHTML=`
     <div class="big-wrap ${s}" id="big-mod">
       <span class="big-id">${selectedMod}</span><div class="big-light"></div>
@@ -1463,7 +1507,7 @@ function renderBig(){
       <span class="big-timer" id="big-timer">${tt}</span>
       <span class="tap-hint">Toca para cambiar estado</span>
     </div>`;
-  document.getElementById('big-mod').addEventListener('click',e=>{addRipple(document.getElementById('big-mod'),e);applyChange(selectedMod,NEXT[states[selectedMod]]);});
+  document.getElementById('big-mod').addEventListener('click',e=>{addRipple(document.getElementById('big-mod'),e);applyChange(selectedMod);});
 }
 
 // ── MODAL ACUMULADO ───────────────────────────────────────────────
@@ -1900,7 +1944,7 @@ function rebuildModules(){
     if(!disabled.includes(id)) MODULES.push(renamed[id]||id);
   });
   // Init states for new modules
-  MODULES.forEach(id=>{ if(states[id]===undefined){states[id]='green';timers[id]=Date.now();lastMec[id]='';acumRed[id]=0;acumYellow[id]=0;} });
+  MODULES.forEach(id=>{ if(states[id]===undefined){states[id]='green';timers[id]=Date.now();lastMec[id]='';acumRed[id]=0;acumYellow[id]=0;acumBlue[id]=0;acumOrange[id]=0;} });
 }
 
 function renderCfgModulos(){
