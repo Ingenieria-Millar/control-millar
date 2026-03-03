@@ -613,8 +613,41 @@ tr:hover td{background:#f8fafc;}
       </div>
     </div>
     <div class="table-wrap">
-      <table><thead><tr><th>#</th><th>Módulo</th><th>Referencia</th><th>OP/OC</th><th>Tipo Insumo</th><th>Cantidad</th><th>Fecha / Hora</th><th>T. Espera</th><th>T. Atención</th><th>Estado</th><th>Observaciones</th><th>Acción</th></tr></thead>
-      <tbody id="history-tbody"><tr><td colspan="12" style="text-align:center;color:var(--dim);padding:28px">Sin solicitudes aún</td></tr></tbody></table>
+      <table id="history-table"><thead>
+<tr>
+  <th>#</th>
+  <th>
+    <div style="display:flex;align-items:center;gap:4px;">
+      MÓDULO
+      <select id="filter-module" onchange="renderHistory()" style="margin-left:4px;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:#fff;color:var(--text);cursor:pointer;">
+        <option value="">Todos</option>
+      </select>
+    </div>
+  </th>
+  <th>REFERENCIA</th><th>OP/OC</th>
+  <th>
+    <div style="display:flex;align-items:center;gap:4px;">
+      TIPO INSUMO
+      <select id="filter-tipo" onchange="renderHistory()" style="margin-left:4px;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:#fff;color:var(--text);cursor:pointer;">
+        <option value="">Todos</option>
+      </select>
+    </div>
+  </th>
+  <th>CANTIDAD</th><th>FECHA</th><th>HORA</th><th>T. ESPERA</th><th>T. ATENCIÓN</th>
+  <th>
+    <div style="display:flex;align-items:center;gap:4px;">
+      ESTADO
+      <select id="filter-estado" onchange="renderHistory()" style="margin-left:4px;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:#fff;color:var(--text);cursor:pointer;">
+        <option value="">Todos</option>
+        <option value="alert">⚠ Alerta</option>
+        <option value="pending-confirm">⏳ En confirmación</option>
+        <option value="done">✓ Cumplido</option>
+      </select>
+    </div>
+  </th>
+  <th>OBSERVACIONES</th><th>ACCIÓN</th>
+</tr></thead>
+      <tbody id="history-tbody"><tr><td colspan="13" style="text-align:center;color:var(--dim);padding:28px">Sin solicitudes aún</td></tr></tbody></table>
     </div>
   </div>
 </div>
@@ -736,8 +769,27 @@ function wsConnect(){
     ws.onmessage=(e)=>{
       try{
         const msg=JSON.parse(e.data);
-        if(msg.type==='ci_init'||msg.type==='ci_full_sync'){
-          // Recibir estado completo de solicitudes
+        if(msg.type==='ci_config_sync'){
+          // Recibir config actualizada del admin
+          if(msg.tipoInsumoList)tipoInsumoList=msg.tipoInsumoList;
+          if(msg.elasticoList)elasticoList=msg.elasticoList;
+          if(msg.moduleList){
+            const added=msg.moduleList.filter(id=>!moduleList.includes(id));
+            moduleList=msg.moduleList;
+            added.forEach(id=>{if(!moduleData[id])moduleData[id]={alert:false};});
+          }
+          buildTipoSelect();buildElasticoSelect();buildLoginSelect();
+          if(document.getElementById('s-dashboard').classList.contains('active')){buildGrid();updateCounters();}
+        }
+        else if(msg.type==='ci_init'||msg.type==='ci_full_sync'){
+          // Recibir config + estado completo del servidor
+          if(msg.tipoInsumoList)tipoInsumoList=msg.tipoInsumoList;
+          if(msg.elasticoList)elasticoList=msg.elasticoList;
+          if(msg.moduleList){
+            moduleList=msg.moduleList;
+            moduleList.forEach(id=>{if(!moduleData[id])moduleData[id]={alert:false};});
+          }
+          buildTipoSelect();buildElasticoSelect();buildLoginSelect();
           if(msg.requests){
             requests=msg.requests;
             moduleList.forEach(id=>{moduleData[id]={alert:getPendingReqs(id).length>0};});
@@ -758,6 +810,22 @@ function wsConnect(){
             if(currentUser===id&&document.getElementById('s-module').classList.contains('active'))refreshDetail();
           }
         }
+        else if(msg.type==='ci_cumplido_request'){
+          // El supervisor marcó cumplido — mostrar modal en el módulo correspondiente
+          const h=msg.request;
+          const idx=requests.findIndex(r=>r._id===h._id);
+          if(idx>-1)requests[idx]=h;
+          // Solo abrir modal si este dispositivo ES el módulo afectado
+          if(currentUser===h.module&&document.getElementById('s-module').classList.contains('active')){
+            pendingConfirmIdx=idx>-1?idx:0;
+            if(idx>-1){
+              document.getElementById('conf-module').textContent=h.module;
+              document.getElementById('conf-detail').textContent=h.tipo+' · '+h.qty+' · Ref: '+h.ref;
+              document.getElementById('confirm-overlay').classList.add('open');
+              if(soundEnabled)playSiren();
+            }
+          }
+        }
         else if(msg.type==='ci_update_request'){
           // Otro dispositivo actualizó una solicitud (cumplido, obs, etc.)
           const idx=requests.findIndex(r=>r._id===msg.request._id);
@@ -767,6 +835,14 @@ function wsConnect(){
             moduleData[id]={alert:getPendingReqs(id).length>0};
             syncCard(id);updateCounters();updateBanner();applyFilter(currentFilter);renderHistory();
             if(currentUser===id&&document.getElementById('s-module').classList.contains('active'))refreshDetail();
+          }
+          // Cerrar modal de confirmación si ya fue resuelto por otro dispositivo
+          if(msg.request.status==='done'||msg.request.status==='alert'){
+            const pend=requests.find(r=>r._id===msg.request._id&&r.module===currentUser);
+            if(pend&&document.getElementById('confirm-overlay').classList.contains('open')){
+              document.getElementById('confirm-overlay').classList.remove('open');
+              pendingConfirmIdx=null;
+            }
           }
         }
       }catch(err){console.error('[CI] msg error',err);}
@@ -862,34 +938,108 @@ function submitRequest(){
   else if(flow==='elastico'){const sub=document.getElementById('f-elastico-sub').value;qty=document.getElementById('f-metros').value;if(!sub){alert('Selecciona el tipo de elástico');return;}if(!qty){alert('Ingresa la cantidad en metros');return;}talla=sub;qty=qty+' mts';}
   const id=currentUser,now=new Date(),tipoDisplay=talla?tipo+' · '+talla:tipo;
   moduleData[id].alert=true;
-  const newReq={_id:Date.now()+'-'+Math.random().toString(36).slice(2),n:requests.length+1,module:id,ref,op,tipo:tipoDisplay,qty,datetime:now.toLocaleDateString('es-CO')+' '+now.toLocaleTimeString('es-CO'),status:'alert',waitTime:null,resolvedAt:null,obs:'',alertStart:now.getTime()};
+  const newReq={_id:Date.now()+'-'+Math.random().toString(36).slice(2),n:requests.length+1,module:id,ref,op,tipo:tipoDisplay,qty,fecha:now.toLocaleDateString('es-CO'),hora:now.toLocaleTimeString('es-CO'),datetime:now.toLocaleDateString('es-CO')+' '+now.toLocaleTimeString('es-CO'),status:'alert',waitTime:null,resolvedAt:null,obs:'',alertStart:now.getTime()};
   requests.unshift(newReq);
   wsSend({type:'ci_new_request',request:newReq});
   closeModal();refreshDetail();syncCard(id);updateCounters();updateBanner();applyFilter(currentFilter);renderHistory();
   if(soundEnabled&&document.getElementById('s-dashboard').classList.contains('active'))playSiren();
 }
 
-function markCumplido(idx){const h=requests[idx];if(!h||h.status!=='alert')return;if(!h.obs||!h.obs.trim()){alert('⚠ Debes escribir una observación antes de marcar como CUMPLIDO.');return;}h.status='pending-confirm';pendingConfirmIdx=idx;showConfirmModal(idx);renderHistory();}
-function showConfirmModal(idx){const h=requests[idx];pendingConfirmIdx=idx;document.getElementById('conf-module').textContent=h.module;document.getElementById('conf-detail').textContent=h.tipo+' · '+h.qty+' · Ref: '+h.ref;document.getElementById('confirm-overlay').classList.add('open');}
+function markCumplido(idx){
+  const h=requests[idx];if(!h||h.status!=='alert')return;
+  if(!h.obs||!h.obs.trim()){alert('⚠ Debes escribir una observación antes de marcar como CUMPLIDO.');return;}
+  h.status='pending-confirm';
+  h.waitTime=getElapsed(h);
+  wsSend({type:'ci_cumplido_request',request:h});
+  wsSend({type:'ci_update_request',request:h});
+  renderHistory();
+  if(currentUser===h.module&&document.getElementById('s-module').classList.contains('active')){
+    pendingConfirmIdx=idx;showConfirmModal(idx);
+  }
+}
+function showConfirmModal(idx){
+  const h=requests[idx];if(!h)return;
+  pendingConfirmIdx=idx;
+  document.getElementById('conf-module').textContent=h.module;
+  document.getElementById('conf-detail').textContent=h.tipo+' · '+h.qty+' · Ref: '+h.ref;
+  document.getElementById('confirm-overlay').classList.add('open');
+}
 function confirmResponse(accepted){
-  document.getElementById('confirm-overlay').classList.remove('open');const idx=pendingConfirmIdx;if(idx===null)return;const h=requests[idx];
-  if(accepted){h.status='done';h.waitTime=getElapsed(h);h.resolvedAt=new Date().toLocaleTimeString('es-CO');const id=h.module;if(getPendingReqs(id).length===0)moduleData[id].alert=false;syncCard(id);updateCounters();updateBanner();applyFilter(currentFilter);if(currentUser===id)refreshDetail();wsSend({type:'ci_update_request',request:h});}
-  else h.status='alert';
+  document.getElementById('confirm-overlay').classList.remove('open');
+  const idx=pendingConfirmIdx;if(idx===null)return;
+  const h=requests[idx];if(!h)return;
+  if(accepted){
+    h.status='done';
+    h.resolvedAt=new Date().toLocaleTimeString('es-CO');
+    if(!h.waitTime||h.waitTime===0)h.waitTime=Math.floor((Date.now()-h.alertStart)/1000);
+    const id=h.module;
+    if(getPendingReqs(id).length===0)moduleData[id].alert=false;
+    syncCard(id);updateCounters();updateBanner();applyFilter(currentFilter);
+    if(document.getElementById('s-module').classList.contains('active')&&currentUser===id)refreshDetail();
+    wsSend({type:'ci_update_request',request:h});
+  } else {
+    h.status='alert';
+    h.waitTime=null;
+    wsSend({type:'ci_update_request',request:h});
+    syncCard(h.module);updateCounters();updateBanner();
+    if(document.getElementById('s-module').classList.contains('active')&&currentUser===h.module)refreshDetail();
+  }
   pendingConfirmIdx=null;renderHistory();
 }
 
 function switchView(v){currentView=v;document.getElementById('view-board').classList.toggle('active',v==='board');document.getElementById('view-history').classList.toggle('active',v==='history');['ftab-all','ftab-op','ftab-alert'].forEach(id=>document.getElementById(id)?.classList.toggle('active',v==='board'&&id==='ftab-'+currentFilter));document.getElementById('ftab-hist')?.classList.toggle('active',v==='history');if(v==='history')renderHistory();}
 function renderHistory(){
   const tbody=document.getElementById('history-tbody');
-  if(!requests.length){tbody.innerHTML='<tr><td colspan="12" style="text-align:center;color:var(--dim);padding:28px">Sin solicitudes aún</td></tr>';return;}
-  tbody.innerHTML=requests.map((h,idx)=>{
+  if(!tbody)return;
+  const selMod=document.getElementById('filter-module');
+  const selTipo=document.getElementById('filter-tipo');
+  if(selMod){
+    const cur=selMod.value;
+    selMod.innerHTML='<option value="">Todos</option>';
+    [...new Set(requests.map(r=>r.module))].sort().forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;selMod.appendChild(o);});
+    selMod.value=cur;
+  }
+  if(selTipo){
+    const cur=selTipo.value;
+    selTipo.innerHTML='<option value="">Todos</option>';
+    [...new Set(requests.map(r=>r.tipo))].sort().forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;selTipo.appendChild(o);});
+    selTipo.value=cur;
+  }
+  const fMod=(selMod?.value||'').toLowerCase();
+  const fTipo=(selTipo?.value||'').toLowerCase();
+  const fEst=document.getElementById('filter-estado')?.value||'';
+  const filtered=requests.filter(h=>{
+    if(fMod&&h.module.toLowerCase()!==fMod)return false;
+    if(fTipo&&h.tipo.toLowerCase()!==fTipo)return false;
+    if(fEst&&h.status!==fEst)return false;
+    return true;
+  });
+  if(!filtered.length){tbody.innerHTML='<tr><td colspan="13" style="text-align:center;color:var(--muted);padding:28px">Sin resultados</td></tr>';return;}
+  tbody.innerHTML=filtered.map(h=>{
+    const idx=requests.indexOf(h);
     const isAlert=h.status==='alert',isDone=h.status==='done',isPending=h.status==='pending-confirm';
     const badge=isAlert?'<span class="badge badge-alert">⚠ ALERTA</span>':isDone?'<span class="badge badge-done">✓ CUMPLIDO</span>':'<span class="badge badge-pending">⏳ EN CONFIRMACIÓN</span>';
     const waitDisp=isDone||isPending?fmt(h.waitTime||0):(isAlert?'<span id="wt-'+idx+'">'+fmt(getElapsed(h))+'</span>':'—');
-    const btnHtml=isAlert?'<button class="btn-cumplido" onclick="markCumplido('+idx+')">✔ CUMPLIDO</button>':isDone?'<button class="btn-cumplido" disabled>✔ CUMPLIDO</button>':'<button class="btn-cumplido" disabled style="background:#2a1a00;color:var(--yellow)">⏳ ESPERANDO</button>';
+    const btnHtml=isAlert?'<button class="btn-cumplido" onclick="markCumplido('+idx+')">✔ CUMPLIDO</button>':isDone?'<button class="btn-cumplido" disabled>✔ CUMPLIDO</button>':'<button class="btn-cumplido" disabled style="color:var(--muted);background:#f1f5f9">⏳ ESPERANDO</button>';
     const obsVal=(h.obs||'').replace(/"/g,'&quot;');
     const obsCell=isDone?'<td class="obs-cell"><textarea class="obs-ta" id="obs-ta-'+idx+'" rows="2" disabled>'+obsVal+'</textarea><div class="obs-btn-row"><button class="btn-obs-edit" id="obs-edit-btn-'+idx+'" onclick="requestObsEdit('+idx+')">✏ Editar (Admin)</button><button class="btn-obs-confirm" id="obs-confirm-btn-'+idx+'" onclick="confirmObsEdit('+idx+')">✔ Confirmar</button></div></td>':'<td class="obs-cell"><textarea class="obs-ta" id="obs-ta-'+idx+'" rows="2" placeholder="Observación requerida..." onchange="saveObs('+idx+',this.value)">'+obsVal+'</textarea></td>';
-    return'<tr><td style="color:#475569">'+h.n+'</td><td><b style="font-family:\'Courier New\',monospace;color:#1e3a8a">'+h.module+'</b></td><td style="color:#0f172a">'+h.ref+'</td><td style="color:#0f172a">'+h.op+'</td><td style="color:#0f172a">'+h.tipo+'</td><td style="text-align:center;color:#0f172a">'+h.qty+'</td><td style="font-family:\'Courier New\',monospace;font-size:11px;color:#475569">'+h.datetime+'</td><td style="font-family:\'Courier New\',monospace;color:#d97706;font-weight:700">'+waitDisp+'</td><td style="font-family:\'Courier New\',monospace;color:#475569;font-size:11px">'+(isDone?(h.resolvedAt??'—'):'—')+'</td><td>'+badge+'</td>'+obsCell+'<td>'+btnHtml+'</td></tr>';
+    const fecha=h.fecha||(h.datetime?h.datetime.split(' ')[0]:'—');
+    const hora=h.hora||(h.datetime?h.datetime.replace(fecha+' ',''):'—');
+    return'<tr>'+
+      '<td style="color:#475569;text-align:center">'+h.n+'</td>'+
+      '<td><b style="font-family:'Courier New',monospace;color:#1e3a8a;font-size:13px">'+h.module+'</b></td>'+
+      '<td style="color:#0f172a">'+h.ref+'</td>'+
+      '<td style="color:#0f172a">'+h.op+'</td>'+
+      '<td style="color:#0f172a">'+h.tipo+'</td>'+
+      '<td style="text-align:center;color:#0f172a;font-weight:600">'+h.qty+'</td>'+
+      '<td style="font-family:'Courier New',monospace;font-size:11px;color:#475569;white-space:nowrap">'+fecha+'</td>'+
+      '<td style="font-family:'Courier New',monospace;font-size:11px;color:#475569;white-space:nowrap">'+hora+'</td>'+
+      '<td style="font-family:'Courier New',monospace;color:#d97706;font-weight:700;text-align:center">'+waitDisp+'</td>'+
+      '<td style="font-family:'Courier New',monospace;color:#475569;font-size:11px;text-align:center">'+(isDone?(h.resolvedAt??'—'):'—')+'</td>'+
+      '<td>'+badge+'</td>'+
+      obsCell+
+      '<td>'+btnHtml+'</td>'+
+    '</tr>';
   }).join('');
 }
 function saveObs(idx,val){if(requests[idx]){requests[idx].obs=val;wsSend({type:'ci_update_request',request:requests[idx]});}}
@@ -901,9 +1051,9 @@ function confirmObsEdit(idx){const ta=document.getElementById('obs-ta-'+idx),eb=
 function exportExcel(){
   const done=requests.filter(r=>r.status==='done');
   if(!done.length){alert('No hay solicitudes CUMPLIDAS para descargar');return;}
-  const headers=['#','Módulo','Referencia','OP/OC','Tipo Insumo','Cantidad','Fecha / Hora','T. Espera','T. Atención','Estado','Observaciones'];
-  const rows=done.map(h=>[h.n,h.module,h.ref,h.op,h.tipo,h.qty,h.datetime,fmt(h.waitTime||0),h.resolvedAt||'','CUMPLIDO',h.obs||'']);
-  const ws=XLSX.utils.aoa_to_sheet([headers,...rows]);ws['!cols']=[{wch:4},{wch:10},{wch:12},{wch:12},{wch:20},{wch:12},{wch:22},{wch:12},{wch:12},{wch:12},{wch:30}];
+  const headers=['#','Módulo','Referencia','OP/OC','Tipo Insumo','Cantidad','Fecha','Hora','T. Espera','T. Atención','Estado','Observaciones'];
+  const rows=done.map(h=>{const fecha=h.fecha||(h.datetime?h.datetime.split(' ')[0]:'');const hora=h.hora||(h.datetime?h.datetime.replace(fecha+' ',''):'');return[h.n,h.module,h.ref,h.op,h.tipo,h.qty,fecha,hora,fmt(h.waitTime||0),h.resolvedAt||'','CUMPLIDO',h.obs||''];});
+  const ws=XLSX.utils.aoa_to_sheet([headers,...rows]);ws['!cols']=[{wch:4},{wch:10},{wch:12},{wch:12},{wch:20},{wch:12},{wch:14},{wch:14},{wch:12},{wch:12},{wch:12},{wch:30}];
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Cumplidos');
   XLSX.writeFile(wb,'insumos_cumplidos_'+new Date().toLocaleDateString('es-CO').replace(/\//g,'-')+'.xlsx');
 }
@@ -923,20 +1073,24 @@ function buildSoundList(){document.getElementById('sound-list').innerHTML=SOUNDS
 function selectSound(id){selectedSound=id;document.querySelectorAll('.sound-item').forEach(el=>el.classList.remove('selected'));const el=document.getElementById('si-'+id);if(el)el.classList.add('selected');}
 function buildTipoManager(){document.getElementById('tipo-manager').innerHTML=sortObjAZ(tipoInsumoList).map(t=>{const i=tipoInsumoList.indexOf(t),safe=t.name.replace(/"/g,'&quot;');return'<div class="list-row"><input class="list-row-inp" id="ti-'+i+'" value="'+safe+'" readonly><div class="list-row-actions"><button class="btn-lst-edit" id="te-'+i+'" onclick="startTipo('+i+')">—</button><button class="btn-lst-confirm" id="tc-'+i+'" onclick="confirmTipo('+i+')">✔</button><button class="btn-lst-del" onclick="delTipo('+i+')">×</button></div></div>';}).join('');}
 function startTipo(i){const inp=document.getElementById('ti-'+i),eb=document.getElementById('te-'+i),cb=document.getElementById('tc-'+i);inp.readOnly=false;inp.focus();inp.select();inp.classList.add('editing');eb.style.display='none';cb.style.display='flex';}
-function confirmTipo(i){const inp=document.getElementById('ti-'+i),n=inp.value.trim();if(!n){alert('El nombre no puede estar vacío');return;}if(tipoInsumoList.findIndex((t,j)=>t.name.toLowerCase()===n.toLowerCase()&&j!==i)>=0){alert('Ya existe ese nombre');return;}tipoInsumoList[i].name=n;buildTipoManager();buildTipoSelect();}
-function addTipoInsumo(){const inp=document.getElementById('tipo-add-inp'),name=inp.value.trim();if(!name){alert('Escribe el nombre');return;}if(tipoInsumoList.find(t=>t.name.toLowerCase()===name.toLowerCase())){alert('Ya existe');return;}const flow=name.toLowerCase().includes('elástico')||name.toLowerCase().includes('elastico')?'elastico':'qty_only';tipoInsumoList.push({name,flow});inp.value='';buildTipoManager();buildTipoSelect();}
-function delTipo(i){if(!confirm('¿Eliminar tipo "'+tipoInsumoList[i].name+'"?'))return;tipoInsumoList.splice(i,1);buildTipoManager();buildTipoSelect();}
+function confirmTipo(i){const inp=document.getElementById('ti-'+i),n=inp.value.trim();if(!n){alert('El nombre no puede estar vacío');return;}if(tipoInsumoList.findIndex((t,j)=>t.name.toLowerCase()===n.toLowerCase()&&j!==i)>=0){alert('Ya existe ese nombre');return;}tipoInsumoList[i].name=n;buildTipoManager();buildTipoSelect();syncConfig();}
+function addTipoInsumo(){const inp=document.getElementById('tipo-add-inp'),name=inp.value.trim();if(!name){alert('Escribe el nombre');return;}if(tipoInsumoList.find(t=>t.name.toLowerCase()===name.toLowerCase())){alert('Ya existe');return;}const flow=name.toLowerCase().includes('elástico')||name.toLowerCase().includes('elastico')?'elastico':'qty_only';tipoInsumoList.push({name,flow});inp.value='';buildTipoManager();buildTipoSelect();syncConfig();}
+function delTipo(i){if(!confirm('¿Eliminar tipo "'+tipoInsumoList[i].name+'"?'))return;tipoInsumoList.splice(i,1);buildTipoManager();buildTipoSelect();syncConfig();}
 function buildElasticoManager(){document.getElementById('elastico-manager').innerHTML=sortAZ(elasticoList).map(e=>{const i=elasticoList.indexOf(e),safe=e.replace(/"/g,'&quot;');return'<div class="list-row"><input class="list-row-inp" id="ei-'+i+'" value="'+safe+'" readonly><div class="list-row-actions"><button class="btn-lst-edit" id="ee-'+i+'" onclick="startElas('+i+')">—</button><button class="btn-lst-confirm" id="ec-'+i+'" onclick="confirmElas('+i+')">✔</button><button class="btn-lst-del" onclick="delElastico('+i+')">×</button></div></div>';}).join('');}
 function startElas(i){const inp=document.getElementById('ei-'+i),eb=document.getElementById('ee-'+i),cb=document.getElementById('ec-'+i);inp.readOnly=false;inp.focus();inp.select();inp.classList.add('editing');eb.style.display='none';cb.style.display='flex';}
-function confirmElas(i){const inp=document.getElementById('ei-'+i),n=inp.value.trim();if(!n){alert('El nombre no puede estar vacío');return;}if(elasticoList.findIndex((e,j)=>e.toLowerCase()===n.toLowerCase()&&j!==i)>=0){alert('Ya existe ese nombre');return;}elasticoList[i]=n;buildElasticoManager();buildElasticoSelect();}
-function addTipoElastico(){const inp=document.getElementById('elastico-add-inp'),name=inp.value.trim();if(!name){alert('Escribe el nombre');return;}if(elasticoList.map(e=>e.toLowerCase()).includes(name.toLowerCase())){alert('Ya existe');return;}elasticoList.push(name);inp.value='';buildElasticoManager();buildElasticoSelect();}
-function delElastico(i){if(!confirm('¿Eliminar "'+elasticoList[i]+'"?'))return;elasticoList.splice(i,1);buildElasticoManager();buildElasticoSelect();}
+function confirmElas(i){const inp=document.getElementById('ei-'+i),n=inp.value.trim();if(!n){alert('El nombre no puede estar vacío');return;}if(elasticoList.findIndex((e,j)=>e.toLowerCase()===n.toLowerCase()&&j!==i)>=0){alert('Ya existe ese nombre');return;}elasticoList[i]=n;buildElasticoManager();buildElasticoSelect();syncConfig();}
+function addTipoElastico(){const inp=document.getElementById('elastico-add-inp'),name=inp.value.trim();if(!name){alert('Escribe el nombre');return;}if(elasticoList.map(e=>e.toLowerCase()).includes(name.toLowerCase())){alert('Ya existe');return;}elasticoList.push(name);inp.value='';buildElasticoManager();buildElasticoSelect();syncConfig();}
+function delElastico(i){if(!confirm('¿Eliminar "'+elasticoList[i]+'"?'))return;elasticoList.splice(i,1);buildElasticoManager();buildElasticoSelect();syncConfig();}
 function buildModList(){document.getElementById('mod-list').innerHTML=sortAZ(moduleList).map(id=>{const i=moduleList.indexOf(id);return'<div class="mod-row"><input class="mod-row-inp" id="mi-'+i+'" value="'+id+'" readonly><div class="mod-actions"><button class="btn-mod-edit" id="me-'+i+'" onclick="startMod('+i+')">—</button><button class="btn-mod-confirm" id="mc-'+i+'" onclick="confirmMod('+i+')">✔</button><button class="btn-mod-del" onclick="delMod('+i+')">×</button></div></div>';}).join('');}
 function startMod(i){const inp=document.getElementById('mi-'+i),eb=document.getElementById('me-'+i),cb=document.getElementById('mc-'+i);inp.readOnly=false;inp.focus();inp.select();inp.classList.add('editing');eb.style.display='none';cb.style.display='flex';}
-function confirmMod(i){const inp=document.getElementById('mi-'+i),n=inp.value.trim();if(!n){alert('El nombre no puede estar vacío');return;}if(moduleList.findIndex((m,j)=>m===n&&j!==i)>=0){alert('Ese nombre ya existe');return;}const old=moduleList[i];moduleData[n]=moduleData[old];delete moduleData[old];moduleList[i]=n;buildModList();buildLoginSelect();buildGrid();updateCounters();}
-function addModule(){const inp=document.getElementById('mod-add-inp'),name=inp.value.trim();if(!name){alert('Escribe el nombre del módulo');return;}if(moduleList.includes(name)){alert('Ese módulo ya existe');return;}moduleList.push(name);moduleData[name]={alert:false};inp.value='';buildModList();buildLoginSelect();buildGrid();updateCounters();}
-function delMod(i){if(!confirm('¿Eliminar "'+moduleList[i]+'"?'))return;moduleList.splice(i,1);buildModList();buildLoginSelect();buildGrid();updateCounters();}
+function confirmMod(i){const inp=document.getElementById('mi-'+i),n=inp.value.trim();if(!n){alert('El nombre no puede estar vacío');return;}if(moduleList.findIndex((m,j)=>m===n&&j!==i)>=0){alert('Ese nombre ya existe');return;}const old=moduleList[i];moduleData[n]=moduleData[old];delete moduleData[old];moduleList[i]=n;buildModList();buildLoginSelect();buildGrid();updateCounters();syncConfig();}
+function addModule(){const inp=document.getElementById('mod-add-inp'),name=inp.value.trim();if(!name){alert('Escribe el nombre del módulo');return;}if(moduleList.includes(name)){alert('Ese módulo ya existe');return;}moduleList.push(name);moduleData[name]={alert:false};inp.value='';buildModList();buildLoginSelect();buildGrid();updateCounters();syncConfig();}
+function delMod(i){if(!confirm('¿Eliminar "'+moduleList[i]+'"?'))return;moduleList.splice(i,1);buildModList();buildLoginSelect();buildGrid();updateCounters();syncConfig();}
 
+
+function syncConfig(){
+  wsSend({type:'ci_config_sync',tipoInsumoList,elasticoList,moduleList});
+}
 function fmt(s){if(s==null||s===''||s===undefined)return'—';return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
 
 document.getElementById('admin-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doAdminLogin();});
