@@ -5228,11 +5228,14 @@ function openCIPanel(modulo, autoOpenForm){
   const ov = document.getElementById('ci-panel-overlay');
   ov.style.display = 'flex';
   document.body.style.overflow = 'hidden';
+  // Poblar selects ahora que el DOM ya está visible
+  ci_buildTipoSelect();
+  ci_buildElasticoSelect();
+  ci_buildLoginSelect();
   if(modulo && ci_moduleList.includes(modulo)){
     ci_currentUser = modulo;
     ci_showScreen('module');
     if(autoOpenForm){
-      // Dar un tick para que el DOM esté listo
       setTimeout(()=>{ ci_openModal(); }, 80);
     }
   } else {
@@ -5279,8 +5282,7 @@ document.getElementById('mini-auth-overlay').addEventListener('click', function(
       <div class="home-title">TABLERO C.I.</div>
       <div class="home-sub">SISTEMA DE SOLICITUD DE INSUMOS</div>
       <div class="home-btns">
-        <button class="btn-home-mod" onclick="ci_showScreen('login')">🏭 ACCESO MÓDULO</button>
-        <button class="btn-home-tab" onclick="ci_showScreen('admin-login')">📊 TABLERO SUPERVISOR</button>
+        <button class="btn-home-mod" onclick="ci_showScreen('dashboard')">📊 TABLERO SUPERVISOR</button>
       </div>
     </div>
   </div>
