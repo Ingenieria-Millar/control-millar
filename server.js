@@ -9,6 +9,7 @@ const PORT = process.env.PORT || 3000;
 const DATA_DIR          = path.join(__dirname, 'data');
 const IA_STATE_FILE     = path.join(DATA_DIR, 'ia_state.json');
 const IA_RECORDS_FILE   = path.join(DATA_DIR, 'ia_records.json');
+const MODULES_CONFIG_FILE = path.join(DATA_DIR, 'modules_config.json');
 
 // Crear carpeta data si no existe
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
@@ -61,7 +62,8 @@ const IA_INITIAL_STATE = {
 
 // Cargar datos de asistencia desde disco (o usar inicial)
 let iaState   = readJSON(IA_STATE_FILE,   null);
-let iaRecords = readJSON(IA_RECORDS_FILE, []);
+let iaRecords     = readJSON(IA_RECORDS_FILE,     []);
+let modulesConfig = readJSON(MODULES_CONFIG_FILE, {disabled:[],extra:[],renamed:{},modPass:{}});
 
 // Si no hay state guardado, usar el inicial y persistirlo
 if (!iaState) {
@@ -71,7 +73,8 @@ if (!iaState) {
 }
 
 function saveIaState()   { writeJSON(IA_STATE_FILE,   iaState);   }
-function saveIaRecords() { writeJSON(IA_RECORDS_FILE, iaRecords); }
+function saveIaRecords()    { writeJSON(IA_RECORDS_FILE,     iaRecords);     }
+function saveModulesConfig(){ writeJSON(MODULES_CONFIG_FILE, modulesConfig); }
 
 // ── Servidor HTTP ─────────────────────────────────────────────────
 const server = http.createServer((req, res) => {
@@ -106,7 +109,8 @@ wss.on('connection', (ws) => {
     states:   { ...states },
     lastMec:  { ...lastMec },
     iaState:  iaState,
-    iaRecords: iaRecords
+    iaRecords:     iaRecords,
+    modulesConfig: modulesConfig
   }));
 
   ws.on('message', (raw) => {
@@ -127,6 +131,27 @@ wss.on('connection', (ws) => {
         });
         wss.clients.forEach(c => {
           if (c !== ws && c.readyState === 1) c.send(broadcast);
+        });
+      }
+
+      // ── Config de Modulos: sincronizar entre dispositivos ─────────
+      else if (msg.type === 'modules_config') {
+        modulesConfig = {
+          disabled: msg.disabled || [],
+          extra:    msg.extra    || [],
+          renamed:  msg.renamed  || {},
+          modPass:  msg.modPass  || {}
+        };
+        saveModulesConfig();
+        const mcBcast = JSON.stringify({
+          type:     'modules_config',
+          disabled: modulesConfig.disabled,
+          extra:    modulesConfig.extra,
+          renamed:  modulesConfig.renamed,
+          modPass:  modulesConfig.modPass
+        });
+        wss.clients.forEach(c => {
+          if (c !== ws && c.readyState === 1) c.send(mcBcast);
         });
       }
 
