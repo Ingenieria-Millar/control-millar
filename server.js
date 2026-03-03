@@ -180,6 +180,13 @@ wss.on('connection', (ws) => {
 
       // ── Tablero CI: inicializar / pedir estado ─────────────────
       else if (msg.type === 'ci_init') {
+        // Parchar solicitudes activas que no tienen alertStart
+        ciRequests.forEach(r => {
+          if (!r.alertStart && r.status === 'alert') {
+            const tsFromId = parseInt((r._id || '').split('-')[0]);
+            r.alertStart = tsFromId > 0 ? tsFromId : Date.now();
+          }
+        });
         ws.send(JSON.stringify({ type: 'ci_init', requests: ciRequests, tipoInsumoList: ciConfig.tipoInsumoList, elasticoList: ciConfig.elasticoList, moduleList: ciConfig.moduleList }));
       }
 
@@ -207,6 +214,8 @@ wss.on('connection', (ws) => {
       else if (msg.type === 'ci_new_request') {
         // Evitar duplicados
         if (!ciRequests.find(r => r._id === msg.request._id)) {
+          // Garantizar que alertStart siempre exista
+          if (!msg.request.alertStart) msg.request.alertStart = Date.now();
           ciRequests.unshift(msg.request);
           // Mantener solo las últimas 500 solicitudes
           if (ciRequests.length > 500) ciRequests = ciRequests.slice(0, 500);
