@@ -51,7 +51,7 @@ h1{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;lett
 .btn-bar.purple:hover{background:rgba(124,58,237,0.12);}
 #nav-single{display:none;position:relative;z-index:2;padding:8px 24px;background:#fff;border-bottom:1px solid var(--border);gap:8px;justify-content:flex-end;align-items:center;}
 main{position:relative;z-index:1;padding:24px;max-width:1200px;margin:0 auto;padding-bottom:24px;width:100%;box-sizing:border-box;}
-.grid{display:grid;grid-template-columns:repeat(9,1fr);gap:12px;}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
 .module{position:relative;background:#f8fafc;border:1.5px solid #cbd5e1;border-radius:12px;padding:14px 10px 10px;display:flex;flex-direction:column;align-items:center;gap:5px;overflow:hidden;transition:transform 0.15s,border-color 0.3s,box-shadow 0.3s;user-select:none;-webkit-tap-highlight-color:transparent;animation:fi 0.25s ease;box-shadow:0 1px 4px rgba(0,0,0,.05);}
 @keyframes fi{from{opacity:0;transform:scale(0.92);}to{opacity:1;transform:scale(1);}}
 .module.readonly{cursor:default;}.module.clickable{cursor:pointer;}.module.clickable:hover{transform:scale(1.03);}
@@ -491,13 +491,13 @@ select.sp-ctrl{background-color:#fff;
   <div class="stat fg" id="stat-green"  onclick="toggleFilter('green')"><div class="sd g"></div><span id="cnt-g">0</span>&nbsp;Operativos</div>
   <div class="stat fy" id="stat-yellow" onclick="toggleFilter('yellow')"><div class="sd y"></div><span id="cnt-y">0</span>&nbsp;Atendiendo</div>
   <div class="stat fr" id="stat-red"    onclick="toggleFilter('red')"><div class="sd r"></div><span id="cnt-r">0</span>&nbsp;Alerta</div>
+  <div class="stat fb" id="stat-blue"   onclick="toggleFilter('blue')" style="border-color:rgba(37,99,235,0.3);"><div class="sd" style="background:#3b82f6;box-shadow:0 0 6px rgba(59,130,246,0.7);"></div><span id="cnt-b">0</span>&nbsp;En Cambio</div>
+  <div class="stat fo" id="stat-orange" onclick="toggleFilter('orange')" style="border-color:rgba(249,115,22,0.3);"><div class="sd" style="background:#f97316;box-shadow:0 0 6px rgba(249,115,22,0.7);"></div><span id="cnt-o">0</span>&nbsp;Espera CI</div>
   <span class="filter-hint" id="filter-hint"></span>
   <div class="view-toggle">
     <button class="btn-bar purple" onclick="openAcumuladoModal()">📊 Acumulado</button>
     <button class="btn-bar green"  id="btn-excel-bar" style="display:none;" onclick="openExcelModal()">📥 Excel</button>
     <button class="btn-bar yellow" id="btn-fix-mec"   style="display:none;" onclick="openFixMecModal()">🔧 Corregir</button>
-    <button class="btn-bar red"    id="btn-cambiar-user" style="display:none;" onclick="volverLogin()">👤 Cambiar usuario</button>
-
     <button class="btn-bar blue"   onclick="atrasDesdeTablero()">⬅ Atrás</button>
   </div>
 </div>
@@ -727,11 +727,11 @@ select.sp-ctrl{background-color:#fff;
     <div class="modal-title">Tipo de improductivo</div>
     <div class="modal-sub">Selecciona la causa</div>
     <div style="width:100%;display:flex;flex-direction:column;gap:10px;margin-top:4px;">
-      <button class="mec-btn" onclick="onImpMec()" style="border-left:4px solid #dc2626;">ð´ Fallo MecÃ¡nico</button>
-      <button class="mec-btn" onclick="onImpRef()" style="border-left:4px solid #1d4ed8;">ðµ Cambio de Referencia</button>
-      <button class="mec-btn" onclick="onImpIns()" style="border-left:4px solid #ea580c;">ð  Falta de Insumos</button>
+      <button class="mec-btn" onclick="onImpMec()" style="border-left:4px solid #dc2626;">🔴 Fallo Mecánico</button>
+      <button class="mec-btn" onclick="onImpRef()" style="border-left:4px solid #1d4ed8;">🔵 Cambio de Referencia</button>
+      <button class="mec-btn" onclick="onImpIns()" style="border-left:4px solid #ea580c;">🟠 Falta de Insumos</button>
     </div>
-    <button onclick="cancelImproductivo()" style="margin-top:6px;background:none;border:none;color:#94a3b8;font-size:13px;cursor:pointer;font-family:Nunito,sans-serif;">â Cancelar</button>
+    <button onclick="cancelImproductivo()" style="margin-top:6px;background:none;border:none;color:#94a3b8;font-size:13px;cursor:pointer;font-family:Nunito,sans-serif;">✕ Cancelar</button>
   </div>
 </div>
 
@@ -788,6 +788,8 @@ select.sp-ctrl{background-color:#fff;
         <option value="red">🔴 Alerta</option>
         <option value="yellow">🟡 Atendiendo</option>
         <option value="green">🟢 Operativo</option>
+        <option value="blue">🔵 En Cambio</option>
+        <option value="orange">🟠 Espera CI</option>
         <option value="contiempo">⏱ Con tiempo &gt; 0</option>
       </select>
       <button class="acum-sort-btn" id="acum-sort-btn" onclick="toggleAcumSort()">↓ Mayor tiempo</button>
@@ -1455,14 +1457,25 @@ function commitChange(id,s,mecanico){
 
 function toggleFilter(color){
   activeFilter=activeFilter===color?null:color;
-  ['green','yellow','red'].forEach(c=>document.getElementById('stat-'+c).classList.toggle('active-filter',activeFilter===c));
+  ['green','yellow','red','blue','orange'].forEach(c=>{
+    const el=document.getElementById('stat-'+c);
+    if(!el)return;
+    el.classList.toggle('active-filter',activeFilter===c);
+    if(activeFilter===c){
+      if(c==='blue')el.style.cssText='border-color:#3b82f6;background:rgba(59,130,246,0.08);color:#1d4ed8;';
+      else if(c==='orange')el.style.cssText='border-color:#f97316;background:rgba(249,115,22,0.08);color:#c2410c;';
+      else el.style.cssText='';
+    } else {
+      el.style.cssText=c==='blue'?'border-color:rgba(37,99,235,0.3);':c==='orange'?'border-color:rgba(249,115,22,0.3);':'';
+    }
+  });
   document.getElementById('filter-hint').textContent=activeFilter?`Filtrando: ${LABELS[activeFilter]}  ·  Toca de nuevo para ver todos`:'';
   renderGrid();
 }
 function renderGrid(){
   const grid=document.getElementById('grid');grid.innerHTML='';
   const visible=activeFilter?MODULES.filter(id=>states[id]===activeFilter):MODULES;
-  const cols=visible.length<=3?visible.length:visible.length<=9?3:visible.length<=12?4:visible.length<=18?6:9;
+  const cols=visible.length<=3?visible.length:5;
   grid.style.gridTemplateColumns=`repeat(${Math.max(1,cols)},1fr)`;
   if(!visible.length){grid.innerHTML='<div class="empty-msg">✅ No hay módulos en este estado</div>';return;}
   const canClick=hasPerm('fix');
@@ -1482,6 +1495,8 @@ function updateStats(){
   document.getElementById('cnt-g').textContent=g;
   document.getElementById('cnt-y').textContent=y;
   document.getElementById('cnt-r').textContent=r;
+  document.getElementById('cnt-b').textContent=b;
+  document.getElementById('cnt-o').textContent=o;
 }
 function formatTime(ms){
   const s=Math.floor(ms/1000),m=Math.floor(s/60),h=Math.floor(m/60);
