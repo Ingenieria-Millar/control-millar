@@ -729,8 +729,8 @@ body::before{
 }
 .mod-status{font-size:clamp(16px,4vw,22px);font-weight:800;letter-spacing:4px;color:#16a34a;text-transform:uppercase;margin-bottom:6px;font-family:'Barlow Condensed',sans-serif;}
 .mod-status.red{color:#dc2626;}
-.mod-timer{font-family:'Courier New',monospace;font-size:clamp(22px,5vw,28px);color:#d97706;letter-spacing:4px;margin-bottom:10px;display:none;font-weight:700;}
-.mod-timer.show{display:block;}
+.ci-mod-timer{font-family:'Courier New',monospace;font-size:clamp(22px,5vw,28px);color:#d97706;letter-spacing:4px;margin-bottom:10px;display:none;font-weight:700;}
+.ci-mod-timer.show{display:block;}
 .mod-hint{font-size:10px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:4px;font-weight:600;}
 .mod-active-count{font-size:12px;font-weight:800;color:#dc2626;letter-spacing:2px;margin-bottom:8px;display:none;}
 .mod-active-count.show{display:block;}
@@ -5080,12 +5080,12 @@ function ci_refreshDetail(){
   if(allP.length>0){
     card.className='mod-card is-alert';ball.className='big-ball red';ball.innerHTML='<div class="shine"></div>';status.className='mod-status red';status.textContent='ALERTA';
     const oldest=active.length?active[active.length-1]:allP[allP.length-1];
-    timerEl.className='mod-timer show';timerEl.textContent=ci_fmt(ci_getElapsed(oldest));
+    timerEl.className='ci-mod-timer show';timerEl.textContent=ci_fmt(ci_getElapsed(oldest));
     const latest=active.length?active[0]:allP[0];
     info.className='mod-info show';document.getElementById('mi-ref').textContent=latest.ref;document.getElementById('mi-op').textContent=latest.op;document.getElementById('mi-tipo').textContent=latest.tipo;document.getElementById('mi-qty').textContent=latest.qty;
     if(allP.length>1){countEl.textContent='⚠ '+allP.length+' SOLICITUDES PENDIENTES';countEl.className='mod-active-count show';}else countEl.className='mod-active-count';
     hint.textContent=allP.length+' SOLICITUD(ES) ACTIVA(S)';btnSol.textContent='🚨 NUEVA SOLICITUD';
-  }else{card.className='mod-card';ball.className='big-ball';ball.innerHTML='<div class="shine"></div>';status.className='mod-status';status.textContent='OPERATIVO';timerEl.className='mod-timer';info.className='mod-info';countEl.className='mod-active-count';hint.textContent='PRESIONA EL BOTÓN PARA SOLICITAR INSUMO';btnSol.textContent='🚨 SOLICITAR INSUMO';}
+  }else{card.className='mod-card';ball.className='big-ball';ball.innerHTML='<div class="shine"></div>';status.className='mod-status';status.textContent='OPERATIVO';timerEl.className='ci-mod-timer';info.className='mod-info';countEl.className='mod-active-count';hint.textContent='PRESIONA EL BOTÓN PARA SOLICITAR INSUMO';btnSol.textContent='🚨 SOLICITAR INSUMO';}
   const pend=ci_requests.find(r=>r.module===id&&r.status==='pending-confirm');if(pend)ci_showConfirmModal(ci_requests.indexOf(pend));
 }
 
@@ -5423,7 +5423,7 @@ document.getElementById('mini-auth-overlay').addEventListener('click', function(
       <div class="mod-id" id="mod-id-lbl">M01</div>
       <div class="big-ball" id="big-ball"><div class="shine"></div></div>
       <div class="mod-status" id="mod-status">OPERATIVO</div>
-      <div class="mod-timer" id="mod-timer">00:00</div>
+      <div class="ci-mod-timer" id="mod-timer">00:00</div>
       <div class="mod-active-count" id="mod-active-count"></div>
       <div class="mod-hint" id="mod-hint">PRESIONA EL BOTÓN PARA SOLICITAR INSUMO</div>
       <div class="mod-info" id="mod-info">
