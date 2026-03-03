@@ -1192,12 +1192,10 @@ function mostrarAreaScreen(){
     btns.appendChild(c);
   }
 
-  // CI — solo botón, sin funcionalidad (próximamente)
+  // CI — abre tablero CI
   if(hasPerm('area_ci')){
-    const c=makeCard('🏢','CI','Próximamente','ac-purple',()=>{});
+    const c=makeCard('🏢','CI','Sistema de Insumos','ac-purple',()=>openCIPanel());
     c.style.animationDelay=(idx*0.07)+'s'; idx++;
-    c.style.opacity='0.55'; c.style.cursor='default';
-    c.onclick=null;
     btns.appendChild(c);
   }
 
@@ -1575,26 +1573,27 @@ function formatTime(ms){
 setInterval(()=>{
   const now=Date.now();
   MODULES.forEach(id=>{
-    const el=document.getElementById('timer-'+id);
+    const el=document.getElementById("timer-"+id);
     if(!el)return;
     const s=states[id];
-    if(s==='blue'&&cambioLimites[id]){
+    if(s==="blue"&&cambioLimites[id]){
       const rem=cambioLimites[id]-now;
-      el.textContent=rem>0?'⏳ '+formatTime(rem):'⏳ 0s';
-    }else if(s==='red'||s==='yellow'||s==='orange'){
-      el.textContent='⏱ '+formatTime(now-timers[id]);
-    }else{el.textContent='';}
+      if(rem<=0){delete cambioLimites[id];commitChange(id,"green",null);}
+      else el.textContent="⏳ "+formatTime(rem);
+    }else if(s==="red"||s==="yellow"||s==="orange"||s==="blue"){
+      el.textContent="⏱ "+formatTime(now-timers[id]);
+    }else el.textContent="";
   });
-  const bt=document.getElementById('big-timer');
+  const bt=document.getElementById("big-timer");
   if(bt&&selectedMod){
     const s=states[selectedMod];
-    if(s==='blue'&&cambioLimites[selectedMod]){
+    if(s==="blue"&&cambioLimites[selectedMod]){
       const rem=cambioLimites[selectedMod]-now;
-      bt.textContent=rem>0?'⏳ '+formatTime(rem):'⏳ 0s';
-    }else if(s==='red'||s==='yellow'||s==='orange'){
-      bt.textContent='⏱ '+formatTime(now-timers[selectedMod]);
-    }else bt.textContent='';
-  }else if(bt)bt.textContent='';
+      bt.textContent=rem>0?"⏳ "+formatTime(rem):"⏳ 0s";
+    }else if(s==="red"||s==="yellow"||s==="orange"||s==="blue"){
+      bt.textContent="⏱ "+formatTime(now-timers[selectedMod]);
+    }else bt.textContent="";
+  }else if(bt)bt.textContent="";
 },1000);
 function renderBig(){
   if(!selectedMod)return;
@@ -4349,6 +4348,28 @@ iaWaitReady(function(){
   iaBuildLoginSelect();
 });
 } // end runIngresoScript
+</script>
+
+<!-- ── OVERLAY TABLERO CI ──────────────────────────────────────── -->
+<div id="ci-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;background:#0f172a;flex-direction:column;">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:#1e293b;border-bottom:1px solid #334155;flex-shrink:0;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:20px;">🏢</span>
+      <span style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:2px;color:#e2e8f0;">TABLERO CI</span>
+    </div>
+    <button onclick="closeCIPanel()" style="padding:7px 18px;border-radius:8px;border:1px solid #475569;background:#334155;color:#cbd5e1;font-family:Nunito,sans-serif;font-size:13px;font-weight:700;cursor:pointer;">⬅ Volver</button>
+  </div>
+  <iframe id="ci-frame" src="/ci" style="flex:1;border:none;width:100%;" allowfullscreen></iframe>
+</div>
+
+<script>
+function openCIPanel(){
+  const ov=document.getElementById('ci-overlay');
+  ov.style.display='flex';
+}
+function closeCIPanel(){
+  document.getElementById('ci-overlay').style.display='none';
+}
 </script>
 
 </body>
