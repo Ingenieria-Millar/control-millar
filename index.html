@@ -2844,6 +2844,7 @@ function getIngresoHTML(){
 }
 .ia-tab-btn:not(.active):hover{background:#f1f5f9;color:#0f172a;}
 .ia-tab-btn.hidden{display:none !important;}
+.ia-panel.hidden{display:none !important;}
 
 /* Stats cards */
 .ia-stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;}
@@ -3578,7 +3579,7 @@ html{overflow-x:hidden;max-width:100%;}
     </div>
 
     <!-- EDITAR REGISTROS (admin) -->
-    <div class="ia-panel ia-warn-panel hidden" id="ia-tab-records">
+    <div class="ia-panel ia-warn-panel hidden" id="ia-tab-records" style="display:none">
       <h3>Editar Registros</h3>
       <div class="ia-hist-controls">
         <div class="ia-date-row">
@@ -3610,7 +3611,7 @@ html{overflow-x:hidden;max-width:100%;}
     </div>
 
     <!-- CONFIG (admin) -->
-    <div class="ia-panel ia-warn-panel hidden" id="ia-tab-config">
+    <div class="ia-panel ia-warn-panel hidden" id="ia-tab-config" style="display:none">
       <h3>⚙️ Configuración del Sistema</h3>
       <div class="ia-admin-sections">
         <div class="ia-admin-section">
@@ -3915,8 +3916,14 @@ function iaRenderTodayChips(){
 window.iaShowTab=function(name,btn){
   document.querySelectorAll('#ingreso-app-root .ia-tab-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  ['ia-tab-register','ia-tab-history','ia-tab-records','ia-tab-config'].forEach(id=>document.getElementById(id).classList.add('hidden'));
-  document.getElementById('ia-tab-'+name).classList.remove('hidden');
+  ['ia-tab-register','ia-tab-history','ia-tab-records','ia-tab-config'].forEach(id=>{
+    const el=document.getElementById(id);
+    el.classList.add('hidden');
+    el.style.display='none';
+  });
+  const target=document.getElementById('ia-tab-'+name);
+  target.classList.remove('hidden');
+  target.style.display='';
   if(name==='history') iaRenderHistory();
   if(name==='records') iaRenderAdminTable();
   if(name==='config')  iaRenderConfig();
