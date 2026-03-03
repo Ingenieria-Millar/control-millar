@@ -5061,7 +5061,7 @@ const ci_sortAZ=a=>[...a].sort((a,b)=>a.localeCompare(b,'es',{sensitivity:'base'
 const ci_sortObjAZ=a=>[...a].sort((a,b)=>a.name.localeCompare(b.name,'es',{sensitivity:'base'}));
 function ci_initModules(){ci_moduleList.forEach(id=>{if(!ci_moduleData[id])ci_moduleData[id]={alert:false};});}
 ci_initModules();
-function ci_getElapsed(r){if(!r||!r.alertStart)return 0;if(r.status==='done'||r.status==='pending-confirm')return r.waitTime||0;return Math.floor((Date.now()-r.alertStart)/1000);}
+function ci_getElapsed(r){if(!r||!r.alertStart)return 0;if(r.status==='done'||r.status==='pending-confirm')return r.waitTime||0;return Math.floor((Date.now()-Number(r.alertStart))/1000);}
 function ci_getActiveReqs(id){return ci_requests.filter(r=>r.module===id&&r.status==='alert');}
 function ci_getPendingReqs(id){return ci_requests.filter(r=>r.module===id&&(r.status==='alert'||r.status==='pending-confirm'));}
 function ci_buildTipoSelect(){const s=document.getElementById('f-tipo');s.innerHTML='<option value="">— Seleccionar —</option>';ci_sortObjAZ(ci_tipoInsumoList).forEach(t=>{const o=document.createElement('option');o.value=t.name;o.dataset.flow=t.flow;o.textContent=t.name;s.appendChild(o);});}
@@ -5122,7 +5122,7 @@ setInterval(()=>{
     if(!allPend.length)return;
     // Use oldest active; if none (all pending-confirm), use oldest pending
     const oldest=active.length?active[active.length-1]:allPend[allPend.length-1];
-    const elapsed=oldest.status==='alert'?Math.floor((Date.now()-oldest.alertStart)/1000):(oldest.waitTime||0);
+    const elapsed=oldest.status==='alert'?Math.floor((Date.now()-Number(oldest.alertStart))/1000):(oldest.waitTime||0);
     const ct=document.getElementById('ct-'+id);
     if(ct)ct.textContent=ci_fmt(elapsed);
     if(ci_currentUser===id&&document.getElementById('s-module').classList.contains('active')){
@@ -5130,8 +5130,9 @@ setInterval(()=>{
       if(dt)dt.textContent=ci_fmt(elapsed);
     }
   });
-  if(document.getElementById('view-history').classList.contains('active')){ci_requests.forEach((h,i)=>{if(h.status==='alert'){const el=document.getElementById('wt-'+i);if(el)el.textContent=ci_fmt(Math.floor((Date.now()-h.alertStart)/1000))}});}
-  if(document.getElementById('s-dashboard').classList.contains('active')){ci_updateCounters();ci_updateBanner();}
+  if(document.getElementById('view-history').classList.contains('active')){ci_requests.forEach((h,i)=>{if(h.status==='alert'){const el=document.getElementById('wt-'+i);if(el)el.textContent=ci_fmt(Math.floor((Date.now()-Number(h.alertStart))/1000))}});}
+  const ciPanelOpen=document.getElementById('ci-panel-overlay').style.display!=='none';
+  if(ciPanelOpen){ci_updateCounters();ci_updateBanner();}
 },1000);
 
 function ci_updateCounters(){let a=0;ci_moduleList.forEach(id=>{if(ci_getPendingReqs(id).length>0)a++;});document.getElementById('fc-all').textContent=ci_moduleList.length;document.getElementById('fc-op').textContent=ci_moduleList.length-a;document.getElementById('fc-alert').textContent=a;}
