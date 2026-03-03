@@ -1391,6 +1391,8 @@ function connectWS(){
     reconnectDelay=1000; // reset backoff on successful connect
     clearTimeout(reconnectTimer);
     setConnStatus(true);
+    // Pedir estado CI al servidor
+    ws.send(JSON.stringify({type:'ci_init'}));
   };
 
   ws.onmessage=(e)=>{
@@ -1471,6 +1473,11 @@ function connectWS(){
       } else if(msg.type==='ia_save_state'){
         iaState = msg.state;
         if(typeof iaBuildLoginSelect==='function') iaBuildLoginSelect();
+      }
+
+      // ── Tablero CI: enrutar mensajes CI al handler integrado ──
+      if(msg.type && msg.type.startsWith('ci_')){
+        try{ ci_handleWsMessage(msg); }catch(e){ console.error('CI WS handler error:',e); }
       }
 
     }catch(err){ console.error('WS error:', err); }
@@ -4885,29 +4892,28 @@ function ci_wsConnect(){
     ci_ws.onmessage=(e)=>{
       try{
         const msg=JSON.parse(e.data);
+        ci_handleWsMessage(msg); return;
         if(msg.type==='ci_config_sync'){
-          // Recibir config actualizada del admin
-          if(msg.ci_tipoInsumoList)ci_tipoInsumoList=msg.ci_tipoInsumoList;
-          if(msg.ci_elasticoList)ci_elasticoList=msg.ci_elasticoList;
-          if(msg.ci_moduleList){
-            const added=msg.ci_moduleList.filter(id=>!ci_moduleList.includes(id));
-            ci_moduleList=msg.ci_moduleList;
+          if(msg.tipoInsumoList)ci_tipoInsumoList=msg.tipoInsumoList;
+          if(msg.elasticoList)ci_elasticoList=msg.elasticoList;
+          if(msg.moduleList){
+            const added=msg.moduleList.filter(id=>!ci_moduleList.includes(id));
+            ci_moduleList=msg.moduleList;
             added.forEach(id=>{if(!ci_moduleData[id])ci_moduleData[id]={alert:false};});
           }
           ci_buildTipoSelect();ci_buildElasticoSelect();ci_buildLoginSelect();
           if(document.getElementById('s-dashboard').classList.contains('active')){ci_buildGrid();ci_updateCounters();}
         }
         else if(msg.type==='ci_init'||msg.type==='ci_full_sync'){
-          // Recibir config + estado completo del servidor
-          if(msg.ci_tipoInsumoList)ci_tipoInsumoList=msg.ci_tipoInsumoList;
-          if(msg.ci_elasticoList)ci_elasticoList=msg.ci_elasticoList;
-          if(msg.ci_moduleList){
-            ci_moduleList=msg.ci_moduleList;
+          if(msg.tipoInsumoList)ci_tipoInsumoList=msg.tipoInsumoList;
+          if(msg.elasticoList)ci_elasticoList=msg.elasticoList;
+          if(msg.moduleList){
+            ci_moduleList=msg.moduleList;
             ci_moduleList.forEach(id=>{if(!ci_moduleData[id])ci_moduleData[id]={alert:false};});
           }
           ci_buildTipoSelect();ci_buildElasticoSelect();ci_buildLoginSelect();
-          if(msg.ci_requests){
-            ci_requests=msg.ci_requests;
+          if(msg.requests){
+            ci_requests=msg.requests;
             ci_moduleList.forEach(id=>{ci_moduleData[id]={alert:ci_getPendingReqs(id).length>0};});
             if(document.getElementById('s-dashboard').classList.contains('active')){ci_buildGrid();ci_applyFilter(ci_currentFilter);ci_updateCounters();ci_updateBanner();}
             if(document.getElementById('s-module').classList.contains('active')&&ci_currentUser)ci_refreshDetail();
@@ -4965,8 +4971,84 @@ function ci_wsConnect(){
     };
   }catch(err){setTimeout(ci_wsConnect,3000);}
 }
+function ci_handleWsMessage(msg){
+  try{
+    if(msg.type==='ci_config_sync'){
+      if(msg.tipoInsumoList)ci_tipoInsumoList=msg.tipoInsumoList;
+      if(msg.elasticoList)ci_elasticoList=msg.elasticoList;
+      if(msg.moduleList){
+        const added=msg.moduleList.filter(id=>!ci_moduleList.includes(id));
+        ci_moduleList=msg.moduleList;
+        added.forEach(id=>{if(!ci_moduleData[id])ci_moduleData[id]={alert:false};});
+      }
+      ci_buildTipoSelect();ci_buildElasticoSelect();ci_buildLoginSelect();
+      if(document.getElementById('s-dashboard').classList.contains('active')){ci_buildGrid();ci_updateCounters();}
+    }
+    else if(msg.type==='ci_init'||msg.type==='ci_full_sync'){
+      if(msg.tipoInsumoList)ci_tipoInsumoList=msg.tipoInsumoList;
+      if(msg.elasticoList)ci_elasticoList=msg.elasticoList;
+      if(msg.moduleList){
+        ci_moduleList=msg.moduleList;
+        ci_moduleList.forEach(id=>{if(!ci_moduleData[id])ci_moduleData[id]={alert:false};});
+      }
+      ci_buildTipoSelect();ci_buildElasticoSelect();ci_buildLoginSelect();
+      if(msg.requests){
+        ci_requests=msg.requests;
+        ci_moduleList.forEach(id=>{ci_moduleData[id]={alert:ci_getPendingReqs(id).length>0};});
+        if(document.getElementById('s-dashboard').classList.contains('active')){ci_buildGrid();ci_applyFilter(ci_currentFilter);ci_updateCounters();ci_updateBanner();}
+        if(document.getElementById('s-module').classList.contains('active')&&ci_currentUser)ci_refreshDetail();
+        ci_renderHistory();
+      }
+    }
+    else if(msg.type==='ci_new_request'){
+      const exists=ci_requests.find(r=>r._id===msg.request._id);
+      if(!exists){
+        ci_requests.unshift(msg.request);
+        const id=msg.request.module;
+        ci_moduleData[id]={alert:true};
+        ci_syncCard(id);ci_updateCounters();ci_updateBanner();ci_applyFilter(ci_currentFilter);ci_renderHistory();
+        if(ci_soundEnabled&&document.getElementById('s-dashboard').classList.contains('active'))ci_playSiren();
+        if(ci_currentUser===id&&document.getElementById('s-module').classList.contains('active'))ci_refreshDetail();
+      }
+    }
+    else if(msg.type==='ci_cumplido_request'){
+      const h=msg.request;
+      const idx=ci_requests.findIndex(r=>r._id===h._id);
+      if(idx>-1)ci_requests[idx]=h;
+      if(ci_currentUser===h.module&&document.getElementById('s-module').classList.contains('active')){
+        ci_pendingConfirmIdx=idx>-1?idx:0;
+        if(idx>-1){
+          document.getElementById('conf-module').textContent=h.module;
+          document.getElementById('conf-detail').textContent=h.tipo+' · '+h.qty+' · Ref: '+h.ref;
+          document.getElementById('confirm-overlay').classList.add('open');
+          if(ci_soundEnabled)ci_playSiren();
+        }
+      }
+    }
+    else if(msg.type==='ci_update_request'){
+      const idx=ci_requests.findIndex(r=>r._id===msg.request._id);
+      if(idx>-1){
+        ci_requests[idx]=msg.request;
+        const id=msg.request.module;
+        ci_moduleData[id]={alert:ci_getPendingReqs(id).length>0};
+        ci_syncCard(id);ci_updateCounters();ci_updateBanner();ci_applyFilter(ci_currentFilter);ci_renderHistory();
+        if(ci_currentUser===id&&document.getElementById('s-module').classList.contains('active'))ci_refreshDetail();
+      }
+      if(msg.request.status==='done'||msg.request.status==='alert'){
+        const pend=ci_requests.find(r=>r._id===msg.request._id&&r.module===ci_currentUser);
+        if(pend&&document.getElementById('confirm-overlay').classList.contains('open')){
+          document.getElementById('confirm-overlay').classList.remove('open');
+          ci_pendingConfirmIdx=null;
+        }
+      }
+    }
+  }catch(err){console.error('[CI] handleWsMessage error',err);}
+}
+
 function ci_wsSend(obj){
-  if(ci_ws&&ci_ws.readyState===1)ci_ws.send(JSON.stringify(obj));
+  // Reutilizar el WebSocket principal del tablero
+  if(ws&&ws.readyState===1) ws.send(JSON.stringify(obj));
+  else if(ci_ws&&ci_ws.readyState===1) ci_ws.send(JSON.stringify(obj));
 }
 function ci_showWsStatus(online){
   const dot=document.getElementById('ws-dot');
@@ -5205,7 +5287,7 @@ function ci_delMod(i){if(!confirm('¿Eliminar "'+ci_moduleList[i]+'"?'))return;c
 
 
 function ci_syncConfig(){
-  ci_wsSend({type:'ci_config_sync',ci_tipoInsumoList,ci_elasticoList,ci_moduleList});
+  ci_wsSend({type:'ci_config_sync',tipoInsumoList:ci_tipoInsumoList,elasticoList:ci_elasticoList,moduleList:ci_moduleList});
 }
 function ci_fmt(s){if(s==null||s===''||s===undefined)return'—';return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
 
