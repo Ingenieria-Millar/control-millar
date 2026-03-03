@@ -1494,7 +1494,18 @@ function iniciarCambio(minutos){
     delete cambioLimites[id];
   },ms);
 }
-function onImpIns(){const id=pendingMod;cancelImproductivo();if(!id)return;commitChange(id,'orange',null);}
+function onImpIns(){
+  const id=pendingMod;
+  if(!id)return;
+  cancelImproductivo();
+  commitChange(id,'orange',null);
+  // Abrir panel CI con el módulo preseleccionado
+  const ov=document.getElementById('ci-overlay');
+  ov.style.display='flex';
+  const fr=document.getElementById('ci-frame');
+  fr.src='/ci?modulo='+encodeURIComponent(id);
+  fr.setAttribute('data-mod',id);
+}
 function openMecanicoModal(titulo,subtitulo){
   document.getElementById('mec-title').textContent=titulo;
   document.getElementById('mec-sub').textContent=subtitulo;
