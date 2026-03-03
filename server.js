@@ -15,6 +15,7 @@ const MODULES_CONFIG_FILE = path.join(DATA_DIR, 'modules_config.json');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR);
 
 const CI_REQUESTS_FILE = path.join(DATA_DIR, 'ci_requests.json');
+const CI_CONFIG_FILE   = path.join(DATA_DIR, 'ci_config.json');
 
 // Helpers de persistencia
 function readJSON(filePath, defaultValue) {
@@ -67,8 +68,14 @@ let iaState   = readJSON(IA_STATE_FILE,   null);
 let iaRecords     = readJSON(IA_RECORDS_FILE,     []);
 let modulesConfig = readJSON(MODULES_CONFIG_FILE, {disabled:[],extra:[],renamed:{},modPass:{}});
 let ciRequests    = readJSON(CI_REQUESTS_FILE,    []);
+let ciConfig      = readJSON(CI_CONFIG_FILE, {
+  tipoInsumoList: [{name:'Aplique',flow:'qty_only'},{name:'Elástico',flow:'elastico'},{name:'Marquilla Logo',flow:'qty_only'},{name:'Marquilla Talla',flow:'qty_talla'},{name:'Prelavado',flow:'qty_talla'},{name:'Transfer',flow:'qty_talla'}],
+  elasticoList:   ['Base','Bola','Bota','Cintura','Envivar'],
+  moduleList:     ['M01','M02','M03','M04','M05','M06','M07','M08','M09','M10','M11','M12','M13','M14','M15','M16','M17','M18','M19','M20','M21','M22','M23','M24','M25','M26','M27','Empaque']
+});
 
 function saveCiRequests(){ writeJSON(CI_REQUESTS_FILE, ciRequests); }
+function saveCiConfig()   { writeJSON(CI_CONFIG_FILE,   ciConfig);   }
 
 // Si no hay state guardado, usar el inicial y persistirlo
 if (!iaState) {
@@ -173,7 +180,27 @@ wss.on('connection', (ws) => {
 
       // ── Tablero CI: inicializar / pedir estado ─────────────────
       else if (msg.type === 'ci_init') {
-        ws.send(JSON.stringify({ type: 'ci_init', requests: ciRequests }));
+        ws.send(JSON.stringify({ type: 'ci_init', requests: ciRequests, tipoInsumoList: ciConfig.tipoInsumoList, elasticoList: ciConfig.elasticoList, moduleList: ciConfig.moduleList }));
+      }
+
+      // ── Tablero CI: supervisor marcó cumplido → notificar al módulo ──
+      else if (msg.type === 'ci_cumplido_request') {
+        const bcast = JSON.stringify({ type: 'ci_cumplido_request', request: msg.request });
+        wss.clients.forEach(c => {
+          if (c !== ws && c.readyState === 1) c.send(bcast);
+        });
+      }
+
+      // ── Tablero CI: sincronizar configuración del admin ──────────
+      else if (msg.type === 'ci_config_sync') {
+        if (msg.tipoInsumoList) ciConfig.tipoInsumoList = msg.tipoInsumoList;
+        if (msg.elasticoList)   ciConfig.elasticoList   = msg.elasticoList;
+        if (msg.moduleList)     ciConfig.moduleList     = msg.moduleList;
+        saveCiConfig();
+        const bcast = JSON.stringify({ type: 'ci_config_sync', tipoInsumoList: ciConfig.tipoInsumoList, elasticoList: ciConfig.elasticoList, moduleList: ciConfig.moduleList });
+        wss.clients.forEach(c => {
+          if (c !== ws && c.readyState === 1) c.send(bcast);
+        });
       }
 
       // ── Tablero CI: nueva solicitud de insumo ──────────────────
