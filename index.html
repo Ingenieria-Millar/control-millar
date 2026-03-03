@@ -31,6 +31,8 @@ h1{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;lett
 .stat.active-filter.fg{border-color:var(--green);background:rgba(34,197,94,0.08);color:var(--green);}
 .stat.active-filter.fy{border-color:var(--yellow);background:rgba(234,179,8,0.08);color:var(--yellow);}
 .stat.active-filter.fr{border-color:var(--red);background:rgba(239,68,68,0.08);color:var(--red);}
+.stat.active-filter.fb{border-color:#3b82f6;background:rgba(59,130,246,0.08);color:#1d4ed8;}
+.stat.active-filter.fo{border-color:#f97316;background:rgba(249,115,22,0.08);color:#c2410c;}
 .sd{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
 .sd.g{background:var(--green);box-shadow:0 0 6px rgba(34,197,94,0.7);}
 .sd.y{background:var(--yellow);box-shadow:0 0 6px rgba(234,179,8,0.7);}
@@ -51,7 +53,7 @@ h1{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;lett
 .btn-bar.purple:hover{background:rgba(124,58,237,0.12);}
 #nav-single{display:none;position:relative;z-index:2;padding:8px 24px;background:#fff;border-bottom:1px solid var(--border);gap:8px;justify-content:flex-end;align-items:center;}
 main{position:relative;z-index:1;padding:24px;max-width:1200px;margin:0 auto;padding-bottom:24px;width:100%;box-sizing:border-box;}
-.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
+.grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;}
 .module{position:relative;background:#f8fafc;border:1.5px solid #cbd5e1;border-radius:12px;padding:14px 10px 10px;display:flex;flex-direction:column;align-items:center;gap:5px;overflow:hidden;transition:transform 0.15s,border-color 0.3s,box-shadow 0.3s;user-select:none;-webkit-tap-highlight-color:transparent;animation:fi 0.25s ease;box-shadow:0 1px 4px rgba(0,0,0,.05);}
 @keyframes fi{from{opacity:0;transform:scale(0.92);}to{opacity:1;transform:scale(1);}}
 .module.readonly{cursor:default;}.module.clickable{cursor:pointer;}.module.clickable:hover{transform:scale(1.03);}
@@ -491,8 +493,8 @@ select.sp-ctrl{background-color:#fff;
   <div class="stat fg" id="stat-green"  onclick="toggleFilter('green')"><div class="sd g"></div><span id="cnt-g">0</span>&nbsp;Operativos</div>
   <div class="stat fy" id="stat-yellow" onclick="toggleFilter('yellow')"><div class="sd y"></div><span id="cnt-y">0</span>&nbsp;Atendiendo</div>
   <div class="stat fr" id="stat-red"    onclick="toggleFilter('red')"><div class="sd r"></div><span id="cnt-r">0</span>&nbsp;Alerta</div>
-  <div class="stat fb" id="stat-blue"   onclick="toggleFilter('blue')" style="border-color:rgba(37,99,235,0.3);"><div class="sd" style="background:#3b82f6;box-shadow:0 0 6px rgba(59,130,246,0.7);"></div><span id="cnt-b">0</span>&nbsp;En Cambio</div>
-  <div class="stat fo" id="stat-orange" onclick="toggleFilter('orange')" style="border-color:rgba(249,115,22,0.3);"><div class="sd" style="background:#f97316;box-shadow:0 0 6px rgba(249,115,22,0.7);"></div><span id="cnt-o">0</span>&nbsp;Espera CI</div>
+  <div class="stat fb" id="stat-blue"   onclick="toggleFilter('blue')"><div class="sd" style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:#3b82f6;box-shadow:0 0 6px rgba(59,130,246,0.7);"></div><span id="cnt-b">0</span>&nbsp;En Cambio</div>
+  <div class="stat fo" id="stat-orange" onclick="toggleFilter('orange')"><div class="sd" style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:#f97316;box-shadow:0 0 6px rgba(249,115,22,0.7);"></div><span id="cnt-o">0</span>&nbsp;Espera CI</div>
   <span class="filter-hint" id="filter-hint"></span>
   <div class="view-toggle">
     <button class="btn-bar purple" onclick="openAcumuladoModal()">📊 Acumulado</button>
@@ -774,10 +776,30 @@ select.sp-ctrl{background-color:#fff;
   </div>
 </div>
 
+<!-- MODAL: Tipo de Cambio -->
+<div class="modal-overlay hidden" id="modal-cambio-tipo">
+  <div class="acum-box" style="max-width:380px;text-align:center;">
+    <div class="acum-title" style="margin-bottom:8px;">🔵 Tipo de Cambio de Referencia</div>
+    <p style="color:#94a3b8;font-size:13px;margin-bottom:20px;">Selecciona la duracion del cambio. Al finalizar, el modulo volvera a <b style="color:#22c55e;">Operativo</b> automaticamente.</p>
+    <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px;">
+      <button onclick="iniciarCambio(60)" style="padding:16px 24px;border-radius:12px;border:2px solid #3b82f6;background:rgba(59,130,246,0.08);color:#1d4ed8;font-size:16px;font-weight:700;cursor:pointer;letter-spacing:1px;">
+        Cambio de 60 minutos
+      </button>
+      <button onclick="iniciarCambio(30)" style="padding:16px 24px;border-radius:12px;border:2px solid #8b5cf6;background:rgba(139,92,246,0.08);color:#6d28d9;font-size:16px;font-weight:700;cursor:pointer;letter-spacing:1px;">
+        Cambio de 30 minutos
+      </button>
+    </div>
+    <button class="modal-btn secondary" onclick="closeCambioModal()" style="width:100%;">Cancelar</button>
+  </div>
+</div>
+
 <!-- MODAL: Acumulado -->
 <div class="modal-overlay hidden" id="modal-acumulado">
   <div class="acum-box">
-    <div class="acum-title">📊 Tiempo Acumulado por Módulo</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+      <div class="acum-title" style="margin-bottom:0;">📊 Tiempo Acumulado por Módulo</div>
+      <button class="modal-btn secondary" onclick="closeAcumuladoModal()" style="margin:0;padding:5px 16px;font-size:13px;">✕ Cerrar</button>
+    </div>
     <div class="acum-sub" id="acum-fecha"></div>
     <div class="acum-filters">
       <select class="acum-filter-sel" id="acum-f-modulo" onchange="renderAcumulado()">
@@ -802,12 +824,13 @@ select.sp-ctrl{background-color:#fff;
           <th>Estado</th>
           <th>🔴 Alerta acum.</th>
           <th>🟡 Atendiendo acum.</th>
+          <th>🔵 Cambio acum.</th>
+          <th>🟠 Espera acum.</th>
           <th>⏱ Total parado</th>
         </tr>
       </thead>
       <tbody id="acum-tbody"></tbody>
     </table>
-    <button class="modal-btn secondary" onclick="closeAcumuladoModal()">Cerrar</button>
   </div>
 </div>
 
@@ -882,11 +905,30 @@ function connectWS(){
         // ── Control de Asistencia: recibir datos del servidor ──
         if(msg.iaState)   iaState   = msg.iaState;
         if(msg.iaRecords) iaRecords = msg.iaRecords;
+        if(msg.modulesConfig){
+          const cfg=loadConfig();
+          cfg._modulos_disabled=msg.modulesConfig.disabled||[];
+          cfg._modulos_extra=msg.modulesConfig.extra||[];
+          cfg._modulos_renamed=msg.modulesConfig.renamed||{};
+          cfg._modulos_pass=msg.modulesConfig.modPass||{};
+          saveConfig(cfg);
+          rebuildModules();
+        }
         iaReady = true;
         updateStats();
         if(currentView==='grid')   renderGrid();
         if(currentView==='single') renderBig();
 
+      } else if(msg.type==='modules_config'){
+        const cfg=loadConfig();
+        cfg._modulos_disabled=msg.disabled||[];
+        cfg._modulos_extra=msg.extra||[];
+        cfg._modulos_renamed=msg.renamed||{};
+        cfg._modulos_pass=msg.modPass||{};
+        saveConfig(cfg);
+        rebuildModules();
+        updateStats();
+        if(currentView==='grid') renderGrid();
       } else if(msg.type==='change'){
         const id=msg.id, s=msg.state;
         const prev=states[id];
@@ -1422,7 +1464,38 @@ function cancelImproductivo(){
   el.classList.add('hidden');el.style.display='none';pendingMod=null;
 }
 function onImpMec(){const id=pendingMod;cancelImproductivo();if(!id)return;commitChange(id,'red',null);}
-function onImpRef(){const id=pendingMod;cancelImproductivo();if(!id)return;commitChange(id,'blue',null);}
+function onImpRef(){
+  const id=pendingMod;
+  cancelImproductivo();
+  if(!id)return;
+  openCambioModal(id);
+}
+const cambioTimers={};
+const cambioLimites={};
+function openCambioModal(id){
+  const modal=document.getElementById('modal-cambio-tipo');
+  modal.classList.remove('hidden');
+  modal.dataset.modId=id;
+}
+function closeCambioModal(){
+  document.getElementById('modal-cambio-tipo').classList.add('hidden');
+}
+function iniciarCambio(minutos){
+  const id=document.getElementById('modal-cambio-tipo').dataset.modId;
+  closeCambioModal();
+  commitChange(id,'blue',null);
+  const ms=minutos*60*1000;
+  cambioLimites[id]=Date.now()+ms;
+  if(cambioTimers[id])clearTimeout(cambioTimers[id]);
+  cambioTimers[id]=setTimeout(()=>{
+    if(states[id]==='blue'){
+      commitChange(id,'green',null);
+      showToastSimple('✅ '+id+' — Cambio '+minutos+' min completado');
+    }
+    delete cambioTimers[id];
+    delete cambioLimites[id];
+  },ms);
+}
 function onImpIns(){const id=pendingMod;cancelImproductivo();if(!id)return;commitChange(id,'orange',null);}
 function openMecanicoModal(titulo,subtitulo){
   document.getElementById('mec-title').textContent=titulo;
@@ -1445,6 +1518,9 @@ function commitChange(id,s,mecanico){
   const dur=ahora-(timers[id]||ahora);
   if(prev==='red')    acumRed[id]   +=dur;
   if(prev==='yellow') acumYellow[id]+=dur;
+  if(prev==='blue')   acumBlue[id]  +=dur;
+  if(prev==='orange') acumOrange[id]+=dur;
+  if(prev==='blue'&&cambioTimers[id]){clearTimeout(cambioTimers[id]);delete cambioTimers[id];delete cambioLimites[id];}
   logChange(id,prev,s,dur,mecanico);
   states[id]=s;timers[id]=ahora;
   if(mecanico) lastMec[id]=mecanico;
@@ -1461,13 +1537,6 @@ function toggleFilter(color){
     const el=document.getElementById('stat-'+c);
     if(!el)return;
     el.classList.toggle('active-filter',activeFilter===c);
-    if(activeFilter===c){
-      if(c==='blue')el.style.cssText='border-color:#3b82f6;background:rgba(59,130,246,0.08);color:#1d4ed8;';
-      else if(c==='orange')el.style.cssText='border-color:#f97316;background:rgba(249,115,22,0.08);color:#c2410c;';
-      else el.style.cssText='';
-    } else {
-      el.style.cssText=c==='blue'?'border-color:rgba(37,99,235,0.3);':c==='orange'?'border-color:rgba(249,115,22,0.3);':'';
-    }
   });
   document.getElementById('filter-hint').textContent=activeFilter?`Filtrando: ${LABELS[activeFilter]}  ·  Toca de nuevo para ver todos`:'';
   renderGrid();
@@ -1475,8 +1544,7 @@ function toggleFilter(color){
 function renderGrid(){
   const grid=document.getElementById('grid');grid.innerHTML='';
   const visible=activeFilter?MODULES.filter(id=>states[id]===activeFilter):MODULES;
-  const cols=visible.length<=3?visible.length:5;
-  grid.style.gridTemplateColumns=`repeat(${Math.max(1,cols)},1fr)`;
+  grid.style.gridTemplateColumns='';
   if(!visible.length){grid.innerHTML='<div class="empty-msg">✅ No hay módulos en este estado</div>';return;}
   const canClick=hasPerm('fix');
   visible.forEach(id=>{
@@ -1495,8 +1563,8 @@ function updateStats(){
   document.getElementById('cnt-g').textContent=g;
   document.getElementById('cnt-y').textContent=y;
   document.getElementById('cnt-r').textContent=r;
-  document.getElementById('cnt-b').textContent=b;
-  document.getElementById('cnt-o').textContent=o;
+  const eb=document.getElementById('cnt-b');if(eb)eb.textContent=b;
+  const eo=document.getElementById('cnt-o');if(eo)eo.textContent=o;
 }
 function formatTime(ms){
   const s=Math.floor(ms/1000),m=Math.floor(s/60),h=Math.floor(m/60);
@@ -1506,10 +1574,27 @@ function formatTime(ms){
 }
 setInterval(()=>{
   const now=Date.now();
-  MODULES.forEach(id=>{const el=document.getElementById(`timer-${id}`);if(el)el.textContent=(states[id]==='red'||states[id]==='yellow'||states[id]==='blue'||states[id]==='orange')?'⏱ '+formatTime(now-timers[id]):'';});
+  MODULES.forEach(id=>{
+    const el=document.getElementById('timer-'+id);
+    if(!el)return;
+    const s=states[id];
+    if(s==='blue'&&cambioLimites[id]){
+      const rem=cambioLimites[id]-now;
+      el.textContent=rem>0?'⏳ '+formatTime(rem):'⏳ 0s';
+    }else if(s==='red'||s==='yellow'||s==='orange'){
+      el.textContent='⏱ '+formatTime(now-timers[id]);
+    }else{el.textContent='';}
+  });
   const bt=document.getElementById('big-timer');
-  if(bt&&selectedMod&&(states[selectedMod]==='red'||states[selectedMod]==='yellow'||states[selectedMod]==='blue'||states[selectedMod]==='orange'))bt.textContent='⏱ '+formatTime(now-timers[selectedMod]);
-  else if(bt)bt.textContent='';
+  if(bt&&selectedMod){
+    const s=states[selectedMod];
+    if(s==='blue'&&cambioLimites[selectedMod]){
+      const rem=cambioLimites[selectedMod]-now;
+      bt.textContent=rem>0?'⏳ '+formatTime(rem):'⏳ 0s';
+    }else if(s==='red'||s==='yellow'||s==='orange'){
+      bt.textContent='⏱ '+formatTime(now-timers[selectedMod]);
+    }else bt.textContent='';
+  }else if(bt)bt.textContent='';
 },1000);
 function renderBig(){
   if(!selectedMod)return;
@@ -1550,28 +1635,36 @@ function renderAcumulado(){
   let rows=MODULES.map(id=>{
     const s=states[id];
     const cur=now-timers[id];
-    const totalR=acumRed[id]   +(s==='red'   ?cur:0);
-    const totalY=acumYellow[id]+(s==='yellow' ?cur:0);
-    const total=totalR+totalY;
-    return{id,s,totalR,totalY,total};
+    const totalR=acumRed[id]   +(s==='red'    ?cur:0);
+    const totalY=acumYellow[id]+(s==='yellow'  ?cur:0);
+    const totalB=acumBlue[id]  +(s==='blue'    ?cur:0);
+    const totalO=acumOrange[id]+(s==='orange'  ?cur:0);
+    const total=totalR+totalY+totalB+totalO;
+    return{id,s,totalR,totalY,totalB,totalO,total};
   });
   if(filtMod) rows=rows.filter(r=>r.id===filtMod);
   if(filtEst==='red')            rows=rows.filter(r=>r.s==='red');
   else if(filtEst==='yellow')    rows=rows.filter(r=>r.s==='yellow');
   else if(filtEst==='green')     rows=rows.filter(r=>r.s==='green');
+  else if(filtEst==='blue')      rows=rows.filter(r=>r.s==='blue');
+  else if(filtEst==='orange')    rows=rows.filter(r=>r.s==='orange');
   else if(filtEst==='contiempo') rows=rows.filter(r=>r.total>0);
   rows.sort((a,b)=>acumSortDesc?(b.total-a.total):(a.total-b.total));
   const tbody=document.getElementById('acum-tbody');tbody.innerHTML='';
-  rows.forEach(({id,s,totalR,totalY,total})=>{
+  rows.forEach(({id,s,totalR,totalY,totalB,totalO,total})=>{
     let badge='';
     if(s==='red')         badge='<span class="acum-badge active-red">🔴 Alerta</span>';
     else if(s==='yellow') badge='<span class="acum-badge active-yel">🟡 Atendiendo</span>';
+    else if(s==='blue')   badge='<span style="color:#1d4ed8;font-size:12px;font-weight:700;">🔵 En Cambio</span>';
+    else if(s==='orange') badge='<span style="color:#c2410c;font-size:12px;font-weight:700;">🟠 Espera CI</span>';
     else                  badge='<span style="color:var(--green);font-size:12px;">🟢 Operativo</span>';
     const fR=totalR>0?`<span class="acum-red">${formatTime(totalR)}</span>`:'<span class="acum-zero">—</span>';
     const fY=totalY>0?`<span class="acum-yellow">${formatTime(totalY)}</span>`:'<span class="acum-zero">—</span>';
+    const fB=totalB>0?`<span style="color:#3b82f6;font-weight:700;">${formatTime(totalB)}</span>`:'<span class="acum-zero">—</span>';
+    const fO=totalO>0?`<span style="color:#f97316;font-weight:700;">${formatTime(totalO)}</span>`:'<span class="acum-zero">—</span>';
     const fT=total>0?`<b style="color:#e2e8f0">${formatTime(total)}</b>`:'<span class="acum-zero">—</span>';
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td class="acum-mod">${id}</td><td>${badge}</td><td>${fR}</td><td>${fY}</td><td>${fT}</td>`;
+    tr.innerHTML=`<td class="acum-mod">${id}</td><td>${badge}</td><td>${fR}</td><td>${fY}</td><td>${fB}</td><td>${fO}</td><td>${fT}</td>`;
     tbody.appendChild(tr);
   });
   document.getElementById('acum-count').textContent=`${rows.length} de ${MODULES.length} módulos`;
@@ -1961,6 +2054,10 @@ function rebuildModules(){
   // Init states for new modules
   MODULES.forEach(id=>{ if(states[id]===undefined){states[id]='green';timers[id]=Date.now();lastMec[id]='';acumRed[id]=0;acumYellow[id]=0;acumBlue[id]=0;acumOrange[id]=0;} });
 }
+function broadcastModulosConfig(){
+  const cfg=loadConfig();
+  wsSend({type:'modules_config',disabled:cfg._modulos_disabled||[],extra:cfg._modulos_extra||[],renamed:cfg._modulos_renamed||{},modPass:cfg._modulos_pass||{}});
+}
 
 function renderCfgModulos(){
   const container=document.getElementById('cfg-content');
@@ -2059,6 +2156,7 @@ function saveModForm(){
   else delete cfg._modulos_pass[targetId];
   saveConfig(cfg);
   rebuildModules();
+  broadcastModulosConfig();
   closeModForm();
   renderCfgModulos();
   showToastSimple(`✅ Módulo ${modFormMode==='create'?'creado':'actualizado'}`);
@@ -2070,6 +2168,7 @@ function toggleModulo(id){
   if(idx>-1) disabled.splice(idx,1); else disabled.push(id);
   cfg._modulos_disabled=disabled; saveConfig(cfg);
   rebuildModules(); renderCfgModulos();
+  broadcastModulosConfig();
 }
 function deleteModulo(id){
   const cfg=loadConfig();
@@ -2078,6 +2177,7 @@ function deleteModulo(id){
   if(cfg._modulos_renamed) delete cfg._modulos_renamed[id];
   saveConfig(cfg);
   rebuildModules(); renderCfgModulos();
+  broadcastModulosConfig();
   showToastSimple(`🗑 Módulo "${id}" eliminado`);
 }
 
