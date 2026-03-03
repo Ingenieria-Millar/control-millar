@@ -10,10 +10,10 @@
 <style>
 :root{--bg:#f1f5f9;--panel:#ffffff;--border:#e2e8f0;--green:#22c55e;--yellow:#eab308;--red:#ef4444;--text:#0f172a;--muted:#64748b;--blue:#2563eb;--blue-dark:#1e3a8a;--blue-light:#60a5fa;}
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background:var(--bg);font-family:'Nunito',sans-serif;color:var(--text);min-height:100vh;overflow-x:hidden;}
+body{background:var(--bg);font-family:'Nunito',sans-serif;color:var(--text);min-height:100vh;overflow-x:hidden;width:100%;max-width:100vw;}
 body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(203,213,225,.4) 1px,transparent 1px),linear-gradient(90deg,rgba(203,213,225,.4) 1px,transparent 1px);background-size:28px 28px;pointer-events:none;z-index:0;}
 
-header{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:linear-gradient(135deg,#020d22 0%,#04163d 50%,#0a2570 100%);border-bottom:none;box-shadow:0 2px 12px rgba(2,13,34,0.3);}
+header{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:linear-gradient(135deg,#020d22 0%,#04163d 50%,#0a2570 100%);border-bottom:none;box-shadow:0 2px 12px rgba(2,13,34,0.3);min-width:0;flex-wrap:wrap;}
 header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);}
 .hd-left{display:flex;align-items:center;gap:12px;}
 .hd-logo{width:36px;height:36px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 0 0 2px rgba(255,255,255,.2),0 2px 8px rgba(0,0,0,.3);flex-shrink:0;}
@@ -50,7 +50,7 @@ h1{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;lett
 .btn-bar.purple{border-color:rgba(124,58,237,0.35);background:rgba(124,58,237,0.06);color:#7c3aed;}
 .btn-bar.purple:hover{background:rgba(124,58,237,0.12);}
 #nav-single{display:none;position:relative;z-index:2;padding:8px 24px;background:#fff;border-bottom:1px solid var(--border);gap:8px;justify-content:flex-end;align-items:center;}
-main{position:relative;z-index:1;padding:24px;max-width:1200px;margin:0 auto;padding-bottom:24px;}
+main{position:relative;z-index:1;padding:24px;max-width:1200px;margin:0 auto;padding-bottom:24px;width:100%;box-sizing:border-box;}
 .grid{display:grid;grid-template-columns:repeat(9,1fr);gap:12px;}
 .module{position:relative;background:#dbeafe;border:1.5px solid #93c5fd;border-radius:12px;padding:14px 10px 10px;display:flex;flex-direction:column;align-items:center;gap:5px;overflow:hidden;transition:transform 0.15s,border-color 0.3s,box-shadow 0.3s;user-select:none;-webkit-tap-highlight-color:transparent;animation:fi 0.25s ease;box-shadow:0 1px 4px rgba(0,0,0,.05);}
 @keyframes fi{from{opacity:0;transform:scale(0.92);}to{opacity:1;transform:scale(1);}}
@@ -3167,19 +3167,25 @@ function getIngresoHTML(){
 
 /* ── Meta viewport ya configurado en <head> ────────────────── */
 
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVE — Control de Piso Millar
+   Breakpoints: TV≥1920 | Desktop 1200-1919 | Laptop 900-1199
+                Tablet-H 768-899 | Tablet-V 600-767
+                Mobile-L 480-599 | Mobile-S ≤479
+   ══════════════════════════════════════════════════════════ */
+
+/* Base fix — prevent ANY horizontal scroll */
+*,*::before,*::after{box-sizing:border-box;}
+html{overflow-x:hidden;max-width:100%;}
+
 /* ── TV / 4K (≥ 1920px) ──────────────────────────────────── */
 @media (min-width: 1920px) {
-  /* Header */
   header { padding: 0 48px; }
   h1 { font-size: 22px; letter-spacing: 5px; }
   .clock { font-size: 20px; }
   .hd-logo { width: 44px; height: 44px; }
-
-  /* Stats bar */
   .stats { padding: 10px 48px; gap: 12px; }
   .stat { font-size: 15px; padding: 7px 18px; }
-
-  /* Grid de módulos */
   main { max-width: 1800px; padding: 32px 48px; }
   .grid { grid-template-columns: repeat(12, 1fr); gap: 16px; }
   .module { padding: 18px 14px 14px; border-radius: 14px; }
@@ -3188,66 +3194,43 @@ function getIngresoHTML(){
   .mod-label { font-size: 11px; }
   .mod-timer { font-size: 13px; }
   .mod-mec { font-size: 11px; }
-
-  /* Vista única */
   .big-light { width: 180px; height: 180px; }
   .big-id { font-size: 34px; }
   .big-status { font-size: 28px; }
-
-  /* Login principal */
   .lp-logo-ring { width: 180px; height: 180px; }
   .lp-headline { font-size: 62px; }
   .lp-card-title { font-size: 48px; }
-
-  /* Paneles sp / modtable */
   .sp-logo-ring { width: 100px; height: 100px; }
   .sp-headline { font-size: 42px; }
   .sp-right-title { font-size: 44px; }
   .sp-modtable-grid { grid-template-columns: repeat(8, 1fr) !important; }
   .sp-mod-btn { font-size: 15px; padding: 18px 8px; }
-
-  /* Selector */
   .sel-title { font-size: 26px; }
   .sel-btns { width: 360px; }
   .sel-btn { font-size: 18px; padding: 22px; }
-
-  /* Modtable */
   .modtable-grid { grid-template-columns: repeat(8, 1fr); max-width: 640px; }
   .modtable-btn { font-size: 15px; padding: 18px 8px; }
-
-  /* Modales */
   .modal-box { padding: 44px 52px; min-width: 360px; }
   .modal-title { font-size: 22px; }
   .modal-btn { font-size: 17px; padding: 15px; }
   .acum-box { max-width: 900px; }
   .fix-box { max-width: 640px; }
   .excel-modal-box { max-width: 520px; }
-
-  /* IA */
   .ia-main { max-width: 1600px; }
 }
 
 /* ── Laptop (900 – 1199px) ───────────────────────────────── */
 @media (max-width: 1199px) {
-  /* Grid */
   .grid { grid-template-columns: repeat(7, 1fr); gap: 10px; }
   main { padding: 18px; }
-
-  /* Header */
   h1 { font-size: 15px; letter-spacing: 3px; }
   .clock { font-size: 14px; }
-
-  /* Stats */
   .stats { padding: 7px 18px; gap: 6px; }
   .stat { font-size: 12px; padding: 5px 11px; }
   .btn-bar { font-size: 11px; padding: 4px 10px; }
-
-  /* Login */
   .lp-left { flex: 0 0 55%; }
   .lp-headline { font-size: 42px; }
   .lp-logo-ring { width: 120px; height: 120px; }
-
-  /* Paneles sp */
   .sp-left { flex: 0 0 32%; }
   .sp-right-title { font-size: 28px; }
   .sp-modtable-grid { grid-template-columns: repeat(5, 1fr) !important; }
@@ -3255,7 +3238,6 @@ function getIngresoHTML(){
 
 /* ── Tablet horizontal (768 – 899px) ─────────────────────── */
 @media (max-width: 899px) {
-  /* Grid */
   .grid { grid-template-columns: repeat(5, 1fr); gap: 9px; }
   main { padding: 14px; }
   .light { width: 42px; height: 42px; }
@@ -3263,20 +3245,14 @@ function getIngresoHTML(){
   .mod-label { font-size: 8px; }
   .mod-timer { font-size: 9px; }
   .mod-mec { font-size: 8px; }
-
-  /* Header — apilar en 2 filas */
   header { flex-wrap: wrap; padding: 8px 16px; gap: 4px; }
   h1 { font-size: 14px; letter-spacing: 2px; }
   .clock { font-size: 13px; }
   .hd-logo { width: 30px; height: 30px; }
-
-  /* Stats */
-  .stats { padding: 6px 14px; }
+  .stats { padding: 6px 14px; flex-wrap: wrap; }
   .stat { font-size: 11px; padding: 4px 9px; }
   .filter-hint { display: none; }
   .btn-bar { font-size: 11px; padding: 4px 9px; }
-
-  /* Login — apilar paneles */
   .login-screen { flex-direction: column; }
   .lp-left { flex: 0 0 auto; min-height: 200px; width: 100%; }
   .lp-right { width: 100%; padding: 28px 20px; }
@@ -3284,8 +3260,6 @@ function getIngresoHTML(){
   .lp-logo-ring { width: 100px; height: 100px; }
   .lp-nodes { display: none; }
   .lp-datetime { display: none; }
-
-  /* Paneles sp — apilar */
   .sp-screen { flex-direction: column; }
   .sp-left { flex: 0 0 auto; min-height: 180px; width: 100%; }
   .sp-right { width: 100%; }
@@ -3294,27 +3268,17 @@ function getIngresoHTML(){
   .sp-right-body { padding: 16px 24px 0; }
   .sp-modtable-grid { grid-template-columns: repeat(5, 1fr) !important; }
   .sp-footer { padding: 12px 24px; }
-
-  /* Selector */
   .sel-btns { width: 280px; }
   .sel-btn { font-size: 14px; padding: 16px; }
-
-  /* Modtable */
   .modtable-grid { grid-template-columns: repeat(5, 1fr); max-width: 400px; }
-
-  /* Modales */
   .modal-box { padding: 28px 28px; min-width: auto; width: 90%; }
   .acum-box { padding: 20px 20px; width: 96%; }
   .fix-box { padding: 24px 24px; }
-  .excel-modal-box { padding: 28px 28px; min-width: auto; }
-
-  /* Vista única */
-  .big-wrap { padding: 36px 48px; }
+  .excel-modal-box { padding: 28px 28px; min-width: auto; width: 90%; }
+  .big-wrap { padding: 36px 48px; min-width: auto; }
   .big-light { width: 120px; height: 120px; }
   .big-id { font-size: 22px; }
   .big-status { font-size: 20px; }
-
-  /* IA */
   #ia-login { flex-direction: column; }
   .ia-login-left { flex: 0 0 auto; min-height: 220px; }
   .ia-login-headline { font-size: 36px; }
@@ -3325,25 +3289,16 @@ function getIngresoHTML(){
 
 /* ── Tablet vertical (600 – 767px) ──────────────────────── */
 @media (max-width: 767px) {
-  /* Grid */
   .grid { grid-template-columns: repeat(4, 1fr); gap: 8px; }
   .light { width: 38px; height: 38px; }
-
-  /* Header */
   header { padding: 6px 12px; }
   h1 { font-size: 13px; letter-spacing: 1.5px; }
   .clock { font-size: 12px; }
   .conn-label { display: none; }
-
-  /* Stats */
   .stats { padding: 5px 12px; gap: 5px; }
   .view-toggle { gap: 4px; }
   .btn-bar { font-size: 10px; padding: 3px 8px; letter-spacing: 0; }
-
-  /* Nav single */
   #nav-single { padding: 6px 12px; }
-
-  /* Login */
   .lp-left { min-height: 170px; }
   .lp-logo-ring { width: 80px; height: 80px; }
   .lp-headline { font-size: 30px; }
@@ -3351,8 +3306,6 @@ function getIngresoHTML(){
   .lp-right { padding: 22px 16px; }
   .lp-card { max-width: 280px; }
   .lp-card-title { font-size: 30px; }
-
-  /* Paneles sp */
   .sp-left { min-height: 160px; }
   .sp-logo-ring { width: 70px; height: 70px; }
   .sp-headline { font-size: 28px; }
@@ -3362,22 +3315,15 @@ function getIngresoHTML(){
   .sp-modtable-grid { grid-template-columns: repeat(4, 1fr) !important; }
   .sp-form-fields { max-width: 100% !important; }
   .sp-footer { padding: 10px 18px; }
-
-  /* Selector */
   .selector-screen { gap: 20px; }
   .sel-btns { width: 260px; }
   .sel-title { font-size: 18px; letter-spacing: 2px; }
-
-  /* Modtable */
   .modtable-grid { grid-template-columns: repeat(4, 1fr); max-width: 340px; }
   .modtable-title { font-size: 16px; }
-
-  /* Modales */
   .acum-table th, .acum-table td { padding: 7px 7px; font-size: 12px; }
   .acum-filters { flex-direction: column; align-items: flex-start; gap: 7px; }
   .fix-mod-grid { grid-template-columns: repeat(5, 1fr); }
-
-  /* IA */
+  #ia-login { flex-direction: column; }
   .ia-login-left { min-height: 180px; }
   .ia-login-logo-ring { width: 80px; height: 80px; }
   .ia-login-headline { font-size: 28px; }
@@ -3390,29 +3336,21 @@ function getIngresoHTML(){
 
 /* ── Móvil grande (480 – 599px) ──────────────────────────── */
 @media (max-width: 599px) {
-  /* Grid */
   .grid { grid-template-columns: repeat(3, 1fr); gap: 7px; }
   main { padding: 10px; }
   .light { width: 34px; height: 34px; }
   .module { padding: 10px 6px 8px; border-radius: 10px; }
   .mod-id { font-size: 9px; letter-spacing: 1px; }
   .mod-mec { font-size: 7px; }
-
-  /* Header — apilar izq/der verticalmente */
-  header { flex-direction: column; align-items: flex-start; gap: 2px; padding: 8px 12px; }
-  header > div:last-child { align-self: flex-end; margin-top: -30px; }
-  h1 { font-size: 12px; letter-spacing: 1px; }
+  header { flex-direction: row; align-items: center; flex-wrap: wrap; gap: 4px; padding: 6px 10px; }
+  h1 { font-size: 11px; letter-spacing: 1px; }
   .clock { font-size: 11px; letter-spacing: 1px; }
   .hd-logo { width: 26px; height: 26px; }
-
-  /* Stats — scroll horizontal */
   .stats { flex-wrap: nowrap; overflow-x: auto; padding: 5px 10px; gap: 5px; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
   .stats::-webkit-scrollbar { display: none; }
   .stat { flex-shrink: 0; font-size: 11px; padding: 4px 9px; }
   .view-toggle { flex-shrink: 0; }
   .filter-hint { display: none; }
-
-  /* Login */
   .lp-left { min-height: 150px; }
   .lp-logo-ring { width: 70px; height: 70px; }
   .lp-headline { font-size: 26px; }
@@ -3420,8 +3358,6 @@ function getIngresoHTML(){
   .lp-card { max-width: 100%; }
   .lp-card-title { font-size: 26px; }
   .login-btn { font-size: 14px; padding: 11px; }
-
-  /* Paneles sp */
   .sp-left { min-height: 140px; }
   .sp-logo-ring { width: 60px; height: 60px; }
   .sp-headline { font-size: 24px; }
@@ -3432,37 +3368,28 @@ function getIngresoHTML(){
   .sp-modtable-grid { grid-template-columns: repeat(4, 1fr) !important; gap: 7px !important; }
   .sp-footer { flex-direction: column; align-items: center; gap: 6px; padding: 10px 14px; }
   .sp-logout-btn { width: 100%; }
-
-  /* Selector */
   .sel-btns { width: 90%; max-width: 280px; }
   .sel-title { font-size: 16px; }
   .sel-btn { padding: 14px; font-size: 13px; }
-
-  /* Modtable */
   .modtable-grid { grid-template-columns: repeat(4, 1fr); max-width: 300px; width: 94%; }
   .modtable-btn { font-size: 11px; padding: 10px 4px; letter-spacing: 1px; }
-
-  /* Vista única */
-  .big-wrap { padding: 28px 32px; min-width: auto; width: 90%; }
+  .big-wrap { padding: 28px 20px; min-width: auto; width: 90%; }
   .big-light { width: 100px; height: 100px; }
   .big-id { font-size: 18px; }
   .big-status { font-size: 18px; }
   .big-timer { font-size: 13px; }
-
-  /* Modales */
-  .modal-box { padding: 24px 20px; }
+  .modal-box { padding: 24px 20px; width: 95%; }
   .modal-title { font-size: 16px; }
   .modal-btn { font-size: 13px; padding: 12px; }
-  .excel-modal-box { padding: 22px 18px; min-width: auto; }
-  .fix-box { padding: 20px 16px; }
+  .excel-modal-box { padding: 22px 18px; min-width: auto; width: 95%; }
+  .fix-box { padding: 20px 16px; width: 95%; }
   .fix-mod-grid { grid-template-columns: repeat(4, 1fr); }
   .acum-box { padding: 16px 14px; width: 98%; }
   .acum-title { font-size: 16px; }
   .acum-table th, .acum-table td { font-size: 11px; padding: 6px 5px; }
   .acum-filters { flex-direction: column; gap: 6px; }
   .acum-sort-btn, .acum-filter-sel { width: 100%; }
-
-  /* IA */
+  #ia-login { flex-direction: column; }
   .ia-login-left { min-height: 160px; }
   .ia-login-logo-ring { width: 72px; height: 72px; }
   .ia-login-headline { font-size: 24px; }
@@ -3470,11 +3397,12 @@ function getIngresoHTML(){
   .ia-login-card { padding: 22px 16px; }
   .ia-stats-row { grid-template-columns: 1fr 1fr; }
   .ia-action-btns { grid-template-columns: 1fr; }
+  .ia-tabs { flex-wrap: wrap; gap: 4px; }
+  .ia-tab-btn { font-size: .78rem; padding: .4rem .8rem; }
 }
 
 /* ── Móvil pequeño (≤ 479px) ─────────────────────────────── */
 @media (max-width: 479px) {
-  /* Grid */
   .grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
   main { padding: 8px; }
   .light { width: 30px; height: 30px; }
@@ -3483,72 +3411,37 @@ function getIngresoHTML(){
   .mod-label { font-size: 7px; padding: 1px 4px; }
   .mod-timer { font-size: 8px; padding: 1px 4px; }
   .mod-mec { font-size: 7px; }
-
-  /* Header */
-  h1 { font-size: 11px; letter-spacing: 0.5px; }
+  h1 { font-size: 10px; letter-spacing: 0.5px; }
   .clock { font-size: 10px; }
   .live-dot { width: 7px; height: 7px; }
-
-  /* Stats */
   .stat { font-size: 10px; padding: 3px 8px; }
   .btn-bar { font-size: 10px; padding: 3px 7px; }
-
-  /* Login */
   .lp-logo-ring { width: 60px; height: 60px; }
   .lp-headline { font-size: 22px; }
   .lp-card-title { font-size: 24px; }
-
-  /* Paneles sp */
   .sp-logo-ring { width: 52px; height: 52px; }
   .sp-headline { font-size: 20px; }
   .sp-modtable-grid { grid-template-columns: repeat(3, 1fr) !important; }
   .sp-mod-btn { font-size: 10px; padding: 10px 4px; }
   .sp-right-title { font-size: 18px; }
-
-  /* Selector */
   .sel-logo { width: 52px; height: 52px; }
   .sel-title { font-size: 15px; }
   .sel-btn { font-size: 12px; padding: 12px; }
-
-  /* Modtable */
   .modtable-grid { grid-template-columns: repeat(3, 1fr); }
   .modtable-btn { font-size: 10px; padding: 9px 3px; }
-
-  /* Vista única */
-  .big-wrap { padding: 22px 20px; }
+  .big-wrap { padding: 22px 16px; width: 96%; }
   .big-light { width: 84px; height: 84px; }
   .big-id { font-size: 16px; letter-spacing: 4px; }
   .big-status { font-size: 16px; letter-spacing: 2px; }
-
-  /* Modales */
-  .modal-box { padding: 20px 16px; }
+  .modal-box { padding: 20px 14px; width: 98%; }
   .acum-table { font-size: 10px; }
   .fix-mod-grid { grid-template-columns: repeat(3, 1fr); }
-
-  /* IA */
+  .excel-modal-box { width: 98%; padding: 18px 12px; }
   .ia-login-headline { font-size: 20px; }
   .ia-login-logo-ring { width: 64px; height: 64px; }
   .ia-card-title { font-size: 26px; }
-}
-
-/* Responsive IA */
-@media(max-width:899px){
-  #ia-login{flex-direction:column;}
-  .ia-login-left{flex:0 0 auto;min-height:220px;}
-  .ia-login-headline{font-size:36px;}
-  .ia-login-logo-ring{width:100px;height:100px;}
-}
-@media(max-width:599px){
-  #ia-login{flex-direction:column;}
-  .ia-login-left{min-height:180px;}
-  .ia-login-headline{font-size:28px;}
-  .ia-login-logo-ring{width:80px;height:80px;}
-  .ia-login-right{padding:20px 16px;}
-  .ia-login-card{padding:24px 20px;}
-  .ia-main{padding:1rem;}
-  .ia-header{padding:.7rem 1rem;}
-  .ia-stats-row{grid-template-columns:1fr 1fr;}
-  .ia-action-btns{grid-template-columns:1fr;}
+  .ia-tabs { flex-direction: column; align-items: stretch; }
+  .ia-tab-btn { font-size: .75rem; padding: .35rem .7rem; text-align: center; }
 }
 </style>
 
@@ -3612,8 +3505,8 @@ function getIngresoHTML(){
     <div class="ia-tabs">
       <button class="ia-tab-btn active" id="ia-tab-btn-register" onclick="iaShowTab('register',this)">➕ Registrar</button>
       <button class="ia-tab-btn" id="ia-tab-btn-history" onclick="iaShowTab('history',this)">📋 Historial</button>
-      <button class="ia-tab-btn admin-tab hidden" id="ia-tab-btn-records" onclick="iaShowTab('records',this)">🛠 Editar Registros</button>
-      <button class="ia-tab-btn admin-tab hidden" id="ia-tab-btn-config" onclick="iaShowTab('config',this)">⚙️ Configuración</button>
+      <button class="ia-tab-btn admin-tab hidden" id="ia-tab-btn-records" onclick="iaShowTab('records',this)" style="display:none">🛠 Editar Registros</button>
+      <button class="ia-tab-btn admin-tab hidden" id="ia-tab-btn-config" onclick="iaShowTab('config',this)" style="display:none">⚙️ Configuración</button>
     </div>
 
     <div class="ia-stats-row">
@@ -3882,7 +3775,7 @@ function iaInitApp(){
   const adminTabs=document.querySelectorAll('#ingreso-app-root .admin-tab');
   if(sup.isAdmin){
     document.getElementById('ia-admin-badge-wrap').innerHTML='<span class="ia-badge-admin">⚙️ ADMINISTRADOR</span>';
-    adminTabs.forEach(b=>b.classList.remove('hidden'));
+    adminTabs.forEach(b=>{b.classList.remove('hidden');b.style.display='';});
     document.getElementById('ia-admin-from').value=t;
     document.getElementById('ia-admin-to').value=t;
     document.getElementById('ia-btn-export-hist').classList.remove('hidden');
@@ -3891,7 +3784,7 @@ function iaInitApp(){
     iaBuildAdminSupFilter();
   } else {
     document.getElementById('ia-admin-badge-wrap').innerHTML='';
-    adminTabs.forEach(b=>b.classList.add('hidden'));
+    adminTabs.forEach(b=>{b.classList.add('hidden');b.style.display='none';});
     document.getElementById('ia-btn-export-hist').classList.add('hidden');
     document.getElementById('ia-admin-sup-filter-wrap').classList.add('hidden');
   }
