@@ -5070,9 +5070,9 @@ function ci_getElapsed(r){
 }
 function ci_getActiveReqs(id){return ci_requests.filter(r=>r.module===id&&r.status==='alert');}
 function ci_getPendingReqs(id){return ci_requests.filter(r=>r.module===id&&(r.status==='alert'||r.status==='pending-confirm'));}
-function ci_buildTipoSelect(){const s=document.getElementById('f-tipo');s.innerHTML='<option value="">— Seleccionar —</option>';ci_sortObjAZ(ci_tipoInsumoList).forEach(t=>{const o=document.createElement('option');o.value=t.name;o.dataset.flow=t.flow;o.textContent=t.name;s.appendChild(o);});}
-function ci_buildElasticoSelect(){const s=document.getElementById('f-elastico-sub');s.innerHTML='<option value="">— Seleccionar tipo —</option>';ci_sortAZ(ci_elasticoList).forEach(e=>{const o=document.createElement('option');o.value=e;o.textContent=e;s.appendChild(o);});}
-function ci_buildLoginSelect(){const s=document.getElementById('login-sel');s.innerHTML='<option value="">— Selecciona tu módulo —</option>';ci_sortAZ(ci_moduleList).forEach(id=>{const o=document.createElement('option');o.value=id;o.textContent=id;s.appendChild(o);});}
+function ci_buildTipoSelect(){const s=document.getElementById('f-tipo');if(!s)return;s.innerHTML='<option value="">— Seleccionar —</option>';ci_sortObjAZ(ci_tipoInsumoList).forEach(t=>{const o=document.createElement('option');o.value=t.name;o.dataset.flow=t.flow;o.textContent=t.name;s.appendChild(o);});}
+function ci_buildElasticoSelect(){const s=document.getElementById('f-elastico-sub');if(!s)return;s.innerHTML='<option value="">— Seleccionar tipo —</option>';ci_sortAZ(ci_elasticoList).forEach(e=>{const o=document.createElement('option');o.value=e;o.textContent=e;s.appendChild(o);});}
+function ci_buildLoginSelect(){const s=document.getElementById('login-sel');if(!s)return;s.innerHTML='<option value="">— Selecciona tu módulo —</option>';ci_sortAZ(ci_moduleList).forEach(id=>{const o=document.createElement('option');o.value=id;o.textContent=id;s.appendChild(o);});}
 ci_buildTipoSelect();ci_buildElasticoSelect();ci_buildLoginSelect();
 
 function ci_showScreen(n){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('s-'+n).classList.add('active');if(n==='dashboard'){ci_buildGrid();ci_applyFilter(ci_currentFilter);ci_updateCounters();ci_updateBanner();}if(n==='module'&&ci_currentUser)ci_refreshDetail();}
