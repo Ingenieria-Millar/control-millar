@@ -1481,6 +1481,15 @@ function connectWS(){
       } else if(msg.type==='ia_save_state'){
         iaState = msg.state;
         if(typeof iaBuildLoginSelect==='function') iaBuildLoginSelect();
+        // Re-renderizar vista activa inmediatamente al recibir cambio remoto
+        if(typeof iaReady!=='undefined' && iaReady){
+          const tabs=['register','history','records','config'];let activeTab='register';
+          tabs.forEach(t=>{const btn=document.getElementById('ia-tab-btn-'+t);if(btn&&btn.classList.contains('active'))activeTab=t;});
+          if(activeTab==='history'&&typeof iaRenderHistory==='function') iaRenderHistory();
+          else if(activeTab==='records'&&typeof iaRenderAdminTable==='function') iaRenderAdminTable();
+          else if(activeTab==='config'&&typeof iaRenderConfig==='function') iaRenderConfig();
+          else{if(typeof iaRenderTodayChips==='function')iaRenderTodayChips();if(typeof iaUpdateStats==='function')iaUpdateStats();}
+        }
       }
 
       // ── Tablero CI: enrutar mensajes CI al handler integrado ──
@@ -3779,6 +3788,13 @@ function getIngresoHTML(){
   cursor:pointer;white-space:nowrap;transition:all .2s;
 }
 .ia-btn-sec:hover{background:rgba(37,99,235,.07);}
+.ia-btn-del-all{
+  padding:.85rem 1.4rem;background:transparent;color:#dc2626;
+  border:1.5px solid #dc2626;border-radius:10px;
+  font-family:'Nunito',sans-serif;font-size:.88rem;font-weight:700;
+  cursor:pointer;white-space:nowrap;transition:all .2s;
+}
+.ia-btn-del-all:hover{background:rgba(220,38,38,.08);transform:translateY(-1px);}
 .ia-search-filter{margin-bottom:.8rem;}
 .ia-search-filter input{
   width:100%;padding:.6rem 1rem;background:#fff;border:1.5px solid #e2e8f0;
@@ -4403,6 +4419,7 @@ html { overflow-x: hidden; max-width: 100%; }
               📂 Importar Excel
               <input type="file" id="ia-import-file" accept=".xlsx,.xls" onchange="iaImportEmployees(this)" style="display:none;">
             </label>
+            <button class="ia-btn-del-all" onclick="iaDeleteAllEmployees()">🗑 Eliminar Todo</button>
           </div>
           <div class="ia-import-result" id="ia-import-result"></div>
           <hr class="ia-divider">
@@ -4859,6 +4876,12 @@ window.iaDeleteEmployee=function(){
   if(!confirm(`¿Eliminar "${iaState.employees.find(x=>x.id===iaEditingEmpId)?.name}"?`))return;
   iaState.employees=iaState.employees.filter(x=>x.id!==iaEditingEmpId);iaSaveState();iaCloseModal('ia-emp-modal');iaRenderEmployeeList();
 };
+window.iaDeleteAllEmployees=function(){
+  const total=iaState.employees.length;
+  if(!total){alert('No hay empleados para eliminar.');return;}
+  if(!confirm(`¿Eliminar TODOS los ${total} empleados del listado? Esta acción no se puede deshacer.`))return;
+  iaState.employees=[];iaSaveState();iaRenderEmployeeList();
+};
 window.iaDownloadTemplate=function(){
   const wsData=[['Empleado','Supervisor'],['NOMBRE APELLIDO APELLIDO','María Pineda']];
   const wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet(wsData);ws['!cols']=[{wch:45},{wch:25}];
@@ -4912,6 +4935,22 @@ window.iaRemoveArea=function(supId,area){
 iaWaitReady(function(){
   iaBuildLoginSelect();
 });
+
+// ── Auto-actualización cada 3 segundos ───────────────────────────
+setInterval(function(){
+  if(!iaReady) return;
+  const tabs = ['register','history','records','config'];
+  let activeTab = 'register';
+  tabs.forEach(t => {
+    const btn = document.getElementById('ia-tab-btn-'+t);
+    if(btn && btn.classList.contains('active')) activeTab = t;
+  });
+  if(activeTab === 'history') iaRenderHistory();
+  else if(activeTab === 'records') iaRenderAdminTable();
+  else if(activeTab === 'config') iaRenderConfig();
+  else { iaRenderTodayChips(); iaUpdateStats(); }
+}, 3000);
+
 } // end runIngresoScript
 </script>
 <script>
