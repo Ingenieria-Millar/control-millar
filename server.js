@@ -49,10 +49,10 @@ MODULES.forEach(id => { states[id] = 'green'; lastMec[id] = ''; });
 // ── Estado Control de Asistencia (en disco) ───────────────────────
 const IA_INITIAL_STATE = {
   supervisors: [
-    { id:'maria_pineda',  name:'María Pineda',  pass:'1234',  isAdmin:false, areas:['M01','M02','M03','M04','M05','M06','M07','M08','M09'] },
-    { id:'yurany_zapata', name:'Yurany Zapata', pass:'1234',  isAdmin:false, areas:['M10','M15','M16','M17','M18','M19','M20','M21'] },
-    { id:'mery_tabares',  name:'Mery Tabares',  pass:'1234',  isAdmin:false, areas:['M22','M23','M24','M25','M26','M27'] },
-    { id:'leidy_galeano', name:'Leidy Galeano', pass:'1234',  isAdmin:false, areas:['M01','M02','M03','M04','M05','M06','M07','M08','M09','M10','M11','M12','M13','M14','M15','M16','M17','M18','M19','M20','M21','M22','M23','M24','M25','M26','M27'] },
+    { id:'maria_pineda',  name:'María Pineda',  pass:'1234',  isAdmin:false, areas:['M01','M02','M03','M04','M05','M06','M07','M08','M09','INC','VAC','PP','PREPARACIÓN','RENUNCIO'] },
+    { id:'yurany_zapata', name:'Yurany Zapata', pass:'1234',  isAdmin:false, areas:['M10','M15','M16','M17','M18','M19','M20','M21','INC','VAC','PP','PREPARACIÓN','RENUNCIO'] },
+    { id:'mery_tabares',  name:'Mery Tabares',  pass:'1234',  isAdmin:false, areas:['M22','M23','M24','M25','M26','M27','INC','VAC','PP','PREPARACIÓN','RENUNCIO'] },
+    { id:'leidy_galeano', name:'Leidy Galeano', pass:'1234',  isAdmin:false, areas:['M01','M02','M03','M04','M05','M06','M07','M08','M09','M10','M11','M12','M13','M14','M15','M16','M17','M18','M19','M20','M21','M22','M23','M24','M25','M26','M27','INC','VAC','PP','PREPARACIÓN','RENUNCIO'] },
     { id:'beiro',         name:'Beiro',          pass:'B1234', isAdmin:true,  areas:[] }
   ],
   employees: [
