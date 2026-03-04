@@ -4219,6 +4219,7 @@ html { overflow-x: hidden; max-width: 100%; }
       <button class="ia-tab-btn" id="ia-tab-btn-history" onclick="iaShowTab('history',this)">📋 Historial</button>
       <button class="ia-tab-btn admin-tab hidden" id="ia-tab-btn-records" onclick="iaShowTab('records',this)" style="display:none">🛠 Editar Registros</button>
       <button class="ia-tab-btn admin-tab hidden" id="ia-tab-btn-config" onclick="iaShowTab('config',this)" style="display:none">⚙️ Configuración</button>
+      <button class="ia-tab-btn admin-tab hidden" id="ia-tab-btn-refresh" onclick="iaRefreshData()" style="display:none;background:#f0fdf4;border-color:#22c55e;color:#16a34a;" title="Recargar todos los registros desde el servidor">🔄 Actualizar</button>
     </div>
 
     <div class="ia-stats-row">
@@ -4441,6 +4442,32 @@ function iaGenId(){return 'id_'+Date.now()+'_'+Math.random().toString(36).slice(
 function iaGetSup(id){return iaState.supervisors.find(s=>s.id===id);}
 function iaNonAdminSups(){return iaState.supervisors.filter(s=>!s.isAdmin);}
 function iaIsAdmin(){return iaGetSup(iaCurrentUser)?.isAdmin;}
+
+window.iaRefreshData=function(){
+  const btn=document.getElementById("ia-tab-btn-refresh");
+  if(btn){ btn.textContent="⏳ Cargando..."; btn.disabled=true; }
+  if(ws && ws.readyState===1){
+    ws.send(JSON.stringify({type:"ci_init"}));
+    const handler=function(e){
+      try{
+        const msg=JSON.parse(e.data);
+        if(msg.type==="init"){
+          if(msg.iaState)   iaState   = msg.iaState;
+          if(msg.iaRecords) iaRecords = msg.iaRecords;
+          ws.removeEventListener("message", handler);
+          const activeTab = document.querySelector("#ingreso-app-root .ia-tab-btn.active");
+          if(activeTab) activeTab.click();
+          if(btn){ btn.textContent="🔄 Actualizar"; btn.disabled=false; }
+        }
+      }catch(err){}
+    };
+    ws.addEventListener("message", handler);
+    setTimeout(()=>{ ws.removeEventListener("message",handler); if(btn){btn.textContent="🔄 Actualizar";btn.disabled=false;} },5000);
+  } else {
+    if(btn){ btn.textContent="🔄 Actualizar"; btn.disabled=false; }
+    alert("Sin conexión al servidor. Intenta de nuevo.");
+  }
+};
 function iaAreaOrder(a){if(a==='—')return 9999;const m=a.match(/M(\d+)/);return m?parseInt(m[1]):9998;}
 function iaSortData(data,mode){
   if(mode==='area')return[...data].sort((a,b)=>{const ao=iaAreaOrder(a.area),bo=iaAreaOrder(b.area);return ao!==bo?ao-bo:a.empName.localeCompare(b.empName);});
