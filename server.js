@@ -6,7 +6,7 @@ const { WebSocketServer } = require('ws');
 const PORT = process.env.PORT || 3000;
 
 // ── Rutas de archivos de datos ────────────────────────────────────
-const DATA_DIR          = path.join(__dirname, 'data');
+const DATA_DIR          = process.env.DATA_DIR || path.join(__dirname, 'data');
 const IA_STATE_FILE     = path.join(DATA_DIR, 'ia_state.json');
 const IA_RECORDS_FILE   = path.join(DATA_DIR, 'ia_records.json');
 const MODULES_CONFIG_FILE = path.join(DATA_DIR, 'modules_config.json');
