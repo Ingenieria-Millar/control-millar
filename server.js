@@ -71,7 +71,8 @@ let ciRequests    = readJSON(CI_REQUESTS_FILE,    []);
 let ciConfig      = readJSON(CI_CONFIG_FILE, {
   tipoInsumoList: [{name:'Aplique',flow:'qty_only'},{name:'Elástico',flow:'elastico'},{name:'Marquilla Logo',flow:'qty_only'},{name:'Marquilla Talla',flow:'qty_talla'},{name:'Prelavado',flow:'qty_talla'},{name:'Transfer',flow:'qty_talla'}],
   elasticoList:   ['Base','Bola','Bota','Cintura','Envivar'],
-  moduleList:     ['M01','M02','M03','M04','M05','M06','M07','M08','M09','M10','M11','M12','M13','M14','M15','M16','M17','M18','M19','M20','M21','M22','M23','M24','M25','M26','M27','Empaque']
+  moduleList:     ['M01','M02','M03','M04','M05','M06','M07','M08','M09','M10','M11','M12','M13','M14','M15','M16','M17','M18','M19','M20','M21','M22','M23','M24','M25','M26','M27','Empaque'],
+  obsList:        ['Pérdida','Faltante','Defectos']
 });
 
 function saveCiRequests(){ writeJSON(CI_REQUESTS_FILE, ciRequests); }
@@ -187,7 +188,7 @@ wss.on('connection', (ws) => {
             r.alertStart = tsFromId > 0 ? tsFromId : Date.now();
           }
         });
-        ws.send(JSON.stringify({ type: 'ci_init', requests: ciRequests, tipoInsumoList: ciConfig.tipoInsumoList, elasticoList: ciConfig.elasticoList, moduleList: ciConfig.moduleList }));
+        ws.send(JSON.stringify({ type: 'ci_init', requests: ciRequests, tipoInsumoList: ciConfig.tipoInsumoList, elasticoList: ciConfig.elasticoList, moduleList: ciConfig.moduleList, obsList: ciConfig.obsList || ['Pérdida','Faltante','Defectos'] }));
       }
 
       // ── Tablero CI: supervisor marcó cumplido → notificar al módulo ──
@@ -203,8 +204,9 @@ wss.on('connection', (ws) => {
         if (msg.tipoInsumoList) ciConfig.tipoInsumoList = msg.tipoInsumoList;
         if (msg.elasticoList)   ciConfig.elasticoList   = msg.elasticoList;
         if (msg.moduleList)     ciConfig.moduleList     = msg.moduleList;
+        if (msg.obsList)        ciConfig.obsList        = msg.obsList;
         saveCiConfig();
-        const bcast = JSON.stringify({ type: 'ci_config_sync', tipoInsumoList: ciConfig.tipoInsumoList, elasticoList: ciConfig.elasticoList, moduleList: ciConfig.moduleList });
+        const bcast = JSON.stringify({ type: 'ci_config_sync', tipoInsumoList: ciConfig.tipoInsumoList, elasticoList: ciConfig.elasticoList, moduleList: ciConfig.moduleList, obsList: ciConfig.obsList || ['Pérdida','Faltante','Defectos'] });
         wss.clients.forEach(c => {
           if (c !== ws && c.readyState === 1) c.send(bcast);
         });
@@ -233,6 +235,21 @@ wss.on('connection', (ws) => {
         if (idx > -1) ciRequests[idx] = msg.request;
         saveCiRequests();
         const bcast = JSON.stringify({ type: 'ci_update_request', request: msg.request });
+        wss.clients.forEach(c => {
+          if (c !== ws && c.readyState === 1) c.send(bcast);
+        });
+      }
+
+      else if (msg.type === 'ci_delete_request') {
+        // Borrar por índice local — pero sincronizar por _id para evitar desfases
+        const reqId = msg.reqId;
+        if (reqId) {
+          ciRequests = ciRequests.filter(r => r._id !== reqId);
+        } else if (typeof msg.idx === 'number') {
+          ciRequests.splice(msg.idx, 1);
+        }
+        saveCiRequests();
+        const bcast = JSON.stringify({ type: 'ci_delete_request', idx: msg.idx, reqId: msg.reqId });
         wss.clients.forEach(c => {
           if (c !== ws && c.readyState === 1) c.send(bcast);
         });
