@@ -813,6 +813,9 @@ tr:hover td{background:#f8fafc;}
 }
 .btn-cumplido:hover{background:#1d4ed8;}
 .btn-cumplido:disabled{background:#e2e8f0;color:var(--muted);cursor:default;}
+.btn-del-row{background:none;border:1px solid #fca5a5;color:#ef4444;border-radius:6px;padding:4px 8px;font-size:14px;cursor:pointer;transition:all .2s;}
+.btn-del-row:hover{background:#fee2e2;border-color:#ef4444;}
+
 
 /* ── OVERLAYS / MODALS ───────────────────────────────────────── */
 .overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:200;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px);}
@@ -4915,8 +4918,9 @@ iaWaitReady(function(){
 let ci_moduleList=['M01','M02','M03','M04','M05','M06','M07','M08','M09','M10','M11','M12','M13','M14','M15','M16','M17','M18','M19','M20','M21','M22','M23','M24','M25','M26','M27','Empaque'];
 let ci_tipoInsumoList=[{name:'Aplique',flow:'qty_only'},{name:'Elástico',flow:'elastico'},{name:'Marquilla Logo',flow:'qty_only'},{name:'Marquilla Talla',flow:'qty_talla'},{name:'Prelavado',flow:'qty_talla'},{name:'Transfer',flow:'qty_talla'}];
 let ci_elasticoList=['Base','Bola','Bota','Cintura','Envivar'];
+let ci_obsList=['Pérdida','Faltante','Defectos'];
 let ci_moduleData={},ci_requests=[],ci_currentUser=null,ci_soundEnabled=true,ci_audioCtx=null;
-let ci_currentFilter='all',ci_currentView='board',ci_pendingConfirmIdx=null,ci_selectedSound='ambulance',ci_miniAuthTargetIdx=null;
+let ci_currentFilter='all',ci_currentView='board',ci_pendingConfirmIdx=null,ci_selectedSound='ambulance',ci_miniAuthTargetIdx=null,ci_miniAuthMode='obs';
 
 // ── WebSocket: sincronización en tiempo real ──────────────────────
 let ci_ws=null,ci_wsReady=false;
@@ -4947,7 +4951,7 @@ function ci_wsConnect(){
         ci_handleWsMessage(msg); return;
         if(msg.type==='ci_config_sync'){
           if(msg.tipoInsumoList)ci_tipoInsumoList=msg.tipoInsumoList;
-          if(msg.elasticoList)ci_elasticoList=msg.elasticoList;
+          if(msg.elasticoList)ci_elasticoList=msg.elasticoList;if(msg.obsList)ci_obsList=msg.obsList;
           if(msg.moduleList){
             const added=msg.moduleList.filter(id=>!ci_moduleList.includes(id));
             ci_moduleList=msg.moduleList;
@@ -4958,7 +4962,7 @@ function ci_wsConnect(){
         }
         else if(msg.type==='ci_init'||msg.type==='ci_full_sync'){
           if(msg.tipoInsumoList)ci_tipoInsumoList=msg.tipoInsumoList;
-          if(msg.elasticoList)ci_elasticoList=msg.elasticoList;
+          if(msg.elasticoList)ci_elasticoList=msg.elasticoList;if(msg.obsList)ci_obsList=msg.obsList;
           if(msg.moduleList){
             ci_moduleList=msg.moduleList;
             ci_moduleList.forEach(id=>{if(!ci_moduleData[id])ci_moduleData[id]={alert:false};});
@@ -5027,7 +5031,7 @@ function ci_handleWsMessage(msg){
   try{
     if(msg.type==='ci_config_sync'){
       if(msg.tipoInsumoList)ci_tipoInsumoList=msg.tipoInsumoList;
-      if(msg.elasticoList)ci_elasticoList=msg.elasticoList;
+      if(msg.elasticoList)ci_elasticoList=msg.elasticoList;if(msg.obsList)ci_obsList=msg.obsList;
       if(msg.moduleList){
         const added=msg.moduleList.filter(id=>!ci_moduleList.includes(id));
         ci_moduleList=msg.moduleList;
@@ -5038,7 +5042,7 @@ function ci_handleWsMessage(msg){
     }
     else if(msg.type==='ci_init'||msg.type==='ci_full_sync'){
       if(msg.tipoInsumoList)ci_tipoInsumoList=msg.tipoInsumoList;
-      if(msg.elasticoList)ci_elasticoList=msg.elasticoList;
+      if(msg.elasticoList)ci_elasticoList=msg.elasticoList;if(msg.obsList)ci_obsList=msg.obsList;
       if(msg.moduleList){
         ci_moduleList=msg.moduleList;
         ci_moduleList.forEach(id=>{if(!ci_moduleData[id])ci_moduleData[id]={alert:false};});
@@ -5093,6 +5097,12 @@ function ci_handleWsMessage(msg){
           ci_pendingConfirmIdx=null;
         }
       }
+    }
+    else if(msg.type==='ci_delete_request'){
+      const id=msg.reqId;
+      if(id){const i=ci_requests.findIndex(r=>r._id===id);if(i>-1)ci_requests.splice(i,1);}
+      else if(typeof msg.idx==='number'){ci_requests.splice(msg.idx,1);}
+      ci_renderHistory();ci_buildGrid();ci_updateCounters();ci_updateBanner();
     }
   }catch(err){console.error('[CI] handleWsMessage error',err);}
 }
@@ -5219,7 +5229,7 @@ function ci_submitRequest(){
 
 function ci_markCumplido(idx){
   const h=ci_requests[idx];if(!h||h.status!=='alert')return;
-  if(!h.obs||!h.obs.trim()){alert('⚠ Debes escribir una observación antes de marcar como CUMPLIDO.');return;}
+  if(!h.obs||!h.obs.trim()){alert('⚠ Debes seleccionar una observación antes de marcar como CUMPLIDO.');return;}
   h.status='pending-confirm';
   h.waitTime=ci_getElapsed(h);
   ci_wsSend({type:'ci_cumplido_request',request:h});
@@ -5299,8 +5309,9 @@ function ci_renderHistory(){
     const badge=isAlert?'<span class="badge badge-alert">⚠ ALERTA</span>':isDone?'<span class="badge badge-done">✓ CUMPLIDO</span>':'<span class="badge badge-pending">⏳ EN CONFIRMACIÓN</span>';
     const waitDisp=isDone||isPending?ci_fmt(h.waitTime||0):(isAlert?'<span id="wt-'+idx+'">'+ci_fmt(ci_getElapsed(h))+'</span>':'—');
     const btnHtml=isAlert?'<button class="btn-cumplido" onclick="ci_markCumplido('+idx+')">✔ CUMPLIDO</button>':isDone?'<button class="btn-cumplido" disabled>✔ CUMPLIDO</button>':'<button class="btn-cumplido" disabled style="color:var(--muted);background:#f1f5f9">⏳ ESPERANDO</button>';
-    const obsVal=(h.obs||'').replace(/"/g,'&quot;');
-    const obsCell=isDone?'<td class="obs-cell"><textarea class="obs-ta" id="obs-ta-'+idx+'" rows="2" disabled>'+obsVal+'</textarea><div class="obs-btn-row"><button class="btn-obs-edit" id="obs-edit-btn-'+idx+'" onclick="ci_requestObsEdit('+idx+')">✏ Editar (Admin)</button><button class="btn-obs-confirm" id="obs-confirm-btn-'+idx+'" onclick="ci_confirmObsEdit('+idx+')">✔ Confirmar</button></div></td>':'<td class="obs-cell"><textarea class="obs-ta" id="obs-ta-'+idx+'" rows="2" placeholder="Observación requerida..." onchange="ci_saveObs('+idx+',this.value)">'+obsVal+'</textarea></td>';
+    const obsVal=h.obs||'';
+    const obsSel=isDone?'<select class="obs-ta" id="obs-ta-'+idx+'" disabled style="width:100%;padding:5px 8px;border:1.5px solid #e2e8f0;border-radius:6px;background:#f8fafc;color:#0f172a;font-size:12px;">'+ci_obsList.map(o=>'<option value="'+o+'"'+(o===obsVal?' selected':'')+'>'+o+'</option>').join('')+'<option value="">—</option></select>':('<select class="obs-ta" id="obs-ta-'+idx+'" onchange="ci_saveObs('+idx+',this.value)" style="width:100%;padding:5px 8px;border:1.5px solid #e2e8f0;border-radius:6px;background:#fff;color:#0f172a;font-size:12px;cursor:pointer;"><option value="">— Selecciona —</option>'+ci_obsList.map(o=>'<option value="'+o+'"'+(o===obsVal?' selected':'')+'>'+o+'</option>').join('')+'</select>');
+    const obsCell=isDone?'<td class="obs-cell">'+obsSel+'<div class="obs-btn-row"><button class="btn-obs-edit" id="obs-edit-btn-'+idx+'" onclick="ci_requestObsEdit('+idx+')">✏ Editar (Admin)</button><button class="btn-obs-confirm" id="obs-confirm-btn-'+idx+'" onclick="ci_confirmObsEdit('+idx+')">✔ Confirmar</button></div></td>':'<td class="obs-cell">'+obsSel+'</td>';
     const fecha=h.fecha||(h.datetime?h.datetime.split(' ')[0]:'—');
     const hora=h.hora||(h.datetime?h.datetime.replace(fecha+' ',''):'—');
     return'<tr>'+
@@ -5317,13 +5328,16 @@ function ci_renderHistory(){
       '<td>'+badge+'</td>'+
       obsCell+
       '<td>'+btnHtml+'</td>'+
+      '<td><button class="btn-del-row" onclick="ci_requestDelete('+idx+')">🗑</button></td>'+
     '</tr>';
   }).join('');
 }
 function ci_saveObs(idx,val){if(ci_requests[idx]){ci_requests[idx].obs=val;ci_wsSend({type:'ci_update_request',request:ci_requests[idx]});}}
-function ci_requestObsEdit(idx){ci_miniAuthTargetIdx=idx;document.getElementById('mini-auth-pass').value='';document.getElementById('mini-auth-err').style.display='none';document.getElementById('mini-auth-overlay').classList.add('open');}
-function ci_closeMiniAuth(){document.getElementById('mini-auth-overlay').classList.remove('open');ci_miniAuthTargetIdx=null;}
-function ci_doMiniAuth(){const pass=document.getElementById('mini-auth-pass').value.trim().toUpperCase(),err=document.getElementById('mini-auth-err');if(pass==='A123'){err.style.display='none';document.getElementById('mini-auth-overlay').classList.remove('open');const idx=ci_miniAuthTargetIdx,ta=document.getElementById('obs-ta-'+idx),eb=document.getElementById('obs-edit-btn-'+idx),cb=document.getElementById('obs-confirm-btn-'+idx);if(ta){ta.disabled=false;ta.focus();ta.classList.add('editing');ta.onchange=function(){ci_saveObs(idx,this.value);};}if(eb)eb.style.display='none';if(cb)cb.style.display='block';ci_miniAuthTargetIdx=null;}else err.style.display='block';}
+function ci_requestObsEdit(idx){ci_miniAuthMode='obs';ci_miniAuthTargetIdx=idx;document.getElementById('mini-auth-sub').textContent='Ingresa la contraseña para editar la observación';document.getElementById('mini-auth-pass').value='';document.getElementById('mini-auth-err').style.display='none';document.getElementById('mini-auth-overlay').classList.add('open');}
+function ci_requestDelete(idx){ci_miniAuthMode='delete';ci_miniAuthTargetIdx=idx;document.getElementById('mini-auth-sub').textContent='Ingresa la contraseña para borrar este registro';document.getElementById('mini-auth-pass').value='';document.getElementById('mini-auth-err').style.display='none';document.getElementById('mini-auth-overlay').classList.add('open');}
+function ci_closeMiniAuth(){document.getElementById('mini-auth-overlay').classList.remove('open');ci_miniAuthTargetIdx=null;ci_miniAuthMode='obs';}
+function ci_doMiniAuth(){const pass=document.getElementById('mini-auth-pass').value.trim().toUpperCase(),err=document.getElementById('mini-auth-err');if(pass==='A123'){err.style.display='none';document.getElementById('mini-auth-overlay').classList.remove('open');const idx=ci_miniAuthTargetIdx;if(ci_miniAuthMode==='delete'){ci_miniAuthTargetIdx=null;ci_miniAuthMode='obs';ci_deleteRequest(idx);}else{const ta=document.getElementById('obs-ta-'+idx),eb=document.getElementById('obs-edit-btn-'+idx),cb=document.getElementById('obs-confirm-btn-'+idx);if(ta){ta.disabled=false;ta.focus();ta.onchange=function(){ci_saveObs(idx,this.value);};}if(eb)eb.style.display='none';if(cb)cb.style.display='block';ci_miniAuthTargetIdx=null;ci_miniAuthMode='obs';}}else err.style.display='block';}
+function ci_deleteRequest(idx){if(idx==null||!ci_requests[idx])return;const reqId=ci_requests[idx]._id;ci_requests.splice(idx,1);ci_wsSend({type:'ci_delete_request',idx:idx,reqId:reqId});ci_renderHistory();ci_buildGrid();ci_updateCounters();ci_updateBanner();}
 function ci_confirmObsEdit(idx){const ta=document.getElementById('obs-ta-'+idx),eb=document.getElementById('obs-edit-btn-'+idx),cb=document.getElementById('obs-confirm-btn-'+idx);if(ta){ci_saveObs(idx,ta.value);ta.disabled=true;ta.classList.remove('editing');}if(eb)eb.style.display='block';if(cb)cb.style.display='none';}
 
 function ci_exportExcel(){
@@ -5345,7 +5359,7 @@ function ci_toggleSound(){ci_soundEnabled=!ci_soundEnabled;const b=document.getE
 function ci_openGearLogin(){document.getElementById('gear-user').value='';document.getElementById('gear-pass').value='';document.getElementById('gear-err').style.display='none';document.getElementById('gear-overlay').classList.add('open');}
 function ci_closeGearLogin(){document.getElementById('gear-overlay').classList.remove('open');}
 function ci_doGearLogin(){const u=document.getElementById('gear-user').value.trim().toUpperCase(),p=document.getElementById('gear-pass').value.trim().toUpperCase(),e=document.getElementById('gear-err');if(u==='ADMIN'&&p==='A123'){e.style.display='none';document.getElementById('gear-overlay').classList.remove('open');ci_openSettings();}else e.style.display='block';}
-function ci_openSettings(){ci_buildSoundList();ci_buildTipoManager();ci_buildElasticoManager();ci_buildModList();document.getElementById('settings-overlay').classList.add('open');}
+function ci_openSettings(){ci_buildSoundList();ci_buildTipoManager();ci_buildElasticoManager();ci_buildObsManager();ci_buildModList();document.getElementById('settings-overlay').classList.add('open');}
 function ci_closeSettings(){document.getElementById('settings-overlay').classList.remove('open');}
 function ci_buildSoundList(){document.getElementById('sound-list').innerHTML=CI_SOUNDS.map(s=>'<div class="sound-item '+(s.id===ci_selectedSound?'selected':'')+'" id="si-'+s.id+'"><input type="radio" class="s-radio" name="snd" value="'+s.id+'" '+(s.id===ci_selectedSound?'checked':'')+' onchange="ci_selectSound(\''+s.id+'\')"><span class="s-name">'+s.name+'</span><button class="s-preview" onclick="ci_playById(\''+s.id+'\',true)">▶ Probar</button></div>').join('');}
 function ci_selectSound(id){ci_selectedSound=id;document.querySelectorAll('.sound-item').forEach(el=>el.classList.remove('selected'));const el=document.getElementById('si-'+id);if(el)el.classList.add('selected');}
@@ -5367,8 +5381,22 @@ function ci_delMod(i){if(!confirm('¿Eliminar "'+ci_moduleList[i]+'"?'))return;c
 
 
 function ci_syncConfig(){
-  ci_wsSend({type:'ci_config_sync',tipoInsumoList:ci_tipoInsumoList,elasticoList:ci_elasticoList,moduleList:ci_moduleList});
+  ci_wsSend({type:'ci_config_sync',tipoInsumoList:ci_tipoInsumoList,elasticoList:ci_elasticoList,moduleList:ci_moduleList,obsList:ci_obsList});
 }
+// ── Obs Manager ──────────────────────────────────────────────────
+function ci_buildObsManager(){
+  const el=document.getElementById('obs-manager');
+  if(!el)return;
+  el.innerHTML=ci_obsList.map((o,i)=>{
+    const safe=o.replace(/"/g,'&quot;');
+    return'<div class="list-row"><input class="list-row-inp" id="oi-'+i+'" value="'+safe+'" readonly><div class="list-row-actions"><button class="btn-lst-edit" id="oe-'+i+'" onclick="ci_startObs('+i+')">—</button><button class="btn-lst-confirm" id="oc-'+i+'" onclick="ci_confirmObs('+i+')">✔</button><button class="btn-lst-del" onclick="ci_delObs('+i+')">×</button></div></div>';
+  }).join('');
+}
+function ci_startObs(i){const inp=document.getElementById('oi-'+i),eb=document.getElementById('oe-'+i),cb=document.getElementById('oc-'+i);inp.readOnly=false;inp.focus();if(eb)eb.style.display='none';if(cb)cb.style.display='block';}
+function ci_confirmObs(i){const inp=document.getElementById('oi-'+i),n=inp.value.trim();if(!n){alert('El nombre no puede estar vacío');return;}if(ci_obsList.findIndex((o,j)=>o.toLowerCase()===n.toLowerCase()&&j!==i)>=0){alert('Ya existe ese nombre');return;}ci_obsList[i]=n;ci_buildObsManager();ci_syncConfig();}
+function ci_addObs(){const inp=document.getElementById('obs-add-inp'),name=inp.value.trim();if(!name){alert('Escribe el nombre');return;}if(ci_obsList.map(o=>o.toLowerCase()).includes(name.toLowerCase())){alert('Ya existe');return;}ci_obsList.push(name);inp.value='';ci_buildObsManager();ci_syncConfig();}
+function ci_delObs(i){if(!confirm('¿Eliminar "'+ci_obsList[i]+'"?'))return;ci_obsList.splice(i,1);ci_buildObsManager();ci_syncConfig();}
+function ci_buildObsSelect(selectEl,currentVal){if(!selectEl)return;selectEl.innerHTML='<option value="">— Selecciona —</option>';ci_obsList.forEach(o=>{const opt=document.createElement('option');opt.value=o;opt.textContent=o;if(o===currentVal)opt.selected=true;selectEl.appendChild(opt);});}
 function ci_fmt(s){if(s==null||s===''||s===undefined)return'—';return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
 
 document.getElementById('admin-pass').addEventListener('keydown',e=>{if(e.key==='Enter')ci_doAdminLogin();});
@@ -5546,27 +5574,27 @@ document.getElementById('mini-auth-overlay').addEventListener('click', function(
 <tr>
   <th>#</th>
   <th>
-    <div style="display:flex;align-items:center;gap:4px;">
+    <div style="display:flex;flex-direction:column;align-items:flex-start;gap:3px;">
       MÓDULO
-      <select id="filter-module" onchange="ci_renderHistory()" style="margin-left:4px;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:#fff;color:var(--text);cursor:pointer;">
+      <select id="filter-module" onchange="ci_renderHistory()" style="font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:#fff;color:var(--text);cursor:pointer;width:100%;">
         <option value="">Todos</option>
       </select>
     </div>
   </th>
   <th>REFERENCIA</th><th>OP/OC</th>
   <th>
-    <div style="display:flex;align-items:center;gap:4px;">
+    <div style="display:flex;flex-direction:column;align-items:flex-start;gap:3px;">
       TIPO INSUMO
-      <select id="filter-tipo" onchange="ci_renderHistory()" style="margin-left:4px;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:#fff;color:var(--text);cursor:pointer;">
+      <select id="filter-tipo" onchange="ci_renderHistory()" style="font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:#fff;color:var(--text);cursor:pointer;width:100%;">
         <option value="">Todos</option>
       </select>
     </div>
   </th>
   <th>CANTIDAD</th><th>FECHA</th><th>HORA</th><th>T. ESPERA</th><th>T. ATENCIÓN</th>
   <th>
-    <div style="display:flex;align-items:center;gap:4px;">
+    <div style="display:flex;flex-direction:column;align-items:flex-start;gap:3px;">
       ESTADO
-      <select id="filter-estado" onchange="ci_renderHistory()" style="margin-left:4px;font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:#fff;color:var(--text);cursor:pointer;">
+      <select id="filter-estado" onchange="ci_renderHistory()" style="font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:#fff;color:var(--text);cursor:pointer;width:100%;">
         <option value="">Todos</option>
         <option value="alert">⚠ Alerta</option>
         <option value="pending-confirm">⏳ En confirmación</option>
@@ -5648,6 +5676,8 @@ document.getElementById('mini-auth-overlay').addEventListener('click', function(
     <div class="list-add-row"><input class="list-add-inp" id="tipo-add-inp" placeholder="Nuevo tipo..."><button class="btn-lst-add" onclick="ci_addTipoInsumo()">+ AGREGAR</button></div>
     <div class="sec-title">🔗 Tipos de Elástico</div><div class="list-manager" id="elastico-manager"></div>
     <div class="list-add-row"><input class="list-add-inp" id="elastico-add-inp" placeholder="Nuevo elástico..."><button class="btn-lst-add" onclick="ci_addTipoElastico()">+ AGREGAR</button></div>
+    <div class="sec-title">📝 Opciones de Observación</div><div class="list-manager" id="obs-manager"></div>
+    <div class="list-add-row"><input class="list-add-inp" id="obs-add-inp" placeholder="Nueva observación..."><button class="btn-lst-add" onclick="ci_addObs()">+ AGREGAR</button></div>
     <div class="sec-title">📦 Gestión de Módulos</div><div class="mod-list" id="mod-list"></div>
     <div class="mod-add-row"><input class="mod-add-inp" id="mod-add-inp" placeholder="Nombre del módulo..." maxlength="20"><button class="btn-mod-add" onclick="ci_addModule()">+ AGREGAR</button></div>
     <div class="settings-close-row"><button class="btn-settings-close" onclick="ci_closeSettings()">CERRAR</button></div>
