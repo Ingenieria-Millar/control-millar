@@ -5279,30 +5279,49 @@ function ci_switchView(v){ci_currentView=v;document.getElementById('view-board')
 function ci_renderHistory(){
   const tbody=document.getElementById('history-tbody');
   if(!tbody)return;
-  const selMod=document.getElementById('filter-module');
-  const selTipo=document.getElementById('filter-tipo');
-  if(selMod){
-    const cur=selMod.value;
-    selMod.innerHTML='<option value="">Todos</option>';
-    [...new Set(ci_requests.map(r=>r.module))].sort().forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;selMod.appendChild(o);});
-    selMod.value=cur;
+  // Helper: poblar select con valores únicos conservando selección actual
+  function populateSel(id,values){
+    const s=document.getElementById(id);if(!s)return;
+    const cur=s.value;
+    s.innerHTML='<option value="">Todos</option>';
+    values.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;s.appendChild(o);});
+    s.value=cur;
   }
-  if(selTipo){
-    const cur=selTipo.value;
-    selTipo.innerHTML='<option value="">Todos</option>';
-    [...new Set(ci_requests.map(r=>r.tipo))].sort().forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;selTipo.appendChild(o);});
-    selTipo.value=cur;
-  }
-  const fMod=(selMod?.value||'').toLowerCase();
-  const fTipo=(selTipo?.value||'').toLowerCase();
+  populateSel('filter-module',[...new Set(ci_requests.map(r=>r.module))].sort());
+  populateSel('filter-tipo',[...new Set(ci_requests.map(r=>r.tipo))].sort());
+  populateSel('filter-qty',[...new Set(ci_requests.map(r=>r.qty))].sort());
+  populateSel('filter-fecha',[...new Set(ci_requests.map(r=>r.fecha||''))].filter(Boolean).sort());
+  populateSel('filter-hora',[...new Set(ci_requests.map(r=>r.hora||''))].filter(Boolean).sort());
+  populateSel('filter-espera',[...new Set(ci_requests.filter(r=>r.waitTime!=null).map(r=>ci_fmt(r.waitTime)))].sort());
+  populateSel('filter-atencion',[...new Set(ci_requests.filter(r=>r.resolvedAt).map(r=>r.resolvedAt))].sort());
+  populateSel('filter-obs',[...new Set(ci_requests.map(r=>r.obs||'').filter(Boolean))].sort());
+  // Leer filtros
+  const fMod=(document.getElementById('filter-module')?.value||'').toLowerCase();
+  const fRef=(document.getElementById('filter-ref')?.value||'').toLowerCase();
+  const fOp=(document.getElementById('filter-op')?.value||'').toLowerCase();
+  const fTipo=(document.getElementById('filter-tipo')?.value||'').toLowerCase();
+  const fQty=(document.getElementById('filter-qty')?.value||'').toLowerCase();
+  const fFecha=(document.getElementById('filter-fecha')?.value||'').toLowerCase();
+  const fHora=(document.getElementById('filter-hora')?.value||'').toLowerCase();
+  const fEspera=document.getElementById('filter-espera')?.value||'';
+  const fAtencion=document.getElementById('filter-atencion')?.value||'';
   const fEst=document.getElementById('filter-estado')?.value||'';
+  const fObs=(document.getElementById('filter-obs')?.value||'').toLowerCase();
   const filtered=ci_requests.filter(h=>{
     if(fMod&&h.module.toLowerCase()!==fMod)return false;
-    if(fTipo&&h.tipo.toLowerCase()!==fTipo)return false;
+    if(fRef&&!(h.ref||'').toLowerCase().includes(fRef))return false;
+    if(fOp&&!(h.op||'').toLowerCase().includes(fOp))return false;
+    if(fTipo&&(h.tipo||'').toLowerCase()!==fTipo)return false;
+    if(fQty&&(h.qty||'').toLowerCase()!==fQty)return false;
+    if(fFecha&&(h.fecha||'').toLowerCase()!==fFecha)return false;
+    if(fHora&&(h.hora||'').toLowerCase()!==fHora)return false;
+    if(fEspera&&ci_fmt(h.waitTime||0)!==fEspera)return false;
+    if(fAtencion&&(h.resolvedAt||'')!==fAtencion)return false;
     if(fEst&&h.status!==fEst)return false;
+    if(fObs&&!(h.obs||'').toLowerCase().includes(fObs))return false;
     return true;
   });
-  if(!filtered.length){tbody.innerHTML='<tr><td colspan="13" style="text-align:center;color:var(--muted);padding:28px">Sin resultados</td></tr>';return;}
+  if(!filtered.length){tbody.innerHTML='<tr><td colspan="14" style="text-align:center;color:var(--muted);padding:28px">Sin resultados</td></tr>';return;}
   tbody.innerHTML=filtered.map(h=>{
     const idx=ci_requests.indexOf(h);
     const isAlert=h.status==='alert',isDone=h.status==='done',isPending=h.status==='pending-confirm';
@@ -5576,25 +5595,75 @@ document.getElementById('mini-auth-overlay').addEventListener('click', function(
   <th>
     <div style="display:flex;flex-direction:column;align-items:flex-start;gap:3px;">
       MÓDULO
-      <select id="filter-module" onchange="ci_renderHistory()" style="font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:#fff;color:var(--text);cursor:pointer;width:100%;">
+      <select id="filter-module" onchange="ci_renderHistory()" style="font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:#fff;color:var(--text);cursor:pointer;width:100%;max-width:90px;">
         <option value="">Todos</option>
       </select>
     </div>
   </th>
-  <th>REFERENCIA</th><th>OP/OC</th>
+  <th>
+    <div style="display:flex;flex-direction:column;align-items:flex-start;gap:3px;">
+      REFERENCIA
+      <input id="filter-ref" oninput="ci_renderHistory()" placeholder="Buscar..." style="font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:#fff;color:var(--text);width:100%;max-width:80px;outline:none;">
+    </div>
+  </th>
+  <th>
+    <div style="display:flex;flex-direction:column;align-items:flex-start;gap:3px;">
+      OP/OC
+      <input id="filter-op" oninput="ci_renderHistory()" placeholder="Buscar..." style="font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:#fff;color:var(--text);width:100%;max-width:80px;outline:none;">
+    </div>
+  </th>
   <th>
     <div style="display:flex;flex-direction:column;align-items:flex-start;gap:3px;">
       TIPO INSUMO
-      <select id="filter-tipo" onchange="ci_renderHistory()" style="font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:#fff;color:var(--text);cursor:pointer;width:100%;">
+      <select id="filter-tipo" onchange="ci_renderHistory()" style="font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:#fff;color:var(--text);cursor:pointer;width:100%;max-width:90px;">
         <option value="">Todos</option>
       </select>
     </div>
   </th>
-  <th>CANTIDAD</th><th>FECHA</th><th>HORA</th><th>T. ESPERA</th><th>T. ATENCIÓN</th>
+  <th>
+    <div style="display:flex;flex-direction:column;align-items:flex-start;gap:3px;">
+      CANTIDAD
+      <select id="filter-qty" onchange="ci_renderHistory()" style="font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:#fff;color:var(--text);cursor:pointer;width:100%;max-width:90px;">
+        <option value="">Todos</option>
+      </select>
+    </div>
+  </th>
+  <th>
+    <div style="display:flex;flex-direction:column;align-items:flex-start;gap:3px;">
+      FECHA
+      <select id="filter-fecha" onchange="ci_renderHistory()" style="font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:#fff;color:var(--text);cursor:pointer;width:100%;max-width:90px;">
+        <option value="">Todos</option>
+      </select>
+    </div>
+  </th>
+  <th>
+    <div style="display:flex;flex-direction:column;align-items:flex-start;gap:3px;">
+      HORA
+      <select id="filter-hora" onchange="ci_renderHistory()" style="font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:#fff;color:var(--text);cursor:pointer;width:100%;max-width:90px;">
+        <option value="">Todos</option>
+      </select>
+    </div>
+  </th>
+  <th>
+    <div style="display:flex;flex-direction:column;align-items:flex-start;gap:3px;">
+      T. ESPERA
+      <select id="filter-espera" onchange="ci_renderHistory()" style="font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:#fff;color:var(--text);cursor:pointer;width:100%;max-width:90px;">
+        <option value="">Todos</option>
+      </select>
+    </div>
+  </th>
+  <th>
+    <div style="display:flex;flex-direction:column;align-items:flex-start;gap:3px;">
+      T. ATENCIÓN
+      <select id="filter-atencion" onchange="ci_renderHistory()" style="font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:#fff;color:var(--text);cursor:pointer;width:100%;max-width:90px;">
+        <option value="">Todos</option>
+      </select>
+    </div>
+  </th>
   <th>
     <div style="display:flex;flex-direction:column;align-items:flex-start;gap:3px;">
       ESTADO
-      <select id="filter-estado" onchange="ci_renderHistory()" style="font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:#fff;color:var(--text);cursor:pointer;width:100%;">
+      <select id="filter-estado" onchange="ci_renderHistory()" style="font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:#fff;color:var(--text);cursor:pointer;width:100%;max-width:90px;">
         <option value="">Todos</option>
         <option value="alert">⚠ Alerta</option>
         <option value="pending-confirm">⏳ En confirmación</option>
@@ -5602,9 +5671,17 @@ document.getElementById('mini-auth-overlay').addEventListener('click', function(
       </select>
     </div>
   </th>
-  <th>OBSERVACIONES</th><th>ACCIÓN</th>
+  <th>
+    <div style="display:flex;flex-direction:column;align-items:flex-start;gap:3px;">
+      OBSERVACIONES
+      <select id="filter-obs" onchange="ci_renderHistory()" style="font-size:10px;padding:2px 4px;border:1px solid var(--border);border-radius:4px;background:#fff;color:var(--text);cursor:pointer;width:100%;max-width:90px;">
+        <option value="">Todos</option>
+      </select>
+    </div>
+  </th>
+  <th>ACCIÓN</th>
 </tr></thead>
-      <tbody id="history-tbody"><tr><td colspan="13" style="text-align:center;color:var(--dim);padding:28px">Sin solicitudes aún</td></tr></tbody></table>
+      <tbody id="history-tbody"><tr><td colspan="14" style="text-align:center;color:var(--dim);padding:28px">Sin solicitudes aún</td></tr></tbody></table>
     </div>
   </div>
 </div>
