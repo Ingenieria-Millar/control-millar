@@ -308,7 +308,7 @@ expressApp.get('/bitacora/api/stats', (req, res) => {
 
 const server = http.createServer((req, res) => {
   // Rutas de Bitácora → Express
-  if (req.url === '/bitacora' || req.url.startsWith('/bitacora/')) {
+  if (req.url === '/bitacora' || req.url.startsWith('/bitacora/') || req.url.startsWith('/bitacora?')) {
     return expressApp(req, res);
   }
   // Tablero CI
