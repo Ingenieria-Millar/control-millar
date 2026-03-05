@@ -1481,13 +1481,12 @@ function connectWS(){
       } else if(msg.type==='ia_save_state'){
         iaState = msg.state;
         if(typeof iaBuildLoginSelect==='function') iaBuildLoginSelect();
-        // Re-renderizar vista activa inmediatamente al recibir cambio remoto
-        if(typeof iaReady!=='undefined' && iaReady){
-          const tabs=['register','history','records','config'];let activeTab='register';
-          tabs.forEach(t=>{const btn=document.getElementById('ia-tab-btn-'+t);if(btn&&btn.classList.contains('active'))activeTab=t;});
-          if(activeTab==='history'&&typeof iaRenderHistory==='function') iaRenderHistory();
-          else if(activeTab==='records'&&typeof iaRenderAdminTable==='function') iaRenderAdminTable();
-          else if(activeTab==='config'&&typeof iaRenderConfig==='function') iaRenderConfig();
+        if(typeof iaReady!=='undefined'&&iaReady){
+          const tabs=['register','history','records','config'];let at='register';
+          tabs.forEach(t=>{const b=document.getElementById('ia-tab-btn-'+t);if(b&&b.classList.contains('active'))at=t;});
+          if(at==='history'&&typeof iaRenderHistory==='function')iaRenderHistory();
+          else if(at==='records'&&typeof iaRenderAdminTable==='function')iaRenderAdminTable();
+          else if(at==='config'&&typeof iaRenderConfig==='function')iaRenderConfig();
           else{if(typeof iaRenderTodayChips==='function')iaRenderTodayChips();if(typeof iaUpdateStats==='function')iaUpdateStats();}
         }
       }
@@ -3728,7 +3727,7 @@ function getIngresoHTML(){
 .ia-btn-excel:hover{background:rgba(5,150,105,.18);}
 
 /* Table */
-.ia-table-wrap{overflow-x:auto;}
+.ia-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:10px;border:1px solid var(--border);background:#fff;box-shadow:0 1px 6px rgba(0,0,0,.06);}
 .ia-table{width:100%;border-collapse:collapse;font-size:.88rem;}
 .ia-table thead tr{border-bottom:2px solid #e2e8f0;}
 .ia-table th{
@@ -3867,6 +3866,15 @@ function getIngresoHTML(){
   cursor:pointer;transition:all .2s;
 }
 .ia-btn-del:hover{background:rgba(239,68,68,.08);}
+.ia-obs-input{
+  width:100%;min-width:140px;padding:.35rem .6rem;
+  background:#fff;border:1.5px solid #e2e8f0;border-radius:6px;
+  color:#0f172a;font-family:'Nunito',sans-serif;font-size:.8rem;
+  resize:vertical;min-height:36px;max-height:90px;
+  outline:none;transition:border-color .2s;line-height:1.4;
+}
+.ia-obs-input:focus{border-color:#2563eb;background:#f8fbff;}
+.ia-obs-input::placeholder{color:#94a3b8;}
 
 /* Botones del panel izquierdo en sp-screens */
 .sp-left-logout-btn{
@@ -4224,6 +4232,264 @@ html { overflow-x: hidden; max-width: 100%; }
   .ia-login-logo-ring { width: 64px; height: 64px; }
   .ia-tabs { flex-direction: column; align-items: stretch; }
   .ia-tab-btn { font-size: .75rem; padding: .35rem .7rem; text-align: center; }
+  .ia-obs-input { min-width: 80px; font-size: .72rem; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   RESPONSIVE GLOBAL — Control de Piso · Asistencia · CI
+   TV (+1400px) · PC (1024-1399) · Tablet L (768-1023)
+   Tablet P (480-767) · Celular (-480px)
+══════════════════════════════════════════════════════════════ */
+
+/* ── TV / Pantallas grandes (≥ 1400px) ──────────────────────── */
+@media (min-width: 1400px) {
+  /* Control de Piso */
+  header { padding: 0 40px; }
+  h1 { font-size: 20px; letter-spacing: 5px; }
+  .clock { font-size: 18px; }
+  .hd-logo { width: 42px; height: 42px; }
+  .stats { padding: 10px 40px; gap: 10px; }
+  .stat { font-size: 14px; padding: 6px 16px; height: 36px; }
+  main { max-width: 1600px; padding: 28px 40px; }
+  .grid { grid-template-columns: repeat(9, 1fr); gap: 14px; }
+  .module { padding: 16px 12px 12px; }
+  .light { width: 56px; height: 56px; }
+  .mod-id { font-size: 13px; }
+  .mod-label { font-size: 10px; }
+  .mod-timer { font-size: 12px; }
+  .mod-mec { font-size: 10px; }
+  /* IA */
+  .ia-main { max-width: 1500px; padding: 2rem 3rem; }
+  .ia-stat-card { padding: 1.4rem 1.8rem; }
+  .ia-stat-val { font-size: 2.8rem; }
+  .ia-table th, .ia-table td { padding: 12px 14px; font-size: 1rem; }
+  .ia-obs-input { font-size: .9rem; min-height: 40px; }
+  .ia-tab-btn { font-size: 1rem; padding: .75rem 1.6rem; }
+  .ia-btn-add, .ia-btn-sec { font-size: 1rem; padding: 1rem 1.8rem; }
+  .ia-header { padding: 0 3rem; }
+  .ia-header h3 { font-size: 1.5rem; }
+}
+
+/* ── PC estándar (1024px – 1399px) ──────────────────────────── */
+@media (min-width: 1024px) and (max-width: 1399px) {
+  .grid { grid-template-columns: repeat(7, 1fr); gap: 12px; }
+  main { max-width: 1280px; padding: 20px 28px; }
+  .ia-main { max-width: 1200px; padding: 1.5rem 2rem; }
+  .ia-stat-card { padding: 1.1rem 1.4rem; }
+  .ia-table th, .ia-table td { padding: 10px 12px; }
+  .ia-obs-input { font-size: .85rem; }
+}
+
+/* ── Tablet landscape (768px – 1023px) ──────────────────────── */
+@media (min-width: 768px) and (max-width: 1023px) {
+  /* Header */
+  header { padding: 0 16px; flex-wrap: wrap; }
+  h1 { font-size: 14px; letter-spacing: 2px; }
+  .clock { font-size: 13px; }
+  .hd-logo { width: 32px; height: 32px; }
+  /* Control de Piso grid */
+  .grid { grid-template-columns: repeat(5, 1fr); gap: 10px; }
+  main { padding: 16px; }
+  .light { width: 44px; height: 44px; }
+  .mod-id { font-size: 11px; }
+  .mod-label { font-size: 8px; }
+  .mod-timer { font-size: 9px; }
+  /* Stats en 2 columnas */
+  .stats { padding: 8px 16px; flex-wrap: wrap; gap: 6px; }
+  .stat { font-size: 12px; padding: 5px 11px; height: 30px; }
+  .view-toggle { flex-wrap: wrap; gap: 4px; }
+  .btn-bar { font-size: 11px; padding: 4px 9px; }
+  /* IA — formulario en 1 columna */
+  .ia-main { padding: 1rem 1.2rem; }
+  .ia-stats-grid { grid-template-columns: repeat(2, 1fr); gap: .8rem; }
+  .ia-reg-grid { grid-template-columns: 1fr; }
+  .ia-hist-controls .ia-date-row { flex-wrap: wrap; gap: 8px; }
+  .ia-input-row { flex-wrap: wrap; gap: .6rem; }
+  .ia-table th, .ia-table td { padding: 8px 10px; font-size: .85rem; }
+  .ia-obs-input { min-width: 100px; font-size: .8rem; }
+  .ia-tab-btn { font-size: .85rem; padding: .5rem 1rem; }
+  /* Login tablet */
+  .login-screen { flex-direction: column !important; }
+  .lp-left { flex: 0 0 auto !important; min-height: 200px; width: 100% !important; }
+  .lp-right { flex: 1; width: 100% !important; }
+  .lp-headline { font-size: 38px; }
+  .lp-nodes { display: none; }
+  /* CI */
+  .modules-grid { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
+}
+
+/* ── Tablet portrait (480px – 767px) ────────────────────────── */
+@media (min-width: 480px) and (max-width: 767px) {
+  /* Header */
+  header { padding: 6px 12px; flex-wrap: wrap; gap: 4px; }
+  h1 { font-size: 12px; letter-spacing: 1.5px; }
+  .clock { font-size: 12px; }
+  .hd-logo { width: 28px; height: 28px; }
+  /* Piso grid */
+  .grid { grid-template-columns: repeat(4, 1fr); gap: 7px; }
+  main { padding: 10px; }
+  .light { width: 36px; height: 36px; }
+  .mod-id { font-size: 9px; }
+  .mod-label { font-size: 7px; padding: 1px 4px; }
+  .mod-timer { font-size: 8px; }
+  .mod-mec { font-size: 8px; }
+  /* Stats apilados */
+  .stats { padding: 6px 12px; flex-wrap: wrap; gap: 4px; }
+  .stat { font-size: 11px; padding: 4px 9px; height: 28px; }
+  .btn-bar { font-size: 10px; padding: 4px 8px; }
+  .view-toggle { flex-wrap: wrap; gap: 3px; }
+  /* IA — controles apilados, inputs full width */
+  .ia-main { padding: .8rem 1rem; }
+  .ia-header { padding: 0 1rem; min-height: 52px; }
+  .ia-header h3 { font-size: 1rem; }
+  .ia-stats-grid { grid-template-columns: repeat(2, 1fr); gap: .6rem; }
+  .ia-stat-card { padding: .8rem 1rem; }
+  .ia-stat-val { font-size: 1.8rem; }
+  .ia-reg-grid { grid-template-columns: 1fr; gap: .6rem; }
+  .ia-hist-controls .ia-date-row { flex-direction: column; align-items: stretch; gap: 8px; }
+  .ia-sort-controls { flex-wrap: wrap; gap: 4px; }
+  .ia-input-row { flex-direction: column; align-items: stretch; gap: .5rem; }
+  .ia-fg { width: 100% !important; flex: unset !important; }
+  .ia-fg input, .ia-fg select, .ia-fg textarea { width: 100% !important; }
+  .ia-btn-add, .ia-btn-sec, .ia-btn-del-all { width: 100%; justify-content: center; }
+  .ia-table { font-size: .78rem; }
+  .ia-table th, .ia-table td { padding: 6px 7px; }
+  .ia-obs-input { min-width: 90px; font-size: .75rem; }
+  .ia-tabs { flex-wrap: wrap; gap: 4px; }
+  .ia-tab-btn { font-size: .78rem; padding: .4rem .8rem; }
+  .ia-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  /* Login */
+  .login-screen { flex-direction: column !important; }
+  .lp-left { min-height: 180px; width: 100% !important; flex: 0 0 auto !important; }
+  .lp-headline { font-size: 30px; }
+  .lp-logo-ring { width: 80px; height: 80px; }
+  .lp-nodes { display: none; }
+  .lp-datetime { display: none; }
+  /* CI */
+  .modules-grid { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); }
+  .module-card { padding: 10px 6px; }
+  .card-ball { width: 36px; height: 36px; }
+}
+
+/* ── Celular (≤ 479px) ───────────────────────────────────────── */
+@media (max-width: 479px) {
+  /* Header compacto */
+  header { padding: 5px 10px; flex-wrap: wrap; gap: 3px; }
+  h1 { font-size: 10px; letter-spacing: 0.5px; }
+  .clock { font-size: 10px; letter-spacing: 1px; }
+  .hd-logo { width: 26px; height: 26px; }
+  .live-dot { width: 7px; height: 7px; }
+  .conn-label { display: none; }
+  /* Stats compactos */
+  .stats { padding: 5px 10px; flex-wrap: wrap; gap: 3px; overflow-x: auto; }
+  .stat { font-size: 10px; padding: 3px 8px; height: 26px; }
+  .filter-hint { display: none; }
+  .view-toggle { flex-wrap: wrap; gap: 3px; margin-left: 0; }
+  .btn-bar { font-size: 10px; padding: 3px 7px; }
+  /* Piso grid 3 columnas */
+  .grid { grid-template-columns: repeat(3, 1fr); gap: 5px; }
+  main { padding: 7px; }
+  .module { padding: 7px 4px 5px; gap: 3px; border-radius: 8px; }
+  .light { width: 28px; height: 28px; }
+  .mod-id { font-size: 8px; }
+  .mod-label { font-size: 6px; padding: 1px 3px; }
+  .mod-timer { font-size: 7px; padding: 1px 3px; }
+  .mod-mec { font-size: 7px; }
+  /* Vista única */
+  .big-wrap { padding: 20px 12px; width: 97%; border-radius: 14px; }
+  .big-light { width: 80px; height: 80px; }
+  .big-id { font-size: 16px; letter-spacing: 3px; }
+  .big-status { font-size: 15px; letter-spacing: 2px; }
+  .big-timer { font-size: 12px; }
+  /* Modales desde abajo (sheet) */
+  .modal-overlay { align-items: flex-end !important; }
+  .modal-box {
+    padding: 16px 12px;
+    width: 100% !important;
+    border-radius: 16px 16px 0 0 !important;
+    max-height: 85vh;
+    overflow-y: auto;
+  }
+  .excel-modal-box { width: 100% !important; border-radius: 16px 16px 0 0 !important; padding: 16px 12px; }
+  .acum-table { font-size: 10px; }
+  .fix-mod-grid { grid-template-columns: repeat(3, 1fr); }
+  /* Selector módulo */
+  .sel-logo { width: 50px; height: 50px; }
+  .sel-title { font-size: 14px; }
+  .sel-btn { font-size: 12px; padding: 14px 10px; min-height: 52px; border-radius: 10px; }
+  .modtable-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .modtable-btn { font-size: 10px; padding: 10px 3px; }
+  /* SP screens */
+  .sp-logo-ring { width: 50px; height: 50px; }
+  .sp-headline { font-size: 18px; }
+  .sp-modtable-grid { grid-template-columns: repeat(3, 1fr) !important; }
+  .sp-mod-btn { font-size: 10px; padding: 10px 4px; }
+  .sp-right-title { font-size: 16px; }
+  /* Login */
+  .lp-logo-ring { width: 60px; height: 60px; }
+  .lp-headline { font-size: 22px; }
+  .lp-card-title { font-size: 20px; }
+  .login-inner-card { padding: 18px 12px; }
+  /* IA — Botones grandes touch, modales desde abajo */
+  .ia-main { padding: .6rem .7rem; }
+  .ia-header { padding: 0 .7rem; min-height: 48px; }
+  .ia-header h3 { font-size: .9rem; }
+  .ia-header-right { gap: .5rem; }
+  .ia-logout-btn { font-size: .75rem; padding: .35rem .7rem; }
+  .ia-stats-grid { grid-template-columns: repeat(2, 1fr); gap: .5rem; }
+  .ia-stat-card { padding: .7rem .9rem; border-radius: 10px; }
+  .ia-stat-val { font-size: 1.6rem; }
+  .ia-stat-label { font-size: .65rem; }
+  .ia-panel { padding: 1rem .7rem; }
+  .ia-panel h3 { font-size: 1rem; margin-bottom: .8rem; }
+  .ia-reg-grid { grid-template-columns: 1fr; gap: .5rem; }
+  .ia-reg-submit { min-height: 52px; font-size: 1rem; border-radius: 10px; }
+  .ia-hist-controls .ia-date-row { flex-direction: column; gap: 8px; }
+  .ia-sort-controls { flex-wrap: wrap; gap: 4px; }
+  .ia-sort-btn { font-size: .75rem; padding: .35rem .7rem; }
+  .ia-input-row { flex-direction: column; gap: .5rem; }
+  .ia-fg { width: 100% !important; flex: unset !important; }
+  .ia-fg input, .ia-fg select, .ia-fg textarea { width: 100% !important; font-size: .9rem; }
+  .ia-btn-add, .ia-btn-sec, .ia-btn-del-all { width: 100%; justify-content: center; min-height: 48px; font-size: .9rem; border-radius: 10px; }
+  .ia-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 8px; }
+  .ia-table { font-size: .72rem; }
+  .ia-table th, .ia-table td { padding: 5px 6px; }
+  .ia-obs-input { min-width: 75px; font-size: .7rem; min-height: 32px; }
+  .ia-tabs { flex-wrap: wrap; gap: 3px; }
+  .ia-tab-btn { font-size: .72rem; padding: .35rem .65rem; flex: 1 1 auto; text-align: center; min-height: 40px; }
+  .ia-login-headline { font-size: 20px; }
+  .ia-login-logo-ring { width: 60px; height: 60px; }
+  .ia-modal-overlay.open .ia-modal {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100% !important;
+    border-radius: 18px 18px 0 0;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 1.2rem 1rem;
+  }
+  .ia-modal h4 { font-size: 1rem; }
+  .ia-btn-save, .ia-btn-cancel, .ia-btn-del { min-height: 46px; font-size: .9rem; }
+  /* CI */
+  .modules-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .module-card { padding: 8px 5px; border-radius: 8px; }
+  .card-ball { width: 30px; height: 30px; }
+  .card-mod { font-size: .7rem; }
+  .card-tipo { font-size: .65rem; }
+}
+
+/* ── Touch improvements (todos los móviles) ─────────────────── */
+@media (hover: none) and (pointer: coarse) {
+  .stat, .btn-bar, .modtable-btn, .sel-btn,
+  .ia-btn-add, .ia-btn-sec, .ia-btn-del-all,
+  .ia-tab-btn, .ia-sort-btn, .ia-btn-save,
+  .ia-btn-cancel, .ia-btn-del, .ia-btn-edit,
+  .ia-btn-excel { -webkit-tap-highlight-color: transparent; }
+  .module.clickable:active { transform: scale(0.96); }
+  .ia-reg-submit:active { transform: scale(0.98); }
+  input, select, textarea { font-size: 16px !important; } /* Evita zoom en iOS */
 }
 
 </style>
@@ -4353,7 +4619,7 @@ html { overflow-x: hidden; max-width: 100%; }
       </div>
       <div class="ia-table-wrap">
         <table class="ia-table">
-          <thead><tr><th>#</th><th>Empleado</th><th>Área</th><th>Fecha</th><th>Supervisor</th><th>Estado</th></tr></thead>
+          <thead><tr><th>#</th><th>Empleado</th><th>Área</th><th>Fecha</th><th>Supervisor</th><th>Estado</th><th>Observaciones</th></tr></thead>
           <tbody id="ia-hist-body"></tbody>
         </table>
         <div class="ia-empty" id="ia-hist-empty">📭 No hay registros para este rango</div>
@@ -4385,7 +4651,7 @@ html { overflow-x: hidden; max-width: 100%; }
       </div>
       <div class="ia-table-wrap">
         <table class="ia-table">
-          <thead><tr><th>#</th><th>Empleado</th><th>Área</th><th>Fecha</th><th>Supervisor</th><th>Estado</th><th>Editar</th></tr></thead>
+          <thead><tr><th>#</th><th>Empleado</th><th>Área</th><th>Fecha</th><th>Supervisor</th><th>Estado</th><th>Observaciones</th><th>Editar</th></tr></thead>
           <tbody id="ia-admin-body"></tbody>
         </table>
         <div class="ia-empty" id="ia-admin-empty">📭 No hay registros</div>
@@ -4448,6 +4714,7 @@ html { overflow-x: hidden; max-width: 100%; }
     <div class="ia-fg"><label>Área</label><select id="ia-edit-area" style="width:100%;padding:.75rem 1rem;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;color:#0f172a;outline:none;"></select></div>
     <div class="ia-fg"><label>Estado</label><select id="ia-edit-status" style="width:100%;padding:.75rem 1rem;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;color:#0f172a;outline:none;"><option value="presente">✅ Presente</option><option value="falto">❌ Faltó</option></select></div>
     <div class="ia-fg"><label>Supervisor</label><select id="ia-edit-supervisor" style="width:100%;padding:.75rem 1rem;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;color:#0f172a;outline:none;"></select></div>
+    <div class="ia-fg"><label>Observaciones</label><textarea id="ia-edit-obs" placeholder="Observaciones opcionales..." style="width:100%;padding:.75rem 1rem;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;color:#0f172a;outline:none;font-family:'Nunito',sans-serif;font-size:.9rem;resize:vertical;min-height:70px;"></textarea></div>
     <div class="ia-modal-actions">
       <button class="ia-btn-cancel" onclick="iaCloseModal('ia-edit-modal')">Cancelar</button>
       <button class="ia-btn-del" onclick="iaDeleteRecord()">🗑 Eliminar</button>
@@ -4735,6 +5002,7 @@ function iaRenderHistory(){
     <td>${r.status==='falto'?'<span style="color:#ef4444">—</span>':`<span class="ia-badge area">${r.area}</span>`}</td>
     <td>${r.date}</td><td>${r.supervisor}</td>
     <td>${r.status==='falto'?'<span class="ia-badge out">❌ Faltó</span>':'<span class="ia-badge in">✅ Presente</span>'}</td>
+    <td><textarea class="ia-obs-input" data-id="${r.id}" placeholder="Agregar observación..." onchange="iaSaveObs('${r.id}',this.value)">${r.obs||''}</textarea></td>
   </tr>`).join('');
 }
 function iaRenderAdminTable(){
@@ -4750,6 +5018,7 @@ function iaRenderAdminTable(){
     <td>${r.status==='falto'?'<span style="color:#ef4444">—</span>':`<span class="ia-badge area">${r.area}</span>`}</td>
     <td>${r.date}</td><td>${r.supervisor}</td>
     <td>${r.status==='falto'?'<span class="ia-badge out">❌ Faltó</span>':'<span class="ia-badge in">✅ Presente</span>'}</td>
+    <td><textarea class="ia-obs-input" data-id="${r.id}" placeholder="Agregar observación..." onchange="iaSaveObs('${r.id}',this.value)">${r.obs||''}</textarea></td>
     <td><button class="ia-btn-edit" onclick="iaOpenEditRecord('${r.id}')">✏️ Editar</button></td>
   </tr>`).join('');
 }
@@ -4767,9 +5036,9 @@ window.iaExportExcel=function(panel){
   }
   if(!data.length){alert('No hay registros para exportar.');return;}
   const from=document.getElementById(fromId).value||'todos',to=document.getElementById(toId).value||'todos';
-  const wsData=[['#','Empleado','Área','Fecha','Supervisor','Estado'],...data.map((r,i)=>[i+1,r.empName,r.area,r.date,r.supervisor,r.status==='falto'?'Faltó':'Presente'])];
+  const wsData=[['#','Empleado','Área','Fecha','Supervisor','Estado','Observaciones'],...data.map((r,i)=>[i+1,r.empName,r.area,r.date,r.supervisor,r.status==='falto'?'Faltó':'Presente',r.obs||''])];
   const wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet(wsData);
-  ws['!cols']=[{wch:5},{wch:40},{wch:8},{wch:12},{wch:20},{wch:12}];
+  ws['!cols']=[{wch:5},{wch:40},{wch:8},{wch:12},{wch:20},{wch:12},{wch:35}];
   XLSX.utils.book_append_sheet(wb,ws,'Asistencia');
   XLSX.writeFile(wb,`Asistencia_${from}_${to}.xlsx`);
 };
@@ -4785,14 +5054,21 @@ window.iaOpenEditRecord=function(id){
   const ssel=document.getElementById('ia-edit-supervisor');ssel.innerHTML='';
   iaNonAdminSups().forEach(s=>{const o=document.createElement('option');o.value=s.name;o.textContent=s.name;if(s.name===r.supervisor)o.selected=true;ssel.appendChild(o);});
   iaOpenModal('ia-edit-modal');
+  document.getElementById('ia-edit-obs').value=r.obs||'';
 };
 window.iaSaveEdit=function(){
   const r=iaRecords.find(x=>x.id===iaEditingRecordId);if(!r)return;
   r.status=document.getElementById('ia-edit-status').value;
   r.area=r.status==='falto'?'—':(document.getElementById('ia-edit-area').value||'—');
   r.supervisor=document.getElementById('ia-edit-supervisor').value;
+  r.obs=document.getElementById('ia-edit-obs').value.trim();
   wsSend({type:'ia_edit_record', record:{...r}});
   iaCloseModal('ia-edit-modal');iaRenderAdminTable();
+};
+window.iaSaveObs=function(id, val){
+  const r=iaRecords.find(x=>x.id===id);if(!r)return;
+  r.obs=val.trim();
+  wsSend({type:'ia_edit_record', record:{...r}});
 };
 window.iaDeleteRecord=function(){
   if(!confirm('¿Eliminar este registro?'))return;
@@ -4879,8 +5155,13 @@ window.iaDeleteEmployee=function(){
 window.iaDeleteAllEmployees=function(){
   const total=iaState.employees.length;
   if(!total){alert('No hay empleados para eliminar.');return;}
-  if(!confirm(`¿Eliminar TODOS los ${total} empleados del listado? Esta acción no se puede deshacer.`))return;
+  if(!confirm(`¿Eliminar TODOS los ${total} empleados? Esta acción no se puede deshacer.`))return;
   iaState.employees=[];iaSaveState();iaRenderEmployeeList();
+};
+window.iaSaveObs=function(id,val){
+  const r=iaRecords.find(x=>x.id===id);if(!r)return;
+  r.obs=val.trim();
+  wsSend({type:'ia_edit_record',record:{...r}});
 };
 window.iaDownloadTemplate=function(){
   const wsData=[['Empleado','Supervisor'],['NOMBRE APELLIDO APELLIDO','María Pineda']];
@@ -4936,18 +5217,15 @@ iaWaitReady(function(){
   iaBuildLoginSelect();
 });
 
-// ── Auto-actualización cada 3 segundos ───────────────────────────
+// ── Auto-actualización cada 3 segundos ───────────────────────
 setInterval(function(){
   if(!iaReady) return;
-  const tabs = ['register','history','records','config'];
-  let activeTab = 'register';
-  tabs.forEach(t => {
-    const btn = document.getElementById('ia-tab-btn-'+t);
-    if(btn && btn.classList.contains('active')) activeTab = t;
-  });
-  if(activeTab === 'history') iaRenderHistory();
-  else if(activeTab === 'records') iaRenderAdminTable();
-  else if(activeTab === 'config') iaRenderConfig();
+  const tabs=['register','history','records','config'];
+  let activeTab='register';
+  tabs.forEach(t=>{const btn=document.getElementById('ia-tab-btn-'+t);if(btn&&btn.classList.contains('active'))activeTab=t;});
+  if(activeTab==='history') iaRenderHistory();
+  else if(activeTab==='records') iaRenderAdminTable();
+  else if(activeTab==='config') iaRenderConfig();
   else { iaRenderTodayChips(); iaUpdateStats(); }
 }, 3000);
 
