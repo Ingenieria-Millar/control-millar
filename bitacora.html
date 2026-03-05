@@ -486,6 +486,18 @@ let alertas = [];
 
 // ===== INIT =====
 async function init() {
+  // ── Configurar vista según ?seccion= ANTES de cualquier fetch ──
+  const params = new URLSearchParams(window.location.search);
+  const seccion = params.get('seccion');
+
+  if (seccion === 'alistamiento') {
+    document.getElementById('page-title').textContent = 'Alistamiento';
+    document.getElementById('tab-mantenimiento').style.display = 'none';
+  } else if (seccion === 'mantenimiento') {
+    document.getElementById('page-title').textContent = 'Mantenimiento';
+    document.getElementById('tab-alistamiento').style.display = 'none';
+  }
+
   startClock();
   await loadConfig();
   populateForms();
@@ -493,20 +505,11 @@ async function init() {
   renderDashboard();
   setInterval(loadAlertas, 30000);
 
-  // Leer ?seccion= y configurar la vista
-  const params = new URLSearchParams(window.location.search);
-  const seccion = params.get('seccion');
-
+  // Abrir la sección correspondiente
   if (seccion === 'alistamiento') {
-    // Título
-    document.getElementById('page-title').textContent = 'Alistamiento';
-    // Ocultar tab de mantenimiento
-    document.getElementById('tab-mantenimiento').style.display = 'none';
     switchSection('alistamiento');
   } else if (seccion === 'mantenimiento') {
-    // Título
     document.getElementById('page-title').textContent = 'Mantenimiento';
-    // Ocultar tab de alistamiento
     document.getElementById('tab-alistamiento').style.display = 'none';
     switchSection('mantenimiento');
   }
