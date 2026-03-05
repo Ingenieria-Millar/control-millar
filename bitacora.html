@@ -547,9 +547,11 @@ function startClock() {
 async function loadConfig() {
   try {
     const r = await fetch(`${API}/api/config`);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
     config = await r.json();
   } catch(e) {
-    // fallback offline
+    console.error('loadConfig error:', e);
+    // fallback con datos actualizados
     config = {
       supervisoras:[
         {id:1,nombre:'María Pineda',modulos:['01','02','03','04','05','06','07','08','09'],rol:'Titular'},
@@ -559,8 +561,8 @@ async function loadConfig() {
         {id:5,nombre:'Ruby Vilora',modulos:['Empaque'],rol:'Titular'},
         {id:6,nombre:'Oswaldo Acevedo',modulos:[],rol:'Apoyo'}
       ],
-      mecanicos:['Dairo Zapata','Walter Pérez','Elkin López','Yon Cano','Andrés Ríos','Ricardo Serna','Oscar Zea','Cesar Cifuentes','Juan Carlos González'],
-      modulos:[...Array.from({length:27},(_,i)=>String(i+1).padStart(2,'0')),'Preparación','Empaque'],
+      mecanicos:['ANDRES RIOS','CESAR CIFUENTES','DAIRON ZAPATA','ELKIN LOPEZ','JUAN C GONZALEZ','OSCAR ZEA','RICARDO SERNA','WALTER PEREZ','YON CANO'],
+      modulos:['M01','M02','M03','M04','M05','M06','M07','M08','M09','M10','M11','M12','M13','M14','M15','M16','M17','M18','M19','M20','M21','M22','M23','M24','M25','M26','M27','Preparación','Empaque'],
       maquinas:['Plana','Fileteadora Sencilla','Fileteadora de Seguridad','Fileteadora Refuerzo','Fileteadora Elástico','Fil Robotina','Recubridora','Cuchilla Izquierda','Cuchilla Derecha','Rec Multiagujas','Simbra','Cerradora Codo','Multiagujas','Botonadora','Ojaladora']
     };
   }
