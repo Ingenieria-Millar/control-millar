@@ -521,7 +521,16 @@ async function init() {
 
 // Volver a la pantalla de selección Alistamiento/Mantenimiento
 function volverSeleccion() {
-  window.history.back();
+  // Regresar a la pantalla de selección Alistamiento/Mantenimiento
+  const params = new URLSearchParams(window.location.search);
+  const seccion = params.get('seccion');
+  // La pantalla de selección la genera index.html (mostrarSubMenuMontajes)
+  // Al ir a / el index retomará donde estaba si usamos history
+  if (document.referrer && document.referrer !== window.location.href) {
+    window.history.back();
+  } else {
+    window.location.href = '/';
+  }
 }
 
 function startClock() {
