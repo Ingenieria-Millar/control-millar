@@ -143,13 +143,20 @@ const SUPERVISORAS_BIT = [
   { id:6, nombre:'Oswaldo Acevedo',modulos:[],                                             rol:'Apoyo'   }
 ];
 const MECANICOS_BIT = [
-  'Dairo Zapata','Walter Pérez','Elkin López','Yon Cano',
-  'Andrés Ríos','Ricardo Serna','Oscar Zea','Cesar Cifuentes','Juan Carlos González'
+  'ANDRES RIOS','CESAR CIFUENTES','DAIRON ZAPATA','ELKIN LOPEZ',
+  'JUAN C GONZALEZ','OSCAR ZEA','RICARDO SERNA','WALTER PEREZ','YON CANO'
 ];
-const MODULOS_BIT = [
-  ...Array.from({length:27},(_,i)=>String(i+1).padStart(2,'0')),
-  'Preparación','Empaque'
+const BASE_MODULOS_BIT = [
+  'M01','M02','M03','M04','M05','M06','M07','M08','M09','M10',
+  'M11','M12','M13','M14','M15','M16','M17','M18','M19','M20',
+  'M21','M22','M23','M24','M25','M26','M27','Preparación','Empaque'
 ];
+function getModulosBit() {
+  const disabled = modulesConfig.disabled || [];
+  const extra    = modulesConfig.extra    || [];
+  const base = BASE_MODULOS_BIT.filter(m => !disabled.includes(m));
+  return [...base, ...extra.filter(m => !disabled.includes(m))];
+}
 const MAQUINAS_BIT = [
   'Plana','Fileteadora Sencilla','Fileteadora de Seguridad','Fileteadora Refuerzo',
   'Fileteadora Elástico','Fil Robotina','Recubridora','Cuchilla Izquierda',
@@ -165,7 +172,7 @@ expressApp.get('/bitacora', (req, res) => {
 });
 
 expressApp.get('/bitacora/api/config', (req, res) => {
-  res.json({ supervisoras: SUPERVISORAS_BIT, mecanicos: MECANICOS_BIT, modulos: MODULOS_BIT, maquinas: MAQUINAS_BIT });
+  res.json({ supervisoras: SUPERVISORAS_BIT, mecanicos: MECANICOS_BIT, modulos: getModulosBit(), maquinas: MAQUINAS_BIT });
 });
 
 // ALISTAMIENTOS
