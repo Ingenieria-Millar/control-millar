@@ -2609,13 +2609,26 @@ function saveUserForm(){
 }
 function toggleExtraUser(nombre){
   const extras=getUsuariosExtra();
-  const idx=extras.findIndex(u=>u.nombre===nombre);
-  if(idx>-1){
-    extras[idx].disabled=!extras[idx].disabled;
-    if(extras[idx].disabled){ delete USUARIOS[nombre]; }
-    else { USUARIOS[nombre]={pass:extras[idx].pass, perms:extras[idx].perms||[]}; }
+  let idx=extras.findIndex(u=>u.nombre===nombre);
+  if(idx===-1){
+    // Not yet in extras — add it now so we can toggle
+    const pass=(USUARIOS[nombre]&&USUARIOS[nombre].pass)||'';
+    const perms=(USUARIOS[nombre]&&USUARIOS[nombre].perms)||[];
+    extras.push({nombre,pass,perms,disabled:false});
+    idx=extras.length-1;
   }
-  saveUsuariosExtra(extras); renderCfgUsuarios(); populateLoginSelect();
+  extras[idx].disabled=!extras[idx].disabled;
+  if(extras[idx].disabled){ delete USUARIOS[nombre]; }
+  else { USUARIOS[nombre]={pass:extras[idx].pass, perms:extras[idx].perms||[]}; }
+  saveUsuariosExtra(extras);
+  populateLoginSelect();
+  // Refresh cfg screen si está abierta
+  const cfgScr=document.getElementById('cfg-screen');
+  if(cfgScr&&cfgScr.style.display!=='none'){
+    cfgSwitchTab('perfiles',document.getElementById('cfgn-perfiles'));
+  } else {
+    renderCfgUsuarios();
+  }
 }
 function deleteExtraUser(nombre){
   const extras=getUsuariosExtra().filter(u=>u.nombre!==nombre);
@@ -2722,8 +2735,8 @@ function openModForm(mode, id='', nombre=''){
   document.getElementById('mod-form-title').textContent=mode==='create'?'Nuevo Módulo':'Editar Módulo';
   const nombreInput=document.getElementById('mf-nombre');
   nombreInput.value=nombre;
-  nombreInput.disabled=(mode==='edit');
-  nombreInput.style.opacity=(mode==='edit')?'0.5':'1';
+  nombreInput.disabled=false;
+  nombreInput.style.opacity='1';
   document.getElementById('mf-pass').value=getModPass(id);
   document.getElementById('mf-error').textContent='';
   document.getElementById('modal-mod-form').classList.remove('hidden');
@@ -2746,6 +2759,7 @@ function saveModForm(){
     states[nombre]='green'; timers[nombre]=Date.now(); lastMec[nombre]=''; acumRed[nombre]=0; acumYellow[nombre]=0;
   } else {
     if(!cfg._modulos_renamed) cfg._modulos_renamed={};
+    // nombre can now be different from display name - save rename
     cfg._modulos_renamed[modFormTarget]=nombre;
   }
   // Guardar contraseña si se definió
@@ -2914,26 +2928,27 @@ function openAreaForm(mode, key){
   areaFormTarget = key || null;
   const title = document.getElementById('area-form-title');
   const inputLabel = document.getElementById('af-label');
-  const inputKey   = document.getElementById('af-key');
   const inputIcon  = document.getElementById('af-icon');
   const inputColor = document.getElementById('af-color');
   if(mode==='edit' && key){
-    title.textContent = 'Editar Área';
+    title.textContent = 'Editar Area';
     const cfg = loadConfig();
     const extras = cfg._areas_extra||[];
     const a = extras.find(x=>x.key===key);
     if(a){
       inputLabel.value = a.label||'';
-      inputKey.value   = a.key||'';
-      inputIcon.value  = a.icon||'📍';
-      inputColor.value = a.color||'#3b82f6';
+      if(inputIcon)  inputIcon.value  = a.icon||'#';
+      if(inputColor) inputColor.value = a.color||'#3b82f6';
     }
   } else {
-    title.textContent = 'Nueva Área';
-    inputLabel.value=''; inputKey.value=''; inputIcon.value='📍'; inputColor.value='#3b82f6';
+    title.textContent = 'Nueva Area';
+    inputLabel.value='';
+    if(inputIcon)  inputIcon.value='#';
+    if(inputColor) inputColor.value='#3b82f6';
   }
   document.getElementById('af-error').textContent='';
   document.getElementById('modal-area-form').classList.remove('hidden');
+  setTimeout(()=>inputLabel.focus(),100);
 }
 function closeAreaForm(){ document.getElementById('modal-area-form').classList.add('hidden'); }
 
@@ -3392,7 +3407,13 @@ function cfgPlantillaTurnos(){
 }
 function cfgPlantillaUsuarios(){
   if(typeof XLSX==='undefined'){alert('Librería Excel no disponible');return;}
-  const ws=XLSX.utils.aoa_to_sheet([['Nombre','Contraseña','Perfiles','Estado'],['Ana Gómez','1234','Operario','activa']]);
+  const ws=XLSX.utils.aoa_to_sheet([
+    ['Cedula','Nombre','Modulo','Supervisora','Estado'],
+    ['12345678','Ana Gómez','M01','Supervisora 1','activa'],
+    ['87654321','María López','M02','Supervisora 2','activa']
+  ]);
+  // Column widths
+  ws['!cols']=[{wch:14},{wch:25},{wch:10},{wch:25},{wch:10}];
   const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Usuarios');
   XLSX.writeFile(wb,'plantilla_usuarios.xlsx');
   showToastSimple('📥 Plantilla descargada');
@@ -3425,7 +3446,8 @@ function openConfirmDelete(tipo, nombre, cb){
 }
 function toggleModuloDisabled(id){
   toggleModulo(id);
-  cfgSwitchTab('modulos', document.getElementById('cfgn-modulos'));
+  const el = document.getElementById('cfgn-modulos');
+  if(el) cfgSwitchTab('modulos', el);
 }
 function deleteExtraModulo(id){
   deleteModulo(id);
@@ -3451,7 +3473,7 @@ function cfgRenderPerfiles(body){
       const acts=document.createElement('div'); acts.className='cfg-actions';
       if(!isBuiltin){
         const bE=document.createElement('button'); bE.className='cfg-btn2 edit'; bE.textContent='✏️ Editar'; bE.onclick=()=>cfgOpenPerfilModal(nombre,data.pass); acts.appendChild(bE);
-        const bT=document.createElement('button'); bT.className=`cfg-btn2 ${isDisabled?'hab':'inh'}`; bT.textContent=isDisabled?'✅ Habilitar':'⏸ Inhabilitar'; bT.onclick=()=>{toggleExtraUser(nombre);cfgSwitchTab('perfiles',document.getElementById('cfgn-perfiles'));}; acts.appendChild(bT);
+        const bT=document.createElement('button'); bT.className=`cfg-btn2 ${isDisabled?'hab':'inh'}`; bT.textContent=isDisabled?'✅ Habilitar':'⏸ Inhabilitar'; bT.onclick=()=>toggleExtraUser(nombre); acts.appendChild(bT);
         const bD=document.createElement('button'); bD.className='cfg-btn2 del'; bD.textContent='🗑 Eliminar'; bD.onclick=()=>{openConfirmDelete('usuario',nombre,()=>{deleteExtraUser(nombre);cfgSwitchTab('perfiles',document.getElementById('cfgn-perfiles'));});}; acts.appendChild(bD);
       }
       card.appendChild(av); card.appendChild(info); card.appendChild(acts);
@@ -3464,26 +3486,92 @@ function cfgRenderUsuarios(body){
   const iaS = typeof iaState!=='undefined' ? iaState : {employees:[]};
   const emps = (iaS.employees||[]);
   const q = cfgGetSearch();
-  const filtered = q ? emps.filter(e=>e.name.toLowerCase().includes(q)) : emps;
-  // Stats
+
+  // ── Barra de filtros ──────────────────────────────────────────────
+  const filtersRow = document.createElement('div');
+  filtersRow.style.cssText='display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center;';
+  // Buscador por nombre/cédula
+  const searchBox = document.createElement('input');
+  searchBox.type='text'; searchBox.placeholder='🔍 Buscar por nombre o cédula…';
+  searchBox.value = q;
+  searchBox.style.cssText='flex:1;min-width:200px;padding:9px 14px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:"Nunito",sans-serif;font-size:13px;outline:none;';
+  searchBox.oninput=()=>{ const s=document.getElementById('cfg-search2'); if(s) s.value=searchBox.value; cfgOnSearch(); };
+  // Filtro estado
+  const filtEst = document.createElement('select');
+  filtEst.style.cssText='padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:"Nunito",sans-serif;font-size:13px;outline:none;background:#fff;cursor:pointer;';
+  filtEst.innerHTML='<option value="">Todos los estados</option><option value="activa">Activas</option><option value="inactiva">Inactivas</option>';
+  // Filtro supervisora
+  const sups = iaS.supervisors||[];
+  const filtSup = document.createElement('select');
+  filtSup.style.cssText='padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:"Nunito",sans-serif;font-size:13px;outline:none;background:#fff;cursor:pointer;';
+  filtSup.innerHTML='<option value="">Todas las supervisoras</option>'+sups.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  filtEst.onchange = filtSup.onchange = ()=>applyFiltros();
+  filtersRow.appendChild(searchBox); filtersRow.appendChild(filtEst); filtersRow.appendChild(filtSup);
+  body.appendChild(filtersRow);
+
+  // ── Stats ─────────────────────────────────────────────────────────
   const statsRow=document.createElement('div'); statsRow.className='cfg-stats-row';
-  statsRow.innerHTML=`<div class="cfg-stat-box"><div class="cfg-stat-num">${emps.length}</div><div class="cfg-stat-lbl">Total operarias</div></div><div class="cfg-stat-box green"><div class="cfg-stat-num">${emps.filter(e=>!e.disabled).length}</div><div class="cfg-stat-lbl">Activas</div></div><div class="cfg-stat-box red"><div class="cfg-stat-num">${emps.filter(e=>e.disabled).length}</div><div class="cfg-stat-lbl">Inactivas</div></div>`;
+  statsRow.innerHTML=`<div class="cfg-stat-box"><div class="cfg-stat-num">${emps.length}</div><div class="cfg-stat-lbl">Total</div></div><div class="cfg-stat-box green"><div class="cfg-stat-num">${emps.filter(e=>!e.disabled).length}</div><div class="cfg-stat-lbl">Activas</div></div><div class="cfg-stat-box red"><div class="cfg-stat-num">${emps.filter(e=>e.disabled).length}</div><div class="cfg-stat-lbl">Inactivas</div></div>`;
   body.appendChild(statsRow);
-  // Table
-  const tbl=document.createElement('div'); tbl.className='cfg-user-table';
-  tbl.innerHTML=`<div class="cfg-user-hdr"><div>Nombre</div><div>Supervisora</div><div>Estado</div><div>Acciones</div></div>`;
-  filtered.forEach(e=>{
-    const sup = iaS.supervisors?iaS.supervisors.find(s=>s.id===e.supId):null;
-    const isOff=!!e.disabled;
-    const row=document.createElement('div'); row.className='cfg-user-row'+(isOff?' disabled':'');
-    row.style.gridTemplateColumns='2fr 1.5fr .8fr 130px';
-    row.innerHTML=`<div class="cfg-user-cell">${e.name}</div><div class="cfg-user-cell muted">${sup?sup.name:'—'}</div><div class="cfg-user-cell"><span class="cfg-pill ${isOff?'inactiva':'activa'}">${isOff?'● Inactiva':'● Activa'}</span></div>`;
-    const acts=document.createElement('div'); acts.className='cfg-row-acts';
-    const bT=document.createElement('button'); bT.className=`cfg-row-btn tog ${isOff?'on':''}`; bT.textContent=isOff?'✅':'⏸';
-    bT.onclick=()=>{ e.disabled=!e.disabled; if(typeof saveIaState==='function') saveIaState(); cfgSwitchTab('usuarios',document.getElementById('cfgn-usuarios')); };
-    acts.appendChild(bT); row.appendChild(acts); tbl.appendChild(row);
-  });
+
+  // ── Tabla ─────────────────────────────────────────────────────────
+  const COLS = '1.2fr 2fr 1.5fr 1.5fr .9fr 160px';
+  const tbl=document.createElement('div'); tbl.className='cfg-user-table'; tbl.id='cfg-usr-tbl';
+  tbl.innerHTML=`<div class="cfg-user-hdr" style="grid-template-columns:${COLS}"><div>Cédula</div><div>Nombre</div><div>Módulo</div><div>Supervisora</div><div>Estado</div><div>Acciones</div></div>`;
   body.appendChild(tbl);
+
+  function applyFiltros(){
+    const qv=(document.getElementById('cfg-search2')||{value:''}).value.trim().toLowerCase();
+    const est=filtEst.value; const supId=filtSup.value;
+    const list=emps.filter(e=>{
+      const matchQ=!qv||(e.name||'').toLowerCase().includes(qv)||(e.cedula||'').toLowerCase().includes(qv);
+      const matchEst=!est||(est==='activa'?!e.disabled:!!e.disabled);
+      const matchSup=!supId||(e.supId===supId);
+      return matchQ&&matchEst&&matchSup;
+    });
+    // Remove old rows
+    tbl.querySelectorAll('.cfg-user-row').forEach(r=>r.remove());
+    list.forEach(e=>{
+      const sup=sups.find(s=>s.id===e.supId);
+      const isOff=!!e.disabled;
+      const row=document.createElement('div'); row.className='cfg-user-row'+(isOff?' disabled':'');
+      row.style.gridTemplateColumns=COLS;
+      row.innerHTML=`<div class="cfg-user-cell muted" style="font-family:'Courier New',monospace;font-size:12px;">${e.cedula||'—'}</div><div class="cfg-user-cell">${e.name||'—'}</div><div class="cfg-user-cell muted">${e.module||e.modulo||'—'}</div><div class="cfg-user-cell muted">${sup?sup.name:'—'}</div><div class="cfg-user-cell"><span class="cfg-pill ${isOff?'inactiva':'activa'}">${isOff?'● Inactiva':'● Activa'}</span></div>`;
+      const acts=document.createElement('div'); acts.className='cfg-row-acts'; acts.style.display='flex'; acts.style.gap='4px';
+      // Editar
+      const bE=document.createElement('button'); bE.className='cfg-row-btn'; bE.textContent='✏️'; bE.title='Editar';
+      bE.onclick=()=>cfgOpenUserModal(e);
+      // Eliminar
+      const bD=document.createElement('button'); bD.className='cfg-row-btn del'; bD.textContent='🗑'; bD.title='Eliminar';
+      bD.onclick=()=>openConfirmDelete('usuario',e.name,()=>{
+        const idx2=iaS.employees.indexOf(e); if(idx2>-1) iaS.employees.splice(idx2,1);
+        if(typeof saveIaState==='function') saveIaState();
+        cfgSwitchTab('usuarios',document.getElementById('cfgn-usuarios'));
+        showToastSimple(`🗑 "${e.name}" eliminada`);
+      });
+      // Inhabilitar/habilitar
+      const bT=document.createElement('button'); bT.className=`cfg-row-btn tog ${isOff?'on':''}`; bT.textContent=isOff?'✅':'⏸'; bT.title=isOff?'Habilitar':'Inhabilitar';
+      bT.onclick=()=>{ e.disabled=!e.disabled; if(typeof saveIaState==='function') saveIaState(); cfgSwitchTab('usuarios',document.getElementById('cfgn-usuarios')); };
+      acts.appendChild(bE); acts.appendChild(bT); acts.appendChild(bD); row.appendChild(acts); tbl.appendChild(row);
+    });
+    if(!list.length){ const empty=document.createElement('div'); empty.style.cssText='padding:30px;text-align:center;color:#94a3b8;font-size:13px;'; empty.textContent='No se encontraron operarias'; tbl.appendChild(empty); }
+  }
+  applyFiltros();
+}
+
+// ── MODAL EDITAR OPERARIA ─────────────────────────────────────────
+function cfgOpenUserModal(emp){
+  // Simple prompt-based edit for now
+  const newName = prompt('Nombre de la operaria:', emp.name||'');
+  if(newName===null) return;
+  if(!newName.trim()){ alert('El nombre no puede estar vacío'); return; }
+  const newCed = prompt('Cédula:', emp.cedula||'');
+  if(newCed===null) return;
+  emp.name = newName.trim();
+  emp.cedula = newCed.trim();
+  if(typeof saveIaState==='function') saveIaState();
+  cfgSwitchTab('usuarios', document.getElementById('cfgn-usuarios'));
+  showToastSimple('✅ Operaria actualizada');
 }
 
 // ── TURNOS ────────────────────────────────────────────────────────
@@ -6663,14 +6751,15 @@ function cfgOpenPerfilModal(nombre, pass){
   document.getElementById('cpf-target').value = nombre||'';
   const nInput = document.getElementById('cpf-nombre');
   nInput.value = nombre||'';
-  nInput.disabled = isEdit;
-  nInput.style.opacity = isEdit ? '0.5' : '1';
+  nInput.disabled = false;
+  nInput.style.opacity = '1';
   document.getElementById('cpf-pass').value = pass||'';
   document.getElementById('cpf-error').textContent = '';
   document.getElementById('cfg-perfil-modal').style.display = 'flex';
   setTimeout(()=>(isEdit?document.getElementById('cpf-pass'):document.getElementById('cpf-nombre')).focus(),100);
 }
 function cfgSavePerfilModal(){
+  const FIJOS = ['Programador','Administrador','Modulos','Televisor','Mecanicos','Supervisoras'];
   const target = document.getElementById('cpf-target').value;
   const isEdit = !!target;
   const nombre = isEdit ? target : document.getElementById('cpf-nombre').value.trim();
@@ -6681,13 +6770,22 @@ function cfgSavePerfilModal(){
   if(!pass)  { errEl.textContent='La contraseña no puede estar vacía'; return; }
   const extras = getUsuariosExtra();
   if(isEdit){
-    // Update password in extras
     const idx = extras.findIndex(u=>u.nombre===target);
-    if(idx>-1){ extras[idx].pass=pass; } else { extras.push({nombre,pass,perms:[],disabled:false}); }
-    if(USUARIOS[target]) USUARIOS[target].pass=pass;
+    // If name changed, rename
+    if(nombre !== target){
+      if(FIJOS.includes(nombre)){ errEl.textContent='Ese nombre está reservado por el sistema'; return; }
+      if(extras.find(u=>u.nombre===nombre)){ errEl.textContent='Ya existe un perfil con ese nombre'; return; }
+      if(idx>-1){ extras[idx].nombre=nombre; extras[idx].pass=pass; }
+      delete USUARIOS[target];
+      USUARIOS[nombre]={pass, perms: idx>-1 ? (extras[idx].perms||[]) : []};
+    } else {
+      if(idx>-1){ extras[idx].pass=pass; }
+      if(USUARIOS[target]) USUARIOS[target].pass=pass;
+      else USUARIOS[target]={pass,perms:[]};
+    }
   } else {
-    if(USUARIOS_FIJOS&&USUARIOS_FIJOS.includes(nombre)){ errEl.textContent='Ese nombre está reservado por el sistema'; return; }
-    if(USUARIOS[nombre]||extras.find(u=>u.nombre===nombre)){ errEl.textContent='Ya existe un perfil con ese nombre'; return; }
+    if(FIJOS.includes(nombre)){ errEl.textContent='Ese nombre está reservado por el sistema'; return; }
+    if(extras.find(u=>u.nombre===nombre)){ errEl.textContent='Ya existe un perfil con ese nombre'; return; }
     extras.push({nombre,pass,perms:[],disabled:false});
     USUARIOS[nombre]={pass,perms:[]};
   }
