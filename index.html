@@ -3547,11 +3547,9 @@ function cfgOnLimpiar(){
 function cfgConfirmarLimpiar(){
   const pass = document.getElementById('clm-pass').value;
   const errEl = document.getElementById('clm-error');
-  // Verificar contraseña contra los perfiles del sistema
-  const allUsers = getCfgUsuarios();
-  const PASS_ADMIN = '1234'; // fallback
-  // Buscar si la contraseña coincide con algún perfil habilitado
-  const valid = Object.values(allUsers).some(u=>!u.disabled&&u.pass===pass) || pass===PASS_ADMIN;
+  // Verificar contra USUARIOS del sistema (objeto global) o perfiles extras
+  const valid = (typeof USUARIOS!=='undefined' && Object.values(USUARIOS).some(u=>u.pass===pass))
+    || Object.values(getCfgUsuarios()).some(u=>!u.disabled&&u.pass===pass);
   if(!valid){ errEl.textContent='Contraseña incorrecta'; document.getElementById('clm-pass').value=''; document.getElementById('clm-pass').focus(); return; }
   // Ejecutar limpieza según sección
   const iaS = typeof iaState!=='undefined'&&iaState ? iaState : {};
@@ -3559,12 +3557,12 @@ function cfgConfirmarLimpiar(){
     if(iaS.employees) iaS.employees=[];
     if(typeof saveIaState==='function') saveIaState();
   } else if(cfgCurrentTab==='maquinaria'){
-    const cfg = getConfig();
-    cfg.maquinas=[];
+    const cfg = loadConfig();
+    cfg._maquinaria=[];
     saveConfig(cfg);
   } else if(cfgCurrentTab==='turnos'){
-    const cfg = getConfig();
-    cfg.turnos=[];
+    const cfg = loadConfig();
+    cfg._turnos=[];
     saveConfig(cfg);
   }
   document.getElementById('cfg-limpiar-modal').style.display='none';
@@ -3913,20 +3911,34 @@ function cfgRenderUsuarios(body){
   // Encabezados con filtros debajo
   const hdr = document.createElement('div'); hdr.className='cfg-user-hdr'; hdr.style.gridTemplateColumns=COLS;
   const cargosDisp = cfgGetCargos();
+  let usrSortCol=null, usrSortDir=1;
   const usrCols = [
-    {label:'Cédula',      id:'uf-cedula',  type:'text'},
-    {label:'Nombre',      id:'uf-nombre',  type:'text'},
-    {label:'Cargo',       id:'uf-cargo',   type:'text'},
-    {label:'Módulo',      id:'uf-modulo',  type:'text'},
-    {label:'Supervisora', id:'uf-sup',     type:'text'},
-    {label:'Estado',      id:'uf-estado',  type:'text'},
-    {label:'Acciones',    id:null,         type:'none'},
+    {label:'Cédula',      id:'uf-cedula',  type:'text', key:'cedula'},
+    {label:'Nombre',      id:'uf-nombre',  type:'text', key:'name'},
+    {label:'Cargo',       id:'uf-cargo',   type:'text', key:'cargo'},
+    {label:'Módulo',      id:'uf-modulo',  type:'text', key:'module'},
+    {label:'Supervisora', id:'uf-sup',     type:'text', key:'supId'},
+    {label:'Estado',      id:'uf-estado',  type:'text', key:'_estado'},
+    {label:'Acciones',    id:null,         type:'none',  key:null},
   ];
   usrCols.forEach(c=>{
     const cell=document.createElement('div'); cell.style.cssText='display:flex;flex-direction:column;gap:4px;';
+    const lblRow=document.createElement('div'); lblRow.style.cssText='display:flex;align-items:center;gap:4px;cursor:'+(c.key?'pointer':'default')+';user-select:none;';
     const lbl=document.createElement('span'); lbl.textContent=c.label;
     lbl.style.cssText='font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;';
-    cell.appendChild(lbl);
+    lblRow.appendChild(lbl);
+    if(c.key){
+      const arrow=document.createElement('span'); arrow.id='usr-arr-'+c.key;
+      arrow.style.cssText='font-size:10px;color:#94a3b8;'; arrow.textContent='⇅';
+      lblRow.appendChild(arrow);
+      lblRow.onclick=()=>{
+        if(usrSortCol===c.key){ usrSortDir*=-1; } else { usrSortCol=c.key; usrSortDir=1; }
+        hdr.querySelectorAll('[id^="usr-arr-"]').forEach(a=>{ a.textContent='⇅'; a.style.color='#94a3b8'; });
+        arrow.textContent=usrSortDir===1?'↑':'↓'; arrow.style.color='#2563eb';
+        applyFiltros();
+      };
+    }
+    cell.appendChild(lblRow);
     if(c.type==='text'){
       const inp=document.createElement('input'); inp.type='text'; inp.id=c.id; inp.placeholder='Filtrar…';
       inp.className='cfg-col-filter'; inp.oninput=()=>applyFiltros(); cell.appendChild(inp);
@@ -3953,6 +3965,16 @@ function cfgRenderUsuarios(body){
       const matchCargo = !qCargo||(e.cargo||'').toLowerCase().includes(qCargo);
       return matchCed&&matchNom&&matchMod&&matchSup&&matchEst&&matchCargo;
     });
+    // Ordenar si hay columna activa
+    if(usrSortCol){
+      list.sort((a,b)=>{
+        let av='', bv='';
+        if(usrSortCol==='_estado'){ av=a.disabled?'inactiva':'activa'; bv=b.disabled?'inactiva':'activa'; }
+        else if(usrSortCol==='supId'){ av=a.supId||''; bv=b.supId||''; }
+        else { av=(a[usrSortCol]||'').toString().toLowerCase(); bv=(b[usrSortCol]||'').toString().toLowerCase(); }
+        return av<bv?-usrSortDir:av>bv?usrSortDir:0;
+      });
+    }
     tbl.querySelectorAll('.cfg-user-row').forEach(r=>r.remove());
     list.forEach(e=>{
       const supObj = sups.find(s=>s.id===e.supId)||iaS.supervisors?.find(s=>s.id===e.supId);
@@ -4096,13 +4118,23 @@ function cfgImportUsuariosXLS(file){
       rows.forEach(r=>{
         const nombre = (r['Nombre']||r['nombre']||'').toString().trim();
         const cedula = (r['Cedula']||r['cedula']||r['Cédula']||'').toString().trim();
-        const cargo  = (r['Cargo']||r['cargo']||'').toString().trim();
-        const modulo = (r['Modulo']||r['modulo']||r['Módulo']||'').toString().trim();
+        const cargoRaw  = (r['Cargo']||r['cargo']||'').toString().trim();
+        const moduloRaw = (r['Modulo']||r['modulo']||r['Módulo']||'').toString().trim();
         const supNom = (r['Supervisora']||r['supervisora']||'').toString().trim();
         const estado = (r['Estado']||r['estado']||'activa').toString().trim().toLowerCase();
         if(!nombre) return;
-        const supObj = iaS.supervisors.find(s=>s.name.toLowerCase()===supNom.toLowerCase());
-        const supId  = supObj?supObj.id:'';
+        // Validar cargo: debe existir en los cargos creados
+        const cargosCreados = cfgGetCargos();
+        const cargoValido = cargosCreados.find(c=>c.nombre.toLowerCase()===cargoRaw.toLowerCase());
+        const cargo = cargoValido ? cargoValido.nombre : '';
+        // Validar módulo: debe existir en MODULES
+        const moduloValido = (typeof MODULES!=='undefined' && MODULES.includes(moduloRaw)) ? moduloRaw : '';
+        const modulo = moduloValido;
+        // Validar supervisora: debe ser un empleado activo con cargo supervisora/supervisor
+        const allEmps = iaS.employees||[];
+        const supsActivas = allEmps.filter(e=>!e.disabled&&/^supervisor[a]?$/i.test((e.cargo||'').trim()));
+        const supMatch = supsActivas.find(s=>s.name.toLowerCase()===supNom.toLowerCase());
+        const supId = supMatch ? supMatch.name : '';
         const existing = iaS.employees.find(e=>e.cedula&&e.cedula===cedula);
         if(existing){
           existing.name=nombre; existing.cargo=cargo; existing.module=modulo; existing.modulo=modulo; existing.supId=supId; existing.disabled=(estado==='inactiva');
@@ -4336,26 +4368,41 @@ function cfgRenderMaquinaria(body){
   statsRow.innerHTML=`<div class="cfg-stat-box"><div class="cfg-stat-num">${maquinas.length}</div><div class="cfg-stat-lbl">Total</div></div><div class="cfg-stat-box green"><div class="cfg-stat-num">${maquinas.filter(m=>!m.disabled).length}</div><div class="cfg-stat-lbl">Activas</div></div><div class="cfg-stat-box red"><div class="cfg-stat-num">${maquinas.filter(m=>m.disabled).length}</div><div class="cfg-stat-lbl">Inactivas</div></div>`;
   body.appendChild(statsRow);
 
-  // ── Tabla con filtros por columna ─────────────────────────────────
+  // ── Tabla con filtros + ordenamiento por columna ───────────────────
   const COLS='1fr 1fr 1fr 1fr 1.2fr 1.2fr 110px';
-  const INP_S="width:100%;box-sizing:border-box;padding:3px 6px;border-radius:5px;border:1px solid #e2e8f0;font-family:'Nunito',sans-serif;font-size:11px;outline:none;color:#0f172a;background:#fff;";
   const tbl=document.createElement('div'); tbl.className='cfg-user-table'; tbl.id='cfg-maq-list';
+  let maqSortCol=null, maqSortDir=1;
 
-  // Encabezados con filtros debajo
-  const hdr=document.createElement('div'); hdr.className='cfg-user-hdr'; hdr.style.gridTemplateColumns=COLS;
   const maqCols=[
-    {label:'Código',    id:'mf-codigo'},
-    {label:'Tipo',      id:'mf-tipo'},
-    {label:'Marca',     id:'mf-marca'},
-    {label:'Modelo',    id:'mf-modelo'},
-    {label:'Serial',    id:'mf-serial'},
-    {label:'Ubicación', id:'mf-ubic'},
-    {label:'Acciones',  id:null},
+    {label:'Código',    id:'mf-codigo',  key:'codigo'},
+    {label:'Tipo',      id:'mf-tipo',    key:'tipo'},
+    {label:'Marca',     id:'mf-marca',   key:'marca'},
+    {label:'Modelo',    id:'mf-modelo',  key:'modelo'},
+    {label:'Serial',    id:'mf-serial',  key:'serial'},
+    {label:'Ubicación', id:'mf-ubic',    key:'modulo'},
+    {label:'Acciones',  id:null,         key:null},
   ];
+
+  const hdr=document.createElement('div'); hdr.className='cfg-user-hdr'; hdr.style.gridTemplateColumns=COLS;
   maqCols.forEach(c=>{
     const cell=document.createElement('div'); cell.style.cssText='display:flex;flex-direction:column;gap:4px;';
-    const lbl=document.createElement('span'); lbl.textContent=c.label; lbl.style.cssText='font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;';
-    cell.appendChild(lbl);
+    const lblRow=document.createElement('div'); lblRow.style.cssText='display:flex;align-items:center;gap:4px;cursor:'+(c.key?'pointer':'default')+';user-select:none;';
+    const lbl=document.createElement('span'); lbl.textContent=c.label;
+    lbl.style.cssText='font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;';
+    lblRow.appendChild(lbl);
+    if(c.key){
+      const arrow=document.createElement('span'); arrow.id='maq-arr-'+c.key;
+      arrow.style.cssText='font-size:10px;color:#94a3b8;';
+      arrow.textContent='⇅';
+      lblRow.appendChild(arrow);
+      lblRow.onclick=()=>{
+        if(maqSortCol===c.key){ maqSortDir*=-1; } else { maqSortCol=c.key; maqSortDir=1; }
+        hdr.querySelectorAll('[id^="maq-arr-"]').forEach(a=>{ a.textContent='⇅'; a.style.color='#94a3b8'; });
+        arrow.textContent=maqSortDir===1?'↑':'↓'; arrow.style.color='#2563eb';
+        cfgMaqSearch();
+      };
+    }
+    cell.appendChild(lblRow);
     if(c.id){
       const inp=document.createElement('input'); inp.type='text'; inp.id=c.id; inp.placeholder='Filtrar…';
       inp.className='cfg-col-filter'; inp.oninput=()=>cfgMaqSearch(); cell.appendChild(inp);
@@ -4364,14 +4411,18 @@ function cfgRenderMaquinaria(body){
   });
   tbl.appendChild(hdr);
   body.appendChild(tbl);
+
+  // expose sort state for cfgMaqSearch
+  tbl._getSortCol=()=>maqSortCol;
+  tbl._getSortDir=()=>maqSortDir;
   cfgMaqSearch();
 }
 function cfgMaqSearch(){
   const get=id=>(document.getElementById(id)||{value:''}).value.trim().toLowerCase();
   const qCod=get('mf-codigo'), qTip=get('mf-tipo'), qMar=get('mf-marca');
   const qMod=get('mf-modelo'), qSer=get('mf-serial'), qUbi=get('mf-ubic');
-  const cfg=loadConfig(); const maquinas=cfg._maquinaria||[];
-  const filtered=maquinas.filter(m=>
+  const cfg=loadConfig(); let maquinas=[...(cfg._maquinaria||[])];
+  maquinas=maquinas.filter(m=>
     (!qCod||(m.codigo||'').toLowerCase().includes(qCod))&&
     (!qTip||(m.tipo||'').toLowerCase().includes(qTip))&&
     (!qMar||(m.marca||'').toLowerCase().includes(qMar))&&
@@ -4379,11 +4430,20 @@ function cfgMaqSearch(){
     (!qSer||(m.serial||'').toLowerCase().includes(qSer))&&
     (!qUbi||(m.modulo||'').toLowerCase().includes(qUbi))
   );
-  cfgMaqRenderList(filtered);
+  const tbl=document.getElementById('cfg-maq-list');
+  const col=tbl?tbl._getSortCol&&tbl._getSortCol():null;
+  const dir=tbl?tbl._getSortDir&&tbl._getSortDir():1;
+  if(col){
+    maquinas.sort((a,b)=>{
+      const av=(a[col]||'').toString().toLowerCase();
+      const bv=(b[col]||'').toString().toLowerCase();
+      return av<bv?-dir:av>bv?dir:0;
+    });
+  }
+  cfgMaqRenderList(maquinas);
 }
 function cfgMaqRenderList(maquinas){
   const tbl=document.getElementById('cfg-maq-list'); if(!tbl) return;
-  // remove old rows only
   tbl.querySelectorAll('.cfg-user-row').forEach(r=>r.remove());
   tbl.querySelectorAll('.cfg-maq-empty').forEach(r=>r.remove());
   if(!maquinas.length){
@@ -4397,19 +4457,16 @@ function cfgMaqRenderList(maquinas){
     const isOff=!!m.disabled;
     const row=document.createElement('div'); row.className='cfg-user-row'+(isOff?' disabled':'');
     row.style.gridTemplateColumns=COLS;
-    row.innerHTML=`<div class="cfg-user-cell" style="font-family:'Courier New',monospace;font-size:12px;">${m.codigo||'—'}</div><div class="cfg-user-cell muted">${m.tipo||'—'}</div><div class="cfg-user-cell muted">${m.marca||'—'}</div><div class="cfg-user-cell muted">${m.modelo||'—'}</div><div class="cfg-user-cell muted" style="font-family:'Courier New',monospace;font-size:12px;">${m.serial||'—'}</div><div class="cfg-user-cell muted">${m.modulo||'—'}</div>`;
+    row.innerHTML=`<div class="cfg-user-cell" style="font-family:'Courier New',monospace;font-size:12px;">${m.codigo||'—'}</div><div class="cfg-user-cell">${m.tipo||'—'}</div><div class="cfg-user-cell">${m.marca||'—'}</div><div class="cfg-user-cell">${m.modelo||'—'}</div><div class="cfg-user-cell" style="font-family:'Courier New',monospace;font-size:12px;">${m.serial||'—'}</div><div class="cfg-user-cell">${m.modulo||'—'}</div>`;
     const acts=document.createElement('div'); acts.className='cfg-row-acts'; acts.style.cssText='display:flex;gap:4px;';
-    // Editar
     const bE=document.createElement('button'); bE.className='cfg-row-btn'; bE.textContent='✏️'; bE.title='Editar';
     bE.onclick=()=>cfgOpenMaqModal(m);
-    // Inhabilitar/Habilitar
     const bT=document.createElement('button'); bT.className=`cfg-row-btn tog ${isOff?'on':''}`; bT.textContent=isOff?'✅':'⏸'; bT.title=isOff?'Habilitar':'Inhabilitar';
     bT.onclick=()=>{
       const cfg2=loadConfig(); const idx2=(cfg2._maquinaria||[]).findIndex(x=>x.id===m.id);
       if(idx2>-1){ cfg2._maquinaria[idx2].disabled=!cfg2._maquinaria[idx2].disabled; saveConfig(cfg2); }
       cfgMaqSearch();
     };
-    // Eliminar
     const bD=document.createElement('button'); bD.className='cfg-row-btn del'; bD.textContent='🗑'; bD.title='Eliminar';
     bD.onclick=()=>openConfirmDelete('maquina',m.codigo||'máquina',()=>{
       const cfg2=loadConfig(); cfg2._maquinaria=(cfg2._maquinaria||[]).filter(x=>x.id!==m.id); saveConfig(cfg2);
@@ -4486,7 +4543,10 @@ function cfgImportMaquinariaXLS(file){
         const marca=(r['Marca']||r['marca']||'').toString().trim();
         const modelo=(r['Modelo']||r['modelo']||'').toString().trim();
         const serial=(r['Serial']||r['serial']||'').toString().trim();
-        const modulo=(r['Ubicacion']||r['Ubicación']||r['Modulo']||r['Módulo']||r['ubicacion']||'').toString().trim();
+        const moduloRaw=(r['Ubicacion']||r['Ubicación']||r['Modulo']||r['Módulo']||r['ubicacion']||'').toString().trim();
+        // Validar que el módulo exista en MODULES; si no, dejar vacío
+        const moduloValido = (typeof MODULES!=='undefined'&&MODULES.includes(moduloRaw)) ? moduloRaw : '';
+        const modulo = moduloValido;
         const estado=(r['Estado']||r['estado']||'activa').toString().trim().toLowerCase();
         const existing=cfg._maquinaria.find(m=>m.codigo===codigo);
         if(existing){
@@ -4517,9 +4577,25 @@ function cfgRenderModulos(body){
     ['M01','M02','M03','M04','M05','M06','M07','M08','M09','M10','M11','M12',
      'M13','M14','M15','M16','M17','M18','M19','M20','M21','M22','M23','M24','M25','M26','M27'];
   const allMods=[...baseAll,...extra].filter(m=>!q||(renamed[m]||m).toLowerCase().includes(q));
-  const grid=document.createElement('div'); grid.className='cfg-mod-grid';
 
-  function buildCard(m){
+  if(!allMods.length){
+    const empty=document.createElement('div');
+    empty.style.cssText='padding:40px;text-align:center;color:#94a3b8;font-size:14px;';
+    empty.innerHTML='<div style="font-size:32px;margin-bottom:8px;">🏭</div><div>No se encontraron módulos</div>';
+    body.appendChild(empty); return;
+  }
+
+  // Header
+  const hdr=document.createElement('div');
+  hdr.style.cssText='display:grid;grid-template-columns:2fr 1.5fr auto;gap:0;padding:0 16px 8px;';
+  ['NOMBRE','CONTRASEÑA','ACCIONES'].forEach(t=>{
+    const h=document.createElement('span');
+    h.style.cssText='font-size:11px;font-weight:700;letter-spacing:1px;color:#64748b;text-transform:uppercase;';
+    h.textContent=t; hdr.appendChild(h);
+  });
+  body.appendChild(hdr);
+
+  function buildRow(m){
     const cfg2=loadConfig();
     const dis2=cfg2._modulos_disabled||[];
     const ren2=cfg2._modulos_renamed||{};
@@ -4528,47 +4604,51 @@ function cfgRenderModulos(body){
     const off=dis2.includes(m);
     const displayName=ren2[m]||m;
     const pass=pas2[m]||m;
-    const mc=document.createElement('div'); mc.className='cfg-mod-card'+(off?' off':'');
-    mc.id='cfg-mod-card-'+m;
-    if(off) mc.style.cssText='opacity:.6;border:1.5px solid #fca5a5;';
-    else mc.style.cssText='';
-    // Top row: dot + name + pass
-    mc.innerHTML=`<div style="display:flex;align-items:center;gap:8px;"><div class="cfg-dot ${off?'off':''}"></div><div class="cfg-mod-info"><div class="cfg-mod-name">${displayName}${off?'<span style="font-size:9px;background:#fee2e2;color:#dc2626;padding:1px 5px;border-radius:4px;margin-left:6px;font-weight:700;">INACTIVO</span>':''}</div><div class="cfg-mod-pass">🔑 ${pass}</div></div></div>`;
-    // Actions row
-    const acts=document.createElement('div'); acts.className='cfg-mod-acts';
-    const bE=document.createElement('button'); bE.className='cfg-xs edit'; bE.textContent='✏️';
-    bE.onclick=()=>{ openModForm('edit',m,displayName); };
-    acts.appendChild(bE);
-    const bT=document.createElement('button'); bT.className=`cfg-xs ${off?'hab':'inh'}`; bT.textContent=off?'✅':'⏸';
+
+    const row=document.createElement('div');
+    row.id='cfg-mod-row-'+m;
+    row.style.cssText='display:grid;grid-template-columns:2fr 1.5fr auto;gap:0;align-items:center;padding:10px 16px;border-top:1px solid #f1f5f9;border-radius:8px;transition:background .15s;'+(off?'opacity:.6;':'');
+    row.onmouseenter=()=>row.style.background='#f8fafc';
+    row.onmouseleave=()=>row.style.background='';
+
+    const nm=document.createElement('div');
+    nm.style.cssText='display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:#0f172a;';
+    nm.innerHTML=`<div class="cfg-dot ${off?'off':''}"></div><span style="background:${off?'#fee2e2':'#f0fdf4'};color:${off?'#dc2626':'#16a34a'};border-radius:6px;padding:2px 10px;font-size:13px;">${displayName}</span>${off?'<span style="font-size:9px;background:#fee2e2;color:#dc2626;padding:1px 6px;border-radius:4px;font-weight:700;">INACTIVO</span>':''}`;
+
+    const pw=document.createElement('div');
+    pw.style.cssText='color:#94a3b8;font-size:12px;font-family:\'Courier New\',monospace;';
+    pw.innerHTML=`🔑 ${pass}`;
+
+    const acts=document.createElement('div');
+    acts.style.cssText='display:flex;gap:6px;';
+    const bE=document.createElement('button'); bE.className='cfg-row-btn'; bE.textContent='✏️'; bE.title='Editar';
+    bE.onclick=()=>openModForm('edit',m,displayName);
+    const bT=document.createElement('button'); bT.className=`cfg-row-btn tog ${off?'on':''}`; bT.textContent=off?'✅':'⏸'; bT.title=off?'Habilitar':'Inhabilitar';
     bT.onclick=()=>{
       toggleModulo(m);
-      const old=document.getElementById('cfg-mod-card-'+m);
-      if(old){ const fresh=buildCard(m); old.replaceWith(fresh); }
+      const old=document.getElementById('cfg-mod-row-'+m);
+      if(old){ const fresh=buildRow(m); old.replaceWith(fresh); }
     };
-    acts.appendChild(bT);
-    // Eliminar para TODOS
-    const bD=document.createElement('button'); bD.className='cfg-xs del'; bD.textContent='🗑';
+    const bD=document.createElement('button'); bD.className='cfg-row-btn del'; bD.textContent='🗑'; bD.title='Eliminar';
     bD.onclick=()=>openConfirmDelete('modulo',displayName,()=>{
-      if(ext2.includes(m)){
+      const ext2b=loadConfig()._modulos_extra||[];
+      if(ext2b.includes(m)){
         deleteExtraModulo(m);
       } else {
-        // módulo base: solo inhabilitar permanentemente marcándolo como eliminado
         const c3=loadConfig();
         c3._modulos_disabled=c3._modulos_disabled||[];
-        c3._modulos_renamed=c3._modulos_renamed||{};
         if(!c3._modulos_disabled.includes(m)) c3._modulos_disabled.push(m);
         saveConfig(c3);
         if(typeof rebuildModules==='function') rebuildModules();
       }
       cfgSwitchTab('modulos',document.getElementById('cfgn-modulos'));
     });
-    acts.appendChild(bD);
-    mc.appendChild(acts);
-    return mc;
+    acts.appendChild(bE); acts.appendChild(bT); acts.appendChild(bD);
+    row.appendChild(nm); row.appendChild(pw); row.appendChild(acts);
+    return row;
   }
 
-  allMods.forEach(m=>{ grid.appendChild(buildCard(m)); });
-  body.appendChild(grid);
+  allMods.forEach(m=>body.appendChild(buildRow(m)));
 }
 
 // ── ÁREAS ─────────────────────────────────────────────────────────
