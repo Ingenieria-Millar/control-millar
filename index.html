@@ -3458,7 +3458,7 @@ const CFG_CREAR_LABELS = {
   perfiles:'+ Nuevo perfil', usuarios:'+ Nuevo usuario', cargos:'+ Nuevo cargo', maquinaria:'+ Nueva máquina',
   modulos:'+ Nuevo módulo', areas:'+ Nueva área', turnos:'+ Nuevo turno'
 };
-const CFG_EXCEL_TABS = ['maquinaria','turnos','usuarios'];
+const CFG_EXCEL_TABS = ['maquinaria','turnos','usuarios','cargos','modulos','areas'];
 const CFG_NO_CREATE_TABS = ['permisos'];
 
 function openCfgScreen(){
@@ -3484,10 +3484,10 @@ function cfgSwitchTab(tab, el){
   const btnLimpiar = document.getElementById('cfg-btn-limpiar2');
   if(searchWrap) searchWrap.style.display = CFG_EXCEL_TABS.includes(tab) ? 'none' : '';
   if(btnExcel)   btnExcel.style.display   = CFG_EXCEL_TABS.includes(tab) ? 'flex' : 'none';
-  if(btnTpl)     btnTpl.style.display     = CFG_EXCEL_TABS.includes(tab) ? 'flex' : 'none';
-  if(btnLimpiar) btnLimpiar.style.display = CFG_EXCEL_TABS.includes(tab) ? 'flex' : 'none';
   const btnUpload = document.getElementById('cfg-btn-upload2');
   if(btnUpload)  btnUpload.style.display  = ['usuarios','maquinaria','turnos'].includes(tab) ? 'inline-flex' : 'none';
+  if(btnTpl)     btnTpl.style.display     = ['usuarios','maquinaria','turnos'].includes(tab) ? 'flex' : 'none';
+  if(btnLimpiar) btnLimpiar.style.display = ['usuarios','maquinaria','turnos'].includes(tab) ? 'flex' : 'none';
   if(btnCrear){
     btnCrear.style.display = CFG_NO_CREATE_TABS.includes(tab) ? 'none' : '';
     btnCrear.textContent = CFG_CREAR_LABELS[tab]||'+ Crear';
@@ -3528,7 +3528,47 @@ function cfgExcelAction(){
   if(cfgCurrentTab==='maquinaria') cfgExportMaq();
   else if(cfgCurrentTab==='turnos') cfgExportTurnos();
   else if(cfgCurrentTab==='usuarios') cfgExportUsuarios();
-  else alert('Próximamente: carga/exportación Excel');
+  else if(cfgCurrentTab==='cargos') cfgExportCargos();
+  else if(cfgCurrentTab==='modulos') cfgExportModulos();
+  else if(cfgCurrentTab==='areas') cfgExportAreas();
+}
+function cfgExportCargos(){
+  if(typeof XLSX==='undefined'){alert('Librería Excel no disponible');return;}
+  const cargos=cfgGetCargos();
+  if(!cargos.length){showToastSimple('No hay cargos para exportar');return;}
+  const ws=XLSX.utils.json_to_sheet(cargos.map(c=>({Nombre:c.nombre})));
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Cargos');
+  XLSX.writeFile(wb,'cargos_millar.xlsx');
+  showToastSimple('📥 Cargos exportados');
+}
+function cfgExportModulos(){
+  if(typeof XLSX==='undefined'){alert('Librería Excel no disponible');return;}
+  const cfg=loadConfig();
+  const disabled=cfg._modulos_disabled||[];
+  const extra=cfg._modulos_extra||[];
+  const renamed=cfg._modulos_renamed||{};
+  const modPass=cfg._modulos_pass||{};
+  const BASE=['M01','M02','M03','M04','M05','M06','M07','M08','M09','M10','M11','M12',
+    'M13','M14','M15','M16','M17','M18','M19','M20','M21','M22','M23','M24','M25','M26','M27'];
+  const allMods=[...BASE,...extra];
+  if(!allMods.length){showToastSimple('No hay módulos para exportar');return;}
+  const rows=allMods.map(m=>({
+    Codigo:m, Nombre:renamed[m]||m, Contrasena:modPass[m]||m, Estado:disabled.includes(m)?'Inactivo':'Activo'
+  }));
+  const ws=XLSX.utils.json_to_sheet(rows);
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Módulos');
+  XLSX.writeFile(wb,'modulos_millar.xlsx');
+  showToastSimple('📥 Módulos exportados');
+}
+function cfgExportAreas(){
+  if(typeof XLSX==='undefined'){alert('Librería Excel no disponible');return;}
+  const cfg=loadConfig();
+  const areas=cfg._areas||[];
+  if(!areas.length){showToastSimple('No hay áreas para exportar');return;}
+  const ws=XLSX.utils.json_to_sheet(areas.map(a=>({Nombre:a.nombre||a.name||a})));
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Áreas');
+  XLSX.writeFile(wb,'areas_millar.xlsx');
+  showToastSimple('📥 Áreas exportadas');
 }
 function cfgOnLimpiar(){
   const modal = document.getElementById('cfg-limpiar-modal');
