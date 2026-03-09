@@ -3444,7 +3444,7 @@ function cfgSwitchTab(tab, el){
   if(btnExcel)   btnExcel.style.display   = CFG_EXCEL_TABS.includes(tab) ? 'flex' : 'none';
   if(btnTpl)     btnTpl.style.display     = CFG_EXCEL_TABS.includes(tab) ? 'flex' : 'none';
   const btnUpload = document.getElementById('cfg-btn-upload2');
-  if(btnUpload)  btnUpload.style.display  = ['usuarios','maquinaria'].includes(tab) ? 'inline-flex' : 'none';
+  if(btnUpload)  btnUpload.style.display  = ['usuarios','maquinaria','turnos'].includes(tab) ? 'inline-flex' : 'none';
   if(btnCrear){
     btnCrear.style.display = CFG_NO_CREATE_TABS.includes(tab) ? 'none' : '';
     btnCrear.textContent = CFG_CREAR_LABELS[tab]||'+ Crear';
@@ -3503,7 +3503,14 @@ function cfgPlantillaMaq(){
 }
 function cfgPlantillaTurnos(){
   if(typeof XLSX==='undefined'){alert('Librería Excel no disponible');return;}
-  const ws=XLSX.utils.aoa_to_sheet([['Turno','Hora','Comienzo','Final','Minutos','Lun','Mar','Mié','Jue','Vie','Sáb','Dom','Tipo'],['Mañana','1','06:00','06:30','30','1','1','1','1','1','0','0','normal']]);
+  const header=['Turno','Nombre','Comienza','Termina','Minutos','Tipo','Inicia Turno','Finaliza Turno','LN','MR','XR','JU','VI','SB','DG'];
+  const ejemplo1=['TURNO DIA','1RA HORA','06:00','07:00','60','NORMAL','SI','NO','SI','SI','SI','SI','SI','NO','NO'];
+  const ejemplo2=['TURNO DIA','2da HORA','07:00','08:15','60','NORMAL','NO','NO','SI','SI','SI','SI','SI','NO','NO'];
+  const ejemplo3=['TURNO DIA','3ra HORA','08:15','09:15','60','NORMAL','NO','NO','SI','SI','SI','SI','SI','NO','NO'];
+  const ejemplo4=['TURNO DIA','4ta HORA','09:15','10:15','60','EXTRA','NO','SI','SI','SI','SI','SI','SI','NO','NO'];
+  const ejemplo5=['TURNO NOCHE','1RA HORA','18:00','19:00','60','NORMAL','SI','NO','SI','SI','SI','SI','SI','NO','NO'];
+  const ws=XLSX.utils.aoa_to_sheet([header,ejemplo1,ejemplo2,ejemplo3,ejemplo4,ejemplo5]);
+  ws['!cols']=[{wch:14},{wch:12},{wch:10},{wch:10},{wch:8},{wch:8},{wch:12},{wch:14},{wch:5},{wch:5},{wch:5},{wch:5},{wch:5},{wch:5},{wch:5}];
   const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Turnos');
   XLSX.writeFile(wb,'plantilla_turnos.xlsx');
   showToastSimple('📥 Plantilla descargada');
@@ -3522,14 +3529,104 @@ function cfgPlantillaUsuarios(){
   showToastSimple('📥 Plantilla descargada');
 }
 function cfgExportTurnos(){
-  const cfg=loadConfig(); const turnos=cfg._turnos||[];
+  const turnos=cfgGetTurnos();
   if(!turnos.length){showToastSimple('No hay turnos para exportar');return;}
-  if(typeof XLSX==='undefined'){return;}
-  const rows=turnos.map(t=>({Turno:t.nombre,Inicio:t.inicio,Fin:t.fin,Días:(t.dias||[]).join(',')}));
+  if(typeof XLSX==='undefined'){alert('Librería Excel no disponible');return;}
+  const rows=[];
+  turnos.forEach(t=>{
+    (t.horas||[]).forEach(h=>{
+      rows.push({
+        'Turno':        t.nombre||'',
+        'Nombre':       h.nombre||'',
+        'Comienza':     h.comienza||'',
+        'Termina':      h.termina||'',
+        'Minutos':      h.minutos||'',
+        'Tipo':         h.tipo||'NORMAL',
+        'Inicia Turno': h.iniciaTurno?'SI':'NO',
+        'Finaliza Turno': h.finalizaTurno?'SI':'NO',
+        'LN': (h.dias||[]).includes('LN')?'SI':'NO',
+        'MR': (h.dias||[]).includes('MR')?'SI':'NO',
+        'XR': (h.dias||[]).includes('XR')?'SI':'NO',
+        'JU': (h.dias||[]).includes('JU')?'SI':'NO',
+        'VI': (h.dias||[]).includes('VI')?'SI':'NO',
+        'SB': (h.dias||[]).includes('SB')?'SI':'NO',
+        'DG': (h.dias||[]).includes('DG')?'SI':'NO',
+      });
+    });
+  });
+  if(!rows.length){showToastSimple('Los turnos no tienen horas registradas');return;}
   const ws=XLSX.utils.json_to_sheet(rows);
+  ws['!cols']=[{wch:14},{wch:12},{wch:10},{wch:10},{wch:8},{wch:8},{wch:12},{wch:14},{wch:5},{wch:5},{wch:5},{wch:5},{wch:5},{wch:5},{wch:5}];
   const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Turnos');
   XLSX.writeFile(wb,'turnos_millar.xlsx');
   showToastSimple('✅ Turnos exportados');
+}
+function cfgImportTurnosXLS(file){
+  if(!file) return;
+  if(typeof XLSX==='undefined'){alert('Librería Excel no disponible');return;}
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      const wb=XLSX.read(ev.target.result,{type:'binary'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+      if(!rows.length){showToastSimple('⚠️ El archivo está vacío');return;}
+
+      // Agrupar filas por nombre de turno
+      const turnosMap={};
+      const turnosOrder=[];
+      rows.forEach(r=>{
+        const turnoNom=(r['Turno']||r['turno']||'').toString().trim();
+        const nombre  =(r['Nombre']||r['nombre']||r['Hora']||r['hora']||'').toString().trim();
+        const comienza=(r['Comienza']||r['comienza']||r['Comienzo']||r['comienzo']||'').toString().trim();
+        const termina =(r['Termina']||r['termina']||r['Final']||r['final']||'').toString().trim();
+        const minutos =(r['Minutos']||r['minutos']||'60').toString().trim();
+        const tipo    =(r['Tipo']||r['tipo']||'NORMAL').toString().trim().toUpperCase();
+        const inicia  =(r['Inicia Turno']||r['inicia turno']||r['Inicia']||'NO').toString().trim().toUpperCase()==='SI';
+        const finaliza=(r['Finaliza Turno']||r['finaliza turno']||r['Finaliza']||'NO').toString().trim().toUpperCase()==='SI';
+
+        const esSI=v=>v.toString().trim().toUpperCase()==='SI'||v.toString().trim()==='1';
+        const dias=[];
+        if(esSI(r['LN']||r['Lun']||r['lun']||'')) dias.push('LN');
+        if(esSI(r['MR']||r['Mar']||r['mar']||'')) dias.push('MR');
+        if(esSI(r['XR']||r['Mié']||r['mie']||r['Miér']||'')) dias.push('XR');
+        if(esSI(r['JU']||r['Jue']||r['jue']||'')) dias.push('JU');
+        if(esSI(r['VI']||r['Vie']||r['vie']||'')) dias.push('VI');
+        if(esSI(r['SB']||r['Sáb']||r['sab']||r['Sab']||'')) dias.push('SB');
+        if(esSI(r['DG']||r['Dom']||r['dom']||'')) dias.push('DG');
+
+        if(!turnoNom) return; // saltar filas sin turno
+        if(!turnosMap[turnoNom]){
+          turnosMap[turnoNom]={id:'turno_'+Date.now()+'_'+Math.random().toString(36).slice(2), nombre:turnoNom, disabled:false, horas:[]};
+          turnosOrder.push(turnoNom);
+        }
+        if(nombre){
+          turnosMap[turnoNom].horas.push({nombre, comienza, termina, minutos, tipo, iniciaTurno:inicia, finalizaTurno:finaliza, dias, disabled:false});
+        }
+      });
+
+      if(!turnosOrder.length){showToastSimple('⚠️ No se encontraron datos válidos');return;}
+
+      // Fusionar con turnos existentes: si el nombre coincide, actualiza; si no, agrega
+      const existing=cfgGetTurnos();
+      turnosOrder.forEach(nom=>{
+        const nuevo=turnosMap[nom];
+        const idx=existing.findIndex(t=>t.nombre.toLowerCase()===nom.toLowerCase());
+        if(idx>-1){
+          // Agregar/reemplazar horas (se reemplazan todas)
+          existing[idx].horas=nuevo.horas;
+        } else {
+          existing.push(nuevo);
+        }
+      });
+      cfgSaveTurnos(existing);
+      cfgSwitchTab('turnos',document.getElementById('cfgn-turnos'));
+      showToastSimple(`✅ Importados: ${turnosOrder.length} turno(s) con sus horas`);
+    } catch(err){
+      alert('Error al leer el archivo: '+err.message);
+    }
+  };
+  reader.readAsBinaryString(file);
 }
 function cfgExportUsuarios(){
   if(typeof XLSX==='undefined'){alert('Librería Excel no disponible');return;}
@@ -3559,6 +3656,7 @@ function cfgHandleUpload(file){
   if(!file) return;
   if(cfgCurrentTab==='usuarios')   cfgImportUsuariosXLS(file);
   if(cfgCurrentTab==='maquinaria') cfgImportMaquinariaXLS(file);
+  if(cfgCurrentTab==='turnos')     cfgImportTurnosXLS(file);
   // reset input so same file can be re-uploaded
   const inp = document.querySelector('#cfg-btn-upload2 input[type=file]');
   if(inp) inp.value='';
