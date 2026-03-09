@@ -570,12 +570,13 @@ async function loadConfig() {
   // ── Mecánicos: employees de iaState con cargo mecánico ──
   let mecanicos = [];
   const employees = state.employees || [];
-  const mecEmps = employees.filter(e => !e.disabled && /^mec[aá]nic[ao]s?$/i.test((e.cargo||'').trim()));
+  const normCargo = c => (c||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+  const mecEmps = employees.filter(e => !e.disabled && /^mecanico[s]?$/.test(normCargo(e.cargo)));
   if (mecEmps.length) {
     mecanicos = mecEmps.map(e => e.name).filter(Boolean);
   } else {
     // Fallback: cualquier employee activo con "mecanic" en el cargo
-    const mecFallback = employees.filter(e => !e.disabled && /mecanic/i.test(e.cargo||''));
+    const mecFallback = employees.filter(e => !e.disabled && normCargo(e.cargo).includes('mecanic'));
     mecanicos = mecFallback.length
       ? mecFallback.map(e => e.name).filter(Boolean)
       : ['ANDRES RIOS','CESAR CIFUENTES','DAIRON ZAPATA','ELKIN LOPEZ',
@@ -583,7 +584,7 @@ async function loadConfig() {
   }
 
   // ── Supervisoras: employees con cargo supervisora/supervisor ──
-  const supEmps = employees.filter(e => !e.disabled && /^supervisor[a]?$/i.test((e.cargo||'').trim()));
+  const supEmps = employees.filter(e => !e.disabled && /^supervisor[a]?$/.test(normCargo(e.cargo)));
   const supervisoras = supEmps.map((s,i) => ({id: s.id||i+1, nombre: s.name, modulos: [], rol:'Titular'}));
 
   // ── Máquinas: leer desde config._maquinaria ──
@@ -620,6 +621,10 @@ async function loadConfig() {
 }
 
 function populateForms() {
+  // Recargar config fresca desde localStorage en cada llamada
+  (async () => { await loadConfig(); _populateFormsNow(); })();
+}
+function _populateFormsNow() {
   // Módulos en selects
   ['alistModulo','mantModulo'].forEach(id => {
     const sel = document.getElementById(id);
@@ -982,13 +987,17 @@ function toggleAlerts() { return; // alerts panel removed
 
 // ===== MODALS =====
 function abrirModalAlistamiento(modulo) {
-  if (modulo) {
-    document.getElementById('alistModulo').value = modulo;
-  }
+  // Repoblar selects con datos frescos cada vez que se abre
+  (async () => {
+    await loadConfig();
+    _populateFormsNow();
+    if (modulo) document.getElementById('alistModulo').value = modulo;
+  })();
   document.getElementById('modalAlistamiento').classList.add('open');
 }
 
 function abrirModalMantenimiento() {
+  (async () => { await loadConfig(); _populateFormsNow(); })();
   document.getElementById('modalMantenimiento').classList.add('open');
 }
 
