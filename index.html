@@ -3291,6 +3291,8 @@ setInterval(()=>{const n=new Date();document.getElementById('clock').textContent
 .cfg-btn-crear2:hover{opacity:.88;}
 .cfg-btn-excel2{padding:9px 16px;border-radius:8px;border:1.5px solid #16a34a;background:#f0fdf4;color:#16a34a;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:none;align-items:center;gap:6px;}
 .cfg-btn-excel2:hover{background:#dcfce7;}
+.cfg-btn-limpiar2{padding:9px 16px;border-radius:8px;border:1.5px solid #dc2626;background:#fff5f5;color:#dc2626;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:none;align-items:center;gap:6px;}
+.cfg-btn-limpiar2:hover{background:#fee2e2;}
 .cfg-btn-tpl2{padding:9px 16px;border-radius:8px;border:1.5px solid #94a3b8;background:#fff;color:#475569;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:none;align-items:center;gap:6px;}
 .cfg-btn-tpl2:hover{border-color:#64748b;background:#f8fafc;}
 .cfg-btn-upload2{padding:9px 16px;border-radius:8px;border:1.5px solid #6366f1;background:#f5f3ff;color:#6366f1;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;align-items:center;gap:6px;}
@@ -3433,8 +3435,9 @@ setInterval(()=>{const n=new Date();document.getElementById('clock').textContent
           <input class="cfg-search-inp" id="cfg-search2" type="text" placeholder="Buscar..." oninput="cfgOnSearch()">
         </div>
         <button class="cfg-btn-tpl2" id="cfg-btn-tpl2" onclick="cfgDownloadPlantilla()">📥 Plantilla</button>
-        <label class="cfg-btn-upload2" id="cfg-btn-upload2" style="display:none;cursor:pointer;">📂 Subir<input type="file" accept=".xlsx,.xls" style="display:none;" onchange="cfgHandleUpload(this.files[0])"></label>
-        <button class="cfg-btn-excel2" id="cfg-btn-excel2" onclick="cfgExcelAction()">📊 Excel</button>
+        <label class="cfg-btn-upload2" id="cfg-btn-upload2" style="display:none;cursor:pointer;">📤 Importar<input type="file" accept=".xlsx,.xls" style="display:none;" onchange="cfgHandleUpload(this.files[0])"></label>
+        <button class="cfg-btn-excel2" id="cfg-btn-excel2" onclick="cfgExcelAction()">📊 Exportar</button>
+        <button class="cfg-btn-limpiar2" id="cfg-btn-limpiar2" style="display:none;" onclick="cfgOnLimpiar()">🗑 Limpiar</button>
         <button class="cfg-btn-crear2" id="cfg-btn-crear2" onclick="cfgOnCrear()">+ Crear</button>
       </div>
       <div class="cfg-body" id="cfg-body2"></div>
@@ -3477,9 +3480,11 @@ function cfgSwitchTab(tab, el){
   const btnCrear = document.getElementById('cfg-btn-crear2');
   const btnExcel = document.getElementById('cfg-btn-excel2');
   const btnTpl   = document.getElementById('cfg-btn-tpl2');
+  const btnLimpiar = document.getElementById('cfg-btn-limpiar2');
   if(searchWrap) searchWrap.style.display = CFG_EXCEL_TABS.includes(tab) ? 'none' : '';
   if(btnExcel)   btnExcel.style.display   = CFG_EXCEL_TABS.includes(tab) ? 'flex' : 'none';
   if(btnTpl)     btnTpl.style.display     = CFG_EXCEL_TABS.includes(tab) ? 'flex' : 'none';
+  if(btnLimpiar) btnLimpiar.style.display = CFG_EXCEL_TABS.includes(tab) ? 'flex' : 'none';
   const btnUpload = document.getElementById('cfg-btn-upload2');
   if(btnUpload)  btnUpload.style.display  = ['usuarios','maquinaria','turnos'].includes(tab) ? 'inline-flex' : 'none';
   if(btnCrear){
@@ -3523,6 +3528,47 @@ function cfgExcelAction(){
   else if(cfgCurrentTab==='turnos') cfgExportTurnos();
   else if(cfgCurrentTab==='usuarios') cfgExportUsuarios();
   else alert('Próximamente: carga/exportación Excel');
+}
+function cfgOnLimpiar(){
+  const modal = document.getElementById('cfg-limpiar-modal');
+  if(!modal) return;
+  const labels = {
+    usuarios: 'operarias',
+    maquinaria: 'máquinas',
+    turnos: 'turnos'
+  };
+  document.getElementById('clm-seccion').textContent = labels[cfgCurrentTab]||cfgCurrentTab;
+  document.getElementById('clm-pass').value='';
+  document.getElementById('clm-error').textContent='';
+  modal.style.display='flex';
+  setTimeout(()=>document.getElementById('clm-pass').focus(),100);
+}
+function cfgConfirmarLimpiar(){
+  const pass = document.getElementById('clm-pass').value;
+  const errEl = document.getElementById('clm-error');
+  // Verificar contraseña contra los perfiles del sistema
+  const allUsers = getCfgUsuarios();
+  const PASS_ADMIN = '1234'; // fallback
+  // Buscar si la contraseña coincide con algún perfil habilitado
+  const valid = Object.values(allUsers).some(u=>!u.disabled&&u.pass===pass) || pass===PASS_ADMIN;
+  if(!valid){ errEl.textContent='Contraseña incorrecta'; document.getElementById('clm-pass').value=''; document.getElementById('clm-pass').focus(); return; }
+  // Ejecutar limpieza según sección
+  const iaS = typeof iaState!=='undefined'&&iaState ? iaState : {};
+  if(cfgCurrentTab==='usuarios'){
+    if(iaS.employees) iaS.employees=[];
+    if(typeof saveIaState==='function') saveIaState();
+  } else if(cfgCurrentTab==='maquinaria'){
+    const cfg = getConfig();
+    cfg.maquinas=[];
+    saveConfig(cfg);
+  } else if(cfgCurrentTab==='turnos'){
+    const cfg = getConfig();
+    cfg.turnos=[];
+    saveConfig(cfg);
+  }
+  document.getElementById('cfg-limpiar-modal').style.display='none';
+  cfgSwitchTab(cfgCurrentTab, document.getElementById('cfgn-'+cfgCurrentTab));
+  showToastSimple('🗑 Listado limpiado correctamente');
 }
 function cfgDownloadPlantilla(){
   if(cfgCurrentTab==='maquinaria') cfgPlantillaMaq();
@@ -3675,13 +3721,15 @@ function cfgExportUsuarios(){
   const emps = iaS.employees||[];
   if(!emps.length){showToastSimple('No hay operarias para exportar');return;}
   const rows = emps.map(e=>{
-    const sup = sups.find(s=>s.id===e.supId);
+    // supId ahora puede ser un nombre directo o un id legacy
+    const supObj = (iaS.supervisors||[]).find(s=>s.id===e.supId);
+    const supNombre = supObj?supObj.name:(e.supId||'');
     return {
       Cedula: e.cedula||'',
       Nombre: e.name||'',
       Cargo: e.cargo||'',
       Modulo: e.module||e.modulo||'',
-      Supervisora: sup?sup.name:'',
+      Supervisora: supNombre,
       Estado: e.disabled?'inactiva':'activa'
     };
   });
@@ -3846,7 +3894,7 @@ function cfgSaveCargo(){
 function cfgRenderUsuarios(body){
   const iaS = typeof iaState!=='undefined'&&iaState ? iaState : {employees:[],supervisors:[]};
   const emps = iaS.employees||[];
-  const sups = iaS.supervisors||[];
+  const sups = emps.filter(e=>!e.disabled&&/^supervisor[a]?$/i.test((e.cargo||'').trim()));
 
   // ── Stats ─────────────────────────────────────────────────────────
   const statsRow = document.createElement('div'); statsRow.className='cfg-stats-row';
@@ -3864,9 +3912,9 @@ function cfgRenderUsuarios(body){
   const usrCols = [
     {label:'Cédula',      id:'uf-cedula',  type:'text'},
     {label:'Nombre',      id:'uf-nombre',  type:'text'},
-    {label:'Cargo',       id:'uf-cargo',   type:'cargo'},
+    {label:'Cargo',       id:'uf-cargo',   type:'text'},
     {label:'Módulo',      id:'uf-modulo',  type:'text'},
-    {label:'Supervisora', id:'uf-sup',     type:'select'},
+    {label:'Supervisora', id:'uf-sup',     type:'text'},
     {label:'Estado',      id:'uf-estado',  type:'estado'},
     {label:'Acciones',    id:null,         type:'none'},
   ];
@@ -3878,14 +3926,6 @@ function cfgRenderUsuarios(body){
     if(c.type==='text'){
       const inp=document.createElement('input'); inp.type='text'; inp.id=c.id; inp.placeholder='Filtrar…';
       inp.className='cfg-col-filter'; inp.oninput=()=>applyFiltros(); cell.appendChild(inp);
-    } else if(c.type==='cargo'){
-      const sel=document.createElement('select'); sel.id=c.id; sel.className='cfg-col-filter'; sel.style.cursor='pointer';
-      sel.innerHTML='<option value="">Todos</option>'+cargosDisp.map(c=>`<option value="${c.nombre}">${c.nombre}</option>`).join('');
-      sel.onchange=()=>applyFiltros(); cell.appendChild(sel);
-    } else if(c.type==='select'){
-      const sel=document.createElement('select'); sel.id=c.id; sel.className='cfg-col-filter'; sel.style.cursor='pointer';
-      sel.innerHTML='<option value="">Todas</option>'+sups.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
-      sel.onchange=()=>applyFiltros(); cell.appendChild(sel);
     } else if(c.type==='estado'){
       const sel=document.createElement('select'); sel.id=c.id; sel.className='cfg-col-filter'; sel.style.cursor='pointer';
       sel.innerHTML='<option value="">Todas</option><option value="activa">Activa</option><option value="inactiva">Inactiva</option>';
@@ -3899,25 +3939,28 @@ function cfgRenderUsuarios(body){
   function applyFiltros(){
     const get=id=>(document.getElementById(id)||{value:''}).value.trim().toLowerCase();
     const qCed=get('uf-cedula'), qNom=get('uf-nombre'), qMod=get('uf-modulo');
-    const qSup=(document.getElementById('uf-sup')||{value:''}).value;
+    const qSup=(document.getElementById('uf-sup')||{value:''}).value.trim().toLowerCase();
     const qEst=(document.getElementById('uf-estado')||{value:''}).value;
-    const qCargo=(document.getElementById('uf-cargo')||{value:''}).value.toLowerCase();
+    const qCargo=(document.getElementById('uf-cargo')||{value:''}).value.trim().toLowerCase();
     const list=emps.filter(e=>{
       const matchCed = !qCed||(e.cedula||'').toLowerCase().includes(qCed);
       const matchNom = !qNom||(e.name||'').toLowerCase().includes(qNom);
       const matchMod = !qMod||(e.module||e.modulo||'').toLowerCase().includes(qMod);
-      const matchSup = !qSup||(e.supId===qSup);
+      const supObj = sups.find(s=>s.id===e.supId)||iaS.supervisors?.find(s=>s.id===e.supId);
+      const supNombre = supObj?supObj.name:(e.supId||'');
+      const matchSup = !qSup||supNombre.toLowerCase().includes(qSup);
       const matchEst = !qEst||(qEst==='activa'?!e.disabled:!!e.disabled);
       const matchCargo = !qCargo||(e.cargo||'').toLowerCase().includes(qCargo);
       return matchCed&&matchNom&&matchMod&&matchSup&&matchEst&&matchCargo;
     });
     tbl.querySelectorAll('.cfg-user-row').forEach(r=>r.remove());
     list.forEach(e=>{
-      const sup=sups.find(s=>s.id===e.supId);
+      const supObj = sups.find(s=>s.id===e.supId)||iaS.supervisors?.find(s=>s.id===e.supId);
+      const supNombreRow = supObj?supObj.name:(e.supNombre||e.supervisora||'');
       const isOff=!!e.disabled;
       const row=document.createElement('div'); row.className='cfg-user-row'+(isOff?' disabled':'');
       row.style.gridTemplateColumns=COLS;
-      row.innerHTML=`<div class="cfg-user-cell muted" style="font-family:'Courier New',monospace;font-size:12px;">${e.cedula||'—'}</div><div class="cfg-user-cell">${e.name||'—'}</div><div class="cfg-user-cell muted">${e.cargo?`<span style="background:#eff6ff;color:#2563eb;border-radius:5px;padding:1px 7px;font-size:11px;font-weight:600;">${e.cargo}</span>`:'—'}</div><div class="cfg-user-cell muted">${e.module||e.modulo||'—'}</div><div class="cfg-user-cell muted">${sup?sup.name:'—'}</div><div class="cfg-user-cell"><span class="cfg-pill ${isOff?'inactiva':'activa'}">${isOff?'● Inactiva':'● Activa'}</span></div>`;
+      row.innerHTML=`<div class="cfg-user-cell muted" style="font-family:'Courier New',monospace;font-size:12px;">${e.cedula||'—'}</div><div class="cfg-user-cell">${e.name||'—'}</div><div class="cfg-user-cell muted">${e.cargo?`<span style="background:#eff6ff;color:#2563eb;border-radius:5px;padding:1px 7px;font-size:11px;font-weight:600;">${e.cargo}</span>`:'—'}</div><div class="cfg-user-cell muted">${e.module||e.modulo||'—'}</div><div class="cfg-user-cell muted">${supNombreRow||'—'}</div><div class="cfg-user-cell"><span class="cfg-pill ${isOff?'inactiva':'activa'}">${isOff?'● Inactiva':'● Activa'}</span></div>`;
       const acts=document.createElement('div'); acts.className='cfg-row-acts'; acts.style.cssText='display:flex;gap:4px;';
       const bE=document.createElement('button'); bE.className='cfg-row-btn'; bE.textContent='✏️'; bE.title='Editar'; bE.onclick=()=>cfgOpenUserModal(e);
       const bT=document.createElement('button'); bT.className=`cfg-row-btn tog ${isOff?'on':''}`; bT.textContent=isOff?'✅':'⏸'; bT.title=isOff?'Habilitar':'Inhabilitar';
@@ -3938,22 +3981,29 @@ function cfgRenderUsuarios(body){
   }
   applyFiltros();
 }
-// ── MODAL EDITAR OPERARIA (un solo formulario con todos los campos) ──
+// ── MODAL EDITAR/CREAR USUARIO ────────────────────────────────────
 function cfgOpenUserModal(emp){
   const iaS = typeof iaState!=='undefined'&&iaState ? iaState : {supervisors:[]};
-  const sups = iaS.supervisors||[];
+  const allEmps = iaS.employees||[];
+  const sups = allEmps.filter(e=>!e.disabled&&/^supervisor[a]?$/i.test((e.cargo||'').trim()));
   const modal = document.getElementById('cfg-operaria-modal');
   if(!modal){ console.error('cfg-operaria-modal not found'); return; }
   document.getElementById('com-target-idx').value = (iaS.employees||[]).indexOf(emp);
   document.getElementById('com-nombre').value  = emp.name||'';
   document.getElementById('com-cedula').value  = emp.cedula||'';
-  document.getElementById('com-modulo').value  = emp.module||emp.modulo||'';
+  // Poblar módulos como select
+  const empMod = emp.module||emp.modulo||'';
+  const selMod = document.getElementById('com-modulo');
+  selMod.innerHTML='<option value="">Sin módulo</option>'+(typeof MODULES!=='undefined'?MODULES.map(m=>`<option value="${m}"${empMod===m?' selected':''}>${m}</option>`).join(''):'');
+  // Poblar cargos
   const selCargo = document.getElementById('com-cargo');
   const cargosM = cfgGetCargos();
   selCargo.innerHTML='<option value="">Sin cargo</option>'+cargosM.map(c=>`<option value="${c.nombre}"${emp.cargo===c.nombre?' selected':''}>${c.nombre}</option>`).join('');
+  // Poblar supervisoras
   const selSup = document.getElementById('com-supervisora');
-  selSup.innerHTML = '<option value="">Sin supervisora</option>'+sups.map(s=>`<option value="${s.id}"${emp.supId===s.id?' selected':''}>${s.name}</option>`).join('');
+  selSup.innerHTML = '<option value="">Sin supervisora</option>'+sups.map(s=>`<option value="${s.name}"${emp.supId===s.name?' selected':''}>${s.name}</option>`).join('');
   document.getElementById('com-error').textContent='';
+  document.getElementById('com-modal-title').textContent='✏️ EDITAR USUARIO';
   modal.style.display='flex';
   setTimeout(()=>document.getElementById('com-nombre').focus(),100);
 }
@@ -3973,31 +4023,36 @@ function cfgSaveUserModal(){
   emp.cedula = cedula;
   emp.module = modulo;
   emp.modulo = modulo;
-  emp.supId  = supId;
+  emp.supId  = supId;   // ahora supId guarda el nombre de la supervisora
   emp.cargo  = cargo;
   if(typeof saveIaState==='function') saveIaState();
   document.getElementById('cfg-operaria-modal').style.display='none';
   cfgSwitchTab('usuarios', document.getElementById('cfgn-usuarios'));
-  showToastSimple('✅ Operaria actualizada');
+  showToastSimple('✅ Usuario actualizado');
 }
 
 // ── CREAR NUEVA OPERARIA ──────────────────────────────────────────
 function cfgOpenNuevaOperaria(){
   const iaS = typeof iaState!=='undefined'&&iaState ? iaState : {supervisors:[]};
-  const sups = iaS.supervisors||[];
+  const allEmpsN = iaS.employees||[];
+  const supsN = allEmpsN.filter(e=>!e.disabled&&/^supervisor[a]?$/i.test((e.cargo||'').trim()));
   const modal = document.getElementById('cfg-operaria-modal');
   if(!modal){ console.error('cfg-operaria-modal not found'); return; }
   document.getElementById('com-target-idx').value = '-1';
   document.getElementById('com-nombre').value  = '';
   document.getElementById('com-cedula').value  = '';
-  document.getElementById('com-modulo').value  = '';
+  // Poblar módulos
+  const selMod = document.getElementById('com-modulo');
+  selMod.innerHTML='<option value="">Sin módulo</option>'+(typeof MODULES!=='undefined'?MODULES.map(m=>`<option value="${m}">${m}</option>`).join(''):'');
+  // Poblar cargos
   const selCargoN = document.getElementById('com-cargo');
   const cargosN = cfgGetCargos();
   selCargoN.innerHTML='<option value="">Sin cargo</option>'+cargosN.map(c=>`<option value="${c.nombre}">${c.nombre}</option>`).join('');
+  // Poblar supervisoras
   const selSup = document.getElementById('com-supervisora');
-  selSup.innerHTML = '<option value="">Sin supervisora</option>'+sups.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  selSup.innerHTML = '<option value="">Sin supervisora</option>'+supsN.map(s=>`<option value="${s.name}">${s.name}</option>`).join('');
   document.getElementById('com-error').textContent='';
-  document.getElementById('com-modal-title').textContent='➕ NUEVA OPERARIA';
+  document.getElementById('com-modal-title').textContent='➕ NUEVO USUARIO';
   modal.style.display='flex';
   setTimeout(()=>document.getElementById('com-nombre').focus(),100);
 }
@@ -4023,7 +4078,7 @@ function cfgSaveNuevaOperaria(){
   document.getElementById('cfg-operaria-modal').style.display='none';
   document.getElementById('com-modal-title').textContent='✏️ EDITAR OPERARIA';
   cfgSwitchTab('usuarios', document.getElementById('cfgn-usuarios'));
-  showToastSimple(idx===-1?'✅ Operaria creada':'✅ Operaria actualizada');
+  showToastSimple(idx===-1?'✅ Usuario creado':'✅ Usuario actualizado');
 }
 
 // ── IMPORTAR USUARIOS DESDE EXCEL ────────────────────────────────
@@ -7614,7 +7669,7 @@ function cfgSavePerfilModal(){
 <!-- MODAL OPERARIA: Crear / Editar -->
 <div id="cfg-operaria-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:1000;align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
   <div style="background:#fff;border-radius:16px;padding:28px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.2);font-family:'Nunito',sans-serif;">
-    <div id="com-modal-title" style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;letter-spacing:2px;color:#0f172a;margin-bottom:20px;">✏️ EDITAR OPERARIA</div>
+    <div id="com-modal-title" style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;letter-spacing:2px;color:#0f172a;margin-bottom:20px;">✏️ EDITAR USUARIO</div>
     <input type="hidden" id="com-target-idx">
     <div style="display:flex;flex-direction:column;gap:13px;">
       <div>
@@ -7627,7 +7682,9 @@ function cfgSavePerfilModal(){
       </div>
       <div>
         <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:4px;">Módulo</label>
-        <input id="com-modulo" type="text" placeholder="Ej: M01" style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:'Courier New',monospace;font-size:14px;outline:none;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+        <select id="com-modulo" style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:'Nunito',sans-serif;font-size:13px;outline:none;background:#fff;cursor:pointer;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+          <option value="">Sin módulo</option>
+        </select>
       </div>
       <div>
         <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:4px;">Cargo</label>
@@ -7650,6 +7707,20 @@ function cfgSavePerfilModal(){
   </div>
 </div>
 
+
+<!-- MODAL: Limpiar listado -->
+<div id="cfg-limpiar-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1002;align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:#fff;border-radius:16px;padding:28px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,.25);font-family:'Nunito',sans-serif;">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;letter-spacing:2px;color:#dc2626;margin-bottom:8px;">⚠️ LIMPIAR LISTADO</div>
+    <p style="font-size:13px;color:#475569;margin:0 0 18px;">Se eliminarán <strong>todos los registros</strong> de <strong id="clm-seccion"></strong>. Esta acción no se puede deshacer.<br><br>Ingresa tu contraseña para confirmar:</p>
+    <input id="clm-pass" type="password" placeholder="••••••••" style="width:100%;box-sizing:border-box;padding:10px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:'Courier New',monospace;font-size:18px;letter-spacing:6px;text-align:center;outline:none;" onfocus="this.style.borderColor='#dc2626'" onblur="this.style.borderColor='#e2e8f0'" onkeydown="if(event.key==='Enter')cfgConfirmarLimpiar()">
+    <div id="clm-error" style="color:#dc2626;font-size:12px;margin-top:6px;min-height:16px;text-align:center;font-weight:700;"></div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button onclick="document.getElementById('cfg-limpiar-modal').style.display='none'" style="flex:1;padding:10px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Cancelar</button>
+      <button onclick="cfgConfirmarLimpiar()" style="flex:1;padding:10px;border-radius:8px;border:none;background:linear-gradient(135deg,#b91c1c,#dc2626);color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">🗑 Confirmar</button>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL: Nuevo/Editar CARGO -->
 <div id="cfg-cargo-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:1000;align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
