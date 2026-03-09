@@ -476,7 +476,7 @@ tr:hover td{background:#f8fafc;}
 <div class="toast-container" id="toastContainer"></div>
 
 <script>
-const API = '/bitacora';
+const API = '/alistamiento';
 
 // ===== DATOS GLOBALES =====
 let config = { supervisoras:[], mecanicos:[], modulos:[], maquinas:[] };
@@ -545,26 +545,88 @@ function startClock() {
 }
 
 async function loadConfig() {
+  // ── Leer config desde localStorage (guardada por index.html) ──
+  function getLocalConfig() {
+    try { return JSON.parse(localStorage.getItem('millar_config')||'{}'); } catch(e){ return {}; }
+  }
+  function getLocalState() {
+    try { return JSON.parse(localStorage.getItem('millar_ia_state')||'{}'); } catch(e){ return {}; }
+  }
+
+  const cfg   = getLocalConfig();
+  const state = getLocalState();
+
+  // ── Módulos: base + extras, sin los deshabilitados ──
+  const BASE_MODS = ['M01','M02','M03','M04','M05','M06','M07','M08','M09','M10',
+    'M11','M12','M13','M14','M15','M16','M17','M18','M19','M20',
+    'M21','M22','M23','M24','M25','M26','M27'];
+  const disabled  = cfg._modulos_disabled || [];
+  const extra     = cfg._modulos_extra    || [];
+  const renamed   = cfg._modulos_renamed  || {};
+  const allMods   = [...BASE_MODS, ...extra].filter(m => !disabled.includes(m));
+  const modLabels = allMods.map(m => renamed[m] || m);
+
+  // ── Mecánicos: usuarios del perfil Mecanicos desde localStorage ──
+  // En index.html los mecánicos son supervisores con isAdmin o del grupo Mecanicos
+  // Intentar leer de iaState.supervisors cuyo perfil sea Mecanicos
+  let mecanicos = [];
+  const sups = state.supervisors || [];
+  // Buscar supervisores cuyo nombre de perfil sea Mecanicos o rol mecánico
+  const mecSups = sups.filter(s => {
+    const n = (s.name||'').toUpperCase();
+    return n.includes('MECANIC') || (s.areas||[]).some(a=>a.toLowerCase().includes('mecanic'));
+  });
+  if (mecSups.length) {
+    mecanicos = mecSups.map(s => s.name);
+  } else {
+    // Fallback: leer desde getUsuariosExtra si está disponible, sino usar lista base
+    try {
+      const extras = JSON.parse(localStorage.getItem('usuarios_extra')||'[]');
+      const mecExtras = extras.filter(u => !u.disabled);
+      mecanicos = mecExtras.length ? mecExtras.map(u=>u.nombre) :
+        ['ANDRES RIOS','CESAR CIFUENTES','DAIRON ZAPATA','ELKIN LOPEZ',
+         'JUAN C GONZALEZ','OSCAR ZEA','RICARDO SERNA','WALTER PEREZ','YON CANO'];
+    } catch(e) {
+      mecanicos = ['ANDRES RIOS','CESAR CIFUENTES','DAIRON ZAPATA','ELKIN LOPEZ',
+        'JUAN C GONZALEZ','OSCAR ZEA','RICARDO SERNA','WALTER PEREZ','YON CANO'];
+    }
+  }
+
+  // ── Supervisoras desde iaState ──
+  const supervisoras = sups
+    .filter(s => !s.disabled)
+    .map((s,i) => ({id: s.id||i+1, nombre: s.name, modulos: s.areas||[], rol: s.isAdmin?'Titular':'Titular'}));
+
+  // ── Máquinas: leer desde config._maquinaria ──
+  const maquinasObj = cfg._maquinaria || [];
+  const maquinas = maquinasObj.length
+    ? [...new Set(maquinasObj.filter(m=>!m.disabled).map(m=>m.tipo||m.modelo||m.codigo).filter(Boolean))]
+    : ['Plana','Fileteadora Sencilla','Fileteadora de Seguridad','Fileteadora Refuerzo',
+       'Fileteadora Elástico','Fil Robotina','Recubridora','Cuchilla Izquierda',
+       'Cuchilla Derecha','Rec Multiagujas','Simbra','Cerradora Codo',
+       'Multiagujas','Botonadora','Ojaladora'];
+
+  config = {
+    supervisoras: supervisoras.length ? supervisoras : [
+      {id:1,nombre:'María Pineda',modulos:[],rol:'Titular'},
+      {id:2,nombre:'Yurani Zapata',modulos:[],rol:'Titular'}
+    ],
+    mecanicos,
+    modulos: modLabels,
+    maquinas
+  };
+
+  // ── También intentar sincronizar con el servidor ──
   try {
     const r = await fetch(`${API}/api/config`);
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    config = await r.json();
+    if (r.ok) {
+      const serverCfg = await r.json();
+      // Fusionar: preferir localStorage para módulos/mecánicos, servidor para el resto
+      config.supervisoras = serverCfg.supervisoras || config.supervisoras;
+      // Mantener módulos y mecánicos de localStorage
+    }
   } catch(e) {
-    console.error('loadConfig error:', e);
-    // fallback con datos actualizados
-    config = {
-      supervisoras:[
-        {id:1,nombre:'María Pineda',modulos:['01','02','03','04','05','06','07','08','09'],rol:'Titular'},
-        {id:2,nombre:'Yurani Zapata',modulos:['10','15','16','17','18','19','20','21'],rol:'Titular'},
-        {id:3,nombre:'Maritza Urrego',modulos:['Preparación'],rol:'Titular'},
-        {id:4,nombre:'Mery Tabares',modulos:['22','23','24','25','26','27'],rol:'Titular'},
-        {id:5,nombre:'Ruby Vilora',modulos:['Empaque'],rol:'Titular'},
-        {id:6,nombre:'Oswaldo Acevedo',modulos:[],rol:'Apoyo'}
-      ],
-      mecanicos:['ANDRES RIOS','CESAR CIFUENTES','DAIRON ZAPATA','ELKIN LOPEZ','JUAN C GONZALEZ','OSCAR ZEA','RICARDO SERNA','WALTER PEREZ','YON CANO'],
-      modulos:['M01','M02','M03','M04','M05','M06','M07','M08','M09','M10','M11','M12','M13','M14','M15','M16','M17','M18','M19','M20','M21','M22','M23','M24','M25','M26','M27','Preparación','Empaque'],
-      maquinas:['Plana','Fileteadora Sencilla','Fileteadora de Seguridad','Fileteadora Refuerzo','Fileteadora Elástico','Fil Robotina','Recubridora','Cuchilla Izquierda','Cuchilla Derecha','Rec Multiagujas','Simbra','Cerradora Codo','Multiagujas','Botonadora','Ojaladora']
-    };
+    // Sin servidor — usar solo localStorage (ok)
   }
 }
 
