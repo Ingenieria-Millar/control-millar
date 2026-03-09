@@ -1753,6 +1753,34 @@ function mostrarAreaScreen(){
     btns.appendChild(c);
   }
 
+  // ÁREAS EXTRAS creadas en configuración
+  const cfgExtra = loadConfig();
+  const deletedAreas = cfgExtra._areas_deleted||[];
+  const disabledAreas = cfgExtra._areas_disabled||[];
+  const overridesAreas = cfgExtra._areas_overrides||{};
+  // Áreas base que hayan sido sobreescritas con nombre/icono nuevo pero no están hardcodeadas aquí
+  // (las hardcodeadas ya aparecen arriba: produccion, mecanicos, calidad, ci, empaque, corte, sst)
+  const BUILTIN_KEYS = ['area_produccion','area_ingreso','area_mecanicos','area_montajes','area_calidad','area_ci','area_empaque','area_corte','area_sst'];
+  // Solo mostrar áreas extra (no las builtin que ya están arriba)
+  (cfgExtra._areas_extra||[]).forEach(a=>{
+    if(disabledAreas.includes(a.key)) return; // inactivas no se muestran
+    const label = a.label||'';
+    const icon  = a.icon||'📍';
+    const color = a.color||'#6366f1';
+    // Generar clase de color dinámica con inline style
+    const c=makeCard(icon, label, 'Próximamente', 'ac-blue', ()=>{});
+    c.style.animationDelay=(idx*0.07)+'s'; idx++;
+    c.style.opacity='0.7'; c.style.cursor='default';
+    // Aplicar color del área en el borde izquierdo
+    c.style.setProperty('--ac-color', color);
+    const beforeStyle = document.createElement('style');
+    c.querySelector('.ac-icon') && (c.querySelector('.ac-icon').style.background = color+'18');
+    // Override the ::before color via inline approach — add a colored left border
+    c.style.borderLeft = `4px solid ${color}`;
+    c.onclick = null;
+    btns.appendChild(c);
+  });
+
   // CONFIGURACIONES — solo programador/admin
   if(isProg()){
     const c=makeCard('⚙️','Configuraciones','Usuarios · Módulos · Permisos','ac-orange',()=>{
@@ -1807,13 +1835,13 @@ function mostrarSubMenuMontajes(){
     return card;
   }
   const c1=makeCard('⚙️','Alistamiento','Preparación de máquinas · Pruebas de costura','ac-blue',()=>{
-    window.location.href='/bitacora?seccion=alistamiento';
+    window.location.href='/alistamiento?seccion=alistamiento';
   });
   c1.style.animationDelay='0.05s';
   btns.appendChild(c1);
 
   const c2=makeCard('🔧','Mantenimiento','Preventivo · Correctivo · Fugas','ac-red',()=>{
-    window.location.href='/bitacora?seccion=mantenimiento';
+    window.location.href='/alistamiento?seccion=mantenimiento';
   });
   c2.style.animationDelay='0.12s';
   btns.appendChild(c2);
@@ -2636,6 +2664,7 @@ function deleteExtraUser(nombre){
   delete USUARIOS[nombre];
   renderCfgUsuarios();
   populateLoginSelect();
+  if(document.getElementById('cfgn-perfiles')) cfgSwitchTab('perfiles',document.getElementById('cfgn-perfiles'));
   showToastSimple(`🗑 Usuario "${nombre}" eliminado`);
 }
 
@@ -2771,6 +2800,9 @@ function saveModForm(){
   broadcastModulosConfig();
   closeModForm();
   renderCfgModulos();
+  if(document.getElementById('cfg-screen')&&document.getElementById('cfg-screen').style.display!=='none'){
+    cfgSwitchTab('modulos',document.getElementById('cfgn-modulos'));
+  }
   showToastSimple(`✅ Módulo ${modFormMode==='create'?'creado':'actualizado'}`);
   if(document.getElementById('cfg-screen')&&document.getElementById('cfg-screen').style.display!=='none') cfgSwitchTab('modulos',document.getElementById('cfgn-modulos'));
 }
@@ -2893,18 +2925,21 @@ function renderCfgPermisos(){
 function getCfgAreas(){
   const cfg = loadConfig();
   const overrides = cfg._areas_overrides||{};
-  // Áreas base desde AREAS_CONFIG, con posibles overrides
-  const base = AREAS_CONFIG.map(a=>{
-    const ov = overrides[a.key]||{};
-    return {
-      key: a.key,
-      label: ov.label||a.label,
-      icon:  ov.icon ||a.icon,
-      color: ov.color||a.color,
-      builtin: true,
-      disabled: !!(cfg._areas_disabled && cfg._areas_disabled.includes(a.key))
-    };
-  });
+  const deleted   = cfg._areas_deleted||[];
+  // Áreas base desde AREAS_CONFIG, con posibles overrides, excluidas las eliminadas
+  const base = AREAS_CONFIG
+    .filter(a=>!deleted.includes(a.key))
+    .map(a=>{
+      const ov = overrides[a.key]||{};
+      return {
+        key: a.key,
+        label: ov.label||a.label,
+        icon:  ov.icon ||a.icon,
+        color: ov.color||a.color,
+        builtin: true,
+        disabled: !!(cfg._areas_disabled && cfg._areas_disabled.includes(a.key))
+      };
+    });
   // Áreas extra creadas manualmente
   const extras = (cfg._areas_extra||[]).map(a=>({
     ...a,
@@ -2930,6 +2965,7 @@ function deleteAreaExtra(areaKey){
   cfg._areas_extra = (cfg._areas_extra||[]).filter(a=>a.key!==areaKey);
   saveConfig(cfg);
   renderCfgAreas();
+  if(document.getElementById('cfgn-areas')) cfgSwitchTab('areas',document.getElementById('cfgn-areas'));
 }
 
 let areaFormMode = null;
@@ -4254,6 +4290,7 @@ function cfgSaveMaqModal(){
   saveConfig(cfg);
   document.getElementById('cfg-maq-modal2').style.display='none';
   cfgMaqSearch();
+  if(document.getElementById('cfgn-maquinaria')) cfgSwitchTab('maquinaria',document.getElementById('cfgn-maquinaria'));
   showToastSimple(`✅ Máquina "${codigo}" guardada`);
 }
 function cfgImportMaquinariaXLS(file){
@@ -4301,14 +4338,21 @@ function cfgRenderModulos(body){
   const extra=cfg._modulos_extra||[];
   const renamed=cfg._modulos_renamed||{};
   const modPass=cfg._modulos_pass||{};
-  const allMods=[...MODULES,...extra].filter(m=>!q||(renamed[m]||m).toLowerCase().includes(q));
+  // Incluir TODOS: base + extra, activos e inactivos
+  // rebuildModules() puede eliminar inactivos de MODULES en memoria,
+  // así que reconstruimos la lista completa desde config
+  const baseAll = typeof MODULES_BASE!=='undefined' ? MODULES_BASE : 
+    ['M01','M02','M03','M04','M05','M06','M07','M08','M09','M10','M11','M12',
+     'M13','M14','M15','M16','M17','M18','M19','M20','M21','M22','M23','M24','M25','M26','M27'];
+  const allMods=[...baseAll,...extra].filter(m=>!q||(renamed[m]||m).toLowerCase().includes(q));
   const grid=document.createElement('div'); grid.className='cfg-mod-grid';
   allMods.forEach(m=>{
     const off=disabled.includes(m);
     const displayName=renamed[m]||m;
     const pass=modPass[m]||m;
     const mc=document.createElement('div'); mc.className='cfg-mod-card'+(off?' off':'');
-    mc.innerHTML=`<div class="cfg-dot ${off?'off':''}"></div><div class="cfg-mod-info"><div class="cfg-mod-name">${displayName}</div><div class="cfg-mod-pass">🔑 ${pass}</div></div>`;
+    mc.style.cssText=off?'opacity:.6;border:1.5px solid #fca5a5;':'';
+    mc.innerHTML=`<div class="cfg-dot ${off?'off':''}"></div><div class="cfg-mod-info"><div class="cfg-mod-name">${displayName}${off?'<span style="font-size:9px;background:#fee2e2;color:#dc2626;padding:1px 5px;border-radius:4px;margin-left:6px;font-weight:700;">INACTIVO</span>':''}</div><div class="cfg-mod-pass">🔑 ${pass}</div></div>`;
     const acts=document.createElement('div'); acts.className='cfg-mod-acts';
     const bE=document.createElement('button'); bE.className='cfg-xs edit'; bE.textContent='✏️'; bE.onclick=()=>openModForm('edit',m,displayName); acts.appendChild(bE);
     const bT=document.createElement('button'); bT.className=`cfg-xs ${off?'hab':'inh'}`; bT.textContent=off?'✅':'⏸'; bT.onclick=()=>toggleModuloDisabled(m); acts.appendChild(bT);
@@ -4333,9 +4377,9 @@ function cfgRenderAreas(body){
     av.style.background=a.color+'22'; av.style.border=`1.5px solid ${a.color}55`;
     av.style.fontSize='22px'; av.textContent=a.icon;
     const info=document.createElement('div'); info.className='cfg-info';
-    info.innerHTML=`<div class="cfg-name">${a.label}${a.builtin?'<span class="cfg-badge cfg-badge-sys" style="font-size:9px;margin-left:6px;">BASE</span>':''}${a.disabled?'<span class="cfg-badge cfg-badge-off">INACTIVA</span>':''}</div><div class="cfg-sub plain" style="color:${a.color};">${a.icon} ${a.builtin?'Área base':'Área personalizada'}</div>`;
+    info.innerHTML=`<div class="cfg-name">${a.label}${a.disabled?'<span class="cfg-badge cfg-badge-off">INACTIVA</span>':''}</div>`;
     const acts=document.createElement('div'); acts.className='cfg-actions';
-    // Editar — disponible para TODOS
+    // Editar
     const bE=document.createElement('button'); bE.className='cfg-btn2 edit'; bE.textContent='✏️ Editar';
     bE.onclick=()=>openAreaForm('edit',a.key); acts.appendChild(bE);
     // Inhabilitar/Habilitar
@@ -4343,12 +4387,21 @@ function cfgRenderAreas(body){
     bT.textContent=a.disabled?'✅ Habilitar':'⏸ Inhabilitar';
     bT.onclick=()=>{saveAreaDisabled(a.key,!a.disabled);cfgSwitchTab('areas',document.getElementById('cfgn-areas'));};
     acts.appendChild(bT);
-    // Eliminar — solo áreas extra (no builtin)
-    if(!a.builtin){
-      const bD=document.createElement('button'); bD.className='cfg-btn2 del'; bD.textContent='🗑 Eliminar';
-      bD.onclick=()=>openConfirmDelete('area',a.label,()=>{deleteAreaExtra(a.key);cfgSwitchTab('areas',document.getElementById('cfgn-areas'));});
-      acts.appendChild(bD);
-    }
+    // Eliminar — TODAS las áreas
+    const bD=document.createElement('button'); bD.className='cfg-btn2 del'; bD.textContent='🗑 Eliminar';
+    bD.onclick=()=>openConfirmDelete('area',a.label,()=>{
+      if(a.builtin){
+        // Para builtin: marcar como eliminada en config
+        const cfg=loadConfig();
+        if(!cfg._areas_deleted) cfg._areas_deleted=[];
+        if(!cfg._areas_deleted.includes(a.key)) cfg._areas_deleted.push(a.key);
+        saveConfig(cfg);
+      } else {
+        deleteAreaExtra(a.key);
+      }
+      cfgSwitchTab('areas',document.getElementById('cfgn-areas'));
+    });
+    acts.appendChild(bD);
     card.appendChild(av); card.appendChild(info); card.appendChild(acts); body.appendChild(card);
   });
 }
@@ -4421,7 +4474,7 @@ function cfgRenderPermisos(body){
     <div style="width:100%;display:flex;flex-direction:column;gap:10px;">
       <div style="display:flex;flex-direction:column;gap:5px;">
         <label style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Nombre del módulo</label>
-        <input id="mf-nombre" type="text" placeholder="Ej: M28" maxlength="10" style="padding:11px 14px;border-radius:8px;border:1px solid var(--border);background:#f8fafc;color:#0f172a;font-size:16px;font-family:'Courier New',monospace;letter-spacing:4px;outline:none;" oninput="this.style.borderColor='var(--border)'">
+        <input id="mf-nombre" type="text" placeholder="Ej: M28" maxlength="20" style="padding:11px 14px;border-radius:8px;border:1px solid var(--border);background:#f8fafc;color:#0f172a;font-size:16px;font-family:'Courier New',monospace;letter-spacing:4px;outline:none;" oninput="this.style.borderColor='var(--border)'">
       </div>
       <div style="display:flex;flex-direction:column;gap:5px;">
         <label style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Contraseña del módulo</label>
@@ -7402,7 +7455,7 @@ function cfgSavePerfilModal(){
   const FIJOS = ['Programador','Administrador','Modulos','Televisor','Mecanicos','Supervisoras'];
   const target = document.getElementById('cpf-target').value;
   const isEdit = !!target;
-  const nombre = isEdit ? target : document.getElementById('cpf-nombre').value.trim();
+  const nombre = document.getElementById('cpf-nombre').value.trim(); // siempre leer del input
   const pass   = document.getElementById('cpf-pass').value.trim();
   const errEl  = document.getElementById('cpf-error');
   errEl.textContent='';
