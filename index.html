@@ -2892,13 +2892,25 @@ function renderCfgPermisos(){
 // Áreas personalizadas guardadas en config
 function getCfgAreas(){
   const cfg = loadConfig();
-  // Áreas base desde AREAS_CONFIG
-  const base = AREAS_CONFIG.map(a=>({
-    key: a.key, label: a.label, icon: a.icon, color: a.color, builtin: true,
+  const overrides = cfg._areas_overrides||{};
+  // Áreas base desde AREAS_CONFIG, con posibles overrides
+  const base = AREAS_CONFIG.map(a=>{
+    const ov = overrides[a.key]||{};
+    return {
+      key: a.key,
+      label: ov.label||a.label,
+      icon:  ov.icon ||a.icon,
+      color: ov.color||a.color,
+      builtin: true,
+      disabled: !!(cfg._areas_disabled && cfg._areas_disabled.includes(a.key))
+    };
+  });
+  // Áreas extra creadas manualmente
+  const extras = (cfg._areas_extra||[]).map(a=>({
+    ...a,
+    builtin:false,
     disabled: !!(cfg._areas_disabled && cfg._areas_disabled.includes(a.key))
   }));
-  // Áreas extra creadas manualmente
-  const extras = (cfg._areas_extra||[]).map(a=>({...a, builtin:false}));
   return [...base, ...extras];
 }
 
@@ -2923,6 +2935,32 @@ function deleteAreaExtra(areaKey){
 let areaFormMode = null;
 let areaFormTarget = null;
 
+function cfgAreaAutoEmoji(nombre){
+  // Devuelve emoji automático según el nombre del área
+  const n = nombre.toLowerCase();
+  const mapa = [
+    [/cost[u]?ra|coser|maquina/,'🧵'],
+    [/cort[e]/,'✂️'],
+    [/empaqu|embalaj|empaque/,'📦'],
+    [/plancha|vapor/,'🫧'],
+    [/control|calidad|revisar/,'🔍'],
+    [/bodega|almacen|almacén/,'🏭'],
+    [/taller|mecani/,'🔧'],
+    [/diseño|patron|patronaje/,'📐'],
+    [/bordado|borda/,'🪡'],
+    [/estampado|stamp/,'🎨'],
+    [/lavado|lavar/,'🫧'],
+    [/corte.*laser|laser/,'⚡'],
+    [/termin|acabado/,'✨'],
+    [/admin|oficin/,'🖥️'],
+    [/despacho|envio|envío/,'🚚'],
+  ];
+  for(const [re,emoji] of mapa){ if(re.test(n)) return emoji; }
+  return null; // no match → mostrar picker
+}
+
+const CFG_EMOJI_LIST = ['📍','🧵','✂️','📦','🔧','🏭','🎨','📐','🪡','⚡','✨','🔍','🖥️','🚚','🫧','🏷️','📌','🎯','🔑','💡','⚙️','🛠️','📋','🗂️','🧰','🪄','🏗️','👗','👕','🧶'];
+
 function openAreaForm(mode, key){
   areaFormMode = mode;
   areaFormTarget = key || null;
@@ -2930,31 +2968,75 @@ function openAreaForm(mode, key){
   const inputLabel = document.getElementById('af-label');
   const inputIcon  = document.getElementById('af-icon');
   const inputColor = document.getElementById('af-color');
+
   if(mode==='edit' && key){
-    title.textContent = 'Editar Area';
-    const cfg = loadConfig();
-    const extras = cfg._areas_extra||[];
-    const a = extras.find(x=>x.key===key);
+    title.textContent = 'Editar Área';
+    // Buscar en extras y en builtin
+    const allAreas = getCfgAreas();
+    const a = allAreas.find(x=>x.key===key);
     if(a){
       inputLabel.value = a.label||'';
-      if(inputIcon)  inputIcon.value  = a.icon||'#';
+      if(inputIcon)  inputIcon.value  = a.icon||'📍';
       if(inputColor) inputColor.value = a.color||'#3b82f6';
     }
   } else {
-    title.textContent = 'Nueva Area';
+    title.textContent = 'Nueva Área';
     inputLabel.value='';
-    if(inputIcon)  inputIcon.value='#';
+    if(inputIcon)  inputIcon.value='📍';
     if(inputColor) inputColor.value='#3b82f6';
   }
+
+  // Mostrar/ocultar picker de emojis según nombre
+  cfgAreaUpdateEmojiPicker(inputLabel.value);
+
+  // Auto-emoji al escribir el nombre
+  inputLabel.oninput = function(){
+    const auto = cfgAreaAutoEmoji(this.value);
+    if(auto && inputIcon){ inputIcon.value = auto; }
+    cfgAreaUpdateEmojiPicker(this.value);
+  };
+
   document.getElementById('af-error').textContent='';
   document.getElementById('modal-area-form').classList.remove('hidden');
   setTimeout(()=>inputLabel.focus(),100);
+}
+
+function cfgAreaUpdateEmojiPicker(nombre){
+  const picker  = document.getElementById('af-emoji-picker');
+  const preview = document.getElementById('af-icon-preview');
+  const hiddenInput = document.getElementById('af-icon');
+  if(!picker) return;
+  const auto = cfgAreaAutoEmoji(nombre);
+  if(auto){
+    picker.style.display='none';
+    if(preview) preview.textContent=auto;
+    if(hiddenInput) hiddenInput.value=auto;
+  } else {
+    picker.style.display='flex';
+    // Poblar grid si vacío
+    const grid = document.getElementById('af-emoji-grid');
+    if(grid && !grid.childElementCount){
+      CFG_EMOJI_LIST.forEach(em=>{
+        const btn=document.createElement('button');
+        btn.type='button';
+        btn.style.cssText='width:36px;height:36px;border-radius:8px;border:1.5px solid #e2e8f0;background:#f8fafc;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .1s;';
+        btn.textContent=em;
+        btn.onclick=()=>{
+          if(hiddenInput) hiddenInput.value=em;
+          if(preview) preview.textContent=em;
+          grid.querySelectorAll('button').forEach(b=>b.style.background='#f8fafc');
+          btn.style.background='#dbeafe';
+        };
+        grid.appendChild(btn);
+      });
+    }
+  }
 }
 function closeAreaForm(){ document.getElementById('modal-area-form').classList.add('hidden'); }
 
 function saveAreaForm(){
   const label = document.getElementById('af-label').value.trim();
-  const icon  = document.getElementById('af-icon').value.trim() || '📍';
+  const icon  = (document.getElementById('af-icon').value||'').trim() || '📍';
   const color = document.getElementById('af-color').value || '#3b82f6';
   const errEl = document.getElementById('af-error');
   if(!label){ errEl.textContent='Ingresa un nombre para el área.'; return; }
@@ -2963,12 +3045,19 @@ function saveAreaForm(){
   if(!cfg._areas_extra) cfg._areas_extra=[];
 
   if(areaFormMode==='edit' && areaFormTarget){
+    // Intentar en extras primero
     const idx = cfg._areas_extra.findIndex(a=>a.key===areaFormTarget);
-    if(idx>-1){ cfg._areas_extra[idx].label=label; cfg._areas_extra[idx].icon=icon; cfg._areas_extra[idx].color=color; }
+    if(idx>-1){
+      cfg._areas_extra[idx].label=label; cfg._areas_extra[idx].icon=icon; cfg._areas_extra[idx].color=color;
+    } else {
+      // Es builtin — guardar override
+      if(!cfg._areas_overrides) cfg._areas_overrides={};
+      cfg._areas_overrides[areaFormTarget]={label,icon,color};
+    }
   } else {
-    // Generar key única
     const key = 'area_custom_'+Date.now();
-    cfg._areas_extra.push({key, label, icon, color});
+    const autoIcon = cfgAreaAutoEmoji(label)||icon;
+    cfg._areas_extra.push({key, label, icon:autoIcon, color});
   }
   saveConfig(cfg);
   closeAreaForm();
@@ -3168,6 +3257,8 @@ setInterval(()=>{const n=new Date();document.getElementById('clock').textContent
 .cfg-btn-excel2:hover{background:#dcfce7;}
 .cfg-btn-tpl2{padding:9px 16px;border-radius:8px;border:1.5px solid #94a3b8;background:#fff;color:#475569;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:none;align-items:center;gap:6px;}
 .cfg-btn-tpl2:hover{border-color:#64748b;background:#f8fafc;}
+.cfg-btn-upload2{padding:9px 16px;border-radius:8px;border:1.5px solid #6366f1;background:#f5f3ff;color:#6366f1;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;align-items:center;gap:6px;}
+.cfg-btn-upload2:hover{background:#ede9fe;}
 .cfg-body{flex:1;overflow-y:auto;padding:20px 24px;}
 /* CARDS */
 .cfg-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px 18px;margin-bottom:10px;display:flex;align-items:center;gap:14px;box-shadow:0 1px 3px rgba(0,0,0,.05);transition:box-shadow .15s;}
@@ -3218,8 +3309,11 @@ setInterval(()=>{const n=new Date();document.getElementById('clock').textContent
 .cfg-tipo-badge.extra{background:#fef3c7;color:#d97706;border:1px solid #fde68a;}
 /* USUARIOS TABLE */
 .cfg-user-table{background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.05);margin-bottom:16px;}
-.cfg-user-hdr{display:grid;grid-template-columns:2fr 1.2fr .8fr 1.5fr .8fr 130px;background:#f8fafc;border-bottom:1px solid #e2e8f0;padding:10px 18px;gap:8px;}
-.cfg-user-hdr>div{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;}
+.cfg-user-hdr{display:grid;grid-template-columns:2fr 1.2fr .8fr 1.5fr .8fr 130px;background:#f8fafc;border-bottom:2px solid #e2e8f0;padding:10px 18px 8px;gap:8px;align-items:start;}
+.cfg-user-hdr>div{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;display:flex;flex-direction:column;gap:4px;}
+.cfg-col-filter{width:100%;box-sizing:border-box;padding:3px 7px;border-radius:5px;border:1.5px solid #e2e8f0;font-family:'Nunito',sans-serif;font-size:11px;outline:none;color:#0f172a;background:#fff;transition:border-color .15s;}
+.cfg-col-filter:focus{border-color:#2563eb;background:#f0f7ff;}
+.cfg-col-filter::placeholder{color:#cbd5e1;}
 .cfg-user-filters{display:grid;grid-template-columns:2fr 1.2fr .8fr 1.5fr .8fr 130px;background:#f8fafc;border-bottom:1px solid #e2e8f0;padding:7px 18px;gap:8px;}
 .cfg-tbl-filter{width:100%;padding:5px 9px;border-radius:6px;border:1.5px solid #e2e8f0;background:#fff;color:#0f172a;font-family:'Nunito',sans-serif;font-size:12px;outline:none;transition:border-color .2s;}
 .cfg-tbl-filter:focus{border-color:#2563eb;}
@@ -3302,6 +3396,7 @@ setInterval(()=>{const n=new Date();document.getElementById('clock').textContent
           <input class="cfg-search-inp" id="cfg-search2" type="text" placeholder="Buscar..." oninput="cfgOnSearch()">
         </div>
         <button class="cfg-btn-tpl2" id="cfg-btn-tpl2" onclick="cfgDownloadPlantilla()">📥 Plantilla</button>
+        <label class="cfg-btn-upload2" id="cfg-btn-upload2" style="display:none;cursor:pointer;">📂 Subir<input type="file" accept=".xlsx,.xls" style="display:none;" onchange="cfgHandleUpload(this.files[0])"></label>
         <button class="cfg-btn-excel2" id="cfg-btn-excel2" onclick="cfgExcelAction()">📊 Excel</button>
         <button class="cfg-btn-crear2" id="cfg-btn-crear2" onclick="cfgOnCrear()">+ Crear</button>
       </div>
@@ -3320,10 +3415,10 @@ const CFG_TITLES = {
 };
 const CFG_CREAR_LABELS = {
   perfiles:'+ Nuevo perfil', usuarios:'+ Nuevo usuario', maquinaria:'+ Nueva máquina',
-  modulos:'+ Nuevo módulo', areas:'+ Nueva área'
+  modulos:'+ Nuevo módulo', areas:'+ Nueva área', turnos:'+ Nuevo turno'
 };
 const CFG_EXCEL_TABS = ['maquinaria','turnos','usuarios'];
-const CFG_NO_CREATE_TABS = ['permisos','turnos'];
+const CFG_NO_CREATE_TABS = ['permisos'];
 
 function openCfgScreen(){
   document.getElementById('cfg-screen').style.display='flex';
@@ -3348,6 +3443,8 @@ function cfgSwitchTab(tab, el){
   if(searchWrap) searchWrap.style.display = CFG_EXCEL_TABS.includes(tab) ? 'none' : '';
   if(btnExcel)   btnExcel.style.display   = CFG_EXCEL_TABS.includes(tab) ? 'flex' : 'none';
   if(btnTpl)     btnTpl.style.display     = CFG_EXCEL_TABS.includes(tab) ? 'flex' : 'none';
+  const btnUpload = document.getElementById('cfg-btn-upload2');
+  if(btnUpload)  btnUpload.style.display  = ['usuarios','maquinaria'].includes(tab) ? 'inline-flex' : 'none';
   if(btnCrear){
     btnCrear.style.display = CFG_NO_CREATE_TABS.includes(tab) ? 'none' : '';
     btnCrear.textContent = CFG_CREAR_LABELS[tab]||'+ Crear';
@@ -3375,10 +3472,11 @@ function cfgOnSearch(){
 }
 function cfgOnCrear(){
   if(cfgCurrentTab==='perfiles')   cfgOpenPerfilModal();
-  if(cfgCurrentTab==='usuarios')   openUserForm('create');
+  if(cfgCurrentTab==='usuarios')   cfgOpenNuevaOperaria();
   if(cfgCurrentTab==='modulos')    openModForm('create');
   if(cfgCurrentTab==='areas')      openAreaForm('create');
   if(cfgCurrentTab==='maquinaria') cfgOpenMaqModal();
+  if(cfgCurrentTab==='turnos')     cfgOpenTurnoModal();
 }
 function cfgExcelAction(){
   if(cfgCurrentTab==='maquinaria') cfgExportMaq();
@@ -3393,7 +3491,12 @@ function cfgDownloadPlantilla(){
 }
 function cfgPlantillaMaq(){
   if(typeof XLSX==='undefined'){alert('Librería Excel no disponible');return;}
-  const ws=XLSX.utils.aoa_to_sheet([['Código','Tipo','Marca','Modelo','Serial','Módulo'],['MAQ-001','Plana','Juki','DDL-9000','SN-001','M01']]);
+  const ws=XLSX.utils.aoa_to_sheet([
+    ['Codigo','Tipo','Marca','Modelo','Serial','Ubicacion','Estado'],
+    ['MAQ-001','Plana','Juki','DDL-9000','SN-001','M01','activa'],
+    ['MAQ-002','Fileteadora','Brother','EF4-B222','SN-002','M02','activa']
+  ]);
+  ws['!cols']=[{wch:12},{wch:14},{wch:12},{wch:12},{wch:14},{wch:14},{wch:10}];
   const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Maquinaria');
   XLSX.writeFile(wb,'plantilla_maquinaria.xlsx');
   showToastSimple('📥 Plantilla descargada');
@@ -3429,19 +3532,41 @@ function cfgExportTurnos(){
   showToastSimple('✅ Turnos exportados');
 }
 function cfgExportUsuarios(){
-  const extras=getUsuariosExtra();
-  if(typeof XLSX==='undefined'){return;}
-  const rows=extras.map(u=>({Nombre:u.nombre,Estado:u.disabled?'inactivo':'activo'}));
-  const ws=XLSX.utils.json_to_sheet(rows);
-  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Usuarios');
-  XLSX.writeFile(wb,'usuarios_millar.xlsx');
-  showToastSimple('✅ Usuarios exportados');
+  if(typeof XLSX==='undefined'){alert('Librería Excel no disponible');return;}
+  const iaS = typeof iaState!=='undefined'&&iaState ? iaState : {employees:[],supervisors:[]};
+  const sups = iaS.supervisors||[];
+  const emps = iaS.employees||[];
+  if(!emps.length){showToastSimple('No hay operarias para exportar');return;}
+  const rows = emps.map(e=>{
+    const sup = sups.find(s=>s.id===e.supId);
+    return {
+      Cedula: e.cedula||'',
+      Nombre: e.name||'',
+      Modulo: e.module||e.modulo||'',
+      Supervisora: sup?sup.name:'',
+      Estado: e.disabled?'inactiva':'activa'
+    };
+  });
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols']=[{wch:14},{wch:25},{wch:10},{wch:25},{wch:10}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Operarias');
+  XLSX.writeFile(wb,'operarias_millar.xlsx');
+  showToastSimple('✅ Lista de operarias exportada');
 }
 function cfgGetSearch(){ const el=document.getElementById('cfg-search2'); return el?el.value.trim().toLowerCase():''; }
+function cfgHandleUpload(file){
+  if(!file) return;
+  if(cfgCurrentTab==='usuarios')   cfgImportUsuariosXLS(file);
+  if(cfgCurrentTab==='maquinaria') cfgImportMaquinariaXLS(file);
+  // reset input so same file can be re-uploaded
+  const inp = document.querySelector('#cfg-btn-upload2 input[type=file]');
+  if(inp) inp.value='';
+}
 // ── CFG SCREEN ALIASES (connect new screen to existing functions) ─────────
 function openConfirmDelete(tipo, nombre, cb){
   // Use existing confirmDelete which shows the modal
-  const titles = {usuario:'¿Eliminar usuario?', modulo:'¿Eliminar módulo?', area:'¿Eliminar área?'};
+  const titles = {usuario:'¿Eliminar usuario?', modulo:'¿Eliminar módulo?', area:'¿Eliminar área?', maquina:'¿Eliminar máquina?', turno:'¿Eliminar turno?'};
   confirmDelete(titles[tipo]||'¿Eliminar?', `Se eliminará "${nombre}". Esta acción no se puede deshacer.`, cb);
 }
 function toggleModuloDisabled(id){
@@ -3483,53 +3608,65 @@ function cfgRenderPerfiles(body){
 
 // ── USUARIOS (operarias) ──────────────────────────────────────────
 function cfgRenderUsuarios(body){
-  const iaS = typeof iaState!=='undefined' ? iaState : {employees:[]};
-  const emps = (iaS.employees||[]);
-  const q = cfgGetSearch();
-
-  // ── Barra de filtros ──────────────────────────────────────────────
-  const filtersRow = document.createElement('div');
-  filtersRow.style.cssText='display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center;';
-  // Buscador por nombre/cédula
-  const searchBox = document.createElement('input');
-  searchBox.type='text'; searchBox.placeholder='🔍 Buscar por nombre o cédula…';
-  searchBox.value = q;
-  searchBox.style.cssText='flex:1;min-width:200px;padding:9px 14px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:"Nunito",sans-serif;font-size:13px;outline:none;';
-  searchBox.oninput=()=>{ const s=document.getElementById('cfg-search2'); if(s) s.value=searchBox.value; cfgOnSearch(); };
-  // Filtro estado
-  const filtEst = document.createElement('select');
-  filtEst.style.cssText='padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:"Nunito",sans-serif;font-size:13px;outline:none;background:#fff;cursor:pointer;';
-  filtEst.innerHTML='<option value="">Todos los estados</option><option value="activa">Activas</option><option value="inactiva">Inactivas</option>';
-  // Filtro supervisora
+  const iaS = typeof iaState!=='undefined'&&iaState ? iaState : {employees:[],supervisors:[]};
+  const emps = iaS.employees||[];
   const sups = iaS.supervisors||[];
-  const filtSup = document.createElement('select');
-  filtSup.style.cssText='padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:"Nunito",sans-serif;font-size:13px;outline:none;background:#fff;cursor:pointer;';
-  filtSup.innerHTML='<option value="">Todas las supervisoras</option>'+sups.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
-  filtEst.onchange = filtSup.onchange = ()=>applyFiltros();
-  filtersRow.appendChild(searchBox); filtersRow.appendChild(filtEst); filtersRow.appendChild(filtSup);
-  body.appendChild(filtersRow);
 
   // ── Stats ─────────────────────────────────────────────────────────
-  const statsRow=document.createElement('div'); statsRow.className='cfg-stats-row';
+  const statsRow = document.createElement('div'); statsRow.className='cfg-stats-row';
   statsRow.innerHTML=`<div class="cfg-stat-box"><div class="cfg-stat-num">${emps.length}</div><div class="cfg-stat-lbl">Total</div></div><div class="cfg-stat-box green"><div class="cfg-stat-num">${emps.filter(e=>!e.disabled).length}</div><div class="cfg-stat-lbl">Activas</div></div><div class="cfg-stat-box red"><div class="cfg-stat-num">${emps.filter(e=>e.disabled).length}</div><div class="cfg-stat-lbl">Inactivas</div></div>`;
   body.appendChild(statsRow);
 
-  // ── Tabla ─────────────────────────────────────────────────────────
-  const COLS = '1.2fr 2fr 1.5fr 1.5fr .9fr 160px';
-  const tbl=document.createElement('div'); tbl.className='cfg-user-table'; tbl.id='cfg-usr-tbl';
-  tbl.innerHTML=`<div class="cfg-user-hdr" style="grid-template-columns:${COLS}"><div>Cédula</div><div>Nombre</div><div>Módulo</div><div>Supervisora</div><div>Estado</div><div>Acciones</div></div>`;
+  // ── Tabla con filtros por columna ─────────────────────────────────
+  const COLS = '1.2fr 2fr 1.3fr 1.5fr .9fr 100px';
+  const INP_S = "width:100%;box-sizing:border-box;padding:3px 6px;border-radius:5px;border:1px solid #e2e8f0;font-family:'Nunito',sans-serif;font-size:11px;outline:none;color:#0f172a;background:#fff;";
+  const tbl = document.createElement('div'); tbl.className='cfg-user-table'; tbl.id='cfg-usr-tbl';
+
+  // Encabezados con filtros debajo
+  const hdr = document.createElement('div'); hdr.className='cfg-user-hdr'; hdr.style.gridTemplateColumns=COLS;
+  const usrCols = [
+    {label:'Cédula',      id:'uf-cedula',  type:'text'},
+    {label:'Nombre',      id:'uf-nombre',  type:'text'},
+    {label:'Módulo',      id:'uf-modulo',  type:'text'},
+    {label:'Supervisora', id:'uf-sup',     type:'select'},
+    {label:'Estado',      id:'uf-estado',  type:'estado'},
+    {label:'Acciones',    id:null,         type:'none'},
+  ];
+  usrCols.forEach(c=>{
+    const cell=document.createElement('div'); cell.style.cssText='display:flex;flex-direction:column;gap:4px;';
+    const lbl=document.createElement('span'); lbl.textContent=c.label;
+    lbl.style.cssText='font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;';
+    cell.appendChild(lbl);
+    if(c.type==='text'){
+      const inp=document.createElement('input'); inp.type='text'; inp.id=c.id; inp.placeholder='Filtrar…';
+      inp.className='cfg-col-filter'; inp.oninput=()=>applyFiltros(); cell.appendChild(inp);
+    } else if(c.type==='select'){
+      const sel=document.createElement('select'); sel.id=c.id; sel.className='cfg-col-filter'; sel.style.cursor='pointer';
+      sel.innerHTML='<option value="">Todas</option>'+sups.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+      sel.onchange=()=>applyFiltros(); cell.appendChild(sel);
+    } else if(c.type==='estado'){
+      const sel=document.createElement('select'); sel.id=c.id; sel.className='cfg-col-filter'; sel.style.cursor='pointer';
+      sel.innerHTML='<option value="">Todas</option><option value="activa">Activa</option><option value="inactiva">Inactiva</option>';
+      sel.onchange=()=>applyFiltros(); cell.appendChild(sel);
+    }
+    hdr.appendChild(cell);
+  });
+  tbl.appendChild(hdr);
   body.appendChild(tbl);
 
   function applyFiltros(){
-    const qv=(document.getElementById('cfg-search2')||{value:''}).value.trim().toLowerCase();
-    const est=filtEst.value; const supId=filtSup.value;
+    const get=id=>(document.getElementById(id)||{value:''}).value.trim().toLowerCase();
+    const qCed=get('uf-cedula'), qNom=get('uf-nombre'), qMod=get('uf-modulo');
+    const qSup=(document.getElementById('uf-sup')||{value:''}).value;
+    const qEst=(document.getElementById('uf-estado')||{value:''}).value;
     const list=emps.filter(e=>{
-      const matchQ=!qv||(e.name||'').toLowerCase().includes(qv)||(e.cedula||'').toLowerCase().includes(qv);
-      const matchEst=!est||(est==='activa'?!e.disabled:!!e.disabled);
-      const matchSup=!supId||(e.supId===supId);
-      return matchQ&&matchEst&&matchSup;
+      const matchCed = !qCed||(e.cedula||'').toLowerCase().includes(qCed);
+      const matchNom = !qNom||(e.name||'').toLowerCase().includes(qNom);
+      const matchMod = !qMod||(e.module||e.modulo||'').toLowerCase().includes(qMod);
+      const matchSup = !qSup||(e.supId===qSup);
+      const matchEst = !qEst||(qEst==='activa'?!e.disabled:!!e.disabled);
+      return matchCed&&matchNom&&matchMod&&matchSup&&matchEst;
     });
-    // Remove old rows
     tbl.querySelectorAll('.cfg-user-row').forEach(r=>r.remove());
     list.forEach(e=>{
       const sup=sups.find(s=>s.id===e.supId);
@@ -3537,146 +3674,525 @@ function cfgRenderUsuarios(body){
       const row=document.createElement('div'); row.className='cfg-user-row'+(isOff?' disabled':'');
       row.style.gridTemplateColumns=COLS;
       row.innerHTML=`<div class="cfg-user-cell muted" style="font-family:'Courier New',monospace;font-size:12px;">${e.cedula||'—'}</div><div class="cfg-user-cell">${e.name||'—'}</div><div class="cfg-user-cell muted">${e.module||e.modulo||'—'}</div><div class="cfg-user-cell muted">${sup?sup.name:'—'}</div><div class="cfg-user-cell"><span class="cfg-pill ${isOff?'inactiva':'activa'}">${isOff?'● Inactiva':'● Activa'}</span></div>`;
-      const acts=document.createElement('div'); acts.className='cfg-row-acts'; acts.style.display='flex'; acts.style.gap='4px';
-      // Editar
-      const bE=document.createElement('button'); bE.className='cfg-row-btn'; bE.textContent='✏️'; bE.title='Editar';
-      bE.onclick=()=>cfgOpenUserModal(e);
-      // Eliminar
+      const acts=document.createElement('div'); acts.className='cfg-row-acts'; acts.style.cssText='display:flex;gap:4px;';
+      const bE=document.createElement('button'); bE.className='cfg-row-btn'; bE.textContent='✏️'; bE.title='Editar'; bE.onclick=()=>cfgOpenUserModal(e);
+      const bT=document.createElement('button'); bT.className=`cfg-row-btn tog ${isOff?'on':''}`; bT.textContent=isOff?'✅':'⏸'; bT.title=isOff?'Habilitar':'Inhabilitar';
+      bT.onclick=()=>{ e.disabled=!e.disabled; if(typeof saveIaState==='function') saveIaState(); applyFiltros(); };
       const bD=document.createElement('button'); bD.className='cfg-row-btn del'; bD.textContent='🗑'; bD.title='Eliminar';
       bD.onclick=()=>openConfirmDelete('usuario',e.name,()=>{
-        const idx2=iaS.employees.indexOf(e); if(idx2>-1) iaS.employees.splice(idx2,1);
+        const i=iaS.employees.indexOf(e); if(i>-1) iaS.employees.splice(i,1);
         if(typeof saveIaState==='function') saveIaState();
-        cfgSwitchTab('usuarios',document.getElementById('cfgn-usuarios'));
+        applyFiltros();
         showToastSimple(`🗑 "${e.name}" eliminada`);
       });
-      // Inhabilitar/habilitar
-      const bT=document.createElement('button'); bT.className=`cfg-row-btn tog ${isOff?'on':''}`; bT.textContent=isOff?'✅':'⏸'; bT.title=isOff?'Habilitar':'Inhabilitar';
-      bT.onclick=()=>{ e.disabled=!e.disabled; if(typeof saveIaState==='function') saveIaState(); cfgSwitchTab('usuarios',document.getElementById('cfgn-usuarios')); };
       acts.appendChild(bE); acts.appendChild(bT); acts.appendChild(bD); row.appendChild(acts); tbl.appendChild(row);
     });
-    if(!list.length){ const empty=document.createElement('div'); empty.style.cssText='padding:30px;text-align:center;color:#94a3b8;font-size:13px;'; empty.textContent='No se encontraron operarias'; tbl.appendChild(empty); }
+    if(!list.length){
+      const empty=document.createElement('div'); empty.style.cssText='padding:30px;text-align:center;color:#94a3b8;font-size:13px;';
+      empty.textContent='No se encontraron operarias'; tbl.appendChild(empty);
+    }
   }
   applyFiltros();
 }
-
-// ── MODAL EDITAR OPERARIA ─────────────────────────────────────────
+// ── MODAL EDITAR OPERARIA (un solo formulario con todos los campos) ──
 function cfgOpenUserModal(emp){
-  // Simple prompt-based edit for now
-  const newName = prompt('Nombre de la operaria:', emp.name||'');
-  if(newName===null) return;
-  if(!newName.trim()){ alert('El nombre no puede estar vacío'); return; }
-  const newCed = prompt('Cédula:', emp.cedula||'');
-  if(newCed===null) return;
-  emp.name = newName.trim();
-  emp.cedula = newCed.trim();
+  const iaS = typeof iaState!=='undefined'&&iaState ? iaState : {supervisors:[]};
+  const sups = iaS.supervisors||[];
+  const modal = document.getElementById('cfg-operaria-modal');
+  if(!modal){ console.error('cfg-operaria-modal not found'); return; }
+  document.getElementById('com-target-idx').value = (iaS.employees||[]).indexOf(emp);
+  document.getElementById('com-nombre').value  = emp.name||'';
+  document.getElementById('com-cedula').value  = emp.cedula||'';
+  document.getElementById('com-modulo').value  = emp.module||emp.modulo||'';
+  const selSup = document.getElementById('com-supervisora');
+  selSup.innerHTML = '<option value="">Sin supervisora</option>'+sups.map(s=>`<option value="${s.id}"${emp.supId===s.id?' selected':''}>${s.name}</option>`).join('');
+  document.getElementById('com-error').textContent='';
+  modal.style.display='flex';
+  setTimeout(()=>document.getElementById('com-nombre').focus(),100);
+}
+function cfgSaveUserModal(){
+  const iaS = typeof iaState!=='undefined'&&iaState ? iaState : {employees:[],supervisors:[]};
+  const idx  = parseInt(document.getElementById('com-target-idx').value);
+  const nombre = document.getElementById('com-nombre').value.trim();
+  const cedula = document.getElementById('com-cedula').value.trim();
+  const modulo = document.getElementById('com-modulo').value.trim();
+  const supId  = document.getElementById('com-supervisora').value;
+  const errEl  = document.getElementById('com-error');
+  if(!nombre){ errEl.textContent='El nombre no puede estar vacío'; return; }
+  const emp = iaS.employees[idx];
+  if(!emp){ errEl.textContent='Error: operaria no encontrada'; return; }
+  emp.name   = nombre;
+  emp.cedula = cedula;
+  emp.module = modulo;
+  emp.modulo = modulo;
+  emp.supId  = supId;
   if(typeof saveIaState==='function') saveIaState();
+  document.getElementById('cfg-operaria-modal').style.display='none';
   cfgSwitchTab('usuarios', document.getElementById('cfgn-usuarios'));
   showToastSimple('✅ Operaria actualizada');
 }
 
-// ── TURNOS ────────────────────────────────────────────────────────
-function cfgRenderTurnos(body){
-  const cfg=loadConfig();
-  const turnos=cfg._turnos||[
-    {id:'t1',nombre:'Turno A — Mañana',inicio:'06:00',fin:'14:00',dias:['L','M','X','J','V']},
-    {id:'t2',nombre:'Turno B — Tarde',inicio:'14:00',fin:'22:00',dias:['L','M','X','J','V']},
-    {id:'t3',nombre:'Turno C — Noche',inicio:'22:00',fin:'06:00',dias:['L','M','X','J','V']}
-  ];
-  const note=document.createElement('div');
-  note.style.cssText='background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 18px;margin-bottom:16px;display:flex;align-items:center;gap:12px;';
-  note.innerHTML='<span style="font-size:20px;">📊</span><div><div style="font-size:13px;font-weight:700;color:#92400e;">Cargar turnos desde Excel</div><div style="font-size:12px;color:#b45309;margin-top:2px;">Columnas: <b>Turno · Hora · Comienzo · Final · Minutos · Lun–Dom · Tipo</b></div></div>';
-  body.appendChild(note);
-  const tabsRow=document.createElement('div'); tabsRow.style.cssText='display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;';
-  turnos.forEach((t,i)=>{
-    const btn=document.createElement('button'); btn.className='cfg-turno-tab'+(i===0?' active':'');
-    btn.textContent=t.nombre; btn.dataset.idx=i;
-    btn.onclick=function(){
-      body.querySelectorAll('.cfg-turno-tab').forEach(b=>b.classList.remove('active'));
-      this.classList.add('active');
-      cfgShowTurnoDetail(body, turnos[this.dataset.idx]);
-    };
-    tabsRow.appendChild(btn);
-  });
-  body.appendChild(tabsRow);
-  const detailWrap=document.createElement('div'); detailWrap.id='cfg-turno-detail'; body.appendChild(detailWrap);
-  cfgShowTurnoDetail(body, turnos[0]);
+// ── CREAR NUEVA OPERARIA ──────────────────────────────────────────
+function cfgOpenNuevaOperaria(){
+  const iaS = typeof iaState!=='undefined'&&iaState ? iaState : {supervisors:[]};
+  const sups = iaS.supervisors||[];
+  const modal = document.getElementById('cfg-operaria-modal');
+  if(!modal){ console.error('cfg-operaria-modal not found'); return; }
+  document.getElementById('com-target-idx').value = '-1';
+  document.getElementById('com-nombre').value  = '';
+  document.getElementById('com-cedula').value  = '';
+  document.getElementById('com-modulo').value  = '';
+  const selSup = document.getElementById('com-supervisora');
+  selSup.innerHTML = '<option value="">Sin supervisora</option>'+sups.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  document.getElementById('com-error').textContent='';
+  document.getElementById('com-modal-title').textContent='➕ NUEVA OPERARIA';
+  modal.style.display='flex';
+  setTimeout(()=>document.getElementById('com-nombre').focus(),100);
 }
-function cfgShowTurnoDetail(body, t){
-  const wrap=body.querySelector('#cfg-turno-detail'); if(!wrap||!t) return;
-  const dias=['L','M','X','J','V','S','D'];
-  wrap.innerHTML=`<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.05);">
-    <div style="padding:14px 18px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:12px;">
-      <div style="flex:1;font-size:15px;font-weight:700;color:#0f172a;">${t.nombre}</div>
-      <div style="font-size:13px;color:#64748b;font-family:'Courier New',monospace;">${t.inicio} – ${t.fin}</div>
-      <div style="display:flex;gap:4px;">${dias.map(d=>`<span class="cfg-dia-pill ${(t.dias||[]).includes(d)?'active':''}">${d}</span>`).join('')}</div>
-    </div>
-    <div style="padding:10px 18px;font-size:12px;color:#94a3b8;">Horario de ${t.inicio} a ${t.fin} — ${(t.dias||[]).length} días/semana</div>
-  </div>`;
+function cfgSaveNuevaOperaria(){
+  const iaS = typeof iaState!=='undefined'&&iaState ? iaState : {employees:[],supervisors:[]};
+  const idx  = parseInt(document.getElementById('com-target-idx').value);
+  const nombre = document.getElementById('com-nombre').value.trim();
+  const cedula = document.getElementById('com-cedula').value.trim();
+  const modulo = document.getElementById('com-modulo').value.trim();
+  const supId  = document.getElementById('com-supervisora').value;
+  const errEl  = document.getElementById('com-error');
+  if(!nombre){ errEl.textContent='El nombre no puede estar vacío'; return; }
+  if(idx===-1){
+    // Nueva operaria
+    const id = 'emp_'+Date.now();
+    iaS.employees.push({id, name:nombre, cedula, module:modulo, modulo, supId, disabled:false});
+  } else {
+    const emp = iaS.employees[idx];
+    if(emp){ emp.name=nombre; emp.cedula=cedula; emp.module=modulo; emp.modulo=modulo; emp.supId=supId; }
+  }
+  if(typeof saveIaState==='function') saveIaState();
+  document.getElementById('cfg-operaria-modal').style.display='none';
+  document.getElementById('com-modal-title').textContent='✏️ EDITAR OPERARIA';
+  cfgSwitchTab('usuarios', document.getElementById('cfgn-usuarios'));
+  showToastSimple(idx===-1?'✅ Operaria creada':'✅ Operaria actualizada');
+}
+
+// ── IMPORTAR USUARIOS DESDE EXCEL ────────────────────────────────
+function cfgImportUsuariosXLS(file){
+  if(!file) return;
+  if(typeof XLSX==='undefined'){alert('Librería Excel no disponible');return;}
+  const iaS = typeof iaState!=='undefined'&&iaState ? iaState : {employees:[],supervisors:[]};
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    try{
+      const wb = XLSX.read(ev.target.result, {type:'binary'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws,{defval:''});
+      let added=0, updated=0;
+      rows.forEach(r=>{
+        const nombre = (r['Nombre']||r['nombre']||'').toString().trim();
+        const cedula = (r['Cedula']||r['cedula']||r['Cédula']||'').toString().trim();
+        const modulo = (r['Modulo']||r['modulo']||r['Módulo']||'').toString().trim();
+        const supNom = (r['Supervisora']||r['supervisora']||'').toString().trim();
+        const estado = (r['Estado']||r['estado']||'activa').toString().trim().toLowerCase();
+        if(!nombre) return;
+        const supObj = iaS.supervisors.find(s=>s.name.toLowerCase()===supNom.toLowerCase());
+        const supId  = supObj?supObj.id:'';
+        const existing = iaS.employees.find(e=>e.cedula&&e.cedula===cedula);
+        if(existing){
+          existing.name=nombre; existing.module=modulo; existing.modulo=modulo; existing.supId=supId; existing.disabled=(estado==='inactiva');
+          updated++;
+        } else {
+          iaS.employees.push({id:'emp_'+Date.now()+'_'+Math.random().toString(36).slice(2), name:nombre, cedula, module:modulo, modulo, supId, disabled:(estado==='inactiva')});
+          added++;
+        }
+      });
+      if(typeof saveIaState==='function') saveIaState();
+      cfgSwitchTab('usuarios', document.getElementById('cfgn-usuarios'));
+      showToastSimple(`✅ Importadas: ${added} nuevas, ${updated} actualizadas`);
+    } catch(err){
+      alert('Error al leer el archivo: '+err.message);
+    }
+  };
+  reader.readAsBinaryString(file);
+}
+
+// ── TURNOS ────────────────────────────────────────────────────────
+// ── HELPERS DE TURNO ─────────────────────────────────────────────
+function cfgGetTurnos(){
+  const cfg=loadConfig();
+  return cfg._turnos_v2||[];
+}
+function cfgSaveTurnos(turnos){
+  const cfg=loadConfig();
+  cfg._turnos_v2=turnos;
+  saveConfig(cfg);
+}
+
+// ── RENDER PRINCIPAL ──────────────────────────────────────────────
+function cfgRenderTurnos(body){
+  const turnos=cfgGetTurnos();
+  if(!turnos.length){
+    const empty=document.createElement('div');
+    empty.style.cssText='padding:60px;text-align:center;color:#94a3b8;font-size:14px;';
+    empty.innerHTML='🕐 No hay turnos. Usa <b>+ Nuevo turno</b> para crear el primero.';
+    body.appendChild(empty); return;
+  }
+  turnos.forEach(t=>{
+    const isOff=!!t.disabled;
+    const card=document.createElement('div');
+    card.style.cssText=`background:#fff;border:1.5px solid ${isOff?'#e2e8f0':'#2563eb22'};border-radius:14px;margin-bottom:16px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06);${isOff?'opacity:.65':''}`;
+    // Header del turno
+    const hdr=document.createElement('div');
+    hdr.style.cssText='display:flex;align-items:center;gap:12px;padding:14px 18px;background:#f8fafc;border-bottom:1px solid #e2e8f0;';
+    const horas=t.horas||[];
+    hdr.innerHTML=`<div style="font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;letter-spacing:2px;color:#0f172a;flex:1;">${t.nombre||'—'}${isOff?'<span class="cfg-badge cfg-badge-off" style="margin-left:8px;">INACTIVO</span>':''}</div><div style="font-size:12px;color:#64748b;">${horas.length} hora${horas.length!==1?'s':''}</div>`;
+    const actsHdr=document.createElement('div'); actsHdr.style.cssText='display:flex;gap:6px;';
+    // Botón agregar hora
+    const bAH=document.createElement('button'); bAH.className='cfg-btn2 edit'; bAH.textContent='➕ Hora';
+    bAH.onclick=()=>cfgOpenHoraModal(t.id);
+    // Editar turno
+    const bE=document.createElement('button'); bE.className='cfg-btn2 edit'; bE.textContent='✏️';
+    bE.title='Editar turno'; bE.onclick=()=>cfgOpenTurnoModal(t.id);
+    // Inhabilitar
+    const bT=document.createElement('button'); bT.className=`cfg-btn2 ${isOff?'hab':'inh'}`;
+    bT.textContent=isOff?'✅':'⏸'; bT.title=isOff?'Habilitar':'Inhabilitar';
+    bT.onclick=()=>{
+      const ts=cfgGetTurnos(); const idx=ts.findIndex(x=>x.id===t.id);
+      if(idx>-1){ts[idx].disabled=!ts[idx].disabled; cfgSaveTurnos(ts);}
+      cfgSwitchTab('turnos',document.getElementById('cfgn-turnos'));
+    };
+    // Eliminar turno
+    const bD=document.createElement('button'); bD.className='cfg-btn2 del'; bD.textContent='🗑';
+    bD.title='Eliminar turno';
+    bD.onclick=()=>openConfirmDelete('turno',t.nombre,()=>{
+      const ts=cfgGetTurnos().filter(x=>x.id!==t.id); cfgSaveTurnos(ts);
+      cfgSwitchTab('turnos',document.getElementById('cfgn-turnos'));
+    });
+    actsHdr.appendChild(bAH); actsHdr.appendChild(bE); actsHdr.appendChild(bT); actsHdr.appendChild(bD);
+    hdr.appendChild(actsHdr); card.appendChild(hdr);
+    // Tabla de horas
+    if(horas.length){
+      const DIAS_LABELS=['LN','MR','XR','JU','VI','SB','DG'];
+      const DIAS_KEYS=['LN','MR','XR','JU','VI','SB','DG'];
+      const COLS='2fr 1fr 1fr .8fr .8fr .8fr .8fr 2fr 90px';
+      const tbl=document.createElement('div');
+      // Header
+      const tblHdr=document.createElement('div');
+      tblHdr.style.cssText=`display:grid;grid-template-columns:${COLS};padding:8px 18px;background:#f1f5f9;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;gap:6px;`;
+      tblHdr.innerHTML='<div>Nombre</div><div>Comienza</div><div>Termina</div><div>Min</div><div>Tipo</div><div>Inicia</div><div>Finaliza</div><div>Días</div><div>Acciones</div>';
+      tbl.appendChild(tblHdr);
+      horas.forEach((h,hi)=>{
+        const hIsOff=!!h.disabled;
+        const row=document.createElement('div');
+        row.style.cssText=`display:grid;grid-template-columns:${COLS};padding:10px 18px;border-top:1px solid #f1f5f9;align-items:center;gap:6px;font-size:12px;${hIsOff?'opacity:.55':''}`;
+        const diasHtml=DIAS_KEYS.map((dk,di)=>{
+          const on=(h.dias||[]).includes(dk);
+          return `<span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:4px;font-size:10px;font-weight:700;background:${on?'#2563eb':'#e2e8f0'};color:${on?'#fff':'#94a3b8'};">${DIAS_LABELS[di]}</span>`;
+        }).join('');
+        row.innerHTML=`
+          <div style="font-weight:600;color:#0f172a;">${h.nombre||'—'}</div>
+          <div style="font-family:'Courier New',monospace;color:#475569;">${h.comienza||'—'}</div>
+          <div style="font-family:'Courier New',monospace;color:#475569;">${h.termina||'—'}</div>
+          <div style="color:#64748b;">${h.minutos||'—'}</div>
+          <div><span style="padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;background:${h.tipo==='EXTRA'?'#fef3c7':'#eff6ff'};color:${h.tipo==='EXTRA'?'#92400e':'#1e40af'};">${h.tipo||'NORMAL'}</span></div>
+          <div><span style="padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;background:${h.iniciaTurno?'#dcfce7':'#f1f5f9'};color:${h.iniciaTurno?'#166534':'#94a3b8'};">${h.iniciaTurno?'SI':'NO'}</span></div>
+          <div><span style="padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;background:${h.finalizaTurno?'#fee2e2':'#f1f5f9'};color:${h.finalizaTurno?'#991b1b':'#94a3b8'};">${h.finalizaTurno?'SI':'NO'}</span></div>
+          <div style="display:flex;gap:3px;flex-wrap:wrap;">${diasHtml}</div>`;
+        const rowActs=document.createElement('div'); rowActs.style.cssText='display:flex;gap:3px;';
+        const bhE=document.createElement('button'); bhE.className='cfg-row-btn'; bhE.textContent='✏️'; bhE.title='Editar hora';
+        bhE.onclick=()=>cfgOpenHoraModal(t.id,hi);
+        const bhT=document.createElement('button'); bhT.className=`cfg-row-btn tog ${hIsOff?'on':''}`; bhT.textContent=hIsOff?'✅':'⏸';
+        bhT.onclick=()=>{
+          const ts=cfgGetTurnos(); const ti=ts.findIndex(x=>x.id===t.id);
+          if(ti>-1&&ts[ti].horas[hi]){ts[ti].horas[hi].disabled=!ts[ti].horas[hi].disabled; cfgSaveTurnos(ts);}
+          cfgSwitchTab('turnos',document.getElementById('cfgn-turnos'));
+        };
+        const bhD=document.createElement('button'); bhD.className='cfg-row-btn del'; bhD.textContent='🗑';
+        bhD.onclick=()=>openConfirmDelete('turno',h.nombre,()=>{
+          const ts=cfgGetTurnos(); const ti=ts.findIndex(x=>x.id===t.id);
+          if(ti>-1){ts[ti].horas.splice(hi,1); cfgSaveTurnos(ts);}
+          cfgSwitchTab('turnos',document.getElementById('cfgn-turnos'));
+        });
+        rowActs.appendChild(bhE); rowActs.appendChild(bhT); rowActs.appendChild(bhD);
+        row.appendChild(rowActs); tbl.appendChild(row);
+      });
+      card.appendChild(tbl);
+    } else {
+      const noH=document.createElement('div');
+      noH.style.cssText='padding:20px 18px;font-size:13px;color:#94a3b8;text-align:center;';
+      noH.textContent='Sin horas — usa ➕ Hora para agregar';
+      card.appendChild(noH);
+    }
+    body.appendChild(card);
+  });
+}
+
+// ── MODAL TURNO (crear/editar el contenedor) ──────────────────────
+let cfgTurnoEditId = null;
+function cfgOpenTurnoModal(id){
+  cfgTurnoEditId = id||null;
+  const turnos = cfgGetTurnos();
+  const t = id ? turnos.find(x=>x.id===id) : null;
+  document.getElementById('ctm-titulo').textContent = t ? '✏️ EDITAR TURNO' : '🕐 NUEVO TURNO';
+  document.getElementById('ctm-nombre').value = t ? t.nombre||'' : '';
+  document.getElementById('ctm-error').textContent='';
+  document.getElementById('cfg-turno-modal').style.display='flex';
+  setTimeout(()=>document.getElementById('ctm-nombre').focus(),100);
+}
+function cfgSaveTurnoModal(){
+  const nombre = document.getElementById('ctm-nombre').value.trim();
+  const errEl  = document.getElementById('ctm-error');
+  if(!nombre){ errEl.textContent='El nombre no puede estar vacío'; return; }
+  const turnos = cfgGetTurnos();
+  if(cfgTurnoEditId){
+    const idx=turnos.findIndex(t=>t.id===cfgTurnoEditId);
+    if(idx>-1) turnos[idx].nombre=nombre;
+  } else {
+    turnos.push({id:'turno_'+Date.now(), nombre, disabled:false, horas:[]});
+  }
+  cfgSaveTurnos(turnos);
+  document.getElementById('cfg-turno-modal').style.display='none';
+  cfgSwitchTab('turnos',document.getElementById('cfgn-turnos'));
+  showToastSimple(`✅ Turno "${nombre}" ${cfgTurnoEditId?'actualizado':'creado'}`);
+}
+
+// ── MODAL HORA (crear/editar fila dentro de un turno) ────────────
+let cfgHoraTurnoId = null;
+let cfgHoraIdx     = null;
+function cfgOpenHoraModal(turnoId, horaIdx){
+  cfgHoraTurnoId = turnoId;
+  cfgHoraIdx     = (horaIdx!==undefined && horaIdx!==null) ? horaIdx : null;
+  const turnos = cfgGetTurnos();
+  const t = turnos.find(x=>x.id===turnoId);
+  const h = (cfgHoraIdx!==null && t) ? (t.horas||[])[cfgHoraIdx] : null;
+  document.getElementById('chm-titulo').textContent = h ? '✏️ EDITAR HORA' : '⏰ NUEVA HORA';
+  document.getElementById('chm-nombre').value   = h ? h.nombre||'' : '';
+  document.getElementById('chm-comienza').value = h ? h.comienza||'' : '';
+  document.getElementById('chm-termina').value  = h ? h.termina||'' : '';
+  document.getElementById('chm-minutos').value  = h ? h.minutos||'' : '';
+  document.getElementById('chm-tipo').value     = h ? h.tipo||'NORMAL' : 'NORMAL';
+  document.getElementById('chm-inicia').value   = h ? (h.iniciaTurno?'SI':'NO') : 'NO';
+  document.getElementById('chm-finaliza').value = h ? (h.finalizaTurno?'SI':'NO') : 'NO';
+  // Días
+  const DIAS=['LN','MR','XR','JU','VI','SB','DG'];
+  DIAS.forEach(d=>{
+    const btn=document.getElementById('chm-dia-'+d);
+    if(btn) btn.classList.toggle('on', h ? (h.dias||[]).includes(d) : ['LN','MR','XR','JU','VI'].includes(d));
+  });
+  document.getElementById('chm-error').textContent='';
+  document.getElementById('cfg-hora-modal').style.display='flex';
+  setTimeout(()=>document.getElementById('chm-nombre').focus(),100);
+}
+function cfgSaveHoraModal(){
+  const nombre   = document.getElementById('chm-nombre').value.trim();
+  const comienza = document.getElementById('chm-comienza').value.trim();
+  const termina  = document.getElementById('chm-termina').value.trim();
+  const minutos  = document.getElementById('chm-minutos').value.trim();
+  const tipo     = document.getElementById('chm-tipo').value;
+  const inicia   = document.getElementById('chm-inicia').value==='SI';
+  const finaliza = document.getElementById('chm-finaliza').value==='SI';
+  const errEl    = document.getElementById('chm-error');
+  if(!nombre){ errEl.textContent='El nombre no puede estar vacío'; return; }
+  if(!comienza||!termina){ errEl.textContent='Ingresa hora de inicio y fin'; return; }
+  const DIAS=['LN','MR','XR','JU','VI','SB','DG'];
+  const dias=DIAS.filter(d=>{ const btn=document.getElementById('chm-dia-'+d); return btn&&btn.classList.contains('on'); });
+  const hora={nombre, comienza, termina, minutos:minutos||'60', tipo, iniciaTurno:inicia, finalizaTurno:finaliza, dias, disabled:false};
+  const turnos=cfgGetTurnos();
+  const ti=turnos.findIndex(t=>t.id===cfgHoraTurnoId);
+  if(ti>-1){
+    if(!turnos[ti].horas) turnos[ti].horas=[];
+    if(cfgHoraIdx!==null) turnos[ti].horas[cfgHoraIdx]={...turnos[ti].horas[cfgHoraIdx],...hora};
+    else turnos[ti].horas.push(hora);
+  }
+  cfgSaveTurnos(turnos);
+  document.getElementById('cfg-hora-modal').style.display='none';
+  cfgSwitchTab('turnos',document.getElementById('cfgn-turnos'));
+  showToastSimple(`✅ Hora "${nombre}" guardada`);
 }
 
 // ── MAQUINARIA ────────────────────────────────────────────────────
+function cfgGetUbicaciones(){
+  // Devuelve lista de ubicaciones: todos los módulos activos + Taller + Bodega
+  const cfg = loadConfig();
+  const disabled = cfg._modulos_disabled||[];
+  const extra = cfg._modulos_extra||[];
+  const renamed = cfg._modulos_renamed||{};
+  const allMods = [...(typeof MODULES!=='undefined'?MODULES:[]),...extra].filter(m=>!disabled.includes(m));
+  const labels = allMods.map(m=>renamed[m]||m);
+  return [...labels, 'Taller', 'Bodega'];
+}
 function cfgRenderMaquinaria(body){
   const cfg=loadConfig();
   const maquinas=cfg._maquinaria||[];
-  const q=cfgGetSearch();
-  const filtered=q?maquinas.filter(m=>(m.codigo||'').toLowerCase().includes(q)||(m.tipo||'').toLowerCase().includes(q)||(m.marca||'').toLowerCase().includes(q)||(m.modulo||'').toLowerCase().includes(q)):maquinas;
-  // search bar inline
-  const sb=document.createElement('div'); sb.style.cssText='display:flex;gap:8px;margin-bottom:14px;align-items:center;';
-  sb.innerHTML=`<div style="position:relative;flex:1;"><span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:13px;pointer-events:none;">🔍</span><input id="cfg-maq-search" type="text" placeholder="Buscar máquina..." oninput="cfgMaqSearch()" style="width:100%;padding:9px 14px 9px 34px;border-radius:8px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#0f172a;font-family:'Nunito',sans-serif;font-size:13px;outline:none;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'"></div>`;
-  body.appendChild(sb);
-  const list=document.createElement('div'); list.id='cfg-maq-list'; body.appendChild(list);
-  cfgMaqRenderList(maquinas);
+
+  // ── Stats ─────────────────────────────────────────────────────────
+  const statsRow=document.createElement('div'); statsRow.className='cfg-stats-row';
+  statsRow.innerHTML=`<div class="cfg-stat-box"><div class="cfg-stat-num">${maquinas.length}</div><div class="cfg-stat-lbl">Total</div></div><div class="cfg-stat-box green"><div class="cfg-stat-num">${maquinas.filter(m=>!m.disabled).length}</div><div class="cfg-stat-lbl">Activas</div></div><div class="cfg-stat-box red"><div class="cfg-stat-num">${maquinas.filter(m=>m.disabled).length}</div><div class="cfg-stat-lbl">Inactivas</div></div>`;
+  body.appendChild(statsRow);
+
+  // ── Tabla con filtros por columna ─────────────────────────────────
+  const COLS='1fr 1fr 1fr 1fr 1.2fr 1.2fr 110px';
+  const INP_S="width:100%;box-sizing:border-box;padding:3px 6px;border-radius:5px;border:1px solid #e2e8f0;font-family:'Nunito',sans-serif;font-size:11px;outline:none;color:#0f172a;background:#fff;";
+  const tbl=document.createElement('div'); tbl.className='cfg-user-table'; tbl.id='cfg-maq-list';
+
+  // Encabezados con filtros debajo
+  const hdr=document.createElement('div'); hdr.className='cfg-user-hdr'; hdr.style.gridTemplateColumns=COLS;
+  const maqCols=[
+    {label:'Código',    id:'mf-codigo'},
+    {label:'Tipo',      id:'mf-tipo'},
+    {label:'Marca',     id:'mf-marca'},
+    {label:'Modelo',    id:'mf-modelo'},
+    {label:'Serial',    id:'mf-serial'},
+    {label:'Ubicación', id:'mf-ubic'},
+    {label:'Acciones',  id:null},
+  ];
+  maqCols.forEach(c=>{
+    const cell=document.createElement('div'); cell.style.cssText='display:flex;flex-direction:column;gap:4px;';
+    const lbl=document.createElement('span'); lbl.textContent=c.label; lbl.style.cssText='font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;';
+    cell.appendChild(lbl);
+    if(c.id){
+      const inp=document.createElement('input'); inp.type='text'; inp.id=c.id; inp.placeholder='Filtrar…';
+      inp.className='cfg-col-filter'; inp.oninput=()=>cfgMaqSearch(); cell.appendChild(inp);
+    }
+    hdr.appendChild(cell);
+  });
+  tbl.appendChild(hdr);
+  body.appendChild(tbl);
+  cfgMaqSearch();
 }
 function cfgMaqSearch(){
-  const q=(document.getElementById('cfg-maq-search')||{value:''}).value.trim().toLowerCase();
+  const get=id=>(document.getElementById(id)||{value:''}).value.trim().toLowerCase();
+  const qCod=get('mf-codigo'), qTip=get('mf-tipo'), qMar=get('mf-marca');
+  const qMod=get('mf-modelo'), qSer=get('mf-serial'), qUbi=get('mf-ubic');
   const cfg=loadConfig(); const maquinas=cfg._maquinaria||[];
-  const filtered=q?maquinas.filter(m=>(m.codigo||'').toLowerCase().includes(q)||(m.tipo||'').toLowerCase().includes(q)||(m.marca||'').toLowerCase().includes(q)||(m.modulo||'').toLowerCase().includes(q)):maquinas;
+  const filtered=maquinas.filter(m=>
+    (!qCod||(m.codigo||'').toLowerCase().includes(qCod))&&
+    (!qTip||(m.tipo||'').toLowerCase().includes(qTip))&&
+    (!qMar||(m.marca||'').toLowerCase().includes(qMar))&&
+    (!qMod||(m.modelo||'').toLowerCase().includes(qMod))&&
+    (!qSer||(m.serial||'').toLowerCase().includes(qSer))&&
+    (!qUbi||(m.modulo||'').toLowerCase().includes(qUbi))
+  );
   cfgMaqRenderList(filtered);
 }
 function cfgMaqRenderList(maquinas){
-  const list=document.getElementById('cfg-maq-list'); if(!list) return;
-  list.innerHTML='';
+  const tbl=document.getElementById('cfg-maq-list'); if(!tbl) return;
+  // remove old rows only
+  tbl.querySelectorAll('.cfg-user-row').forEach(r=>r.remove());
+  tbl.querySelectorAll('.cfg-maq-empty').forEach(r=>r.remove());
   if(!maquinas.length){
-    list.innerHTML='<div style="text-align:center;padding:60px 20px;color:#94a3b8;font-size:14px;">⚙️ No hay máquinas registradas. Usa <b>+ Nueva máquina</b>.</div>'; return;
+    const empty=document.createElement('div'); empty.className='cfg-maq-empty';
+    empty.style.cssText='padding:40px;text-align:center;color:#94a3b8;font-size:14px;';
+    empty.innerHTML='⚙️ No hay máquinas registradas. Usa <b>+ Nueva máquina</b>.';
+    tbl.appendChild(empty); return;
   }
+  const COLS='1fr 1fr 1fr 1fr 1.2fr 1.2fr 110px';
   maquinas.forEach(m=>{
-    const card=document.createElement('div'); card.className='cfg-card';
-    card.innerHTML=`<div class="cfg-avatar">⚙️</div><div class="cfg-info"><div class="cfg-name">${m.codigo||'—'} <span style="font-size:11px;font-weight:400;color:#64748b;">${m.tipo||''}</span></div><div class="cfg-sub">${m.marca||''} ${m.modelo||''} · ${m.serial||''} · Módulo: ${m.modulo||'—'}</div></div>`;
-    const acts=document.createElement('div'); acts.className='cfg-actions';
-    const bE=document.createElement('button'); bE.className='cfg-btn2 edit'; bE.textContent='✏️ Editar'; bE.onclick=()=>cfgOpenMaqModal(m); acts.appendChild(bE);
-    const bD=document.createElement('button'); bD.className='cfg-btn2 del'; bD.textContent='🗑'; bD.onclick=()=>{const cfg2=loadConfig();cfg2._maquinaria=(cfg2._maquinaria||[]).filter(x=>x.id!==m.id);saveConfig(cfg2);cfgMaqSearch();}; acts.appendChild(bD);
-    card.appendChild(acts); list.appendChild(card);
+    const isOff=!!m.disabled;
+    const row=document.createElement('div'); row.className='cfg-user-row'+(isOff?' disabled':'');
+    row.style.gridTemplateColumns=COLS;
+    row.innerHTML=`<div class="cfg-user-cell" style="font-family:'Courier New',monospace;font-size:12px;">${m.codigo||'—'}</div><div class="cfg-user-cell muted">${m.tipo||'—'}</div><div class="cfg-user-cell muted">${m.marca||'—'}</div><div class="cfg-user-cell muted">${m.modelo||'—'}</div><div class="cfg-user-cell muted" style="font-family:'Courier New',monospace;font-size:12px;">${m.serial||'—'}</div><div class="cfg-user-cell muted">${m.modulo||'—'}</div>`;
+    const acts=document.createElement('div'); acts.className='cfg-row-acts'; acts.style.cssText='display:flex;gap:4px;';
+    // Editar
+    const bE=document.createElement('button'); bE.className='cfg-row-btn'; bE.textContent='✏️'; bE.title='Editar';
+    bE.onclick=()=>cfgOpenMaqModal(m);
+    // Inhabilitar/Habilitar
+    const bT=document.createElement('button'); bT.className=`cfg-row-btn tog ${isOff?'on':''}`; bT.textContent=isOff?'✅':'⏸'; bT.title=isOff?'Habilitar':'Inhabilitar';
+    bT.onclick=()=>{
+      const cfg2=loadConfig(); const idx2=(cfg2._maquinaria||[]).findIndex(x=>x.id===m.id);
+      if(idx2>-1){ cfg2._maquinaria[idx2].disabled=!cfg2._maquinaria[idx2].disabled; saveConfig(cfg2); }
+      cfgMaqSearch();
+    };
+    // Eliminar
+    const bD=document.createElement('button'); bD.className='cfg-row-btn del'; bD.textContent='🗑'; bD.title='Eliminar';
+    bD.onclick=()=>openConfirmDelete('maquina',m.codigo||'máquina',()=>{
+      const cfg2=loadConfig(); cfg2._maquinaria=(cfg2._maquinaria||[]).filter(x=>x.id!==m.id); saveConfig(cfg2);
+      cfgMaqSearch(); showToastSimple(`🗑 Máquina "${m.codigo||''}" eliminada`);
+    });
+    acts.appendChild(bE); acts.appendChild(bT); acts.appendChild(bD); row.appendChild(acts); tbl.appendChild(row);
   });
 }
 function cfgExportMaq(){
   const cfg=loadConfig(); const maquinas=cfg._maquinaria||[];
-  if(!maquinas.length){alert('No hay máquinas para exportar.');return;}
-  if(typeof XLSX!=='undefined'){
-    const ws=XLSX.utils.json_to_sheet(maquinas.map(m=>({Código:m.codigo,Tipo:m.tipo,Marca:m.marca,Modelo:m.modelo,Serial:m.serial,Módulo:m.modulo})));
-    const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Maquinaria');
-    XLSX.writeFile(wb,'maquinaria_millar.xlsx');
-  }
+  if(!maquinas.length){showToastSimple('No hay máquinas para exportar');return;}
+  if(typeof XLSX==='undefined'){alert('Librería Excel no disponible');return;}
+  const ws=XLSX.utils.json_to_sheet(maquinas.map(m=>({
+    Codigo:m.codigo||'', Tipo:m.tipo||'', Marca:m.marca||'',
+    Modelo:m.modelo||'', Serial:m.serial||'', Ubicacion:m.modulo||'',
+    Estado:m.disabled?'inactiva':'activa'
+  })));
+  ws['!cols']=[{wch:12},{wch:14},{wch:14},{wch:14},{wch:14},{wch:14},{wch:10}];
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Maquinaria');
+  XLSX.writeFile(wb,'inventario_maquinaria.xlsx');
+  showToastSimple('✅ Inventario exportado');
 }
 function cfgOpenMaqModal(m){
   const modal=document.getElementById('cfg-maq-modal2'); if(!modal) return;
+  // Poblar ubicaciones
+  const sel=document.getElementById('cmf2-modulo-sel');
+  if(sel){
+    const ubicaciones=cfgGetUbicaciones();
+    const cur=(m&&m.modulo)||'';
+    sel.innerHTML='<option value="">— Seleccionar ubicación —</option>'+
+      ubicaciones.map(u=>`<option value="${u}"${u===cur?' selected':''}>${u}</option>`).join('');
+  }
   document.getElementById('cmf2-id').value=(m&&m.id)||'';
   document.getElementById('cmf2-codigo').value=(m&&m.codigo)||'';
   document.getElementById('cmf2-tipo').value=(m&&m.tipo)||'';
   document.getElementById('cmf2-marca').value=(m&&m.marca)||'';
   document.getElementById('cmf2-modelo').value=(m&&m.modelo)||'';
   document.getElementById('cmf2-serial').value=(m&&m.serial)||'';
-  document.getElementById('cmf2-modulo').value=(m&&m.modulo)||'';
+  document.getElementById('cmf2-maq-title').textContent=m?'✏️ EDITAR MÁQUINA':'➕ NUEVA MÁQUINA';
   modal.style.display='flex';
+  setTimeout(()=>document.getElementById('cmf2-codigo').focus(),100);
 }
 function cfgSaveMaqModal(){
   const cfg=loadConfig(); if(!cfg._maquinaria) cfg._maquinaria=[];
   const id=document.getElementById('cmf2-id').value||'maq_'+Date.now();
-  const maq={id,codigo:document.getElementById('cmf2-codigo').value.trim(),tipo:document.getElementById('cmf2-tipo').value.trim(),marca:document.getElementById('cmf2-marca').value.trim(),modelo:document.getElementById('cmf2-modelo').value.trim(),serial:document.getElementById('cmf2-serial').value.trim(),modulo:document.getElementById('cmf2-modulo').value.trim()};
+  const sel=document.getElementById('cmf2-modulo-sel');
+  const ubicacion=sel?sel.value:'';
+  const codigo=document.getElementById('cmf2-codigo').value.trim();
+  if(!codigo){ document.getElementById('cmf2-error').textContent='El código es obligatorio'; return; }
+  const maq={id,codigo,tipo:document.getElementById('cmf2-tipo').value.trim(),marca:document.getElementById('cmf2-marca').value.trim(),modelo:document.getElementById('cmf2-modelo').value.trim(),serial:document.getElementById('cmf2-serial').value.trim(),modulo:ubicacion};
   const idx=cfg._maquinaria.findIndex(x=>x.id===id);
-  if(idx>-1) cfg._maquinaria[idx]=maq; else cfg._maquinaria.push(maq);
+  if(idx>-1) cfg._maquinaria[idx]={...cfg._maquinaria[idx],...maq}; else cfg._maquinaria.push(maq);
   saveConfig(cfg);
   document.getElementById('cfg-maq-modal2').style.display='none';
   cfgMaqSearch();
+  showToastSimple(`✅ Máquina "${codigo}" guardada`);
+}
+function cfgImportMaquinariaXLS(file){
+  if(!file) return;
+  if(typeof XLSX==='undefined'){alert('Librería Excel no disponible');return;}
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      const wb=XLSX.read(ev.target.result,{type:'binary'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+      const cfg=loadConfig(); if(!cfg._maquinaria) cfg._maquinaria=[];
+      let added=0,updated=0;
+      rows.forEach(r=>{
+        const codigo=(r['Codigo']||r['Código']||r['codigo']||'').toString().trim();
+        if(!codigo) return;
+        const tipo=(r['Tipo']||r['tipo']||'').toString().trim();
+        const marca=(r['Marca']||r['marca']||'').toString().trim();
+        const modelo=(r['Modelo']||r['modelo']||'').toString().trim();
+        const serial=(r['Serial']||r['serial']||'').toString().trim();
+        const modulo=(r['Ubicacion']||r['Ubicación']||r['Modulo']||r['Módulo']||r['ubicacion']||'').toString().trim();
+        const estado=(r['Estado']||r['estado']||'activa').toString().trim().toLowerCase();
+        const existing=cfg._maquinaria.find(m=>m.codigo===codigo);
+        if(existing){
+          Object.assign(existing,{tipo,marca,modelo,serial,modulo,disabled:estado==='inactiva'});
+          updated++;
+        } else {
+          cfg._maquinaria.push({id:'maq_'+Date.now()+'_'+Math.random().toString(36).slice(2),codigo,tipo,marca,modelo,serial,modulo,disabled:estado==='inactiva'});
+          added++;
+        }
+      });
+      saveConfig(cfg);
+      cfgSwitchTab('maquinaria',document.getElementById('cfgn-maquinaria'));
+      showToastSimple(`✅ Importadas: ${added} nuevas, ${updated} actualizadas`);
+    } catch(err){ alert('Error al leer el archivo: '+err.message); }
+  };
+  reader.readAsBinaryString(file);
 }
 
 // ── MÓDULOS ───────────────────────────────────────────────────────
@@ -3707,17 +4223,34 @@ function cfgRenderModulos(body){
 // ── ÁREAS ─────────────────────────────────────────────────────────
 function cfgRenderAreas(body){
   const q=cfgGetSearch();
-  getCfgAreas().filter(a=>!q||a.label.toLowerCase().includes(q)).forEach(a=>{
+  const areas=getCfgAreas().filter(a=>!q||a.label.toLowerCase().includes(q));
+  if(!areas.length){
+    const empty=document.createElement('div'); empty.style.cssText='padding:40px;text-align:center;color:#94a3b8;font-size:14px;';
+    empty.textContent='No se encontraron áreas'; body.appendChild(empty); return;
+  }
+  areas.forEach(a=>{
     const card=document.createElement('div'); card.className='cfg-card';
     if(a.disabled) card.style.opacity='.65';
-    const av=document.createElement('div'); av.className='cfg-avatar'; av.style.background=a.color+'18'; av.style.border=`1.5px solid ${a.color}33`; av.textContent=a.icon;
+    const av=document.createElement('div'); av.className='cfg-avatar';
+    av.style.background=a.color+'22'; av.style.border=`1.5px solid ${a.color}55`;
+    av.style.fontSize='22px'; av.textContent=a.icon;
     const info=document.createElement('div'); info.className='cfg-info';
-    info.innerHTML=`<div class="cfg-name">${a.label}${a.disabled?'<span class="cfg-badge cfg-badge-off">INACTIVA</span>':''}</div><div class="cfg-sub plain">${a.builtin?'Área base del sistema':'Área extra'}</div>`;
+    info.innerHTML=`<div class="cfg-name">${a.label}${a.builtin?'<span class="cfg-badge cfg-badge-sys" style="font-size:9px;margin-left:6px;">BASE</span>':''}${a.disabled?'<span class="cfg-badge cfg-badge-off">INACTIVA</span>':''}</div><div class="cfg-sub plain" style="color:${a.color};">${a.icon} ${a.builtin?'Área base':'Área personalizada'}</div>`;
     const acts=document.createElement('div'); acts.className='cfg-actions';
-    if(!a.builtin){const bE=document.createElement('button');bE.className='cfg-btn2 edit';bE.textContent='✏️ Editar';bE.onclick=()=>openAreaForm('edit',a.key);acts.appendChild(bE);}
-    const bT=document.createElement('button'); bT.className=`cfg-btn2 ${a.disabled?'hab':'inh'}`; bT.textContent=a.disabled?'✅ Habilitar':'⏸ Inhabilitar'; bT.onclick=()=>{saveAreaDisabled(a.key,!a.disabled);cfgSwitchTab('areas',document.getElementById('cfgn-areas'));};
+    // Editar — disponible para TODOS
+    const bE=document.createElement('button'); bE.className='cfg-btn2 edit'; bE.textContent='✏️ Editar';
+    bE.onclick=()=>openAreaForm('edit',a.key); acts.appendChild(bE);
+    // Inhabilitar/Habilitar
+    const bT=document.createElement('button'); bT.className=`cfg-btn2 ${a.disabled?'hab':'inh'}`;
+    bT.textContent=a.disabled?'✅ Habilitar':'⏸ Inhabilitar';
+    bT.onclick=()=>{saveAreaDisabled(a.key,!a.disabled);cfgSwitchTab('areas',document.getElementById('cfgn-areas'));};
     acts.appendChild(bT);
-    if(!a.builtin){const bD=document.createElement('button');bD.className='cfg-btn2 del';bD.textContent='🗑 Eliminar';bD.onclick=()=>openConfirmDelete('area',a.label,()=>{deleteAreaExtra(a.key);cfgSwitchTab('areas',document.getElementById('cfgn-areas'));});acts.appendChild(bD);}
+    // Eliminar — solo áreas extra (no builtin)
+    if(!a.builtin){
+      const bD=document.createElement('button'); bD.className='cfg-btn2 del'; bD.textContent='🗑 Eliminar';
+      bD.onclick=()=>openConfirmDelete('area',a.label,()=>{deleteAreaExtra(a.key);cfgSwitchTab('areas',document.getElementById('cfgn-areas'));});
+      acts.appendChild(bD);
+    }
     card.appendChild(av); card.appendChild(info); card.appendChild(acts); body.appendChild(card);
   });
 }
@@ -3742,18 +4275,19 @@ function cfgRenderPermisos(body){
 
 <!-- MODAL: Nueva/Editar máquina (CFG SCREEN) -->
 <div id="cfg-maq-modal2" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:999;align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
-  <div style="background:#fff;border-radius:16px;padding:28px;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(0,0,0,.2);font-family:'Nunito',sans-serif;">
-    <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;letter-spacing:2px;color:#0f172a;margin-bottom:20px;">✏️ MÁQUINA</div>
+  <div style="background:#fff;border-radius:16px;padding:28px;width:100%;max-width:520px;box-shadow:0 20px 60px rgba(0,0,0,.2);font-family:'Nunito',sans-serif;">
+    <div id="cmf2-maq-title" style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;letter-spacing:2px;color:#0f172a;margin-bottom:20px;">➕ NUEVA MÁQUINA</div>
     <input type="hidden" id="cmf2-id">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-      <div style="display:flex;flex-direction:column;gap:5px;"><label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Código</label><input id="cmf2-codigo" type="text" placeholder="MAQ-001" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:'Courier New',monospace;font-size:13px;outline:none;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'"></div>
-      <div style="display:flex;flex-direction:column;gap:5px;"><label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Tipo</label><input id="cmf2-tipo" type="text" placeholder="Plana..." style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:13px;outline:none;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'"></div>
-      <div style="display:flex;flex-direction:column;gap:5px;"><label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Marca</label><input id="cmf2-marca" type="text" placeholder="Juki..." style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:13px;outline:none;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'"></div>
-      <div style="display:flex;flex-direction:column;gap:5px;"><label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Modelo</label><input id="cmf2-modelo" type="text" placeholder="DDL-9000" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:13px;outline:none;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'"></div>
-      <div style="display:flex;flex-direction:column;gap:5px;"><label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Serial</label><input id="cmf2-serial" type="text" placeholder="SN-10234" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:'Courier New',monospace;font-size:13px;outline:none;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'"></div>
-      <div style="display:flex;flex-direction:column;gap:5px;"><label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Módulo</label><input id="cmf2-modulo" type="text" placeholder="M01" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:13px;outline:none;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'"></div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Código</label><input id="cmf2-codigo" type="text" placeholder="MAQ-001" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:'Courier New',monospace;font-size:13px;outline:none;width:100%;box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'"></div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Tipo</label><input id="cmf2-tipo" type="text" placeholder="Plana, Fileteadora..." style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:13px;outline:none;width:100%;box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'"></div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Marca</label><input id="cmf2-marca" type="text" placeholder="Juki, Brother..." style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:13px;outline:none;width:100%;box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'"></div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Modelo</label><input id="cmf2-modelo" type="text" placeholder="DDL-9000" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:13px;outline:none;width:100%;box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'"></div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Serial</label><input id="cmf2-serial" type="text" placeholder="SN-10234" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:'Courier New',monospace;font-size:13px;outline:none;width:100%;box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'"></div>
+      <div style="display:flex;flex-direction:column;gap:5px;"><label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Ubicación</label><select id="cmf2-modulo-sel" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:'Nunito',sans-serif;font-size:13px;outline:none;background:#fff;cursor:pointer;width:100%;box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'"><option value="">— Seleccionar —</option></select></div>
     </div>
-    <div style="display:flex;gap:10px;margin-top:20px;">
+    <div id="cmf2-error" style="color:#dc2626;font-size:12px;margin-top:8px;min-height:16px;"></div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
       <button onclick="document.getElementById('cfg-maq-modal2').style.display='none'" style="flex:1;padding:10px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Cancelar</button>
       <button onclick="cfgSaveMaqModal()" style="flex:1;padding:10px;border-radius:8px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Guardar</button>
     </div>
@@ -3806,22 +4340,30 @@ function cfgRenderPermisos(body){
 
 <!-- MODAL: Formulario área (crear/editar) -->
 <div class="modal-overlay hidden" id="modal-area-form" style="z-index:700;">
-  <div class="modal-box" style="max-width:360px;width:92%;gap:14px;position:relative;">
+  <div class="modal-box" style="max-width:400px;width:92%;gap:14px;position:relative;">
     <div class="modal-title" id="area-form-title">Nueva Área</div>
-    <div style="width:100%;display:flex;flex-direction:column;gap:10px;">
+    <div style="width:100%;display:flex;flex-direction:column;gap:12px;">
+      <!-- Nombre -->
       <div style="display:flex;flex-direction:column;gap:5px;">
         <label style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Nombre del área</label>
         <input id="af-label" type="text" placeholder="Ej: Corte, Costura, Empaque" style="padding:11px 14px;border-radius:8px;border:1px solid var(--border);background:#f8fafc;color:#0f172a;font-size:14px;outline:none;" oninput="this.style.borderColor='var(--border)'">
       </div>
-      <div style="display:flex;gap:10px;">
-        <div style="display:flex;flex-direction:column;gap:5px;flex:0 0 80px;">
-          <label style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Ícono</label>
-          <input id="af-icon" type="text" placeholder="📍" maxlength="4" style="padding:11px 10px;border-radius:8px;border:1px solid var(--border);background:#f8fafc;color:#0f172a;font-size:22px;text-align:center;outline:none;">
-        </div>
+      <!-- Color + emoji actual -->
+      <div style="display:flex;gap:10px;align-items:flex-end;">
         <div style="display:flex;flex-direction:column;gap:5px;flex:1;">
           <label style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Color</label>
           <input id="af-color" type="color" value="#3b82f6" style="width:100%;height:44px;border-radius:8px;border:1px solid var(--border);background:#f8fafc;cursor:pointer;padding:4px;">
         </div>
+        <div style="display:flex;flex-direction:column;gap:5px;align-items:center;">
+          <label style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Ícono</label>
+          <div id="af-icon-preview" style="width:44px;height:44px;border-radius:8px;border:1px solid var(--border);background:#f8fafc;display:flex;align-items:center;justify-content:center;font-size:22px;cursor:default;">📍</div>
+          <input type="hidden" id="af-icon" value="📍">
+        </div>
+      </div>
+      <!-- Picker de emojis (se muestra cuando no hay auto-match) -->
+      <div id="af-emoji-picker" style="display:none;flex-direction:column;gap:6px;">
+        <label style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Elige un ícono</label>
+        <div id="af-emoji-grid" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
       </div>
     </div>
     <div id="af-error" style="font-size:12px;color:var(--red);min-height:16px;text-align:center;"></div>
@@ -6796,6 +7338,119 @@ function cfgSavePerfilModal(){
   showToastSimple(`✅ Perfil "${nombre}" ${isEdit?'actualizado':'creado'}`);
 }
 </script>
+
+
+<!-- MODAL OPERARIA: Crear / Editar -->
+<div id="cfg-operaria-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:1000;align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:#fff;border-radius:16px;padding:28px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.2);font-family:'Nunito',sans-serif;">
+    <div id="com-modal-title" style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;letter-spacing:2px;color:#0f172a;margin-bottom:20px;">✏️ EDITAR OPERARIA</div>
+    <input type="hidden" id="com-target-idx">
+    <div style="display:flex;flex-direction:column;gap:13px;">
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:4px;">Nombre completo</label>
+        <input id="com-nombre" type="text" placeholder="Ej: Ana María Gómez" style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:'Nunito',sans-serif;font-size:13px;outline:none;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:4px;">Cédula</label>
+        <input id="com-cedula" type="text" placeholder="Ej: 12345678" style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:'Courier New',monospace;font-size:14px;outline:none;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:4px;">Módulo</label>
+        <input id="com-modulo" type="text" placeholder="Ej: M01" style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:'Courier New',monospace;font-size:14px;outline:none;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:4px;">Supervisora</label>
+        <select id="com-supervisora" style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:'Nunito',sans-serif;font-size:13px;outline:none;background:#fff;cursor:pointer;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+          <option value="">Sin supervisora</option>
+        </select>
+      </div>
+    </div>
+    <div id="com-error" style="color:#dc2626;font-size:12px;margin-top:8px;min-height:16px;"></div>
+    <div style="display:flex;gap:10px;margin-top:18px;">
+      <button onclick="document.getElementById('cfg-operaria-modal').style.display='none'" style="flex:1;padding:10px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Cancelar</button>
+      <button onclick="cfgSaveNuevaOperaria()" style="flex:1;padding:10px;border-radius:8px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Guardar</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL: Nuevo/Editar TURNO -->
+<div id="cfg-turno-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:1001;align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:#fff;border-radius:16px;padding:28px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,.2);font-family:'Nunito',sans-serif;">
+    <div id="ctm-titulo" style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;letter-spacing:2px;color:#0f172a;margin-bottom:20px;">🕐 NUEVO TURNO</div>
+    <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:14px;">
+      <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Nombre del turno</label>
+      <input id="ctm-nombre" type="text" placeholder="Ej: TURNO DIA, TURNO NOCHE" style="padding:10px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:'Nunito',sans-serif;font-size:14px;outline:none;width:100%;box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+    </div>
+    <div id="ctm-error" style="color:#dc2626;font-size:12px;min-height:16px;margin-bottom:8px;"></div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="document.getElementById('cfg-turno-modal').style.display='none'" style="flex:1;padding:10px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Cancelar</button>
+      <button onclick="cfgSaveTurnoModal()" style="flex:1;padding:10px;border-radius:8px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Nueva/Editar HORA dentro de turno -->
+<div id="cfg-hora-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:1001;align-items:center;justify-content:center;overflow-y:auto;padding:20px 0;" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:#fff;border-radius:16px;padding:28px;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(0,0,0,.2);font-family:'Nunito',sans-serif;margin:auto;">
+    <div id="chm-titulo" style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;letter-spacing:2px;color:#0f172a;margin-bottom:20px;">⏰ NUEVA HORA</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+      <div style="grid-column:1/-1;display:flex;flex-direction:column;gap:4px;">
+        <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Nombre de la hora</label>
+        <input id="chm-nombre" type="text" placeholder="Ej: 1RA HORA, 2da HORA" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:'Nunito',sans-serif;font-size:13px;outline:none;width:100%;box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Comienza</label>
+        <input id="chm-comienza" type="time" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:'Courier New',monospace;font-size:14px;outline:none;width:100%;box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Termina</label>
+        <input id="chm-termina" type="time" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:'Courier New',monospace;font-size:14px;outline:none;width:100%;box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Minutos</label>
+        <input id="chm-minutos" type="number" min="1" max="480" placeholder="60" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:'Courier New',monospace;font-size:14px;outline:none;width:100%;box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Tipo</label>
+        <select id="chm-tipo" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:'Nunito',sans-serif;font-size:13px;outline:none;background:#fff;cursor:pointer;width:100%;box-sizing:border-box;">
+          <option value="NORMAL">NORMAL</option>
+          <option value="EXTRA">EXTRA</option>
+        </select>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Inicia Turno</label>
+        <select id="chm-inicia" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:'Nunito',sans-serif;font-size:13px;outline:none;background:#fff;cursor:pointer;width:100%;box-sizing:border-box;">
+          <option value="NO">NO</option>
+          <option value="SI">SI</option>
+        </select>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Finaliza Turno</label>
+        <select id="chm-finaliza" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:'Nunito',sans-serif;font-size:13px;outline:none;background:#fff;cursor:pointer;width:100%;box-sizing:border-box;">
+          <option value="NO">NO</option>
+          <option value="SI">SI</option>
+        </select>
+      </div>
+    </div>
+    <!-- Días de la semana -->
+    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px;">
+      <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Días de la semana</label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button type="button" id="chm-dia-LN" class="chm-dia-btn" onclick="this.classList.toggle('on')">LN</button><button type="button" id="chm-dia-MR" class="chm-dia-btn" onclick="this.classList.toggle('on')">MR</button><button type="button" id="chm-dia-XR" class="chm-dia-btn" onclick="this.classList.toggle('on')">XR</button><button type="button" id="chm-dia-JU" class="chm-dia-btn" onclick="this.classList.toggle('on')">JU</button><button type="button" id="chm-dia-VI" class="chm-dia-btn" onclick="this.classList.toggle('on')">VI</button><button type="button" id="chm-dia-SB" class="chm-dia-btn" onclick="this.classList.toggle('on')">SB</button><button type="button" id="chm-dia-DG" class="chm-dia-btn" onclick="this.classList.toggle('on')">DG</button>
+      </div>
+    </div>
+    <style>
+      .chm-dia-btn{padding:6px 10px;border-radius:6px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#94a3b8;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;}
+      .chm-dia-btn.on{background:#2563eb;border-color:#2563eb;color:#fff;}
+    </style>
+    <div id="chm-error" style="color:#dc2626;font-size:12px;min-height:16px;margin-bottom:8px;"></div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="document.getElementById('cfg-hora-modal').style.display='none'" style="flex:1;padding:10px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Cancelar</button>
+      <button onclick="cfgSaveHoraModal()" style="flex:1;padding:10px;border-radius:8px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Guardar</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
