@@ -3318,15 +3318,16 @@ setInterval(()=>{const n=new Date();document.getElementById('clock').textContent
 .cfg-btn2.del{border-color:#fecaca;background:#fef2f2;color:#dc2626;}
 .cfg-btn2.del:hover{background:#fee2e2;}
 /* MÓDULOS GRID */
-.cfg-mod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;}
-.cfg-mod-card{background:#fff;border:1px solid #bbf7d0;border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
+.cfg-mod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;}
+.cfg-mod-card{background:#fff;border:1px solid #bbf7d0;border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
 .cfg-mod-card.off{background:#f8fafc;border-color:#e2e8f0;opacity:.6;}
+
 .cfg-dot{width:8px;height:8px;border-radius:50%;background:#16a34a;flex-shrink:0;}
 .cfg-dot.off{background:#cbd5e1;}
-.cfg-mod-info{flex:1;}
+.cfg-mod-info{flex:1;min-width:0;}
 .cfg-mod-name{font-family:'Courier New',monospace;font-size:13px;font-weight:700;color:#0f172a;letter-spacing:1px;}
 .cfg-mod-pass{font-size:10px;color:#94a3b8;margin-top:2px;}
-.cfg-mod-acts{display:flex;gap:4px;}
+.cfg-mod-acts{display:flex;gap:4px;flex-wrap:wrap;}
 .cfg-xs{padding:4px 8px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid;}
 .cfg-xs.edit{border-color:#bfdbfe;background:#eff6ff;color:#2563eb;}
 .cfg-xs.inh{border-color:#fde68a;background:#fffbeb;color:#d97706;}
@@ -3434,9 +3435,9 @@ setInterval(()=>{const n=new Date();document.getElementById('clock').textContent
           <span>🔍</span>
           <input class="cfg-search-inp" id="cfg-search2" type="text" placeholder="Buscar..." oninput="cfgOnSearch()">
         </div>
-        <button class="cfg-btn-tpl2" id="cfg-btn-tpl2" onclick="cfgDownloadPlantilla()">📥 Plantilla</button>
+        <button class="cfg-btn-tpl2" id="cfg-btn-tpl2" onclick="cfgDownloadPlantilla()">📊 Plantilla</button>
         <label class="cfg-btn-upload2" id="cfg-btn-upload2" style="display:none;cursor:pointer;">📤 Importar<input type="file" accept=".xlsx,.xls" style="display:none;" onchange="cfgHandleUpload(this.files[0])"></label>
-        <button class="cfg-btn-excel2" id="cfg-btn-excel2" onclick="cfgExcelAction()">📊 Exportar</button>
+        <button class="cfg-btn-excel2" id="cfg-btn-excel2" onclick="cfgExcelAction()">📥 Exportar</button>
         <button class="cfg-btn-limpiar2" id="cfg-btn-limpiar2" style="display:none;" onclick="cfgOnLimpiar()">🗑 Limpiar</button>
         <button class="cfg-btn-crear2" id="cfg-btn-crear2" onclick="cfgOnCrear()">+ Crear</button>
       </div>
@@ -3783,7 +3784,10 @@ function cfgRenderPerfiles(body){
       const info=document.createElement('div'); info.className='cfg-info';
       info.innerHTML=`<div class="cfg-name">${nombre}${isBuiltin?'<span class="cfg-badge cfg-badge-sys">SISTEMA</span>':''}${isDisabled?'<span class="cfg-badge cfg-badge-off">INACTIVO</span>':''}</div><div class="cfg-sub">${isBuiltin?'Pass: ••••••':'Pass: '+data.pass}</div>`;
       const acts=document.createElement('div'); acts.className='cfg-actions';
-      if(!isBuiltin){
+      if(isBuiltin && nombre==='Programador'){
+        // Programador: solo editar (no inhabilitar ni eliminar)
+        const bE=document.createElement('button'); bE.className='cfg-btn2 edit'; bE.textContent='✏️ Editar'; bE.onclick=()=>cfgOpenPerfilModal(nombre,data.pass); acts.appendChild(bE);
+      } else if(!isBuiltin){
         const bE=document.createElement('button'); bE.className='cfg-btn2 edit'; bE.textContent='✏️ Editar'; bE.onclick=()=>cfgOpenPerfilModal(nombre,data.pass); acts.appendChild(bE);
         const bT=document.createElement('button'); bT.className=`cfg-btn2 ${isDisabled?'hab':'inh'}`; bT.textContent=isDisabled?'✅ Habilitar':'⏸ Inhabilitar'; bT.onclick=()=>toggleExtraUser(nombre); acts.appendChild(bT);
         const bD=document.createElement('button'); bD.className='cfg-btn2 del'; bD.textContent='🗑 Eliminar'; bD.onclick=()=>{openConfirmDelete('usuario',nombre,()=>{deleteExtraUser(nombre);cfgSwitchTab('perfiles',document.getElementById('cfgn-perfiles'));});}; acts.appendChild(bD);
@@ -3811,13 +3815,13 @@ function cfgRenderCargos(body){
     body.appendChild(empty); return;
   }
 
-  const COLS='2fr 3fr auto';
+  const COLS='2fr auto';
   const tbl=document.createElement('div'); tbl.style.cssText='width:100%;';
 
   // Header
   const hdr=document.createElement('div');
   hdr.style.cssText=`display:grid;grid-template-columns:${COLS};gap:0;padding:0 16px 8px;`;
-  ['NOMBRE','DESCRIPCIÓN','ACCIONES'].forEach(t=>{
+  ['NOMBRE','ACCIONES'].forEach(t=>{
     const h=document.createElement('span');
     h.style.cssText='font-size:11px;font-weight:700;letter-spacing:1px;color:#64748b;text-transform:uppercase;';
     h.textContent=t; hdr.appendChild(h);
@@ -3851,7 +3855,7 @@ function cfgRenderCargos(body){
       showToastSimple(`🗑 Cargo "${c.nombre}" eliminado`);
     });
     acts.appendChild(bE); acts.appendChild(bD);
-    row.appendChild(nm); row.appendChild(desc); row.appendChild(acts);
+    row.appendChild(nm); row.appendChild(acts);
     tbl.appendChild(row);
   });
   body.appendChild(tbl);
@@ -3863,7 +3867,7 @@ function cfgOpenCargoModal(idx){
   const c=idx!==undefined?cargos[idx]:null;
   document.getElementById('ccm-idx').value=idx!==undefined?idx:'-1';
   document.getElementById('ccm-nombre').value=c?c.nombre:'';
-  document.getElementById('ccm-desc').value=c?c.descripcion:'';
+  
   document.getElementById('ccm-titulo').textContent=c?'✏️ EDITAR CARGO':'🏷️ NUEVO CARGO';
   document.getElementById('ccm-error').textContent='';
   modal.style.display='flex';
@@ -3872,7 +3876,7 @@ function cfgOpenCargoModal(idx){
 function cfgSaveCargo(){
   const idx=parseInt(document.getElementById('ccm-idx').value);
   const nombre=document.getElementById('ccm-nombre').value.trim();
-  const desc=document.getElementById('ccm-desc').value.trim();
+  
   const errEl=document.getElementById('ccm-error');
   if(!nombre){errEl.textContent='El nombre del cargo no puede estar vacío';return;}
   const cargos=cfgGetCargos();
@@ -3880,9 +3884,9 @@ function cfgSaveCargo(){
   const dup=cargos.findIndex((c,i)=>c.nombre.toLowerCase()===nombre.toLowerCase()&&i!==idx);
   if(dup>-1){errEl.textContent='Ya existe un cargo con ese nombre';return;}
   if(idx===-1){
-    cargos.push({nombre,descripcion:desc});
+    cargos.push({nombre});
   } else {
-    cargos[idx]={nombre,descripcion:desc};
+    cargos[idx]={nombre};
   }
   cfgSaveCargos(cargos);
   document.getElementById('cfg-cargo-modal').style.display='none';
@@ -3915,7 +3919,7 @@ function cfgRenderUsuarios(body){
     {label:'Cargo',       id:'uf-cargo',   type:'text'},
     {label:'Módulo',      id:'uf-modulo',  type:'text'},
     {label:'Supervisora', id:'uf-sup',     type:'text'},
-    {label:'Estado',      id:'uf-estado',  type:'estado'},
+    {label:'Estado',      id:'uf-estado',  type:'text'},
     {label:'Acciones',    id:null,         type:'none'},
   ];
   usrCols.forEach(c=>{
@@ -3926,10 +3930,6 @@ function cfgRenderUsuarios(body){
     if(c.type==='text'){
       const inp=document.createElement('input'); inp.type='text'; inp.id=c.id; inp.placeholder='Filtrar…';
       inp.className='cfg-col-filter'; inp.oninput=()=>applyFiltros(); cell.appendChild(inp);
-    } else if(c.type==='estado'){
-      const sel=document.createElement('select'); sel.id=c.id; sel.className='cfg-col-filter'; sel.style.cursor='pointer';
-      sel.innerHTML='<option value="">Todas</option><option value="activa">Activa</option><option value="inactiva">Inactiva</option>';
-      sel.onchange=()=>applyFiltros(); cell.appendChild(sel);
     }
     hdr.appendChild(cell);
   });
@@ -3949,7 +3949,7 @@ function cfgRenderUsuarios(body){
       const supObj = sups.find(s=>s.id===e.supId)||iaS.supervisors?.find(s=>s.id===e.supId);
       const supNombre = supObj?supObj.name:(e.supId||'');
       const matchSup = !qSup||supNombre.toLowerCase().includes(qSup);
-      const matchEst = !qEst||(qEst==='activa'?!e.disabled:!!e.disabled);
+      const matchEst = !qEst||((e.disabled?'inactiva':'activa').includes(qEst));
       const matchCargo = !qCargo||(e.cargo||'').toLowerCase().includes(qCargo);
       return matchCed&&matchNom&&matchMod&&matchSup&&matchEst&&matchCargo;
     });
@@ -4513,27 +4513,61 @@ function cfgRenderModulos(body){
   const extra=cfg._modulos_extra||[];
   const renamed=cfg._modulos_renamed||{};
   const modPass=cfg._modulos_pass||{};
-  // Incluir TODOS: base + extra, activos e inactivos
-  // rebuildModules() puede eliminar inactivos de MODULES en memoria,
-  // así que reconstruimos la lista completa desde config
   const baseAll = typeof MODULES_BASE!=='undefined' ? MODULES_BASE : 
     ['M01','M02','M03','M04','M05','M06','M07','M08','M09','M10','M11','M12',
      'M13','M14','M15','M16','M17','M18','M19','M20','M21','M22','M23','M24','M25','M26','M27'];
   const allMods=[...baseAll,...extra].filter(m=>!q||(renamed[m]||m).toLowerCase().includes(q));
   const grid=document.createElement('div'); grid.className='cfg-mod-grid';
-  allMods.forEach(m=>{
-    const off=disabled.includes(m);
-    const displayName=renamed[m]||m;
-    const pass=modPass[m]||m;
+
+  function buildCard(m){
+    const cfg2=loadConfig();
+    const dis2=cfg2._modulos_disabled||[];
+    const ren2=cfg2._modulos_renamed||{};
+    const pas2=cfg2._modulos_pass||{};
+    const ext2=cfg2._modulos_extra||[];
+    const off=dis2.includes(m);
+    const displayName=ren2[m]||m;
+    const pass=pas2[m]||m;
     const mc=document.createElement('div'); mc.className='cfg-mod-card'+(off?' off':'');
-    mc.style.cssText=off?'opacity:.6;border:1.5px solid #fca5a5;':'';
-    mc.innerHTML=`<div class="cfg-dot ${off?'off':''}"></div><div class="cfg-mod-info"><div class="cfg-mod-name">${displayName}${off?'<span style="font-size:9px;background:#fee2e2;color:#dc2626;padding:1px 5px;border-radius:4px;margin-left:6px;font-weight:700;">INACTIVO</span>':''}</div><div class="cfg-mod-pass">🔑 ${pass}</div></div>`;
+    mc.id='cfg-mod-card-'+m;
+    if(off) mc.style.cssText='opacity:.6;border:1.5px solid #fca5a5;';
+    else mc.style.cssText='';
+    // Top row: dot + name + pass
+    mc.innerHTML=`<div style="display:flex;align-items:center;gap:8px;"><div class="cfg-dot ${off?'off':''}"></div><div class="cfg-mod-info"><div class="cfg-mod-name">${displayName}${off?'<span style="font-size:9px;background:#fee2e2;color:#dc2626;padding:1px 5px;border-radius:4px;margin-left:6px;font-weight:700;">INACTIVO</span>':''}</div><div class="cfg-mod-pass">🔑 ${pass}</div></div></div>`;
+    // Actions row
     const acts=document.createElement('div'); acts.className='cfg-mod-acts';
-    const bE=document.createElement('button'); bE.className='cfg-xs edit'; bE.textContent='✏️'; bE.onclick=()=>openModForm('edit',m,displayName); acts.appendChild(bE);
-    const bT=document.createElement('button'); bT.className=`cfg-xs ${off?'hab':'inh'}`; bT.textContent=off?'✅':'⏸'; bT.onclick=()=>toggleModuloDisabled(m); acts.appendChild(bT);
-    if(extra.includes(m)){const bD=document.createElement('button');bD.className='cfg-xs del';bD.textContent='🗑';bD.onclick=()=>openConfirmDelete('modulo',displayName,()=>deleteExtraModulo(m));acts.appendChild(bD);}
-    mc.appendChild(acts); grid.appendChild(mc);
-  });
+    const bE=document.createElement('button'); bE.className='cfg-xs edit'; bE.textContent='✏️';
+    bE.onclick=()=>{ openModForm('edit',m,displayName); };
+    acts.appendChild(bE);
+    const bT=document.createElement('button'); bT.className=`cfg-xs ${off?'hab':'inh'}`; bT.textContent=off?'✅':'⏸';
+    bT.onclick=()=>{
+      toggleModulo(m);
+      const old=document.getElementById('cfg-mod-card-'+m);
+      if(old){ const fresh=buildCard(m); old.replaceWith(fresh); }
+    };
+    acts.appendChild(bT);
+    // Eliminar para TODOS
+    const bD=document.createElement('button'); bD.className='cfg-xs del'; bD.textContent='🗑';
+    bD.onclick=()=>openConfirmDelete('modulo',displayName,()=>{
+      if(ext2.includes(m)){
+        deleteExtraModulo(m);
+      } else {
+        // módulo base: solo inhabilitar permanentemente marcándolo como eliminado
+        const c3=loadConfig();
+        c3._modulos_disabled=c3._modulos_disabled||[];
+        c3._modulos_renamed=c3._modulos_renamed||{};
+        if(!c3._modulos_disabled.includes(m)) c3._modulos_disabled.push(m);
+        saveConfig(c3);
+        if(typeof rebuildModules==='function') rebuildModules();
+      }
+      cfgSwitchTab('modulos',document.getElementById('cfgn-modulos'));
+    });
+    acts.appendChild(bD);
+    mc.appendChild(acts);
+    return mc;
+  }
+
+  allMods.forEach(m=>{ grid.appendChild(buildCard(m)); });
   body.appendChild(grid);
 }
 
@@ -7619,8 +7653,10 @@ function cfgOpenPerfilModal(nombre, pass){
   document.getElementById('cpf-target').value = nombre||'';
   const nInput = document.getElementById('cpf-nombre');
   nInput.value = nombre||'';
-  nInput.disabled = false;
-  nInput.style.opacity = '1';
+  // Programador builtin: no se puede renombrar
+  const isProg = (nombre==='Programador');
+  nInput.disabled = isProg;
+  nInput.style.opacity = isProg ? '.5' : '1';
   document.getElementById('cpf-pass').value = pass||'';
   document.getElementById('cpf-error').textContent = '';
   document.getElementById('cfg-perfil-modal').style.display = 'flex';
@@ -7638,6 +7674,15 @@ function cfgSavePerfilModal(){
   if(!pass)  { errEl.textContent='La contraseña no puede estar vacía'; return; }
   const extras = getUsuariosExtra();
   if(isEdit){
+    // Caso especial: Programador es builtin, solo actualiza contraseña en USUARIOS
+    if(target==='Programador' && USUARIOS[target]?.builtin){
+      if(!pass){ errEl.textContent='La contraseña no puede estar vacía'; return; }
+      USUARIOS['Programador'].pass = pass;
+      document.getElementById('cfg-perfil-modal').style.display='none';
+      cfgSwitchTab('perfiles',document.getElementById('cfgn-perfiles'));
+      showToastSimple('✅ Contraseña de Programador actualizada');
+      return;
+    }
     const idx = extras.findIndex(u=>u.nombre===target);
     // If name changed, rename
     if(nombre !== target){
@@ -7731,10 +7776,6 @@ function cfgSavePerfilModal(){
       <div>
         <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:4px;">Nombre del cargo</label>
         <input id="ccm-nombre" type="text" placeholder="Ej: Operaria, Mecánico, Supervisora" style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:'Nunito',sans-serif;font-size:13px;outline:none;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
-      </div>
-      <div>
-        <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:4px;">Descripción (opcional)</label>
-        <input id="ccm-desc" type="text" placeholder="Ej: Personal de costura" style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:'Nunito',sans-serif;font-size:13px;outline:none;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
       </div>
     </div>
     <div id="ccm-error" style="color:#dc2626;font-size:12px;margin-top:8px;min-height:16px;"></div>
