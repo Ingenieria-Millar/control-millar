@@ -3416,6 +3416,7 @@ setInterval(()=>{const n=new Date();document.getElementById('clock').textContent
     <div class="cfg-sidebar">
       <div class="cfg-nav-item cfg-active" id="cfgn-perfiles" onclick="cfgSwitchTab('perfiles',this)"><span>🎭</span> Perfiles</div>
       <div class="cfg-nav-item" id="cfgn-usuarios" onclick="cfgSwitchTab('usuarios',this)"><span>👥</span> Usuarios</div>
+      <div class="cfg-nav-item" id="cfgn-cargos" onclick="cfgSwitchTab('cargos',this)"><span>🏷️</span> Cargos</div>
       <div class="cfg-nav-item" id="cfgn-turnos" onclick="cfgSwitchTab('turnos',this)"><span>🕐</span> Turnos</div>
       <div class="cfg-nav-item" id="cfgn-maquinaria" onclick="cfgSwitchTab('maquinaria',this)"><span>⚙️</span> Maquinaria</div>
       <div class="cfg-nav-item" id="cfgn-modulos" onclick="cfgSwitchTab('modulos',this)"><span>🏭</span> Módulos</div>
@@ -3446,11 +3447,11 @@ setInterval(()=>{const n=new Date();document.getElementById('clock').textContent
 // ── CFG SCREEN LOGIC ──────────────────────────────────────────────
 let cfgCurrentTab = 'perfiles';
 const CFG_TITLES = {
-  perfiles:'🎭 Perfiles', usuarios:'👥 Usuarios', turnos:'🕐 Turnos',
+  perfiles:'🎭 Perfiles', usuarios:'👥 Usuarios', cargos:'🏷️ Cargos', turnos:'🕐 Turnos',
   maquinaria:'⚙️ Maquinaria', modulos:'🏭 Módulos', areas:'📍 Áreas', permisos:'🔑 Permisos'
 };
 const CFG_CREAR_LABELS = {
-  perfiles:'+ Nuevo perfil', usuarios:'+ Nuevo usuario', maquinaria:'+ Nueva máquina',
+  perfiles:'+ Nuevo perfil', usuarios:'+ Nuevo usuario', cargos:'+ Nuevo cargo', maquinaria:'+ Nueva máquina',
   modulos:'+ Nuevo módulo', areas:'+ Nueva área', turnos:'+ Nuevo turno'
 };
 const CFG_EXCEL_TABS = ['maquinaria','turnos','usuarios'];
@@ -3490,6 +3491,7 @@ function cfgSwitchTab(tab, el){
   body.innerHTML='';
   if(tab==='perfiles')   cfgRenderPerfiles(body);
   if(tab==='usuarios')   cfgRenderUsuarios(body);
+  if(tab==='cargos')     cfgRenderCargos(body);
   if(tab==='turnos')     cfgRenderTurnos(body);
   if(tab==='maquinaria') cfgRenderMaquinaria(body);
   if(tab==='modulos')    cfgRenderModulos(body);
@@ -3502,6 +3504,7 @@ function cfgOnSearch(){
   body.innerHTML='';
   if(cfgCurrentTab==='perfiles')   cfgRenderPerfiles(body);
   if(cfgCurrentTab==='usuarios')   cfgRenderUsuarios(body);
+  if(cfgCurrentTab==='cargos')     cfgRenderCargos(body);
   if(cfgCurrentTab==='modulos')    cfgRenderModulos(body);
   if(cfgCurrentTab==='areas')      cfgRenderAreas(body);
   if(cfgCurrentTab==='permisos')   cfgRenderPermisos(body);
@@ -3509,6 +3512,7 @@ function cfgOnSearch(){
 function cfgOnCrear(){
   if(cfgCurrentTab==='perfiles')   cfgOpenPerfilModal();
   if(cfgCurrentTab==='usuarios')   cfgOpenNuevaOperaria();
+  if(cfgCurrentTab==='cargos')     cfgOpenCargoModal();
   if(cfgCurrentTab==='modulos')    openModForm('create');
   if(cfgCurrentTab==='areas')      openAreaForm('create');
   if(cfgCurrentTab==='maquinaria') cfgOpenMaqModal();
@@ -3554,12 +3558,12 @@ function cfgPlantillaTurnos(){
 function cfgPlantillaUsuarios(){
   if(typeof XLSX==='undefined'){alert('Librería Excel no disponible');return;}
   const ws=XLSX.utils.aoa_to_sheet([
-    ['Cedula','Nombre','Modulo','Supervisora','Estado'],
-    ['12345678','Ana Gómez','M01','Supervisora 1','activa'],
-    ['87654321','María López','M02','Supervisora 2','activa']
+    ['Cedula','Nombre','Cargo','Modulo','Supervisora','Estado'],
+    ['12345678','Ana Gómez','Operaria','M01','Supervisora 1','activa'],
+    ['87654321','María López','Mecánico','M02','Supervisora 2','activa']
   ]);
   // Column widths
-  ws['!cols']=[{wch:14},{wch:25},{wch:10},{wch:25},{wch:10}];
+  ws['!cols']=[{wch:14},{wch:25},{wch:15},{wch:10},{wch:25},{wch:10}];
   const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Usuarios');
   XLSX.writeFile(wb,'plantilla_usuarios.xlsx');
   showToastSimple('📥 Plantilla descargada');
@@ -3675,13 +3679,14 @@ function cfgExportUsuarios(){
     return {
       Cedula: e.cedula||'',
       Nombre: e.name||'',
+      Cargo: e.cargo||'',
       Modulo: e.module||e.modulo||'',
       Supervisora: sup?sup.name:'',
       Estado: e.disabled?'inactiva':'activa'
     };
   });
   const ws = XLSX.utils.json_to_sheet(rows);
-  ws['!cols']=[{wch:14},{wch:25},{wch:10},{wch:25},{wch:10}];
+  ws['!cols']=[{wch:14},{wch:25},{wch:15},{wch:10},{wch:25},{wch:10}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,'Operarias');
   XLSX.writeFile(wb,'operarias_millar.xlsx');
@@ -3740,6 +3745,103 @@ function cfgRenderPerfiles(body){
     });
 }
 
+// ── CARGOS ────────────────────────────────────────────────────────
+function cfgGetCargos(){
+  try{ return JSON.parse(localStorage.getItem('millar_cargos')||'[]'); } catch(e){ return []; }
+}
+function cfgSaveCargos(arr){
+  localStorage.setItem('millar_cargos', JSON.stringify(arr));
+}
+function cfgRenderCargos(body){
+  const q = cfgGetSearch().toLowerCase();
+  const cargos = cfgGetCargos().filter(c=>!q||c.nombre.toLowerCase().includes(q));
+
+  if(!cargos.length){
+    const empty=document.createElement('div');
+    empty.style.cssText='padding:40px;text-align:center;color:#94a3b8;font-size:14px;';
+    empty.innerHTML='<div style="font-size:32px;margin-bottom:8px;">🏷️</div><div>No hay cargos creados aún.<br>Usa "+ Nuevo cargo" para agregar.</div>';
+    body.appendChild(empty); return;
+  }
+
+  const COLS='2fr 3fr auto';
+  const tbl=document.createElement('div'); tbl.style.cssText='width:100%;';
+
+  // Header
+  const hdr=document.createElement('div');
+  hdr.style.cssText=`display:grid;grid-template-columns:${COLS};gap:0;padding:0 16px 8px;`;
+  ['NOMBRE','DESCRIPCIÓN','ACCIONES'].forEach(t=>{
+    const h=document.createElement('span');
+    h.style.cssText='font-size:11px;font-weight:700;letter-spacing:1px;color:#64748b;text-transform:uppercase;';
+    h.textContent=t; hdr.appendChild(h);
+  });
+  tbl.appendChild(hdr);
+
+  cfgGetCargos().filter(c=>!q||c.nombre.toLowerCase().includes(q)).forEach((c,i)=>{
+    const row=document.createElement('div');
+    row.style.cssText=`display:grid;grid-template-columns:${COLS};gap:0;align-items:center;padding:10px 16px;border-top:1px solid #f1f5f9;border-radius:8px;transition:background .15s;`;
+    row.onmouseenter=()=>row.style.background='#f8fafc';
+    row.onmouseleave=()=>row.style.background='';
+
+    const nm=document.createElement('div');
+    nm.style.cssText='font-weight:700;color:#0f172a;font-size:13px;display:flex;align-items:center;gap:8px;';
+    nm.innerHTML=`<span style="background:#eff6ff;color:#2563eb;border-radius:6px;padding:2px 8px;font-size:12px;">🏷️ ${c.nombre}</span>`;
+
+    const desc=document.createElement('div');
+    desc.style.cssText='color:#64748b;font-size:13px;';
+    desc.textContent=c.descripcion||'—';
+
+    const acts=document.createElement('div');
+    acts.style.cssText='display:flex;gap:6px;';
+    const bE=document.createElement('button');
+    bE.className='cfg-row-btn'; bE.textContent='✏️'; bE.title='Editar';
+    bE.onclick=()=>cfgOpenCargoModal(i);
+    const bD=document.createElement('button');
+    bD.className='cfg-row-btn del'; bD.textContent='🗑'; bD.title='Eliminar';
+    bD.onclick=()=>openConfirmDelete('cargo',c.nombre,()=>{
+      const arr=cfgGetCargos(); arr.splice(i,1); cfgSaveCargos(arr);
+      cfgSwitchTab('cargos',document.getElementById('cfgn-cargos'));
+      showToastSimple(`🗑 Cargo "${c.nombre}" eliminado`);
+    });
+    acts.appendChild(bE); acts.appendChild(bD);
+    row.appendChild(nm); row.appendChild(desc); row.appendChild(acts);
+    tbl.appendChild(row);
+  });
+  body.appendChild(tbl);
+}
+function cfgOpenCargoModal(idx){
+  const modal=document.getElementById('cfg-cargo-modal');
+  if(!modal) return;
+  const cargos=cfgGetCargos();
+  const c=idx!==undefined?cargos[idx]:null;
+  document.getElementById('ccm-idx').value=idx!==undefined?idx:'-1';
+  document.getElementById('ccm-nombre').value=c?c.nombre:'';
+  document.getElementById('ccm-desc').value=c?c.descripcion:'';
+  document.getElementById('ccm-titulo').textContent=c?'✏️ EDITAR CARGO':'🏷️ NUEVO CARGO';
+  document.getElementById('ccm-error').textContent='';
+  modal.style.display='flex';
+  setTimeout(()=>document.getElementById('ccm-nombre').focus(),100);
+}
+function cfgSaveCargo(){
+  const idx=parseInt(document.getElementById('ccm-idx').value);
+  const nombre=document.getElementById('ccm-nombre').value.trim();
+  const desc=document.getElementById('ccm-desc').value.trim();
+  const errEl=document.getElementById('ccm-error');
+  if(!nombre){errEl.textContent='El nombre del cargo no puede estar vacío';return;}
+  const cargos=cfgGetCargos();
+  // Check duplicado
+  const dup=cargos.findIndex((c,i)=>c.nombre.toLowerCase()===nombre.toLowerCase()&&i!==idx);
+  if(dup>-1){errEl.textContent='Ya existe un cargo con ese nombre';return;}
+  if(idx===-1){
+    cargos.push({nombre,descripcion:desc});
+  } else {
+    cargos[idx]={nombre,descripcion:desc};
+  }
+  cfgSaveCargos(cargos);
+  document.getElementById('cfg-cargo-modal').style.display='none';
+  cfgSwitchTab('cargos',document.getElementById('cfgn-cargos'));
+  showToastSimple(idx===-1?'✅ Cargo creado':'✅ Cargo actualizado');
+}
+
 // ── USUARIOS (operarias) ──────────────────────────────────────────
 function cfgRenderUsuarios(body){
   const iaS = typeof iaState!=='undefined'&&iaState ? iaState : {employees:[],supervisors:[]};
@@ -3752,15 +3854,17 @@ function cfgRenderUsuarios(body){
   body.appendChild(statsRow);
 
   // ── Tabla con filtros por columna ─────────────────────────────────
-  const COLS = '1.2fr 2fr 1.3fr 1.5fr .9fr 100px';
+  const COLS = '1.2fr 2fr 1fr 1.3fr 1.5fr .9fr 100px';
   const INP_S = "width:100%;box-sizing:border-box;padding:3px 6px;border-radius:5px;border:1px solid #e2e8f0;font-family:'Nunito',sans-serif;font-size:11px;outline:none;color:#0f172a;background:#fff;";
   const tbl = document.createElement('div'); tbl.className='cfg-user-table'; tbl.id='cfg-usr-tbl';
 
   // Encabezados con filtros debajo
   const hdr = document.createElement('div'); hdr.className='cfg-user-hdr'; hdr.style.gridTemplateColumns=COLS;
+  const cargosDisp = cfgGetCargos();
   const usrCols = [
     {label:'Cédula',      id:'uf-cedula',  type:'text'},
     {label:'Nombre',      id:'uf-nombre',  type:'text'},
+    {label:'Cargo',       id:'uf-cargo',   type:'cargo'},
     {label:'Módulo',      id:'uf-modulo',  type:'text'},
     {label:'Supervisora', id:'uf-sup',     type:'select'},
     {label:'Estado',      id:'uf-estado',  type:'estado'},
@@ -3774,6 +3878,10 @@ function cfgRenderUsuarios(body){
     if(c.type==='text'){
       const inp=document.createElement('input'); inp.type='text'; inp.id=c.id; inp.placeholder='Filtrar…';
       inp.className='cfg-col-filter'; inp.oninput=()=>applyFiltros(); cell.appendChild(inp);
+    } else if(c.type==='cargo'){
+      const sel=document.createElement('select'); sel.id=c.id; sel.className='cfg-col-filter'; sel.style.cursor='pointer';
+      sel.innerHTML='<option value="">Todos</option>'+cargosDisp.map(c=>`<option value="${c.nombre}">${c.nombre}</option>`).join('');
+      sel.onchange=()=>applyFiltros(); cell.appendChild(sel);
     } else if(c.type==='select'){
       const sel=document.createElement('select'); sel.id=c.id; sel.className='cfg-col-filter'; sel.style.cursor='pointer';
       sel.innerHTML='<option value="">Todas</option>'+sups.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
@@ -3793,13 +3901,15 @@ function cfgRenderUsuarios(body){
     const qCed=get('uf-cedula'), qNom=get('uf-nombre'), qMod=get('uf-modulo');
     const qSup=(document.getElementById('uf-sup')||{value:''}).value;
     const qEst=(document.getElementById('uf-estado')||{value:''}).value;
+    const qCargo=(document.getElementById('uf-cargo')||{value:''}).value.toLowerCase();
     const list=emps.filter(e=>{
       const matchCed = !qCed||(e.cedula||'').toLowerCase().includes(qCed);
       const matchNom = !qNom||(e.name||'').toLowerCase().includes(qNom);
       const matchMod = !qMod||(e.module||e.modulo||'').toLowerCase().includes(qMod);
       const matchSup = !qSup||(e.supId===qSup);
       const matchEst = !qEst||(qEst==='activa'?!e.disabled:!!e.disabled);
-      return matchCed&&matchNom&&matchMod&&matchSup&&matchEst;
+      const matchCargo = !qCargo||(e.cargo||'').toLowerCase().includes(qCargo);
+      return matchCed&&matchNom&&matchMod&&matchSup&&matchEst&&matchCargo;
     });
     tbl.querySelectorAll('.cfg-user-row').forEach(r=>r.remove());
     list.forEach(e=>{
@@ -3807,7 +3917,7 @@ function cfgRenderUsuarios(body){
       const isOff=!!e.disabled;
       const row=document.createElement('div'); row.className='cfg-user-row'+(isOff?' disabled':'');
       row.style.gridTemplateColumns=COLS;
-      row.innerHTML=`<div class="cfg-user-cell muted" style="font-family:'Courier New',monospace;font-size:12px;">${e.cedula||'—'}</div><div class="cfg-user-cell">${e.name||'—'}</div><div class="cfg-user-cell muted">${e.module||e.modulo||'—'}</div><div class="cfg-user-cell muted">${sup?sup.name:'—'}</div><div class="cfg-user-cell"><span class="cfg-pill ${isOff?'inactiva':'activa'}">${isOff?'● Inactiva':'● Activa'}</span></div>`;
+      row.innerHTML=`<div class="cfg-user-cell muted" style="font-family:'Courier New',monospace;font-size:12px;">${e.cedula||'—'}</div><div class="cfg-user-cell">${e.name||'—'}</div><div class="cfg-user-cell muted">${e.cargo?`<span style="background:#eff6ff;color:#2563eb;border-radius:5px;padding:1px 7px;font-size:11px;font-weight:600;">${e.cargo}</span>`:'—'}</div><div class="cfg-user-cell muted">${e.module||e.modulo||'—'}</div><div class="cfg-user-cell muted">${sup?sup.name:'—'}</div><div class="cfg-user-cell"><span class="cfg-pill ${isOff?'inactiva':'activa'}">${isOff?'● Inactiva':'● Activa'}</span></div>`;
       const acts=document.createElement('div'); acts.className='cfg-row-acts'; acts.style.cssText='display:flex;gap:4px;';
       const bE=document.createElement('button'); bE.className='cfg-row-btn'; bE.textContent='✏️'; bE.title='Editar'; bE.onclick=()=>cfgOpenUserModal(e);
       const bT=document.createElement('button'); bT.className=`cfg-row-btn tog ${isOff?'on':''}`; bT.textContent=isOff?'✅':'⏸'; bT.title=isOff?'Habilitar':'Inhabilitar';
@@ -3838,6 +3948,9 @@ function cfgOpenUserModal(emp){
   document.getElementById('com-nombre').value  = emp.name||'';
   document.getElementById('com-cedula').value  = emp.cedula||'';
   document.getElementById('com-modulo').value  = emp.module||emp.modulo||'';
+  const selCargo = document.getElementById('com-cargo');
+  const cargosM = cfgGetCargos();
+  selCargo.innerHTML='<option value="">Sin cargo</option>'+cargosM.map(c=>`<option value="${c.nombre}"${emp.cargo===c.nombre?' selected':''}>${c.nombre}</option>`).join('');
   const selSup = document.getElementById('com-supervisora');
   selSup.innerHTML = '<option value="">Sin supervisora</option>'+sups.map(s=>`<option value="${s.id}"${emp.supId===s.id?' selected':''}>${s.name}</option>`).join('');
   document.getElementById('com-error').textContent='';
@@ -3851,6 +3964,7 @@ function cfgSaveUserModal(){
   const cedula = document.getElementById('com-cedula').value.trim();
   const modulo = document.getElementById('com-modulo').value.trim();
   const supId  = document.getElementById('com-supervisora').value;
+  const cargo  = document.getElementById('com-cargo').value;
   const errEl  = document.getElementById('com-error');
   if(!nombre){ errEl.textContent='El nombre no puede estar vacío'; return; }
   const emp = iaS.employees[idx];
@@ -3860,6 +3974,7 @@ function cfgSaveUserModal(){
   emp.module = modulo;
   emp.modulo = modulo;
   emp.supId  = supId;
+  emp.cargo  = cargo;
   if(typeof saveIaState==='function') saveIaState();
   document.getElementById('cfg-operaria-modal').style.display='none';
   cfgSwitchTab('usuarios', document.getElementById('cfgn-usuarios'));
@@ -3876,6 +3991,9 @@ function cfgOpenNuevaOperaria(){
   document.getElementById('com-nombre').value  = '';
   document.getElementById('com-cedula').value  = '';
   document.getElementById('com-modulo').value  = '';
+  const selCargoN = document.getElementById('com-cargo');
+  const cargosN = cfgGetCargos();
+  selCargoN.innerHTML='<option value="">Sin cargo</option>'+cargosN.map(c=>`<option value="${c.nombre}">${c.nombre}</option>`).join('');
   const selSup = document.getElementById('com-supervisora');
   selSup.innerHTML = '<option value="">Sin supervisora</option>'+sups.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
   document.getElementById('com-error').textContent='';
@@ -3890,15 +4008,16 @@ function cfgSaveNuevaOperaria(){
   const cedula = document.getElementById('com-cedula').value.trim();
   const modulo = document.getElementById('com-modulo').value.trim();
   const supId  = document.getElementById('com-supervisora').value;
+  const cargo  = document.getElementById('com-cargo').value;
   const errEl  = document.getElementById('com-error');
   if(!nombre){ errEl.textContent='El nombre no puede estar vacío'; return; }
   if(idx===-1){
     // Nueva operaria
     const id = 'emp_'+Date.now();
-    iaS.employees.push({id, name:nombre, cedula, module:modulo, modulo, supId, disabled:false});
+    iaS.employees.push({id, name:nombre, cedula, module:modulo, modulo, supId, cargo, disabled:false});
   } else {
     const emp = iaS.employees[idx];
-    if(emp){ emp.name=nombre; emp.cedula=cedula; emp.module=modulo; emp.modulo=modulo; emp.supId=supId; }
+    if(emp){ emp.name=nombre; emp.cedula=cedula; emp.module=modulo; emp.modulo=modulo; emp.supId=supId; emp.cargo=cargo; }
   }
   if(typeof saveIaState==='function') saveIaState();
   document.getElementById('cfg-operaria-modal').style.display='none';
@@ -3922,6 +4041,7 @@ function cfgImportUsuariosXLS(file){
       rows.forEach(r=>{
         const nombre = (r['Nombre']||r['nombre']||'').toString().trim();
         const cedula = (r['Cedula']||r['cedula']||r['Cédula']||'').toString().trim();
+        const cargo  = (r['Cargo']||r['cargo']||'').toString().trim();
         const modulo = (r['Modulo']||r['modulo']||r['Módulo']||'').toString().trim();
         const supNom = (r['Supervisora']||r['supervisora']||'').toString().trim();
         const estado = (r['Estado']||r['estado']||'activa').toString().trim().toLowerCase();
@@ -3930,10 +4050,10 @@ function cfgImportUsuariosXLS(file){
         const supId  = supObj?supObj.id:'';
         const existing = iaS.employees.find(e=>e.cedula&&e.cedula===cedula);
         if(existing){
-          existing.name=nombre; existing.module=modulo; existing.modulo=modulo; existing.supId=supId; existing.disabled=(estado==='inactiva');
+          existing.name=nombre; existing.cargo=cargo; existing.module=modulo; existing.modulo=modulo; existing.supId=supId; existing.disabled=(estado==='inactiva');
           updated++;
         } else {
-          iaS.employees.push({id:'emp_'+Date.now()+'_'+Math.random().toString(36).slice(2), name:nombre, cedula, module:modulo, modulo, supId, disabled:(estado==='inactiva')});
+          iaS.employees.push({id:'emp_'+Date.now()+'_'+Math.random().toString(36).slice(2), name:nombre, cedula, cargo, module:modulo, modulo, supId, disabled:(estado==='inactiva')});
           added++;
         }
       });
@@ -7510,6 +7630,12 @@ function cfgSavePerfilModal(){
         <input id="com-modulo" type="text" placeholder="Ej: M01" style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:'Courier New',monospace;font-size:14px;outline:none;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
       </div>
       <div>
+        <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:4px;">Cargo</label>
+        <select id="com-cargo" style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:'Nunito',sans-serif;font-size:13px;outline:none;background:#fff;cursor:pointer;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+          <option value="">Sin cargo</option>
+        </select>
+      </div>
+      <div>
         <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:4px;">Supervisora</label>
         <select id="com-supervisora" style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:'Nunito',sans-serif;font-size:13px;outline:none;background:#fff;cursor:pointer;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
           <option value="">Sin supervisora</option>
@@ -7524,6 +7650,29 @@ function cfgSavePerfilModal(){
   </div>
 </div>
 
+
+<!-- MODAL: Nuevo/Editar CARGO -->
+<div id="cfg-cargo-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:1000;align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:#fff;border-radius:16px;padding:28px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.2);font-family:'Nunito',sans-serif;">
+    <div id="ccm-titulo" style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;letter-spacing:2px;color:#0f172a;margin-bottom:20px;">🏷️ NUEVO CARGO</div>
+    <input type="hidden" id="ccm-idx">
+    <div style="display:flex;flex-direction:column;gap:13px;">
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:4px;">Nombre del cargo</label>
+        <input id="ccm-nombre" type="text" placeholder="Ej: Operaria, Mecánico, Supervisora" style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:'Nunito',sans-serif;font-size:13px;outline:none;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:4px;">Descripción (opcional)</label>
+        <input id="ccm-desc" type="text" placeholder="Ej: Personal de costura" style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:'Nunito',sans-serif;font-size:13px;outline:none;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+      </div>
+    </div>
+    <div id="ccm-error" style="color:#dc2626;font-size:12px;margin-top:8px;min-height:16px;"></div>
+    <div style="display:flex;gap:10px;margin-top:18px;">
+      <button onclick="document.getElementById('cfg-cargo-modal').style.display='none'" style="flex:1;padding:10px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Cancelar</button>
+      <button onclick="cfgSaveCargo()" style="flex:1;padding:10px;border-radius:8px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Guardar</button>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL: Nuevo/Editar TURNO -->
 <div id="cfg-turno-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:1001;align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
