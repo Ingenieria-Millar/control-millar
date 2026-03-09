@@ -547,7 +547,7 @@ function startClock() {
 async function loadConfig() {
   // ── Leer config desde localStorage (guardada por index.html) ──
   function getLocalConfig() {
-    try { return JSON.parse(localStorage.getItem('millar_config')||'{}'); } catch(e){ return {}; }
+    try { return JSON.parse(localStorage.getItem('millar_config_v1')||localStorage.getItem('millar_config')||'{}'); } catch(e){ return {}; }
   }
   function getLocalState() {
     try { return JSON.parse(localStorage.getItem('millar_ia_state')||'{}'); } catch(e){ return {}; }
@@ -567,35 +567,24 @@ async function loadConfig() {
   const modLabels = allMods.map(m => renamed[m] || m);
 
   // ── Mecánicos: usuarios del perfil Mecanicos desde localStorage ──
-  // En index.html los mecánicos son supervisores con isAdmin o del grupo Mecanicos
-  // Intentar leer de iaState.supervisors cuyo perfil sea Mecanicos
+  // ── Mecánicos: employees de iaState con cargo mecánico ──
   let mecanicos = [];
-  const sups = state.supervisors || [];
-  // Buscar supervisores cuyo nombre de perfil sea Mecanicos o rol mecánico
-  const mecSups = sups.filter(s => {
-    const n = (s.name||'').toUpperCase();
-    return n.includes('MECANIC') || (s.areas||[]).some(a=>a.toLowerCase().includes('mecanic'));
-  });
-  if (mecSups.length) {
-    mecanicos = mecSups.map(s => s.name);
+  const employees = state.employees || [];
+  const mecEmps = employees.filter(e => !e.disabled && /^mec[aá]nic[ao]s?$/i.test((e.cargo||'').trim()));
+  if (mecEmps.length) {
+    mecanicos = mecEmps.map(e => e.name).filter(Boolean);
   } else {
-    // Fallback: leer desde getUsuariosExtra si está disponible, sino usar lista base
-    try {
-      const extras = JSON.parse(localStorage.getItem('usuarios_extra')||'[]');
-      const mecExtras = extras.filter(u => !u.disabled);
-      mecanicos = mecExtras.length ? mecExtras.map(u=>u.nombre) :
-        ['ANDRES RIOS','CESAR CIFUENTES','DAIRON ZAPATA','ELKIN LOPEZ',
+    // Fallback: cualquier employee activo con "mecanic" en el cargo
+    const mecFallback = employees.filter(e => !e.disabled && /mecanic/i.test(e.cargo||''));
+    mecanicos = mecFallback.length
+      ? mecFallback.map(e => e.name).filter(Boolean)
+      : ['ANDRES RIOS','CESAR CIFUENTES','DAIRON ZAPATA','ELKIN LOPEZ',
          'JUAN C GONZALEZ','OSCAR ZEA','RICARDO SERNA','WALTER PEREZ','YON CANO'];
-    } catch(e) {
-      mecanicos = ['ANDRES RIOS','CESAR CIFUENTES','DAIRON ZAPATA','ELKIN LOPEZ',
-        'JUAN C GONZALEZ','OSCAR ZEA','RICARDO SERNA','WALTER PEREZ','YON CANO'];
-    }
   }
 
-  // ── Supervisoras desde iaState ──
-  const supervisoras = sups
-    .filter(s => !s.disabled)
-    .map((s,i) => ({id: s.id||i+1, nombre: s.name, modulos: s.areas||[], rol: s.isAdmin?'Titular':'Titular'}));
+  // ── Supervisoras: employees con cargo supervisora/supervisor ──
+  const supEmps = employees.filter(e => !e.disabled && /^supervisor[a]?$/i.test((e.cargo||'').trim()));
+  const supervisoras = supEmps.map((s,i) => ({id: s.id||i+1, nombre: s.name, modulos: [], rol:'Titular'}));
 
   // ── Máquinas: leer desde config._maquinaria ──
   const maquinasObj = cfg._maquinaria || [];
