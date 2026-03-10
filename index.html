@@ -1528,12 +1528,20 @@ function wsSend(payload){
 }
 
 // ══════════════════════════════════════════════════════════════════
-// HISTORIAL — Se guarda en localStorage del servidor (server.js lo persiste si quieres)
-// Por ahora sigue en localStorage del navegador para el Excel
+// HISTORIAL — Guardado en servidor /api/historial
 // ══════════════════════════════════════════════════════════════════
-const STORAGE_KEY='mant_historial_v2';
-function loadHistory(){ try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');}catch(e){return[];} }
-function saveHistory(h){ try{localStorage.setItem(STORAGE_KEY,JSON.stringify(h));}catch(e){} }
+let _historialCache = null;
+function loadHistory(){
+  return _historialCache || [];
+}
+function saveHistory(h){
+  _historialCache = h;
+  fetch('/api/historial',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(h)}).catch(e=>console.error('saveHistory:',e));
+}
+async function loadHistorialFromServer(){
+  try{ const r=await fetch('/api/historial'); _historialCache=await r.json(); }
+  catch(e){ console.error('loadHistorial:',e); _historialCache=[]; }
+}
 function logChange(modulo,prev,next,durMs,mecanico){
   if(!((prev==='red'&&next==='yellow')||(prev==='yellow'&&next==='green'))) return;
   const h=loadHistory();
@@ -1592,23 +1600,15 @@ function populateLoginSelect(){
   if(prev) sel.value = prev;
 }
 
-window.addEventListener('DOMContentLoaded',()=>{
-  // Limpiar flags disabled de usuarios base que puedan haber quedado en localStorage
-  const USUARIOS_FIJOS = ['Programador'];
-  const _cfg = loadConfig();
-  let _changed = false;
-  USUARIOS_FIJOS.forEach(u=>{ if(_cfg[u]&&_cfg[u].disabled){ delete _cfg[u].disabled; _changed=true; } });
-
-  // Limpiar perfiles viejos hardcodeados que puedan estar en localStorage
-  const PERFILES_VIEJOS = ['Administrador','Modulos','Televisor','Mecanicos','Supervisoras'];
-  PERFILES_VIEJOS.forEach(p=>{ if(_cfg[p]){ delete _cfg[p]; _changed=true; } });
-  // Limpiar usuarios_extra que sean perfiles viejos builtin
-  if(_cfg._usuarios_extra){
-    const antes = _cfg._usuarios_extra.length;
-    _cfg._usuarios_extra = _cfg._usuarios_extra.filter(u=>!PERFILES_VIEJOS.includes(u.nombre));
-    if(_cfg._usuarios_extra.length !== antes) _changed=true;
-  }
-  if(_changed) saveConfig(_cfg);
+window.addEventListener('DOMContentLoaded', async ()=>{
+  // Cargar todos los datos desde el servidor antes de iniciar la app
+  await Promise.all([
+    loadConfigFromServer(),
+    loadHistorialFromServer(),
+    loadCargosFromServer(),
+    loadTurnosFromServer(),
+    loadMaquinariaFromServer()
+  ]);
 
   applyConfig();
   rebuildModules();
@@ -1724,9 +1724,9 @@ function mostrarAreaScreen(){
     btns.appendChild(c);
   }
 
-  // CI — abre tablero CI
+  // CI — abre submenú con Tablero CI e Inventario de Hilos
   if(hasPerm('area_ci')){
-    const c=makeCard('🏢','CI','Tablero Faltante de Insumos','ac-purple',()=>openCIPanel(null,false));
+    const c=makeCard('🏢','CI','Tablero Faltante de Insumos','ac-purple',()=>mostrarSubMenuCI());
     c.style.animationDelay=(idx*0.07)+'s'; idx++;
     btns.appendChild(c);
   }
@@ -1856,6 +1856,36 @@ function mostrarSubMenuMontajes(){
   back.style.cssText='margin-top:4px;grid-column:1/-1;width:100%;justify-content:center;background:rgba(15,23,42,.06);border-color:#e2e8f0;color:#64748b;';
   back.textContent='⬅ Atrás';
   back.onclick=mostrarSubMenuMecanicos;
+  btns.appendChild(back);
+}
+
+// Sub-menú CI: Tablero CI | Inventario de Hilos
+function mostrarSubMenuCI(){
+  const btns=document.getElementById('area-btns');btns.innerHTML='';
+  function makeCard(icon,name,desc,colorClass,cb){
+    const card=document.createElement('div');card.className='area-card-new '+colorClass;
+    card.innerHTML=`<div class="ac-icon">${icon}</div><div class="ac-info"><div class="ac-name">${name}</div><div class="ac-desc">${desc}</div></div><div class="ac-arrow">›</div>`;
+    card.onclick=cb;
+    return card;
+  }
+  const c1=makeCard('🏢','Tablero CI','Solicitudes de insumos · Faltantes','ac-purple',()=>{
+    openCIPanel(null,false);
+  });
+  c1.style.animationDelay='0.05s';
+  btns.appendChild(c1);
+
+  const c2=makeCard('🧵','Inventario de Hilos','Control de stock de hilos','ac-blue',()=>{
+    // Próximamente
+  });
+  c2.style.animationDelay='0.12s';
+  c2.style.opacity='0.55'; c2.style.cursor='default'; c2.onclick=null;
+  btns.appendChild(c2);
+
+  const back=document.createElement('button');
+  back.className='sp-left-logout-btn';
+  back.style.cssText='margin-top:4px;grid-column:1/-1;width:100%;justify-content:center;background:rgba(15,23,42,.06);border-color:#e2e8f0;color:#64748b;';
+  back.textContent='⬅ Atrás';
+  back.onclick=mostrarAreaScreen;
   btns.appendChild(back);
 }
 
@@ -2436,12 +2466,32 @@ const PERM_LABELS = Object.fromEntries(ALL_PERMS.map(p=>[p.key,p.label]));
 const CONFIG_PERMS = {
   'Programador':    {label:'Programador',    available:ALL_PERMS.map(p=>p.key)},
 };
-const CONFIG_KEY = 'millar_config_v1';
+// CONFIG guardada en servidor — se carga al inicio via /api/app-config
+let _appConfig = {};  // caché en memoria
+let _appConfigLoaded = false;
 
-function loadConfig(){
-  try{ return JSON.parse(localStorage.getItem(CONFIG_KEY)||'{}'); }catch(e){ return {}; }
+function loadConfig(){ return _appConfig; }
+
+function saveConfig(cfg){
+  _appConfig = cfg;
+  fetch('/api/app-config', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(cfg)
+  }).catch(e=>console.error('saveConfig error:',e));
 }
-function saveConfig(cfg){ localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg)); }
+
+async function loadConfigFromServer(){
+  try{
+    const r = await fetch('/api/app-config');
+    _appConfig = await r.json();
+    _appConfigLoaded = true;
+  } catch(e){
+    console.error('loadConfigFromServer error:',e);
+    _appConfig = {};
+    _appConfigLoaded = true;
+  }
+}
 
 function applyConfig(){
   const cfg = loadConfig();
@@ -3425,7 +3475,8 @@ setInterval(()=>{const n=new Date();document.getElementById('clock').textContent
       <div class="cfg-nav-item" id="cfgn-modulos" onclick="cfgSwitchTab('modulos',this)"><span>🏭</span> Módulos</div>
       <div class="cfg-nav-item" id="cfgn-areas" onclick="cfgSwitchTab('areas',this)"><span>📍</span> Áreas</div>
       <div class="cfg-nav-item" id="cfgn-permisos" onclick="cfgSwitchTab('permisos',this)"><span>🔑</span> Permisos</div>
-      <div class="cfg-nav-item" id="cfgn-reset-local" onclick="cfgResetLocalStorage()" style="margin-top:auto;color:#ef4444;border-color:rgba(239,68,68,0.3);"><span>🗑</span> Resetear todo</div>
+      <div class="cfg-nav-item" id="cfgn-refresh" onclick="cfgRefreshSistema()" style="margin-top:auto;color:#2563eb;border-color:rgba(37,99,235,0.3);"><span>🔄</span> Actualizar</div>
+      <div class="cfg-nav-item" id="cfgn-reset-local" onclick="cfgResetLocalStorage()" style="color:#ef4444;border-color:rgba(239,68,68,0.3);"><span>🗑</span> Resetear todo</div>
     </div>
 
     <!-- MAIN AREA -->
@@ -3470,19 +3521,31 @@ function openCfgScreen(){
   if(btnReset) btnReset.style.display = (currentUser==='Programador') ? '' : 'none';
 }
 
-function cfgResetLocalStorage(){
+function cfgRefreshSistema(){
+  location.reload(true); // true = hard refresh, ignora caché
+}
+
+async function cfgResetLocalStorage(){
   if(currentUser!=='Programador'){ return; }
-  if(!confirm('⚠️ ¿Seguro? Se borrarán TODOS los datos locales:\nperfiles, usuarios, cargos, maquinaria, módulos, áreas, turnos.\n\nEsta acción no se puede deshacer.')) return;
-  // Borrar todas las claves de la app en localStorage
-  const keysToDelete = [];
-  for(let i=0;i<localStorage.length;i++){
-    const k=localStorage.key(i);
-    if(k && (k.startsWith('millar_') || k.startsWith('ci_') || k.startsWith('floor_'))) keysToDelete.push(k);
+  const pass = prompt('🔒 Ingresa la contraseña para resetear todos los datos:');
+  if(pass === null) return;
+  if(pass !== 'Millar2025*'){
+    alert('❌ Contraseña incorrecta.');
+    return;
   }
-  keysToDelete.forEach(k=>localStorage.removeItem(k));
-  // Recargar la página para empezar en blanco
-  alert('✅ Datos locales borrados. La página se recargará.');
-  location.reload();
+  if(!confirm('⚠️ ¿Seguro? Se borrarán TODOS los datos del servidor:\nperfiles, usuarios, cargos, maquinaria, turnos, historial y registros.\n\nEsta acción no se puede deshacer.')) return;
+  try {
+    const r = await fetch('/admin/reset?pass=millar2024');
+    const data = await r.json();
+    if(data.success){
+      // Limpiar cachés en memoria
+      _appConfig={}; _historialCache=[]; _cargosCache=[]; _turnosCache=[]; _maquinariaCache=[];
+      alert('✅ Todos los datos han sido borrados. La página se recargará.');
+      location.reload();
+    } else {
+      alert('❌ Error: ' + (data.error||'desconocido'));
+    }
+  } catch(e){ alert('❌ Error al conectar con el servidor.'); }
 }
 function closeCfgScreen(){
   document.getElementById('cfg-screen').style.display='none';
@@ -3616,13 +3679,9 @@ function cfgConfirmarLimpiar(){
     if(iaS.employees) iaS.employees=[];
     if(typeof saveIaState==='function') saveIaState();
   } else if(cfgCurrentTab==='maquinaria'){
-    const cfg = loadConfig();
-    cfg._maquinaria=[];
-    saveConfig(cfg);
+    cfgSaveMaquinaria([]);
   } else if(cfgCurrentTab==='turnos'){
-    const cfg = loadConfig();
-    cfg._turnos=[];
-    saveConfig(cfg);
+    cfgSaveTurnos([]);
   }
   document.getElementById('cfg-limpiar-modal').style.display='none';
   cfgSwitchTab(cfgCurrentTab, document.getElementById('cfgn-'+cfgCurrentTab));
@@ -3855,11 +3914,17 @@ function cfgRenderPerfiles(body){
 }
 
 // ── CARGOS ────────────────────────────────────────────────────────
+let _cargosCache = null;
 function cfgGetCargos(){
-  try{ return JSON.parse(localStorage.getItem('millar_cargos')||'[]'); } catch(e){ return []; }
+  return _cargosCache || [];
 }
 function cfgSaveCargos(arr){
-  localStorage.setItem('millar_cargos', JSON.stringify(arr));
+  _cargosCache = arr;
+  fetch('/api/cargos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(arr)}).catch(e=>console.error('saveCargos:',e));
+}
+async function loadCargosFromServer(){
+  try{ const r=await fetch('/api/cargos'); _cargosCache=await r.json(); }
+  catch(e){ console.error('loadCargos:',e); _cargosCache=[]; }
 }
 function cfgRenderCargos(body){
   const q = cfgGetSearch().toLowerCase();
@@ -4215,14 +4280,31 @@ function cfgImportUsuariosXLS(file){
 
 // ── TURNOS ────────────────────────────────────────────────────────
 // ── HELPERS DE TURNO ─────────────────────────────────────────────
+let _turnosCache = null;
 function cfgGetTurnos(){
-  const cfg=loadConfig();
-  return cfg._turnos_v2||[];
+  return _turnosCache || [];
 }
 function cfgSaveTurnos(turnos){
-  const cfg=loadConfig();
-  cfg._turnos_v2=turnos;
-  saveConfig(cfg);
+  _turnosCache = turnos;
+  fetch('/api/turnos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(turnos)}).catch(e=>console.error('saveTurnos:',e));
+}
+async function loadTurnosFromServer(){
+  try{ const r=await fetch('/api/turnos'); _turnosCache=await r.json(); }
+  catch(e){ console.error('loadTurnos:',e); _turnosCache=[]; }
+}
+
+// ── MAQUINARIA helpers (cache independiente) ─────────────────────
+let _maquinariaCache = null;
+function cfgGetMaquinaria(){
+  return _maquinariaCache || [];
+}
+function cfgSaveMaquinaria(arr){
+  _maquinariaCache = arr;
+  fetch('/api/maquinaria',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(arr)}).catch(e=>console.error('saveMaquinaria:',e));
+}
+async function loadMaquinariaFromServer(){
+  try{ const r=await fetch('/api/maquinaria'); _maquinariaCache=await r.json(); }
+  catch(e){ console.error('loadMaquinaria:',e); _maquinariaCache=[]; }
 }
 
 // ── RENDER PRINCIPAL ──────────────────────────────────────────────
@@ -4419,8 +4501,7 @@ function cfgGetUbicaciones(){
   return [...labels, 'Taller', 'Bodega'];
 }
 function cfgRenderMaquinaria(body){
-  const cfg=loadConfig();
-  const maquinas=cfg._maquinaria||[];
+  const maquinas=cfgGetMaquinaria();
 
   // ── Stats ─────────────────────────────────────────────────────────
   const statsRow=document.createElement('div'); statsRow.className='cfg-stats-row';
@@ -4480,7 +4561,7 @@ function cfgMaqSearch(){
   const get=id=>(document.getElementById(id)||{value:''}).value.trim().toLowerCase();
   const qCod=get('mf-codigo'), qTip=get('mf-tipo'), qMar=get('mf-marca');
   const qMod=get('mf-modelo'), qSer=get('mf-serial'), qUbi=get('mf-ubic');
-  const cfg=loadConfig(); let maquinas=[...(cfg._maquinaria||[])];
+  let maquinas=[...cfgGetMaquinaria()];
   maquinas=maquinas.filter(m=>
     (!qCod||(m.codigo||'').toLowerCase().includes(qCod))&&
     (!qTip||(m.tipo||'').toLowerCase().includes(qTip))&&
@@ -4522,20 +4603,20 @@ function cfgMaqRenderList(maquinas){
     bE.onclick=()=>cfgOpenMaqModal(m);
     const bT=document.createElement('button'); bT.className=`cfg-row-btn tog ${isOff?'on':''}`; bT.textContent=isOff?'✅':'⏸'; bT.title=isOff?'Habilitar':'Inhabilitar';
     bT.onclick=()=>{
-      const cfg2=loadConfig(); const idx2=(cfg2._maquinaria||[]).findIndex(x=>x.id===m.id);
-      if(idx2>-1){ cfg2._maquinaria[idx2].disabled=!cfg2._maquinaria[idx2].disabled; saveConfig(cfg2); }
+      const maq2=cfgGetMaquinaria(); const idx2=maq2.findIndex(x=>x.id===m.id);
+      if(idx2>-1){ maq2[idx2].disabled=!maq2[idx2].disabled; cfgSaveMaquinaria(maq2); }
       cfgMaqSearch();
     };
     const bD=document.createElement('button'); bD.className='cfg-row-btn del'; bD.textContent='🗑'; bD.title='Eliminar';
     bD.onclick=()=>openConfirmDelete('maquina',m.codigo||'máquina',()=>{
-      const cfg2=loadConfig(); cfg2._maquinaria=(cfg2._maquinaria||[]).filter(x=>x.id!==m.id); saveConfig(cfg2);
+      cfgSaveMaquinaria(cfgGetMaquinaria().filter(x=>x.id!==m.id));
       cfgMaqSearch(); showToastSimple(`🗑 Máquina "${m.codigo||''}" eliminada`);
     });
     acts.appendChild(bE); acts.appendChild(bT); acts.appendChild(bD); row.appendChild(acts); tbl.appendChild(row);
   });
 }
 function cfgExportMaq(){
-  const cfg=loadConfig(); const maquinas=cfg._maquinaria||[];
+  const maquinas=cfgGetMaquinaria();
   if(!maquinas.length){showToastSimple('No hay máquinas para exportar');return;}
   if(typeof XLSX==='undefined'){alert('Librería Excel no disponible');return;}
   const ws=XLSX.utils.json_to_sheet(maquinas.map(m=>({
@@ -4569,16 +4650,16 @@ function cfgOpenMaqModal(m){
   setTimeout(()=>document.getElementById('cmf2-codigo').focus(),100);
 }
 function cfgSaveMaqModal(){
-  const cfg=loadConfig(); if(!cfg._maquinaria) cfg._maquinaria=[];
+  const maquinas2=cfgGetMaquinaria();
   const id=document.getElementById('cmf2-id').value||'maq_'+Date.now();
   const sel=document.getElementById('cmf2-modulo-sel');
   const ubicacion=sel?sel.value:'';
   const codigo=document.getElementById('cmf2-codigo').value.trim();
   if(!codigo){ document.getElementById('cmf2-error').textContent='El código es obligatorio'; return; }
   const maq={id,codigo,tipo:document.getElementById('cmf2-tipo').value.trim(),marca:document.getElementById('cmf2-marca').value.trim(),modelo:document.getElementById('cmf2-modelo').value.trim(),serial:document.getElementById('cmf2-serial').value.trim(),modulo:ubicacion};
-  const idx=cfg._maquinaria.findIndex(x=>x.id===id);
-  if(idx>-1) cfg._maquinaria[idx]={...cfg._maquinaria[idx],...maq}; else cfg._maquinaria.push(maq);
-  saveConfig(cfg);
+  const maqArr=cfgGetMaquinaria(); const idx=maqArr.findIndex(x=>x.id===id);
+  if(idx>-1) maqArr[idx]={...maqArr[idx],...maq}; else maqArr.push(maq);
+  cfgSaveMaquinaria(maqArr);
   document.getElementById('cfg-maq-modal2').style.display='none';
   cfgMaqSearch();
   if(document.getElementById('cfgn-maquinaria')) cfgSwitchTab('maquinaria',document.getElementById('cfgn-maquinaria'));
@@ -4593,7 +4674,7 @@ function cfgImportMaquinariaXLS(file){
       const wb=XLSX.read(ev.target.result,{type:'binary'});
       const ws=wb.Sheets[wb.SheetNames[0]];
       const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
-      const cfg=loadConfig(); if(!cfg._maquinaria) cfg._maquinaria=[];
+      const maquinas2=cfgGetMaquinaria();
       let added=0,updated=0;
       rows.forEach(r=>{
         const codigo=(r['Codigo']||r['Código']||r['codigo']||'').toString().trim();
@@ -4607,16 +4688,16 @@ function cfgImportMaquinariaXLS(file){
         const moduloValido = (typeof MODULES!=='undefined'&&MODULES.includes(moduloRaw)) ? moduloRaw : '';
         const modulo = moduloValido;
         const estado=(r['Estado']||r['estado']||'activa').toString().trim().toLowerCase();
-        const existing=cfg._maquinaria.find(m=>m.codigo===codigo);
+        const maqImp=cfgGetMaquinaria(); const existing=maqImp.find(m=>m.codigo===codigo);
         if(existing){
           Object.assign(existing,{tipo,marca,modelo,serial,modulo,disabled:estado==='inactiva'});
           updated++;
         } else {
-          cfg._maquinaria.push({id:'maq_'+Date.now()+'_'+Math.random().toString(36).slice(2),codigo,tipo,marca,modelo,serial,modulo,disabled:estado==='inactiva'});
+          maqImp.push({id:'maq_'+Date.now()+'_'+Math.random().toString(36).slice(2),codigo,tipo,marca,modelo,serial,modulo,disabled:estado==='inactiva'});
           added++;
         }
       });
-      saveConfig(cfg);
+      cfgSaveMaquinaria(cfgGetMaquinaria());
       cfgSwitchTab('maquinaria',document.getElementById('cfgn-maquinaria'));
       showToastSimple(`✅ Importadas: ${added} nuevas, ${updated} actualizadas`);
     } catch(err){ alert('Error al leer el archivo: '+err.message); }
@@ -7436,7 +7517,7 @@ function openCIPanel(modulo, autoOpenForm){
       setTimeout(()=>{ ci_openModal(); }, 80);
     }
   } else {
-    ci_showScreen('home');
+    ci_showScreen('dashboard'); // entra directo al tablero supervisor
   }
 }
 
