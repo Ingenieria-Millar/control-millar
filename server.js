@@ -38,6 +38,11 @@ const FILES = {
   alistamientos: path.join(DATA_DIR, 'alistamientos.json'),
   mantenimientos:path.join(DATA_DIR, 'mantenimientos.json'),
   alertas:       path.join(DATA_DIR, 'alertas.json'),
+  app_config:    path.join(DATA_DIR, 'app_config.json'),
+  cargos:        path.join(DATA_DIR, 'cargos.json'),
+  maquinaria:    path.join(DATA_DIR, 'maquinaria.json'),
+  turnos:        path.join(DATA_DIR, 'turnos.json'),
+  historial:     path.join(DATA_DIR, 'historial.json'),
 };
 
 // ── Helpers de persistencia ───────────────────────────────────────
@@ -366,6 +371,70 @@ app.get('/alistamiento/api/exportar/mantenimientos', (req, res) => {
   res.send(buf);
 });
 
+
+// ══════════════════════════════════════════════════════════════════
+//  RUTAS API — Configuración de la App (antes en localStorage)
+//  Todos los datos se guardan en el servidor para sincronización
+//  entre dispositivos.
+// ══════════════════════════════════════════════════════════════════
+
+// ── App Config (perfiles/usuarios extra, áreas, módulos UI) ───────
+app.get('/api/app-config', (req, res) => {
+  const data = readJSON(FILES.app_config, {});
+  res.json(data);
+});
+app.post('/api/app-config', (req, res) => {
+  try {
+    writeJSON(FILES.app_config, req.body);
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Cargos ────────────────────────────────────────────────────────
+app.get('/api/cargos', (req, res) => {
+  res.json(readJSON(FILES.cargos, []));
+});
+app.post('/api/cargos', (req, res) => {
+  try {
+    writeJSON(FILES.cargos, req.body);
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Maquinaria ────────────────────────────────────────────────────
+app.get('/api/maquinaria', (req, res) => {
+  res.json(readJSON(FILES.maquinaria, []));
+});
+app.post('/api/maquinaria', (req, res) => {
+  try {
+    writeJSON(FILES.maquinaria, req.body);
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Turnos ────────────────────────────────────────────────────────
+app.get('/api/turnos', (req, res) => {
+  res.json(readJSON(FILES.turnos, []));
+});
+app.post('/api/turnos', (req, res) => {
+  try {
+    writeJSON(FILES.turnos, req.body);
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Historial mecánicos ───────────────────────────────────────────
+app.get('/api/historial', (req, res) => {
+  res.json(readJSON(FILES.historial, []));
+});
+app.post('/api/historial', (req, res) => {
+  try {
+    writeJSON(FILES.historial, req.body);
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+
 // ── RESET TOTAL ───────────────────────────────────────────────────
 // Borra todos los datos y deja el servidor en blanco.
 // Protegido con contraseña: GET /admin/reset?pass=TU_CLAVE
@@ -381,7 +450,8 @@ app.get('/admin/reset', (req, res) => {
     const filesToReset = [
       FILES.ia_state, FILES.ia_records, FILES.modules_config,
       FILES.floor_state, FILES.ci_requests, FILES.ci_config,
-      FILES.alistamientos, FILES.mantenimientos, FILES.alertas
+      FILES.alistamientos, FILES.mantenimientos, FILES.alertas,
+      FILES.app_config, FILES.cargos, FILES.maquinaria, FILES.turnos, FILES.historial
     ];
     filesToReset.forEach(f => { if (fs.existsSync(f)) fs.unlinkSync(f); });
 
