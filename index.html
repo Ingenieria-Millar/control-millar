@@ -2408,9 +2408,9 @@ const AREAS_CONFIG = [
     icon: '📋',
     color: '#2563eb',
     subPerms: [
-      {key:'excel',          label:'Descargar Excel'},
-      {key:'modulos',        label:'Acceso Login Módulos'},
-      {key:'area_produccion',label:'Login sin contraseña admin'},
+      {key:'area_asistencia', label:'Control de Asistencia'},
+      {key:'modulos',         label:'Acceso Login Módulos'},
+      {key:'area_produccion', label:'Login sin contraseña admin'},
     ]
   },
   {
@@ -2419,9 +2419,12 @@ const AREAS_CONFIG = [
     icon: '🔧',
     color: '#ef4444',
     subPerms: [
-      {key:'tablero',       label:'Tablero General'},
+      {key:'tablero',      label:'Tablero General', subPerms:[
+        {key:'fix',          label:'Corregir Mecánico'},
+        {key:'excel',        label:'Descargar Excel'},
+      ]},
+      {key:'tablero_planta',label:'Tablero Planta (con sonido)'},
       {key:'area_montajes', label:'Montajes'},
-      {key:'fix',           label:'Corregir Mecánico'},
     ]
   },
   {
@@ -3248,12 +3251,14 @@ function toggleUserEnabled(user, toggleEl){
   if(currentCfgTab==='usuarios') renderCfgUsuarios();
 }
 
-function toggleAreaPerm(user, areaKey, areaIdx, toggleEl){
-  const area = AREAS_CONFIG[areaIdx];
-  const subKeys = area ? area.subPerms.map(s=>s.key) : [];
+function toggleAreaPerm(user, areaKey, subKeys){
+  // subKeys puede ser array de keys o índice legacy — normalizar
+  if(!Array.isArray(subKeys)){
+    const area = AREAS_CONFIG[subKeys];
+    subKeys = area ? area.subPerms.map(s=>s.key) : [];
+  }
   const cfg = loadConfig();
   if(!cfg[user]) cfg[user] = {};
-  // Leer perms actuales — siempre hacer copia limpia
   let base;
   if(cfg[user].perms !== undefined){
     base = [...cfg[user].perms];
@@ -3264,11 +3269,9 @@ function toggleAreaPerm(user, areaKey, areaIdx, toggleEl){
   }
   const areaOn = base.includes(areaKey);
   if(areaOn){
-    // Deshabilitar: quitar área y todos sus sub-permisos
     const toRemove = new Set([areaKey, ...subKeys]);
     base = base.filter(k => !toRemove.has(k));
   } else {
-    // Habilitar el área
     base.push(areaKey);
   }
   cfg[user].perms = base;
@@ -3278,7 +3281,6 @@ function toggleAreaPerm(user, areaKey, areaIdx, toggleEl){
   saveConfig(cfg);
   if(USUARIOS[user]) USUARIOS[user].perms = base;
   else USUARIOS[user] = {pass:(extras[ei]?.pass||''), perms:base};
-  renderCfgPermisos();
 }
 
 function togglePerm(user, perm, enabled){
@@ -3369,6 +3371,8 @@ setInterval(()=>{const n=new Date();document.getElementById('clock').textContent
 .cfg-btn2.hab{border-color:#bbf7d0;background:#f0fdf4;color:#16a34a;}
 .cfg-btn2.del{border-color:#fecaca;background:#fef2f2;color:#dc2626;}
 .cfg-btn2.del:hover{background:#fee2e2;}
+.cfg-btn2.perms{border-color:#e9d5ff;background:#f5f3ff;color:#7c3aed;}
+.cfg-btn2.perms:hover{background:#ede9fe;}
 /* MÓDULOS GRID */
 .cfg-mod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;}
 .cfg-mod-card{background:#fff;border:1px solid #bbf7d0;border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
@@ -3502,7 +3506,6 @@ setInterval(()=>{const n=new Date();document.getElementById('clock').textContent
       <div class="cfg-nav-item" id="cfgn-maquinaria" onclick="cfgSwitchTab('maquinaria',this)"><span>⚙️</span> Maquinaria</div>
       <div class="cfg-nav-item" id="cfgn-modulos" onclick="cfgSwitchTab('modulos',this)"><span>🏭</span> Módulos</div>
       <div class="cfg-nav-item" id="cfgn-areas" onclick="cfgSwitchTab('areas',this)"><span>📍</span> Áreas</div>
-      <div class="cfg-nav-item" id="cfgn-permisos" onclick="cfgSwitchTab('permisos',this)"><span>🔑</span> Permisos</div>
       <div class="cfg-nav-item" id="cfgn-refresh" onclick="cfgRefreshSistema()" style="margin-top:auto;color:#2563eb;border-color:rgba(37,99,235,0.3);"><span>🔄</span> Actualizar</div>
       <div class="cfg-nav-item" id="cfgn-reset-local" onclick="cfgResetLocalStorage()" style="color:#ef4444;border-color:rgba(239,68,68,0.3);"><span>🗑</span> Resetear todo</div>
     </div>
@@ -3929,10 +3932,10 @@ function cfgRenderPerfiles(body){
       info.innerHTML=`<div class="cfg-name">${nombre}${isBuiltin?'<span class="cfg-badge cfg-badge-sys">SISTEMA</span>':''}${isDisabled?'<span class="cfg-badge cfg-badge-off">INACTIVO</span>':''}</div><div class="cfg-sub">${isBuiltin?'Pass: ••••••':'Pass: '+data.pass}</div>`;
       const acts=document.createElement('div'); acts.className='cfg-actions';
       if(isBuiltin && nombre==='Programador'){
-        // Programador: solo editar (no inhabilitar ni eliminar)
         const bE=document.createElement('button'); bE.className='cfg-btn2 edit'; bE.textContent='✏️ Editar'; bE.onclick=()=>cfgOpenPerfilModal(nombre,data.pass); acts.appendChild(bE);
       } else if(!isBuiltin){
         const bE=document.createElement('button'); bE.className='cfg-btn2 edit'; bE.textContent='✏️ Editar'; bE.onclick=()=>cfgOpenPerfilModal(nombre,data.pass); acts.appendChild(bE);
+        const bP=document.createElement('button'); bP.className='cfg-btn2 perms'; bP.textContent='🔑 Permisos'; bP.onclick=()=>openPermisosModal(nombre); acts.appendChild(bP);
         const bT=document.createElement('button'); bT.className=`cfg-btn2 ${isDisabled?'hab':'inh'}`; bT.textContent=isDisabled?'✅ Habilitar':'⏸ Inhabilitar'; bT.onclick=()=>toggleExtraUser(nombre); acts.appendChild(bT);
         const bD=document.createElement('button'); bD.className='cfg-btn2 del'; bD.textContent='🗑 Eliminar'; bD.onclick=()=>{openConfirmDelete('usuario',nombre,()=>{deleteExtraUser(nombre);cfgSwitchTab('perfiles',document.getElementById('cfgn-perfiles'));});}; acts.appendChild(bD);
       }
@@ -4942,6 +4945,12 @@ function cfgRenderPermisos(body){
             const allSubs = item.querySelectorAll('.perm-sub-item.active').length;
             const cntEl = item.querySelector('.perm-area-count');
             if(cntEl) cntEl.textContent = allSubs + '/' + area.subPerms.length;
+            // Ensure area toggle stays ON when a sub-perm is enabled
+            if(nowOn && !item.classList.contains('active')){
+              toggleAreaPerm(nombre, area.key, []);
+              item.classList.add('active');
+              item.querySelector('.perm-toggle').classList.add('on');
+            }
           });
 
           subList.appendChild(spItem);
@@ -4954,33 +4963,41 @@ function cfgRenderPermisos(body){
         item.appendChild(noSub);
       }
 
-      // Area toggle click
+      // Area toggle click — re-render para garantizar consistencia visual
       item.querySelector('.perm-toggle').addEventListener('click', e => {
         e.stopPropagation();
-        const nowOn = !item.classList.contains('active');
         toggleAreaPerm(nombre, area.key, area.subPerms.map(s=>s.key));
+        const cfg = loadConfig();
+        const updatedPerms = cfg[nombre]?.perms || USUARIOS[nombre]?.perms || [];
+        // Actualizar estado visual del item directamente
+        const nowOn = updatedPerms.includes(area.key);
         item.classList.toggle('active', nowOn);
         item.querySelector('.perm-toggle').classList.toggle('on', nowOn);
-        item.style.setProperty('--area-color', area.color);
-        const subList = item.querySelector('.perm-sub-list');
-        if(subList) subList.style.display = nowOn ? '' : 'none';
-        if(!nowOn && area.subPerms.length > 0){
-          item.querySelectorAll('.perm-sub-item').forEach(si=>{
-            si.classList.remove('active');
-            si.querySelector('.perm-sub-toggle').classList.remove('on');
-          });
-          const cntEl = item.querySelector('.perm-area-count');
-          if(cntEl) cntEl.textContent = '0/' + area.subPerms.length;
-        } else if(nowOn && area.subPerms.length === 0){
-          // add no-sub message
-          if(!item.querySelector('.perm-sub-list')){
-            const noSub = document.createElement('div');
-            noSub.className = 'perm-sub-list';
-            noSub.innerHTML = '<div class="perm-no-sub">Sin actividades configuradas aún</div>';
-            item.appendChild(noSub);
-          } else {
-            item.querySelector('.perm-sub-list').style.display = '';
+        // Sub-list
+        let subList = item.querySelector('.perm-sub-list');
+        if(area.subPerms.length > 0){
+          if(!subList){
+            subList = document.createElement('div');
+            subList.className = 'perm-sub-list';
+            item.appendChild(subList);
           }
+          subList.style.display = nowOn ? '' : 'none';
+          if(!nowOn){
+            item.querySelectorAll('.perm-sub-item').forEach(si=>{
+              si.classList.remove('active');
+              si.querySelector('.perm-sub-toggle').classList.remove('on');
+            });
+            const cntEl = item.querySelector('.perm-area-count');
+            if(cntEl) cntEl.textContent = '0/' + area.subPerms.length;
+          }
+        } else {
+          if(!subList){
+            subList = document.createElement('div');
+            subList.className = 'perm-sub-list';
+            subList.innerHTML = '<div class="perm-no-sub">Sin actividades configuradas aún</div>';
+            item.appendChild(subList);
+          }
+          subList.style.display = nowOn ? '' : 'none';
         }
       });
 
@@ -4990,6 +5007,151 @@ function cfgRenderPermisos(body){
 
   body.appendChild(grid);
 }
+
+// ── MODAL PERMISOS ────────────────────────────────────────────────
+let _permModalUser = null;
+
+function openPermisosModal(nombre){
+  _permModalUser = nombre;
+  document.getElementById('pmod-title').textContent = nombre;
+  document.getElementById('modal-permisos').style.display = 'flex';
+  renderPermisosModal();
+}
+function closePermisosModal(){
+  document.getElementById('modal-permisos').style.display = 'none';
+  _permModalUser = null;
+}
+
+function renderPermisosModal(){
+  const nombre = _permModalUser;
+  if(!nombre) return;
+  const cfg = loadConfig();
+  const perms = cfg[nombre]?.perms || USUARIOS[nombre]?.perms || [];
+  const body = document.getElementById('pmod-body');
+  body.innerHTML = '';
+
+  AREAS_CONFIG.forEach(area => {
+    const areaOn = perms.includes(area.key);
+    const color = area.color;
+
+    const item = document.createElement('div');
+    item.style.cssText = `border:1.5px solid ${areaOn ? color : '#e2e8f0'};border-radius:12px;overflow:hidden;transition:border-color .2s;`;
+
+    // Area header
+    const hdr = document.createElement('div');
+    hdr.style.cssText = `display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:${areaOn ? `${color}12` : '#f8fafc'};cursor:pointer;`;
+    hdr.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:32px;height:32px;border-radius:8px;background:${areaOn ? color+'22' : '#e2e8f0'};display:flex;align-items:center;justify-content:center;font-size:16px;">${area.icon}</div>
+        <span style="font-size:14px;font-weight:700;color:${areaOn ? color : '#64748b'};">${area.label}</span>
+      </div>
+      <div class="perm-toggle ${areaOn?'on':''}" style="--area-color:${color}"></div>`;
+
+    item.appendChild(hdr);
+
+    // Sub-perms
+    const subWrap = document.createElement('div');
+    subWrap.style.cssText = `padding:8px 12px 10px;display:flex;flex-direction:column;gap:6px;background:#fff;border-top:1px solid #e2e8f0;${areaOn ? '' : 'display:none;'}`;
+    subWrap.style.display = areaOn ? '' : 'none';
+
+    if(area.subPerms.length === 0){
+      subWrap.innerHTML = '<div style="font-size:11px;color:#94a3b8;font-style:italic;text-align:center;padding:4px 0;">Sin actividades configuradas aún</div>';
+    } else {
+      area.subPerms.forEach(sp => {
+        // Check if this sub has nested subPerms
+        const hasNested = sp.subPerms && sp.subPerms.length > 0;
+        const spOn = perms.includes(sp.key);
+
+        const spItem = document.createElement('div');
+        spItem.style.cssText = `border-radius:8px;overflow:hidden;`;
+
+        const spHdr = document.createElement('div');
+        spHdr.style.cssText = `display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:${spOn ? color+'0d' : '#f8fafc'};border:1px solid ${spOn ? color+'33' : '#e2e8f0'};border-radius:${hasNested && spOn ? '8px 8px 0 0' : '8px'};`;
+        spHdr.innerHTML = `
+          <span style="font-size:12px;font-weight:600;color:${spOn ? '#334155' : '#64748b'};">↳ ${sp.label}</span>
+          <div class="perm-sub-toggle ${spOn?'on':''}" style="--area-color:${color}"></div>`;
+        spItem.appendChild(spHdr);
+
+        // Nested sub-perms (e.g. Tablero General → Corregir Mecánico, Descargar Excel)
+        if(hasNested){
+          const nestedWrap = document.createElement('div');
+          nestedWrap.style.cssText = `padding:6px 10px 8px;display:flex;flex-direction:column;gap:4px;background:#f8fafc;border:1px solid ${color+'22'};border-top:none;border-radius:0 0 8px 8px;${spOn ? '' : 'display:none;'}`;
+          nestedWrap.style.display = spOn ? '' : 'none';
+
+          sp.subPerms.forEach(np => {
+            const npOn = perms.includes(np.key);
+            const npItem = document.createElement('div');
+            npItem.style.cssText = `display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border-radius:6px;background:${npOn ? color+'0a' : '#fff'};border:1px solid ${npOn ? color+'22' : '#e2e8f0'};`;
+            npItem.innerHTML = `
+              <span style="font-size:11px;font-weight:600;color:${npOn ? '#334155' : '#94a3b8'};">  ↳ ${np.label}</span>
+              <div class="perm-sub-toggle ${npOn?'on':''}" style="--area-color:${color}"></div>`;
+
+            npItem.querySelector('.perm-sub-toggle').addEventListener('click', e => {
+              e.stopPropagation();
+              const nowOn = !npItem.querySelector('.perm-sub-toggle').classList.contains('on');
+              togglePerm(nombre, np.key, nowOn);
+              npItem.querySelector('.perm-sub-toggle').classList.toggle('on', nowOn);
+              npItem.style.background = nowOn ? color+'0a' : '#fff';
+              npItem.style.borderColor = nowOn ? color+'22' : '#e2e8f0';
+              npItem.querySelector('span').style.color = nowOn ? '#334155' : '#94a3b8';
+            });
+            nestedWrap.appendChild(npItem);
+          });
+          spItem.appendChild(nestedWrap);
+        }
+
+        // Sub-toggle click
+        spHdr.querySelector('.perm-sub-toggle').addEventListener('click', e => {
+          e.stopPropagation();
+          const nowOn = !spHdr.querySelector('.perm-sub-toggle').classList.contains('on');
+          togglePerm(nombre, sp.key, nowOn);
+          spHdr.querySelector('.perm-sub-toggle').classList.toggle('on', nowOn);
+          spHdr.style.background = nowOn ? color+'0d' : '#f8fafc';
+          spHdr.style.borderColor = nowOn ? color+'33' : '#e2e8f0';
+          spHdr.querySelector('span').style.color = nowOn ? '#334155' : '#64748b';
+          if(hasNested){
+            const nw = spItem.querySelector('div:last-child');
+            if(nw && nw !== spHdr) nw.style.display = nowOn ? '' : 'none';
+            spHdr.style.borderRadius = nowOn ? '8px 8px 0 0' : '8px';
+          }
+          // Ensure area is ON
+          if(nowOn && !item.querySelector('.perm-toggle').classList.contains('on')){
+            toggleAreaPerm(nombre, area.key, []);
+            item.querySelector('.perm-toggle').classList.add('on');
+            hdr.style.background = color+'12';
+            hdr.querySelector('span').style.color = color;
+            item.style.borderColor = color;
+            subWrap.style.display = '';
+          }
+        });
+
+        subWrap.appendChild(spItem);
+      });
+    }
+
+    item.appendChild(subWrap);
+
+    // Area toggle click
+    hdr.querySelector('.perm-toggle').addEventListener('click', e => {
+      e.stopPropagation();
+      const nowOn = !hdr.querySelector('.perm-toggle').classList.contains('on');
+      toggleAreaPerm(nombre, area.key, area.subPerms.map(s=>s.key));
+      hdr.querySelector('.perm-toggle').classList.toggle('on', nowOn);
+      hdr.style.background = nowOn ? color+'12' : '#f8fafc';
+      hdr.querySelector('span').style.color = nowOn ? color : '#64748b';
+      hdr.querySelector('div > div').style.background = nowOn ? color+'22' : '#e2e8f0';
+      item.style.borderColor = nowOn ? color : '#e2e8f0';
+      subWrap.style.display = nowOn ? '' : 'none';
+      if(!nowOn){
+        // turn off all sub toggles visually
+        subWrap.querySelectorAll('.perm-sub-toggle').forEach(t => t.classList.remove('on'));
+      }
+    });
+
+    body.appendChild(item);
+  });
+}
+
 </script>
 
 <!-- MODAL: Nueva/Editar máquina (CFG SCREEN) -->
@@ -8223,5 +8385,28 @@ function cfgSavePerfilModal(){
   </div>
 </div>
 
+
+<!-- MODAL: Permisos de perfil -->
+<div id="modal-permisos" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:1000;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;" onclick="if(event.target===this)closePermisosModal()">
+  <div style="background:#fff;border-radius:18px;width:100%;max-width:520px;box-shadow:0 24px 60px rgba(0,0,0,.25);font-family:'Nunito',sans-serif;overflow:hidden;">
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#020d22,#04163d);padding:20px 24px;display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:18px;border:1.5px solid rgba(255,255,255,.2);">👤</div>
+        <div>
+          <div style="font-size:11px;color:#94a3b8;letter-spacing:1px;text-transform:uppercase;margin-bottom:2px;">Permisos del perfil</div>
+          <div id="pmod-title" style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;letter-spacing:2px;color:#fff;text-transform:uppercase;"></div>
+        </div>
+      </div>
+      <button onclick="closePermisosModal()" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">✕</button>
+    </div>
+    <!-- Body -->
+    <div id="pmod-body" style="padding:18px;display:flex;flex-direction:column;gap:10px;max-height:65vh;overflow-y:auto;"></div>
+    <!-- Footer -->
+    <div style="padding:16px 20px;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end;">
+      <button onclick="closePermisosModal()" style="padding:10px 24px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Cerrar</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
