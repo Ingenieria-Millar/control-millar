@@ -5025,133 +5025,174 @@ function closePermisosModal(){
 function renderPermisosModal(){
   const nombre = _permModalUser;
   if(!nombre) return;
-  const cfg = loadConfig();
-  const perms = cfg[nombre]?.perms || USUARIOS[nombre]?.perms || [];
   const body = document.getElementById('pmod-body');
   body.innerHTML = '';
 
+  // Helper: get current perms fresh from config
+  function getPerms(){
+    const cfg = loadConfig();
+    return cfg[nombre]?.perms || USUARIOS[nombre]?.perms || [];
+  }
+
   AREAS_CONFIG.forEach(area => {
-    const areaOn = perms.includes(area.key);
     const color = area.color;
 
-    const item = document.createElement('div');
-    item.style.cssText = `border:1.5px solid ${areaOn ? color : '#e2e8f0'};border-radius:12px;overflow:hidden;transition:border-color .2s;`;
+    function buildAreaItem(){
+      const perms = getPerms();
+      const areaOn = perms.includes(area.key);
 
-    // Area header
-    const hdr = document.createElement('div');
-    hdr.style.cssText = `display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:${areaOn ? `${color}12` : '#f8fafc'};cursor:pointer;`;
-    hdr.innerHTML = `
-      <div style="display:flex;align-items:center;gap:10px;">
-        <div style="width:32px;height:32px;border-radius:8px;background:${areaOn ? color+'22' : '#e2e8f0'};display:flex;align-items:center;justify-content:center;font-size:16px;">${area.icon}</div>
-        <span style="font-size:14px;font-weight:700;color:${areaOn ? color : '#64748b'};">${area.label}</span>
-      </div>
-      <div class="perm-toggle ${areaOn?'on':''}" style="--area-color:${color}"></div>`;
+      const item = document.createElement('div');
+      item.style.cssText = `border:1.5px solid ${areaOn ? color : '#e2e8f0'};border-radius:12px;overflow:hidden;margin-bottom:2px;`;
 
-    item.appendChild(hdr);
+      // ── Area header ──
+      const hdr = document.createElement('div');
+      hdr.style.cssText = `display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:${areaOn ? color+'12' : '#f8fafc'};`;
 
-    // Sub-perms
-    const subWrap = document.createElement('div');
-    subWrap.style.cssText = 'padding:8px 12px 10px;flex-direction:column;gap:6px;background:#fff;border-top:1px solid #e2e8f0;';
-    subWrap.style.display = areaOn ? 'flex' : 'none';
+      const iconEl = document.createElement('div');
+      iconEl.style.cssText = `width:32px;height:32px;border-radius:8px;background:${areaOn ? color+'22' : '#e2e8f0'};display:flex;align-items:center;justify-content:center;font-size:16px;margin-right:10px;flex-shrink:0;`;
+      iconEl.textContent = area.icon;
 
-    if(area.subPerms.length === 0){
-      subWrap.innerHTML = '<div style="font-size:11px;color:#94a3b8;font-style:italic;text-align:center;padding:4px 0;">Sin actividades configuradas aún</div>';
-    } else {
-      area.subPerms.forEach(sp => {
-        // Check if this sub has nested subPerms
-        const hasNested = sp.subPerms && sp.subPerms.length > 0;
-        const spOn = perms.includes(sp.key);
+      const nameEl = document.createElement('span');
+      nameEl.style.cssText = `font-size:14px;font-weight:700;color:${areaOn ? color : '#64748b'};flex:1;`;
+      nameEl.textContent = area.label;
 
-        const spItem = document.createElement('div');
-        spItem.style.cssText = `border-radius:8px;overflow:hidden;`;
+      const leftDiv = document.createElement('div');
+      leftDiv.style.cssText = 'display:flex;align-items:center;';
+      leftDiv.appendChild(iconEl);
+      leftDiv.appendChild(nameEl);
 
-        const spHdr = document.createElement('div');
-        spHdr.style.cssText = `display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:${spOn ? color+'0d' : '#f8fafc'};border:1px solid ${spOn ? color+'33' : '#e2e8f0'};border-radius:${hasNested && spOn ? '8px 8px 0 0' : '8px'};`;
-        spHdr.innerHTML = `
-          <span style="font-size:12px;font-weight:600;color:${spOn ? '#334155' : '#64748b'};">↳ ${sp.label}</span>
-          <div class="perm-sub-toggle ${spOn?'on':''}" style="--area-color:${color}"></div>`;
-        spItem.appendChild(spHdr);
+      const tog = document.createElement('div');
+      tog.className = 'perm-toggle' + (areaOn ? ' on' : '');
+      tog.style.setProperty('--area-color', color);
 
-        // Nested sub-perms (e.g. Tablero General → Corregir Mecánico, Descargar Excel)
-        if(hasNested){
-          const nestedWrap = document.createElement('div');
-          nestedWrap.style.cssText = `padding:6px 10px 8px;flex-direction:column;gap:4px;background:#f8fafc;border:1px solid ${color+'22'};border-top:none;border-radius:0 0 8px 8px;`;
-          nestedWrap.style.display = spOn ? 'flex' : 'none';
+      hdr.appendChild(leftDiv);
+      hdr.appendChild(tog);
+      item.appendChild(hdr);
 
-          sp.subPerms.forEach(np => {
-            const npOn = perms.includes(np.key);
-            const npItem = document.createElement('div');
-            npItem.style.cssText = `display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border-radius:6px;background:${npOn ? color+'0a' : '#fff'};border:1px solid ${npOn ? color+'22' : '#e2e8f0'};`;
-            npItem.innerHTML = `
-              <span style="font-size:11px;font-weight:600;color:${npOn ? '#334155' : '#94a3b8'};">  ↳ ${np.label}</span>
-              <div class="perm-sub-toggle ${npOn?'on':''}" style="--area-color:${color}"></div>`;
+      // ── Sub-perms ──
+      const subWrap = document.createElement('div');
+      subWrap.style.cssText = 'padding:8px 12px 10px;flex-direction:column;gap:6px;background:#fff;border-top:1px solid #e2e8f0;';
+      subWrap.style.display = areaOn ? 'flex' : 'none';
 
-            npItem.querySelector('.perm-sub-toggle').addEventListener('click', e => {
-              e.stopPropagation();
-              const nowOn = !npItem.querySelector('.perm-sub-toggle').classList.contains('on');
-              togglePerm(nombre, np.key, nowOn);
-              npItem.querySelector('.perm-sub-toggle').classList.toggle('on', nowOn);
-              npItem.style.background = nowOn ? color+'0a' : '#fff';
-              npItem.style.borderColor = nowOn ? color+'22' : '#e2e8f0';
-              npItem.querySelector('span').style.color = nowOn ? '#334155' : '#94a3b8';
-            });
-            nestedWrap.appendChild(npItem);
-          });
-          spItem.appendChild(nestedWrap);
-        }
+      if(area.subPerms.length === 0){
+        const noSub = document.createElement('div');
+        noSub.style.cssText = 'font-size:11px;color:#94a3b8;font-style:italic;text-align:center;padding:4px 0;';
+        noSub.textContent = 'Sin actividades configuradas aún';
+        subWrap.appendChild(noSub);
+      } else {
+        area.subPerms.forEach(sp => {
+          const hasNested = sp.subPerms && sp.subPerms.length > 0;
+          const spOn = perms.includes(sp.key);
 
-        // Sub-toggle click
-        spHdr.querySelector('.perm-sub-toggle').addEventListener('click', e => {
-          e.stopPropagation();
-          const nowOn = !spHdr.querySelector('.perm-sub-toggle').classList.contains('on');
-          togglePerm(nombre, sp.key, nowOn);
-          spHdr.querySelector('.perm-sub-toggle').classList.toggle('on', nowOn);
-          spHdr.style.background = nowOn ? color+'0d' : '#f8fafc';
-          spHdr.style.borderColor = nowOn ? color+'33' : '#e2e8f0';
-          spHdr.querySelector('span').style.color = nowOn ? '#334155' : '#64748b';
+          const spWrap = document.createElement('div');
+          spWrap.style.cssText = 'border-radius:8px;overflow:hidden;';
+
+          const spHdr = document.createElement('div');
+          spHdr.style.cssText = `display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:${spOn ? color+'0d' : '#f8fafc'};border:1px solid ${spOn ? color+'33' : '#e2e8f0'};border-radius:${hasNested && spOn ? '8px 8px 0 0' : '8px'};`;
+
+          const spName = document.createElement('span');
+          spName.style.cssText = `font-size:12px;font-weight:600;color:${spOn ? '#334155' : '#64748b'};`;
+          spName.textContent = '↳ ' + sp.label;
+
+          const spTog = document.createElement('div');
+          spTog.className = 'perm-sub-toggle' + (spOn ? ' on' : '');
+          spTog.style.setProperty('--area-color', color);
+
+          spHdr.appendChild(spName);
+          spHdr.appendChild(spTog);
+          spWrap.appendChild(spHdr);
+
+          // Nested sub-perms
+          let nestedWrap = null;
           if(hasNested){
-            const nw = spItem.querySelector('div:last-child');
-            if(nw && nw !== spHdr) nw.style.display = nowOn ? '' : 'none';
-            spHdr.style.borderRadius = nowOn ? '8px 8px 0 0' : '8px';
-          }
-          // Ensure area is ON
-          if(nowOn && !item.querySelector('.perm-toggle').classList.contains('on')){
-            toggleAreaPerm(nombre, area.key, []);
-            item.querySelector('.perm-toggle').classList.add('on');
-            hdr.style.background = color+'12';
-            hdr.querySelector('span').style.color = color;
-            item.style.borderColor = color;
-            subWrap.style.display = '';
-          }
-        });
+            nestedWrap = document.createElement('div');
+            nestedWrap.style.cssText = `padding:6px 10px 8px;flex-direction:column;gap:4px;background:#f8fafc;border:1px solid ${color+'22'};border-top:none;border-radius:0 0 8px 8px;`;
+            nestedWrap.style.display = spOn ? 'flex' : 'none';
 
-        subWrap.appendChild(spItem);
+            sp.subPerms.forEach(np => {
+              const npOn = getPerms().includes(np.key);
+              const npItem = document.createElement('div');
+              npItem.style.cssText = `display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border-radius:6px;background:${npOn ? color+'0a' : '#fff'};border:1px solid ${npOn ? color+'22' : '#e2e8f0'};`;
+
+              const npName = document.createElement('span');
+              npName.style.cssText = `font-size:11px;font-weight:600;color:${npOn ? '#334155' : '#94a3b8'};`;
+              npName.textContent = '  ↳ ' + np.label;
+
+              const npTog = document.createElement('div');
+              npTog.className = 'perm-sub-toggle' + (npOn ? ' on' : '');
+              npTog.style.setProperty('--area-color', color);
+
+              npItem.appendChild(npName);
+              npItem.appendChild(npTog);
+
+              npTog.addEventListener('click', e => {
+                e.stopPropagation();
+                const nowOn = !npTog.classList.contains('on');
+                togglePerm(nombre, np.key, nowOn);
+                npTog.classList.toggle('on', nowOn);
+                npItem.style.background = nowOn ? color+'0a' : '#fff';
+                npItem.style.borderColor = nowOn ? color+'22' : '#e2e8f0';
+                npName.style.color = nowOn ? '#334155' : '#94a3b8';
+              });
+              nestedWrap.appendChild(npItem);
+            });
+            spWrap.appendChild(nestedWrap);
+          }
+
+          // Sub-toggle click
+          spTog.addEventListener('click', e => {
+            e.stopPropagation();
+            const nowOn = !spTog.classList.contains('on');
+            togglePerm(nombre, sp.key, nowOn);
+            spTog.classList.toggle('on', nowOn);
+            spHdr.style.background = nowOn ? color+'0d' : '#f8fafc';
+            spHdr.style.borderColor = nowOn ? color+'33' : '#e2e8f0';
+            spName.style.color = nowOn ? '#334155' : '#64748b';
+            if(hasNested && nestedWrap){
+              nestedWrap.style.display = nowOn ? 'flex' : 'none';
+              spHdr.style.borderRadius = nowOn ? '8px 8px 0 0' : '8px';
+            }
+            // Si activa sub, asegurar que el área también esté activa
+            if(nowOn && !tog.classList.contains('on')){
+              toggleAreaPerm(nombre, area.key, []);
+              tog.classList.add('on');
+              hdr.style.background = color+'12';
+              nameEl.style.color = color;
+              iconEl.style.background = color+'22';
+              item.style.borderColor = color;
+              subWrap.style.display = 'flex';
+            }
+          });
+
+          subWrap.appendChild(spWrap);
+        });
+      }
+
+      item.appendChild(subWrap);
+
+      // Area toggle click
+      tog.addEventListener('click', e => {
+        e.stopPropagation();
+        const nowOn = !tog.classList.contains('on');
+        toggleAreaPerm(nombre, area.key, area.subPerms.map(s=>s.key));
+        tog.classList.toggle('on', nowOn);
+        hdr.style.background = nowOn ? color+'12' : '#f8fafc';
+        nameEl.style.color = nowOn ? color : '#64748b';
+        iconEl.style.background = nowOn ? color+'22' : '#e2e8f0';
+        item.style.borderColor = nowOn ? color : '#e2e8f0';
+        subWrap.style.display = nowOn ? 'flex' : 'none';
+        if(!nowOn){
+          subWrap.querySelectorAll('.perm-sub-toggle').forEach(t => t.classList.remove('on'));
+          subWrap.querySelectorAll('[style*="flex-direction"]').forEach(nw => nw.style.display = 'none');
+        }
       });
+
+      return item;
     }
 
-    item.appendChild(subWrap);
-
-    // Area toggle click
-    hdr.querySelector('.perm-toggle').addEventListener('click', e => {
-      e.stopPropagation();
-      const nowOn = !hdr.querySelector('.perm-toggle').classList.contains('on');
-      toggleAreaPerm(nombre, area.key, area.subPerms.map(s=>s.key));
-      hdr.querySelector('.perm-toggle').classList.toggle('on', nowOn);
-      hdr.style.background = nowOn ? color+'12' : '#f8fafc';
-      hdr.querySelector('span').style.color = nowOn ? color : '#64748b';
-      hdr.querySelector('div > div').style.background = nowOn ? color+'22' : '#e2e8f0';
-      item.style.borderColor = nowOn ? color : '#e2e8f0';
-      subWrap.style.display = nowOn ? '' : 'none';
-      if(!nowOn){
-        // turn off all sub toggles visually
-        subWrap.querySelectorAll('.perm-sub-toggle').forEach(t => t.classList.remove('on'));
-      }
-    });
-
-    body.appendChild(item);
+    body.appendChild(buildAreaItem());
   });
 }
-
 </script>
 
 <!-- MODAL: Nueva/Editar máquina (CFG SCREEN) -->
