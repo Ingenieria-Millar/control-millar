@@ -2403,26 +2403,25 @@ const ALL_PERMS = [
 // Estructura de áreas con sus permisos internos
 const AREAS_CONFIG = [
   {
-    key: 'area_mecanicos',
-    label: 'Mecánicos',
-    icon: '🔧',
-    color: '#ef4444',
-    subPerms: [
-      {key:'tablero',        label:'Tablero General'},
-      {key:'area_produccion',label:'Montajes (vía Producción)'},
-      {key:'area_montajes',  label:'Montajes (directo)'},
-      {key:'fix',            label:'Corregir Mecánico'},
-    ]
-  },
-  {
     key: 'area_ingreso',
     label: 'Producción',
     icon: '📋',
     color: '#2563eb',
     subPerms: [
-      {key:'excel',   label:'Descargar Excel'},
-      {key:'modulos', label:'Vista Módulo / Acceso Módulos Login'},
-      {key:'area_produccion', label:'Acceso Módulos Login (sin contraseña admin)'},
+      {key:'excel',          label:'Descargar Excel'},
+      {key:'modulos',        label:'Acceso Login Módulos'},
+      {key:'area_produccion',label:'Login sin contraseña admin'},
+    ]
+  },
+  {
+    key: 'area_mecanicos',
+    label: 'Mecánicos',
+    icon: '🔧',
+    color: '#ef4444',
+    subPerms: [
+      {key:'tablero',       label:'Tablero General'},
+      {key:'area_montajes', label:'Montajes'},
+      {key:'fix',           label:'Corregir Mecánico'},
     ]
   },
   {
@@ -2437,7 +2436,10 @@ const AREAS_CONFIG = [
     label: 'CI',
     icon: '🏢',
     color: '#8b5cf6',
-    subPerms: []
+    subPerms: [
+      {key:'ci_tablero',    label:'Tablero CI'},
+      {key:'ci_inventario', label:'Inventario de Hilos'},
+    ]
   },
   {
     key: 'area_empaque',
@@ -3430,28 +3432,54 @@ setInterval(()=>{const n=new Date();document.getElementById('clock').textContent
 .cfg-stat-box.green .cfg-stat-num{color:#16a34a;}
 .cfg-stat-box.red .cfg-stat-num{color:#dc2626;}
 /* PERMISOS */
-.cfg-perm-card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:18px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.05);}
-.cfg-perm-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
-.cfg-perm-user{font-size:15px;font-weight:700;color:#0f172a;}
+/* ── PERMISOS REDISEÑO ── */
+.perm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;}
+.perm-card{background:#fff;border:1.5px solid #e2e8f0;border-radius:16px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.06);transition:box-shadow .2s;}
+.perm-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.1);}
+.perm-card-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;background:linear-gradient(135deg,#020d22,#04163d);border-bottom:2px solid #1e3a8a;}
+.perm-card-user{display:flex;align-items:center;gap:10px;}
+.perm-card-avatar{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:16px;border:1.5px solid rgba(255,255,255,.2);}
+.perm-card-name{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:2px;color:#fff;text-transform:uppercase;}
+.perm-card-badge{font-size:10px;font-weight:700;letter-spacing:1px;padding:3px 8px;border-radius:20px;background:rgba(34,197,94,.15);color:#4ade80;border:1px solid rgba(34,197,94,.3);}
+.perm-card-badge.off{background:rgba(239,68,68,.15);color:#f87171;border-color:rgba(239,68,68,.3);}
+.perm-card-body{padding:14px;}
+.perm-area-item{border:1.5px solid #e2e8f0;border-radius:12px;margin-bottom:8px;overflow:hidden;transition:border-color .2s;}
+.perm-area-item.active{border-color:var(--area-color,#2563eb);}
+.perm-area-hdr{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;cursor:pointer;background:#f8fafc;transition:background .2s;}
+.perm-area-item.active .perm-area-hdr{background:color-mix(in srgb, var(--area-color,#2563eb) 8%, white);}
+.perm-area-left{display:flex;align-items:center;gap:10px;}
+.perm-area-icon{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;background:#e2e8f0;transition:background .2s;}
+.perm-area-item.active .perm-area-icon{background:color-mix(in srgb, var(--area-color,#2563eb) 15%, white);}
+.perm-area-name{font-size:13px;font-weight:700;color:#334155;}
+.perm-area-item.active .perm-area-name{color:var(--area-color,#2563eb);}
+.perm-area-right{display:flex;align-items:center;gap:8px;}
+.perm-area-count{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;background:#e2e8f0;color:#64748b;}
+.perm-area-item.active .perm-area-count{background:color-mix(in srgb, var(--area-color,#2563eb) 15%, white);color:var(--area-color,#2563eb);}
+.perm-toggle{width:40px;height:22px;border-radius:11px;background:#e2e8f0;border:1.5px solid #cbd5e1;position:relative;cursor:pointer;transition:background .25s,border-color .25s;flex-shrink:0;}
+.perm-toggle.on{background:var(--area-color,#2563eb);border-color:var(--area-color,#2563eb);}
+.perm-toggle::after{content:'';position:absolute;top:3px;left:3px;width:12px;height:12px;border-radius:50%;background:#94a3b8;transition:left .2s,background .2s;}
+.perm-toggle.on::after{left:21px;background:#fff;}
+.perm-sub-list{padding:8px 12px 10px 12px;display:flex;flex-direction:column;gap:6px;background:#fff;border-top:1px solid #e2e8f0;}
+.perm-sub-item{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0;transition:background .15s,border-color .15s;}
+.perm-sub-item.active{background:color-mix(in srgb, var(--area-color,#2563eb) 6%, white);border-color:color-mix(in srgb, var(--area-color,#2563eb) 25%, white);}
+.perm-sub-name{font-size:12px;font-weight:600;color:#475569;}
+.perm-sub-item.active .perm-sub-name{color:#334155;}
+.perm-sub-toggle{width:34px;height:18px;border-radius:9px;background:#e2e8f0;border:1px solid #cbd5e1;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;}
+.perm-sub-toggle.on{background:var(--area-color,#2563eb);border-color:var(--area-color,#2563eb);}
+.perm-sub-toggle::after{content:'';position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;background:#94a3b8;transition:left .15s,background .15s;}
+.perm-sub-toggle.on::after{left:18px;background:#fff;}
+.perm-no-sub{font-size:11px;color:#94a3b8;font-style:italic;text-align:center;padding:6px 0;}
+/* legacy compat */
+.cfg-perm-card{display:none;}
 .cfg-tog-row{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#16a34a;}
 .cfg-tog{width:44px;height:24px;border-radius:12px;position:relative;cursor:pointer;}
-.cfg-tog.on{background:#16a34a;border:1px solid #15803d;}
-.cfg-tog.off{background:#e2e8f0;border:1px solid #cbd5e1;}
+.cfg-tog.on{background:#16a34a;} .cfg-tog.off{background:#e2e8f0;}
 .cfg-tog-d{position:absolute;top:4px;width:14px;height:14px;border-radius:50%;background:#fff;}
-.cfg-tog.on .cfg-tog-d{left:22px;}
-.cfg-tog.off .cfg-tog-d{left:4px;background:#94a3b8;}
-.cfg-area-row{border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;margin-bottom:6px;background:#f8fafc;}
-.cfg-area-row.on{border-color:#2563eb44;background:#eff6ff;}
-.cfg-area-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;}
-.cfg-area-lbl{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#0f172a;}
-.cfg-area-lbl.off{color:#94a3b8;}
-.cfg-area-cnt{font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;}
+.cfg-tog.on .cfg-tog-d{left:22px;} .cfg-tog.off .cfg-tog-d{left:4px;}
 .cfg-area-tog{width:36px;height:20px;border-radius:10px;position:relative;cursor:pointer;}
-.cfg-area-tog.on{background:#2563eb;border:1px solid #1d4ed8;}
-.cfg-area-tog.off{background:#e2e8f0;border:1px solid #cbd5e1;}
+.cfg-area-tog.on{background:#2563eb;} .cfg-area-tog.off{background:#e2e8f0;}
 .cfg-area-tog-d{position:absolute;top:3px;width:12px;height:12px;border-radius:50%;background:#fff;}
-.cfg-area-tog.on .cfg-area-tog-d{left:19px;}
-.cfg-area-tog.off .cfg-area-tog-d{left:3px;background:#94a3b8;}
+.cfg-area-tog.on .cfg-area-tog-d{left:19px;} .cfg-area-tog.off .cfg-area-tog-d{left:3px;}
 /* EXCEL BANNER */
 .cfg-excel-banner{background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1.5px dashed #86efac;border-radius:12px;padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:14px;}
 .cfg-excel-banner h3{font-size:13px;font-weight:700;color:#15803d;margin-bottom:3px;}
@@ -4837,19 +4865,130 @@ function cfgRenderAreas(body){
 
 // ── PERMISOS ──────────────────────────────────────────────────────
 function cfgRenderPermisos(body){
-  const allUsers=getCfgUsuarios();
-  Object.entries(allUsers).forEach(([nombre,data])=>{
-    const pCard=document.createElement('div'); pCard.className='cfg-perm-card';
-    const hdr=document.createElement('div'); hdr.className='cfg-perm-hdr';
-    hdr.innerHTML=`<div class="cfg-perm-user">👤 ${nombre}</div><div class="cfg-tog-row">${data.disabled?'Inhabilitado':'Habilitado'}<div class="cfg-tog ${data.disabled?'off':'on'}"><div class="cfg-tog-d"></div></div></div>`;
-    pCard.appendChild(hdr);
-    (data.perms||[]).forEach(perm=>{
-      const ar=document.createElement('div'); ar.className='cfg-area-row on';
-      ar.innerHTML=`<div class="cfg-area-hdr"><div class="cfg-area-lbl">🔑 ${perm}</div><div class="cfg-area-tog on"><div class="cfg-area-tog-d"></div></div></div>`;
-      pCard.appendChild(ar);
+  const allUsers = getCfgUsuarios();
+  const grid = document.createElement('div');
+  grid.className = 'perm-grid';
+
+  Object.entries(allUsers).forEach(([nombre, data])=>{
+    const perms = data.perms || [];
+    const card = document.createElement('div');
+    card.className = 'perm-card';
+
+    // Header
+    const activeAreas = AREAS_CONFIG.filter(a => perms.includes(a.key));
+    card.innerHTML = `
+      <div class="perm-card-hdr">
+        <div class="perm-card-user">
+          <div class="perm-card-avatar">👤</div>
+          <div>
+            <div class="perm-card-name">${nombre}</div>
+          </div>
+        </div>
+        <div class="perm-card-badge ${data.disabled?'off':''}">${data.disabled?'INHABILITADO':'HABILITADO'}</div>
+      </div>
+      <div class="perm-card-body" id="perm-body-${nombre}"></div>`;
+
+    grid.appendChild(card);
+
+    const bodyEl = card.querySelector(`#perm-body-${nombre}`);
+
+    // Render each area
+    AREAS_CONFIG.forEach(area => {
+      const areaOn = perms.includes(area.key);
+      const activeSubs = area.subPerms.filter(sp => perms.includes(sp.key));
+
+      const item = document.createElement('div');
+      item.className = 'perm-area-item' + (areaOn ? ' active' : '');
+      item.style.setProperty('--area-color', area.color);
+
+      const countBadge = area.subPerms.length > 0
+        ? `<span class="perm-area-count">${activeSubs.length}/${area.subPerms.length}</span>`
+        : '';
+
+      item.innerHTML = `
+        <div class="perm-area-hdr">
+          <div class="perm-area-left">
+            <div class="perm-area-icon">${area.icon}</div>
+            <span class="perm-area-name">${area.label}</span>
+          </div>
+          <div class="perm-area-right">
+            ${countBadge}
+            <div class="perm-toggle ${areaOn?'on':''}" title="Habilitar/Deshabilitar ${area.label}"></div>
+          </div>
+        </div>`;
+
+      // Sub-perms list
+      if(area.subPerms.length > 0){
+        const subList = document.createElement('div');
+        subList.className = 'perm-sub-list';
+        subList.style.display = areaOn ? '' : 'none';
+
+        area.subPerms.forEach(sp => {
+          const spOn = perms.includes(sp.key);
+          const spItem = document.createElement('div');
+          spItem.className = 'perm-sub-item' + (spOn ? ' active' : '');
+          spItem.innerHTML = `
+            <span class="perm-sub-name">↳ ${sp.label}</span>
+            <div class="perm-sub-toggle ${spOn?'on':''}" title="${sp.label}"></div>`;
+
+          // Sub-toggle click
+          spItem.querySelector('.perm-sub-toggle').addEventListener('click', e => {
+            e.stopPropagation();
+            const nowOn = !spItem.classList.contains('active');
+            togglePerm(nombre, sp.key, nowOn);
+            spItem.classList.toggle('active', nowOn);
+            spItem.querySelector('.perm-sub-toggle').classList.toggle('on', nowOn);
+            // Update count badge
+            const allSubs = item.querySelectorAll('.perm-sub-item.active').length;
+            const cntEl = item.querySelector('.perm-area-count');
+            if(cntEl) cntEl.textContent = allSubs + '/' + area.subPerms.length;
+          });
+
+          subList.appendChild(spItem);
+        });
+        item.appendChild(subList);
+      } else if(areaOn) {
+        const noSub = document.createElement('div');
+        noSub.className = 'perm-sub-list';
+        noSub.innerHTML = '<div class="perm-no-sub">Sin actividades configuradas aún</div>';
+        item.appendChild(noSub);
+      }
+
+      // Area toggle click
+      item.querySelector('.perm-toggle').addEventListener('click', e => {
+        e.stopPropagation();
+        const nowOn = !item.classList.contains('active');
+        toggleAreaPerm(nombre, area.key, area.subPerms.map(s=>s.key));
+        item.classList.toggle('active', nowOn);
+        item.querySelector('.perm-toggle').classList.toggle('on', nowOn);
+        item.style.setProperty('--area-color', area.color);
+        const subList = item.querySelector('.perm-sub-list');
+        if(subList) subList.style.display = nowOn ? '' : 'none';
+        if(!nowOn && area.subPerms.length > 0){
+          item.querySelectorAll('.perm-sub-item').forEach(si=>{
+            si.classList.remove('active');
+            si.querySelector('.perm-sub-toggle').classList.remove('on');
+          });
+          const cntEl = item.querySelector('.perm-area-count');
+          if(cntEl) cntEl.textContent = '0/' + area.subPerms.length;
+        } else if(nowOn && area.subPerms.length === 0){
+          // add no-sub message
+          if(!item.querySelector('.perm-sub-list')){
+            const noSub = document.createElement('div');
+            noSub.className = 'perm-sub-list';
+            noSub.innerHTML = '<div class="perm-no-sub">Sin actividades configuradas aún</div>';
+            item.appendChild(noSub);
+          } else {
+            item.querySelector('.perm-sub-list').style.display = '';
+          }
+        }
+      });
+
+      bodyEl.appendChild(item);
     });
-    body.appendChild(pCard);
   });
+
+  body.appendChild(grid);
 }
 </script>
 
