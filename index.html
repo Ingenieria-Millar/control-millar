@@ -1353,11 +1353,6 @@ const MECANICOS=['ANDRES RIOS','CESAR CIFUENTES','DAIRON ZAPATA','ELKIN LOPEZ','
 
 const USUARIOS={
   'Programador':  {pass:'1',perms:['area_ingreso','area_produccion','area_mecanicos','tablero','modulos','excel','fix','area_calidad','area_ci','area_empaque','area_corte','area_sst','area_montajes']},
-  'Administrador':{pass:'1',perms:['area_ingreso','area_mecanicos','tablero','excel','area_calidad','area_ci','area_empaque','area_corte','area_sst','area_montajes']},
-  'Modulos':      {pass:'',perms:['area_produccion','modulos']},
-  'Televisor':    {pass:'1',perms:['area_mecanicos','tablero','area_ci']},
-  'Mecanicos':    {pass:'1',perms:['area_mecanicos','tablero']},
-  'Supervisoras': {pass:'1',perms:['area_ingreso','area_montajes']},
 };
 
 const states={}, timers={}, lastMec={}, acumRed={}, acumYellow={}, acumBlue={}, acumOrange={};
@@ -1599,10 +1594,20 @@ function populateLoginSelect(){
 
 window.addEventListener('DOMContentLoaded',()=>{
   // Limpiar flags disabled de usuarios base que puedan haber quedado en localStorage
-  const USUARIOS_FIJOS = ['Programador','Administrador','Modulos','Televisor','Mecanicos','Supervisoras'];
+  const USUARIOS_FIJOS = ['Programador'];
   const _cfg = loadConfig();
   let _changed = false;
   USUARIOS_FIJOS.forEach(u=>{ if(_cfg[u]&&_cfg[u].disabled){ delete _cfg[u].disabled; _changed=true; } });
+
+  // Limpiar perfiles viejos hardcodeados que puedan estar en localStorage
+  const PERFILES_VIEJOS = ['Administrador','Modulos','Televisor','Mecanicos','Supervisoras'];
+  PERFILES_VIEJOS.forEach(p=>{ if(_cfg[p]){ delete _cfg[p]; _changed=true; } });
+  // Limpiar usuarios_extra que sean perfiles viejos builtin
+  if(_cfg._usuarios_extra){
+    const antes = _cfg._usuarios_extra.length;
+    _cfg._usuarios_extra = _cfg._usuarios_extra.filter(u=>!PERFILES_VIEJOS.includes(u.nombre));
+    if(_cfg._usuarios_extra.length !== antes) _changed=true;
+  }
   if(_changed) saveConfig(_cfg);
 
   applyConfig();
@@ -2430,11 +2435,6 @@ const PERM_LABELS = Object.fromEntries(ALL_PERMS.map(p=>[p.key,p.label]));
 
 const CONFIG_PERMS = {
   'Programador':    {label:'Programador',    available:ALL_PERMS.map(p=>p.key)},
-  'Administrador':  {label:'Administrador',  available:ALL_PERMS.map(p=>p.key)},
-  'Televisor':      {label:'Televisor',      available:ALL_PERMS.map(p=>p.key)},
-  'Mecanicos':      {label:'Mecánicos',      available:ALL_PERMS.map(p=>p.key)},
-  'Modulos':        {label:'Módulos',        available:ALL_PERMS.map(p=>p.key)},
-  'Supervisoras':   {label:'Supervisoras',   available:ALL_PERMS.map(p=>p.key)},
 };
 const CONFIG_KEY = 'millar_config_v1';
 
@@ -2446,7 +2446,7 @@ function saveConfig(cfg){ localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg));
 function applyConfig(){
   const cfg = loadConfig();
   // Usuarios del sistema que nunca se pueden deshabilitar
-  const USUARIOS_FIJOS = ['Programador','Administrador','Modulos','Televisor','Mecanicos','Supervisoras'];
+  const USUARIOS_FIJOS = ['Programador'];
   // Aplicar cambios a usuarios base
   Object.keys(CONFIG_PERMS).forEach(user=>{
     if(!cfg[user]) return;
@@ -3425,6 +3425,7 @@ setInterval(()=>{const n=new Date();document.getElementById('clock').textContent
       <div class="cfg-nav-item" id="cfgn-modulos" onclick="cfgSwitchTab('modulos',this)"><span>🏭</span> Módulos</div>
       <div class="cfg-nav-item" id="cfgn-areas" onclick="cfgSwitchTab('areas',this)"><span>📍</span> Áreas</div>
       <div class="cfg-nav-item" id="cfgn-permisos" onclick="cfgSwitchTab('permisos',this)"><span>🔑</span> Permisos</div>
+      <div class="cfg-nav-item" id="cfgn-reset-local" onclick="cfgResetLocalStorage()" style="margin-top:auto;color:#ef4444;border-color:rgba(239,68,68,0.3);"><span>🗑</span> Resetear todo</div>
     </div>
 
     <!-- MAIN AREA -->
@@ -3464,6 +3465,24 @@ const CFG_NO_CREATE_TABS = ['permisos'];
 function openCfgScreen(){
   document.getElementById('cfg-screen').style.display='flex';
   cfgSwitchTab('perfiles', document.getElementById('cfgn-perfiles'));
+  // Mostrar botón reset solo para Programador
+  const btnReset = document.getElementById('cfgn-reset-local');
+  if(btnReset) btnReset.style.display = (currentUser==='Programador') ? '' : 'none';
+}
+
+function cfgResetLocalStorage(){
+  if(currentUser!=='Programador'){ return; }
+  if(!confirm('⚠️ ¿Seguro? Se borrarán TODOS los datos locales:\nperfiles, usuarios, cargos, maquinaria, módulos, áreas, turnos.\n\nEsta acción no se puede deshacer.')) return;
+  // Borrar todas las claves de la app en localStorage
+  const keysToDelete = [];
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(k && (k.startsWith('millar_') || k.startsWith('ci_') || k.startsWith('floor_'))) keysToDelete.push(k);
+  }
+  keysToDelete.forEach(k=>localStorage.removeItem(k));
+  // Recargar la página para empezar en blanco
+  alert('✅ Datos locales borrados. La página se recargará.');
+  location.reload();
 }
 function closeCfgScreen(){
   document.getElementById('cfg-screen').style.display='none';
