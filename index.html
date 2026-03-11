@@ -1435,6 +1435,7 @@ function connectWS(){
         rebuildModules();
         updateStats();
         if(currentView==='grid') renderGrid();
+        if(typeof iaBuildAreaSelect==='function') iaBuildAreaSelect();
       } else if(msg.type==='change'){
         const id=msg.id, s=msg.state;
         const prev=states[id];
@@ -7534,8 +7535,9 @@ window.iaBuildAdminAreaSelect=function(){iaBuildAreaSelect();};
 function iaBuildAreaSelect(){
   const asel=document.getElementById('ia-emp-area');
   if(!asel) return;
+  // Reconstruir MODULES para incluir extras y renombrados actualizados
+  if(typeof rebuildModules==='function') rebuildModules();
   asel.innerHTML='<option value="">— Seleccionar módulo —</option>';
-  // Usar MODULES global (módulos activos del sistema)
   const mods = typeof MODULES!=='undefined' ? MODULES : [];
   mods.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;asel.appendChild(o);});
 }
