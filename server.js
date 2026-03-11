@@ -39,6 +39,7 @@ const FILES = {
   mantenimientos:path.join(DATA_DIR, 'mantenimientos.json'),
   alertas:       path.join(DATA_DIR, 'alertas.json'),
   app_config:    path.join(DATA_DIR, 'app_config.json'),
+  novedades:     path.join(DATA_DIR, 'novedades.json'),
   cargos:        path.join(DATA_DIR, 'cargos.json'),
   maquinaria:    path.join(DATA_DIR, 'maquinaria.json'),
   turnos:        path.join(DATA_DIR, 'turnos.json'),
@@ -84,17 +85,12 @@ function saveDB(key, data) {
 
 // ── Perfil Programador — SIEMPRE debe existir, nunca se puede borrar ──
 const PROGRAMADOR_PROFILE = {
-  id: 'programador',
-  name: 'Programador',
-  role: 'programador',
-  pass: '1',
-  canDelete: false
+  id: 'programador', name: 'Programador', role: 'programador',
+  pass: '1', canDelete: false
 };
-
 function ensureProgramador(state) {
   if (!state || typeof state !== 'object') state = { supervisors: [], employees: [] };
   if (!Array.isArray(state.supervisors)) state.supervisors = [];
-  // Eliminar cualquier entrada duplicada y volver a insertar siempre al inicio
   state.supervisors = state.supervisors.filter(s => s.id !== 'programador');
   state.supervisors.unshift(PROGRAMADOR_PROFILE);
   return state;
@@ -114,7 +110,6 @@ let modulesConfig = readJSON(FILES.modules_config, { disabled:[], extra:[], rena
 if (!iaState) {
   iaState = loadInitialState();
 } else {
-  // Garantizar que Programador siempre esté aunque el archivo ya exista
   iaState = ensureProgramador(iaState);
 }
 writeJSON(FILES.ia_state, iaState);
@@ -406,10 +401,36 @@ app.get('/api/app-config', (req, res) => {
 });
 app.post('/api/app-config', (req, res) => {
   try {
-    // Merge con lo existente para no borrar datos que otro módulo guardó
     const existing = readJSON(FILES.app_config, {});
-    const merged = Object.assign({}, existing, req.body);
+    // Deep merge: para cada clave del body, si ambos son objetos no-array se mergean
+    // si alguno es array o primitivo, el nuevo valor reemplaza
+    function deepMerge(target, source) {
+      const out = Object.assign({}, target);
+      Object.keys(source).forEach(k => {
+        const sv = source[k], tv = target[k];
+        if (sv && typeof sv === 'object' && !Array.isArray(sv) &&
+            tv && typeof tv === 'object' && !Array.isArray(tv)) {
+          out[k] = deepMerge(tv, sv);
+        } else {
+          out[k] = sv;
+        }
+      });
+      return out;
+    }
+    const merged = deepMerge(existing, req.body);
     writeJSON(FILES.app_config, merged);
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── Novedades ─────────────────────────────────────────────────────
+app.get('/api/novedades', (req, res) => {
+  res.json(readJSON(FILES.novedades, []));
+});
+app.post('/api/novedades', (req, res) => {
+  try {
+    const data = Array.isArray(req.body) ? req.body : [];
+    writeJSON(FILES.novedades, data);
     res.json({ success: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -475,7 +496,7 @@ app.get('/admin/reset', (req, res) => {
       FILES.ia_state, FILES.ia_records, FILES.modules_config,
       FILES.floor_state, FILES.ci_requests, FILES.ci_config,
       FILES.alistamientos, FILES.mantenimientos, FILES.alertas,
-      FILES.app_config, FILES.cargos, FILES.maquinaria, FILES.turnos, FILES.historial
+      FILES.app_config, FILES.novedades, FILES.cargos, FILES.maquinaria, FILES.turnos, FILES.historial
     ];
     filesToReset.forEach(f => { if (fs.existsSync(f)) fs.unlinkSync(f); });
 
@@ -696,7 +717,7 @@ wss.on('connection', (ws) => {
 
       else if (msg.type === 'ia_save_state') {
         if (!msg.state) { console.warn('WS ia_save_state: sin state'); return; }
-        iaState = ensureProgramador(msg.state); // Programador siempre presente
+        iaState = ensureProgramador(msg.state);
         saveIaState();
         broadcast({ type:'ia_save_state', state:iaState });
       }
