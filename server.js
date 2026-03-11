@@ -385,7 +385,10 @@ app.get('/api/app-config', (req, res) => {
 });
 app.post('/api/app-config', (req, res) => {
   try {
-    writeJSON(FILES.app_config, req.body);
+    // Merge con lo existente para no borrar datos que otro módulo guardó
+    const existing = readJSON(FILES.app_config, {});
+    const merged = Object.assign({}, existing, req.body);
+    writeJSON(FILES.app_config, merged);
     res.json({ success: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
