@@ -6315,8 +6315,8 @@ function getIngresoHTML(){
   display:inline-flex;align-items:center;gap:.3rem;padding:.25rem .7rem;
   border-radius:20px;font-size:.72rem;font-weight:700;font-family:'Nunito',sans-serif;
 }
-.ia-badge.in{background:rgba(34,197,94,.1);color:#15803d;border:1px solid rgba(34,197,94,.25);display:inline-flex;align-items:center;gap:4px;white-space:nowrap;}
-.ia-badge.out{background:rgba(239,68,68,.1);color:#b91c1c;border:1px solid rgba(239,68,68,.2);display:inline-flex;align-items:center;gap:4px;white-space:nowrap;}
+.ia-badge.in{background:rgba(37,99,235,.1);color:#1e3a8a;border:1px solid rgba(37,99,235,.2);}
+.ia-badge.out{background:rgba(239,68,68,.1);color:#b91c1c;border:1px solid rgba(239,68,68,.2);}
 .ia-badge.area{background:rgba(37,99,235,.08);color:#2563eb;border:1px solid rgba(37,99,235,.15);}
 .ia-btn-edit{
   padding:.3rem .8rem;background:transparent;border:1.5px solid #f59e0b;color:#d97706;
@@ -7154,18 +7154,18 @@ html { overflow-x: hidden; max-width: 100%; }
           <label>Módulo</label>
           <select id="ia-emp-area"><option value="">— Seleccionar módulo —</option></select>
         </div>
-        <!-- Dropdown de novedades (se abre al tocar Faltó) -->
-        <div style="grid-column:1/-1;display:none;" id="ia-novedad-wrap">
-          <div style="font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#854d0e;margin-bottom:6px;">¿Qué novedad tiene?</div>
-          <div id="ia-novedad-list" style="background:#fff;border:1.5px solid #fde68a;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(234,179,8,.15);"></div>
-          <button onclick="iaCerrarNovedad()" style="margin-top:8px;width:100%;padding:8px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Cancelar</button>
+        <!-- Novedad (oculto por defecto) -->
+        <div class="ia-fg" style="grid-column:1/-1;display:none;" id="ia-novedad-wrap">
+          <label>Tipo de novedad</label>
+          <select id="ia-emp-novedad"><option value="">— Seleccionar novedad —</option></select>
         </div>
         <div class="ia-toast ok" id="ia-success-toast">✅ Ingreso registrado exitosamente</div>
         <div class="ia-toast bad" id="ia-absent-toast">❌ Falta registrada</div>
         <div class="ia-toast" id="ia-novedad-toast" style="display:none;background:rgba(234,179,8,.12);border:1px solid rgba(234,179,8,.3);color:#854d0e;border-radius:10px;padding:.75rem 1rem;font-size:.85rem;font-weight:700;text-align:center;">🟡 Novedad registrada</div>
-        <div class="ia-action-btns" id="ia-action-btns-wrap">
+        <div class="ia-action-btns" style="grid-template-columns:1fr 1fr 1fr;">
           <button class="ia-btn-register" onclick="iaRegisterEntry('presente')">✅ Registrar Ingreso</button>
-          <button class="ia-btn-absent"   onclick="iaToggleNovedadMode()">❌ Faltó</button>
+          <button class="ia-btn-absent"   onclick="iaRegisterEntry('falto')">❌ Faltó</button>
+          <button class="ia-btn-absent" onclick="iaToggleNovedadMode()" id="ia-btn-novedad" style="background:#fefce8;border-color:rgba(234,179,8,.4);color:#854d0e;">🟡 Novedad</button>
         </div>
       </div>
       <div class="ia-today-section">
@@ -7297,7 +7297,7 @@ html { overflow-x: hidden; max-width: 100%; }
     <h4>✏️ Editar Registro</h4>
     <div class="ia-fg"><label>Empleado</label><input type="text" id="ia-edit-emp" readonly style="opacity:.6;cursor:not-allowed;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;color:#0f172a;padding:.75rem 1rem;width:100%;"></div>
     <div class="ia-fg"><label>Área</label><select id="ia-edit-area" style="width:100%;padding:.75rem 1rem;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;color:#0f172a;outline:none;"></select></div>
-    <div class="ia-fg"><label>Estado</label><select id="ia-edit-status" onchange="iaEditStatusChange()" style="width:100%;padding:.75rem 1rem;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;color:#0f172a;outline:none;"><option value="presente">✅ Presente</option><option value="falto">❌ Faltó</option><option value="novedad">🟡 Novedad</option></select></div>
+    <div class="ia-fg"><label>Estado</label><select id="ia-edit-status" onchange="iaEditStatusChange()" style="width:100%;padding:.75rem 1rem;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;color:#0f172a;outline:none;"><option value="presente">✅ Presente</option><option value="falto">❌ Faltó</option></select></div>
     <div class="ia-fg"><label>Supervisor</label><select id="ia-edit-supervisor" style="width:100%;padding:.75rem 1rem;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;color:#0f172a;outline:none;"></select></div>
     <div class="ia-fg"><label>Observaciones</label><textarea id="ia-edit-obs" placeholder="Observaciones opcionales..." style="width:100%;padding:.75rem 1rem;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;color:#0f172a;outline:none;font-family:'Nunito',sans-serif;font-size:.9rem;resize:vertical;min-height:70px;"></textarea></div>
     <div class="ia-modal-actions">
@@ -7543,62 +7543,26 @@ window.iaClearEmployee=function(){
   document.getElementById('ia-emp-search').focus();
 };
 window.iaToggleNovedadMode=function(){
-  const empName=document.getElementById('ia-emp-selected').value||document.getElementById('ia-emp-search').value.trim();
-  if(!empName){alert('Por favor selecciona un empleado primero.');return;}
   const wrap=document.getElementById('ia-novedad-wrap');
   const areaWrap=document.getElementById('ia-emp-area')?.closest('.ia-fg');
-  const btnsWrap=document.getElementById('ia-action-btns-wrap');
+  const btn=document.getElementById('ia-btn-novedad');
   const isActive=wrap&&wrap.style.display!=='none';
   if(isActive){
-    iaCerrarNovedad();
+    if(wrap) wrap.style.display='none';
+    if(areaWrap) areaWrap.style.display='';
+    if(btn){btn.style.background='#fefce8';btn.style.fontWeight='700';}
   } else {
-    // Poblar lista de novedades como botones + opción "Sin novedad (Faltó)"
-    const list=document.getElementById('ia-novedad-list');
-    const novedades=cfgGetNovedades();
-    list.innerHTML=`<div onclick="iaRegistrarFalto()" style="padding:13px 18px;cursor:pointer;font-size:14px;font-weight:700;color:#b91c1c;border-bottom:1px solid #fee2e2;display:flex;align-items:center;gap:10px;transition:background .15s;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background=''"><span style="font-size:18px;">❌</span> Faltó (sin novedad)</div>`
-    + novedades.map(n=>`<div onclick="iaRegistrarNovedad('${n.nombre.replace(/'/g,"\'")}','${(n.emoji||'🟡').replace(/'/g,"\'")}',this)" style="padding:13px 18px;cursor:pointer;font-size:14px;font-weight:700;color:#854d0e;border-bottom:1px solid #fef9c3;display:flex;align-items:center;gap:10px;transition:background .15s;" onmouseover="this.style.background='#fef9c3'" onmouseout="this.style.background=''"><span style="font-size:18px;">${n.emoji||'🟡'}</span> ${n.nombre}</div>`).join('');
-    if(wrap) wrap.style.display='';
+    if(wrap){
+      wrap.style.display='';
+      // Poblar select con las novedades configuradas
+      const sel=document.getElementById('ia-emp-novedad');
+      const novedades=cfgGetNovedades();
+      sel.innerHTML='<option value="">— Seleccionar novedad —</option>';
+      novedades.forEach(n=>{ const o=document.createElement('option');o.value=n.nombre;o.textContent=n.emoji+' '+n.nombre;sel.appendChild(o); });
+    }
     if(areaWrap) areaWrap.style.display='none';
-    if(btnsWrap) btnsWrap.style.display='none';
+    if(btn){btn.style.background='rgba(234,179,8,.18)';btn.style.boxShadow='0 0 0 2px #ca8a04';}
   }
-};
-window.iaCerrarNovedad=function(){
-  const wrap=document.getElementById('ia-novedad-wrap');
-  const areaWrap=document.getElementById('ia-emp-area')?.closest('.ia-fg');
-  const btnsWrap=document.getElementById('ia-action-btns-wrap');
-  if(wrap) wrap.style.display='none';
-  if(areaWrap) areaWrap.style.display='';
-  if(btnsWrap) btnsWrap.style.display='';
-};
-window.iaRegistrarFalto=function(){
-  const empName=document.getElementById('ia-emp-selected').value||document.getElementById('ia-emp-search').value.trim();
-  if(!empName){alert('Por favor selecciona un empleado.');return;}
-  let supName;
-  if(iaIsAdmin()){const emp=iaState.employees.find(e=>e.name===empName);supName=emp&&emp.supId?emp.supId:'Admin';}
-  else{supName=(typeof currentMember!=='undefined'&&currentMember)?currentMember:(iaGetSup(iaCurrentUser)?.name||'Supervisora');}
-  const today=iaTodayStr();
-  const newRecord={id:iaGenId(),empName,area:'—',status:'falto',date:today,supervisor:supName};
-  iaRecords=iaRecords.filter(r=>!(r.empName===empName&&r.date===today));
-  iaRecords.push(newRecord);
-  wsSend({type:'ia_add_record',record:newRecord});
-  iaCerrarNovedad();iaClearEmployee();document.getElementById('ia-emp-area').value='';
-  const t=document.getElementById('ia-absent-toast');if(t){t.style.display='block';setTimeout(()=>t.style.display='none',3000);}
-  iaUpdateStats();iaRenderTodayChips();
-};
-window.iaRegistrarNovedad=function(nombre,emoji){
-  const empName=document.getElementById('ia-emp-selected').value||document.getElementById('ia-emp-search').value.trim();
-  if(!empName){alert('Por favor selecciona un empleado.');return;}
-  let supName;
-  if(iaIsAdmin()){const emp=iaState.employees.find(e=>e.name===empName);supName=emp&&emp.supId?emp.supId:'Admin';}
-  else{supName=(typeof currentMember!=='undefined'&&currentMember)?currentMember:(iaGetSup(iaCurrentUser)?.name||'Supervisora');}
-  const today=iaTodayStr();
-  const newRecord={id:iaGenId(),empName,area:nombre,status:'novedad',date:today,supervisor:supName};
-  iaRecords=iaRecords.filter(r=>!(r.empName===empName&&r.date===today));
-  iaRecords.push(newRecord);
-  wsSend({type:'ia_add_record',record:newRecord});
-  iaCerrarNovedad();iaClearEmployee();document.getElementById('ia-emp-area').value='';
-  const t=document.getElementById('ia-novedad-toast');if(t){t.style.display='block';setTimeout(()=>t.style.display='none',3000);}
-  iaUpdateStats();iaRenderTodayChips();
 };
 window.iaRegisterEntry=function(status){
   const empName=document.getElementById('ia-emp-selected').value||document.getElementById('ia-emp-search').value.trim();
@@ -7646,14 +7610,14 @@ function iaUpdateStats(){
   if(iaIsAdmin()){
     const tr=iaRecords.filter(r=>r.date===today);
     document.getElementById('ia-stat-today').textContent=tr.filter(r=>r.status==='presente').length;
-    document.getElementById('ia-stat-absent').textContent=tr.filter(r=>r.status==='falto'||r.status==='novedad').length;
+    document.getElementById('ia-stat-absent').textContent=tr.filter(r=>r.status==='falto').length;
     // Pendientes = total empleados activos - ya registrados hoy
     const pending=Math.max(0,iaState.employees.filter(e=>!e.disabled).length-new Set(tr.map(r=>r.empName)).size);
     document.getElementById('ia-stat-pending').textContent=pending;
   } else {
     const tr=iaRecords.filter(r=>r.date===today&&r.supervisor===supNombre);
     document.getElementById('ia-stat-today').textContent=tr.filter(r=>r.status==='presente').length;
-    document.getElementById('ia-stat-absent').textContent=tr.filter(r=>r.status==='falto'||r.status==='novedad').length;
+    document.getElementById('ia-stat-absent').textContent=tr.filter(r=>r.status==='falto').length;
     // Pendientes = empleados de esta supervisora - ya registrados hoy
     const misEmps=iaState.employees.filter(e=>!e.disabled&&(e.supId||'').toLowerCase()===supNombre.toLowerCase());
     const pending=Math.max(0,misEmps.length-new Set(tr.map(r=>r.empName)).size);
@@ -7668,8 +7632,6 @@ function iaRenderTodayChips(){
   if(!recs.length){c.innerHTML='<span style="color:#6b7a99;font-size:.85rem;">Aún no hay registros hoy</span>';return;}
   c.innerHTML=recs.map(r=>r.status==='falto'
     ?`<span class="ia-chip absent">❌ ${r.empName}</span>`
-    :r.status==='novedad'
-    ?`<span class="ia-chip absent" style="background:rgba(234,179,8,.12);border-color:rgba(234,179,8,.3);color:#854d0e;">🟡 ${r.empName} <span class="ia-area-tag" style="background:rgba(234,179,8,.15);color:#854d0e;">${r.area}</span></span>`
     :`<span class="ia-chip">✓ ${r.empName} <span class="ia-area-tag">${r.area}</span></span>`).join('');
 }
 window.iaShowTab=function(name,btn){
@@ -7717,9 +7679,9 @@ function iaRenderHistory(){
   empty.style.display='none';
   tbody.innerHTML=data.map((r,i)=>`<tr>
     <td>${i+1}</td><td>${r.empName}</td>
-    <td>${r.status==='falto'?'<span style="color:#ef4444">—</span>':r.status==='novedad'?`<span style="font-weight:700;color:#854d0e;">${r.area}</span>`:`<span class="ia-badge area">${r.area}</span>`}</td>
+    <td>${r.status==='falto'?'<span style="color:#ef4444">—</span>':r.status==='novedad'?`<span class="ia-badge" style="background:#fef9c3;color:#854d0e;border:1px solid #fde68a;">🟡 ${r.area}</span>`:`<span class="ia-badge area">${r.area}</span>`}</td>
     <td>${r.date}</td><td>${r.supervisor}</td>
-    <td>${r.status==='falto'||r.status==='novedad'?'<span class="ia-badge out">❌ Faltó</span>':'<span class="ia-badge in">✅ Presente</span>'}</td>
+    <td>${r.status==='falto'?'<span class="ia-badge out">❌ Faltó</span>':r.status==='novedad'?`<span class="ia-badge" style="background:#fef9c3;color:#854d0e;border:1px solid #fde68a;">🟡 ${r.area}</span>`:'<span class="ia-badge in">✅ Presente</span>'}</td>
     <td><textarea class="ia-obs-input" data-id="${r.id}" placeholder="Agregar observación..." onchange="iaSaveObs('${r.id}',this.value)">${r.obs||''}</textarea></td>
   </tr>`).join('');
 }
@@ -7733,9 +7695,9 @@ function iaRenderAdminTable(){
   empty.style.display='none';
   tbody.innerHTML=data.map((r,i)=>`<tr>
     <td>${i+1}</td><td>${r.empName}</td>
-    <td>${r.status==='falto'?'<span style="color:#ef4444">—</span>':r.status==='novedad'?`<span style="font-weight:700;color:#854d0e;">${r.area}</span>`:`<span class="ia-badge area">${r.area}</span>`}</td>
+    <td>${r.status==='falto'?'<span style="color:#ef4444">—</span>':r.status==='novedad'?`<span class="ia-badge" style="background:#fef9c3;color:#854d0e;border:1px solid #fde68a;">🟡 ${r.area}</span>`:`<span class="ia-badge area">${r.area}</span>`}</td>
     <td>${r.date}</td><td>${r.supervisor}</td>
-    <td>${r.status==='falto'||r.status==='novedad'?'<span class="ia-badge out">❌ Faltó</span>':'<span class="ia-badge in">✅ Presente</span>'}</td>
+    <td>${r.status==='falto'?'<span class="ia-badge out">❌ Faltó</span>':r.status==='novedad'?`<span class="ia-badge" style="background:#fef9c3;color:#854d0e;border:1px solid #fde68a;">🟡 ${r.area}</span>`:'<span class="ia-badge in">✅ Presente</span>'}</td>
     <td><textarea class="ia-obs-input" data-id="${r.id}" placeholder="Agregar observación..." onchange="iaSaveObs('${r.id}',this.value)">${r.obs||''}</textarea></td>
     <td><button class="ia-btn-edit" onclick="iaOpenEditRecord('${r.id}')">✏️ Editar</button></td>
   </tr>`).join('');
@@ -7765,9 +7727,8 @@ window.iaOpenEditRecord=function(id){
   iaEditingRecordId=id;
   document.getElementById('ia-edit-emp').value=r.empName;
   document.getElementById('ia-edit-status').value=r.status;
-  // Área (módulos): usar áreas de supervisores o todos los módulos del sistema
-  let allAreas=[...new Set(iaNonAdminSups().flatMap(s=>s.areas||[]))].sort((a,b)=>iaAreaOrder(a)-iaAreaOrder(b));
-  if(!allAreas.length) allAreas=[...MODULES];
+  // Área (módulos)
+  const allAreas=[...new Set(iaNonAdminSups().flatMap(s=>s.areas||[]))].sort((a,b)=>iaAreaOrder(a)-iaAreaOrder(b));
   const asel=document.getElementById('ia-edit-area');
   asel.innerHTML='<option value="">— Sin módulo —</option>';
   allAreas.forEach(a=>{const o=document.createElement('option');o.value=a;o.textContent=a;if(a===r.area&&r.status!=='novedad')o.selected=true;asel.appendChild(o);});
@@ -7778,7 +7739,14 @@ window.iaOpenEditRecord=function(id){
     novedades.forEach(n=>{const o=document.createElement('option');o.value=n.nombre;o.textContent=n.emoji+' '+n.nombre;if(n.nombre===r.area)o.selected=true;asel.appendChild(o);});
   }
   const ssel=document.getElementById('ia-edit-supervisor');ssel.innerHTML='';
-  iaNonAdminSups().forEach(s=>{const o=document.createElement('option');o.value=s.name;o.textContent=s.name;if(s.name===r.supervisor)o.selected=true;ssel.appendChild(o);});
+  // Mostrar todos los supervisores excepto Programador
+  const allSups=iaState.supervisors.filter(s=>s.id!=='programador');
+  if(allSups.length){
+    allSups.forEach(s=>{const o=document.createElement('option');o.value=s.name;o.textContent=s.name;if(s.name===r.supervisor)o.selected=true;ssel.appendChild(o);});
+  } else {
+    // Si no hay supervisoras creadas, al menos mostrar el supervisor del registro
+    if(r.supervisor){const o=document.createElement('option');o.value=r.supervisor;o.textContent=r.supervisor;o.selected=true;ssel.appendChild(o);}
+  }
   iaOpenModal('ia-edit-modal');
   document.getElementById('ia-edit-obs').value=r.obs||'';
 };
@@ -7792,8 +7760,7 @@ window.iaEditStatusChange=function(){
   } else if(status==='falto'){
     asel.innerHTML='<option value="">— Sin módulo —</option>';
   } else {
-    let allAreas=[...new Set(iaNonAdminSups().flatMap(s=>s.areas||[]))].sort((a,b)=>iaAreaOrder(a)-iaAreaOrder(b));
-    if(!allAreas.length) allAreas=[...MODULES];
+    const allAreas=[...new Set(iaNonAdminSups().flatMap(s=>s.areas||[]))].sort((a,b)=>iaAreaOrder(a)-iaAreaOrder(b));
     asel.innerHTML='<option value="">— Sin módulo —</option>';
     allAreas.forEach(a=>{const o=document.createElement('option');o.value=a;o.textContent=a;asel.appendChild(o);});
   }
