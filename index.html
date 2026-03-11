@@ -2867,10 +2867,12 @@ function saveModForm(){
   if(!nombre){ errEl.textContent='El nombre no puede estar vacío'; return; }
   const cfg=loadConfig();
   const base=['M01','M02','M03','M04','M05','M06','M07','M08','M09','M10','M11','M12','M13','M14','M15','M16','M17','M18','M19','M20','M21','M22','M23','M24','M25','M26','M27'];
-  const extra=cfg._modulos_extra||[];
+  // Usar getCfgModulos() para tener la lista real de extras sincronizada por WS
+  const {extra:extraReal} = getCfgModulos();
+  const extra = extraReal;
   if(!cfg._modulos_pass) cfg._modulos_pass={};
   if(modFormMode==='create'){
-    if([...base,...extra].includes(nombre)){ errEl.textContent='Ya existe un módulo con ese nombre'; return; }
+    if([...base,...MODULES,...extra].includes(nombre)){ errEl.textContent='Ya existe un módulo con ese nombre'; return; }
     extra.push(nombre);
     cfg._modulos_extra=extra;
     states[nombre]='green'; timers[nombre]=Date.now(); lastMec[nombre]=''; acumRed[nombre]=0; acumYellow[nombre]=0;
@@ -4229,7 +4231,7 @@ function cfgRenderUsuarios(body){
       const isOff=!!e.disabled;
       const row=document.createElement('div'); row.className='cfg-user-row'+(isOff?' disabled':'');
       row.style.gridTemplateColumns=COLS;
-      row.innerHTML=`<div class="cfg-user-cell muted" style="font-family:'Courier New',monospace;font-size:12px;">${e.cedula||'—'}</div><div class="cfg-user-cell">${e.name||'—'}</div><div class="cfg-user-cell muted">${e.cargo?`<span style="background:#eff6ff;color:#2563eb;border-radius:5px;padding:1px 7px;font-size:11px;font-weight:600;">${e.cargo}</span>`:'—'}</div><div class="cfg-user-cell muted">${e.module||e.modulo||'—'}</div><div class="cfg-user-cell muted">${supNombreRow||'—'}</div><div class="cfg-user-cell"><span class="cfg-pill ${isOff?'inactiva':'activa'}">${isOff?'● Inactiva':'● Activa'}</span></div>`;
+      row.innerHTML=`<div class="cfg-user-cell muted" style="font-family:'Courier New',monospace;font-size:12px;">${e.cedula||'—'}</div><div class="cfg-user-cell">${e.name||'—'}</div><div class="cfg-user-cell muted">${e.cargo?`<span style="background:#eff6ff;color:#2563eb;border-radius:5px;padding:1px 7px;font-size:11px;font-weight:600;">${e.cargo}</span>`:'—'}</div><div class="cfg-user-cell muted">${(()=>{const id=e.module||e.modulo||'';if(!id)return'—';const ren=(_appConfig&&_appConfig._modulos_renamed)||{};return ren[id]||id;})()||'—'}</div><div class="cfg-user-cell muted">${supNombreRow||'—'}</div><div class="cfg-user-cell"><span class="cfg-pill ${isOff?'inactiva':'activa'}">${isOff?'● Inactiva':'● Activa'}</span></div>`;
       const acts=document.createElement('div'); acts.className='cfg-row-acts'; acts.style.cssText='display:flex;gap:4px;';
       const bE=document.createElement('button'); bE.className='cfg-row-btn'; bE.textContent='✏️'; bE.title='Editar'; bE.onclick=()=>cfgOpenUserModal(e);
       const bT=document.createElement('button'); bT.className=`cfg-row-btn tog ${isOff?'on':''}`; bT.textContent=isOff?'✅':'⏸'; bT.title=isOff?'Habilitar':'Inhabilitar';
@@ -4380,9 +4382,28 @@ function cfgImportUsuariosXLS(file){
         const cargosCreados = cfgGetCargos();
         const cargoValido = cargosCreados.find(c=>c.nombre.toLowerCase()===cargoRaw.toLowerCase());
         const cargo = cargoValido ? cargoValido.nombre : '';
-        // Validar módulo: debe existir en MODULES
-        const moduloValido = (typeof MODULES!=='undefined' && MODULES.includes(moduloRaw)) ? moduloRaw : '';
-        const modulo = moduloValido;
+        // Validar módulo: buscar por ID exacto O por nombre renombrado (ej: "Preparacion" → "M01")
+        let modulo = '';
+        if(moduloRaw){
+          const allModsArr = typeof MODULES!=='undefined' ? MODULES : [];
+          if(allModsArr.includes(moduloRaw)){
+            // Coincide con ID exacto (M01, M02...)
+            modulo = moduloRaw;
+          } else {
+            // Buscar por nombre renombrado (buscar qué ID tiene ese display name)
+            const renamed = _appConfig._modulos_renamed || {};
+            const foundId = Object.keys(renamed).find(id =>
+              renamed[id].toLowerCase() === moduloRaw.toLowerCase()
+            );
+            if(foundId){
+              modulo = foundId; // guardar el ID real (M01)
+            } else {
+              // Si no existe como ID ni como nombre renombrado, guardarlo tal cual
+              // (puede que el módulo se llame así literalmente)
+              modulo = moduloRaw;
+            }
+          }
+        }
         // Validar supervisora: buscar en miembros del perfil (cualquier perfil del sistema)
         let supId = '';
         if(supNom){
@@ -4853,12 +4874,12 @@ function cfgImportMaquinariaXLS(file){
 function cfgRenderModulos(body){
   const q=cfgGetSearch();
   const cfg=loadConfig();
-  const disabled=cfg._modulos_disabled||[];
-  const extra=cfg._modulos_extra||[];
-  const renamed=cfg._modulos_renamed||{};
-  const modPass=cfg._modulos_pass||{};
-  const baseAll = typeof MODULES_BASE!=='undefined' ? MODULES_BASE : 
-    ['M01','M02','M03','M04','M05','M06','M07','M08','M09','M10','M11','M12',
+  // Usar datos del WS (_appConfig puede tener módulos desactualizados)
+  // getCfgModulos() lee del estado real sincronizado por WS
+  const {disabled, extra} = getCfgModulos();
+  const renamed=cfg._modulos_renamed||_appConfig._modulos_renamed||{};
+  const modPass=cfg._modulos_pass||_appConfig._modulos_pass||{};
+  const baseAll = ['M01','M02','M03','M04','M05','M06','M07','M08','M09','M10','M11','M12',
      'M13','M14','M15','M16','M17','M18','M19','M20','M21','M22','M23','M24','M25','M26','M27'];
   const allMods=[...baseAll,...extra].filter(m=>!q||(renamed[m]||m).toLowerCase().includes(q));
 
@@ -4881,10 +4902,9 @@ function cfgRenderModulos(body){
 
   function buildRow(m){
     const cfg2=loadConfig();
-    const dis2=cfg2._modulos_disabled||[];
-    const ren2=cfg2._modulos_renamed||{};
-    const pas2=cfg2._modulos_pass||{};
-    const ext2=cfg2._modulos_extra||[];
+    const {disabled:dis2, extra:ext2}=getCfgModulos();
+    const ren2=cfg2._modulos_renamed||_appConfig._modulos_renamed||{};
+    const pas2=cfg2._modulos_pass||_appConfig._modulos_pass||{};
     const off=dis2.includes(m);
     const displayName=ren2[m]||m;
     const pass=pas2[m]||m;
@@ -7263,7 +7283,10 @@ function iaInitApp(){
   const adminTabs=document.querySelectorAll('#ingreso-app-root .admin-tab');
   if(sup.isAdmin){
     document.getElementById('ia-admin-badge-wrap').innerHTML='<span class="ia-badge-admin">⚙️ ADMINISTRADOR</span>';
-    adminTabs.forEach(b=>{b.classList.remove('hidden');b.style.display='';});
+    adminTabs.forEach(b=>{
+      if(b.id==='ia-tab-btn-config'){b.classList.add('hidden');b.style.display='none';return;}
+      b.classList.remove('hidden');b.style.display='';
+    });
     document.getElementById('ia-admin-from').value=t;
     document.getElementById('ia-admin-to').value=t;
     document.getElementById('ia-btn-export-hist').classList.remove('hidden');
