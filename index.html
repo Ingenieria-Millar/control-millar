@@ -3569,6 +3569,7 @@ setInterval(()=>{const n=new Date();document.getElementById('clock').textContent
       <div class="cfg-nav-item" id="cfgn-maquinaria" onclick="cfgSwitchTab('maquinaria',this)"><span>⚙️</span> Maquinaria</div>
       <div class="cfg-nav-item" id="cfgn-modulos" onclick="cfgSwitchTab('modulos',this)"><span>🏭</span> Módulos</div>
       <div class="cfg-nav-item" id="cfgn-areas" onclick="cfgSwitchTab('areas',this)"><span>📍</span> Áreas</div>
+      <div class="cfg-nav-item" id="cfgn-novedades" onclick="cfgSwitchTab('novedades',this)"><span>📋</span> Novedades</div>
       <div class="cfg-nav-item" id="cfgn-refresh" onclick="cfgRefreshSistema()" style="margin-top:auto;color:#2563eb;border-color:rgba(37,99,235,0.3);"><span>🔄</span> Actualizar</div>
       <div class="cfg-nav-item" id="cfgn-reset-local" onclick="cfgResetLocalStorage()" style="color:#ef4444;border-color:rgba(239,68,68,0.3);"><span>🗑</span> Resetear todo</div>
     </div>
@@ -3598,11 +3599,11 @@ setInterval(()=>{const n=new Date();document.getElementById('clock').textContent
 let cfgCurrentTab = 'perfiles';
 const CFG_TITLES = {
   perfiles:'🎭 Perfiles', usuarios:'👥 Empleados', cargos:'🏷️ Cargos', turnos:'🕐 Turnos',
-  maquinaria:'⚙️ Maquinaria', modulos:'🏭 Módulos', areas:'📍 Áreas', permisos:'🔑 Permisos', permisos_perfil:'🔑 Permisos', miembros_perfil:'👥 Miembros'
+  maquinaria:'⚙️ Maquinaria', modulos:'🏭 Módulos', areas:'📍 Áreas', novedades:'📋 Novedades', permisos:'🔑 Permisos', permisos_perfil:'🔑 Permisos', miembros_perfil:'👥 Miembros'
 };
 const CFG_CREAR_LABELS = {
   perfiles:'+ Nuevo perfil', usuarios:'+ Nuevo empleado', cargos:'+ Nuevo cargo', maquinaria:'+ Nueva máquina',
-  modulos:'+ Nuevo módulo', areas:'+ Nueva área', turnos:'+ Nuevo turno'
+  modulos:'+ Nuevo módulo', areas:'+ Nueva área', turnos:'+ Nuevo turno', novedades:'+ Nueva novedad'
 };
 const CFG_EXCEL_TABS = ['maquinaria','turnos','usuarios','cargos','modulos','areas'];
 const CFG_NO_CREATE_TABS = ['permisos', 'permisos_perfil', 'miembros_perfil'];
@@ -3696,6 +3697,7 @@ function cfgSwitchTab(tab, el){
   if(tab==='maquinaria') cfgRenderMaquinaria(body);
   if(tab==='modulos')    cfgRenderModulos(body);
   if(tab==='areas')      cfgRenderAreas(body);
+  if(tab==='novedades')  cfgRenderNovedades(body);
   if(tab==='permisos')   cfgRenderPermisos(body);
   if(tab==='permisos_perfil') cfgRenderPermisosPerfil(body);
   if(tab==='miembros_perfil') cfgRenderMiembrosPerfil(body);
@@ -3709,6 +3711,7 @@ function cfgOnSearch(){
   if(cfgCurrentTab==='cargos')     cfgRenderCargos(body);
   if(cfgCurrentTab==='modulos')    cfgRenderModulos(body);
   if(cfgCurrentTab==='areas')      cfgRenderAreas(body);
+  if(cfgCurrentTab==='novedades')  cfgRenderNovedades(body);
   if(cfgCurrentTab==='permisos')   cfgRenderPermisos(body);
 }
 function cfgOnCrear(){
@@ -3719,6 +3722,7 @@ function cfgOnCrear(){
   if(cfgCurrentTab==='areas')      openAreaForm('create');
   if(cfgCurrentTab==='maquinaria') cfgOpenMaqModal();
   if(cfgCurrentTab==='turnos')     cfgOpenTurnoModal();
+  if(cfgCurrentTab==='novedades')  cfgOpenNovedadModal();
 }
 function cfgExcelAction(){
   if(cfgCurrentTab==='maquinaria') cfgExportMaq();
@@ -4868,6 +4872,127 @@ function cfgImportMaquinariaXLS(file){
     } catch(err){ alert('Error al leer el archivo: '+err.message); }
   };
   reader.readAsBinaryString(file);
+}
+
+// ── NOVEDADES ─────────────────────────────────────────────────────
+const NOVEDAD_EMOJIS = ['📋','🏖️','🏥','📝','🏠','⛔','🕐','✈️','👶','💊','⚠️','📌'];
+const NOVEDAD_COLORS = [
+  {bg:'#eff6ff',border:'#bfdbfe',text:'#2563eb'},
+  {bg:'#f0fdf4',border:'#bbf7d0',text:'#16a34a'},
+  {bg:'#fef9c3',border:'#fde68a',text:'#d97706'},
+  {bg:'#fdf4ff',border:'#e9d5ff',text:'#7c3aed'},
+  {bg:'#fff1f2',border:'#fecdd3',text:'#e11d48'},
+  {bg:'#f0f9ff',border:'#bae6fd',text:'#0369a1'},
+];
+
+function cfgGetNovedades(){
+  try{ return JSON.parse(localStorage.getItem('cfg_novedades')||'null') || [
+    {id:'nov1',nombre:'Vacaciones',emoji:'🏖️',color:1},
+    {id:'nov2',nombre:'Incapacidad',emoji:'🏥',color:4},
+    {id:'nov3',nombre:'Permiso',emoji:'📝',color:2},
+    {id:'nov4',nombre:'Calamidad doméstica',emoji:'🏠',color:3},
+    {id:'nov5',nombre:'Suspensión',emoji:'⛔',color:4},
+  ]; } catch(e){ return []; }
+}
+function cfgSaveNovedades(arr){
+  localStorage.setItem('cfg_novedades', JSON.stringify(arr));
+}
+function cfgRenderNovedades(body){
+  const q = cfgGetSearch();
+  let items = cfgGetNovedades();
+  if(q) items = items.filter(n=>n.nombre.toLowerCase().includes(q));
+  if(!items.length){
+    body.innerHTML=`<div style="text-align:center;padding:60px 20px;color:#94a3b8;">
+      <div style="font-size:40px;margin-bottom:12px;">📋</div>
+      <div style="font-size:15px;font-weight:700;">No hay tipos de novedad</div>
+      <div style="font-size:13px;margin-top:6px;">Crea el primero con el botón "+ Nueva novedad"</div>
+    </div>`;
+    return;
+  }
+  body.innerHTML='';
+  items.forEach(nov=>{
+    const c = NOVEDAD_COLORS[nov.color||0];
+    const card = document.createElement('div');
+    card.className='cfg-card';
+    card.innerHTML=`
+      <div class="cfg-avatar" style="background:${c.bg};border:1.5px solid ${c.border};font-size:22px;">${nov.emoji||'📋'}</div>
+      <div class="cfg-info">
+        <div class="cfg-name"><span style="color:${c.text};font-size:15px;">${nov.nombre}</span></div>
+        <div class="cfg-sub plain" style="color:#64748b;margin-top:4px;">Se registra como ausencia · no afecta módulos de producción</div>
+      </div>
+      <div class="cfg-actions">
+        <button class="cfg-btn2 edit" onclick="cfgOpenNovedadModal('${nov.id}')">✏️ Editar</button>
+        <button class="cfg-btn2 del" onclick="cfgDeleteNovedad('${nov.id}')">🗑 Eliminar</button>
+      </div>`;
+    body.appendChild(card);
+  });
+}
+function cfgOpenNovedadModal(id){
+  const novedades = cfgGetNovedades();
+  const nov = id ? novedades.find(n=>n.id===id) : null;
+  const colorOpts = NOVEDAD_COLORS.map((c,i)=>`<div onclick="this.parentNode.querySelectorAll('.nov-color-opt').forEach(x=>x.classList.remove('selected'));this.classList.add('selected');this.dataset.sel='1';" 
+    data-idx="${i}" class="nov-color-opt${(nov?nov.color:0)===i?' selected':''}" 
+    style="width:28px;height:28px;border-radius:50%;background:${c.bg};border:2.5px solid ${c.border};cursor:pointer;transition:transform .15s;${(nov?nov.color:0)===i?'transform:scale(1.25);box-shadow:0 0 0 2px '+c.text+';':''}"></div>`).join('');
+  const emojiOpts = NOVEDAD_EMOJIS.map(e=>`<span onclick="document.getElementById('nov-emoji-sel').textContent=this.textContent;this.parentNode.querySelectorAll('span').forEach(x=>x.style.background='');this.style.background='#e2e8f0';" 
+    style="font-size:20px;cursor:pointer;padding:4px;border-radius:6px;${nov&&nov.emoji===e?'background:#e2e8f0':''}">${e}</span>`).join('');
+  
+  const modal = document.createElement('div');
+  modal.id='nov-modal-overlay';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:1100;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML=`
+    <div style="background:#fff;border-radius:16px;padding:28px;width:420px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.2);font-family:'Nunito',sans-serif;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;letter-spacing:2px;color:#0f172a;margin-bottom:20px;">
+        ${nov?'✏️ Editar novedad':'📋 Nueva novedad'}
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="font-size:12px;font-weight:700;color:#64748b;letter-spacing:1px;display:block;margin-bottom:6px;">NOMBRE</label>
+        <input id="nov-nombre" value="${nov?nov.nombre:''}" placeholder="Ej: Licencia de maternidad" 
+          style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;font-family:'Nunito',sans-serif;outline:none;box-sizing:border-box;color:#0f172a;">
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="font-size:12px;font-weight:700;color:#64748b;letter-spacing:1px;display:block;margin-bottom:8px;">ÍCONO</label>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <div style="font-size:28px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:2px solid #e2e8f0;border-radius:10px;background:#f8fafc;" id="nov-emoji-sel">${nov?nov.emoji:'📋'}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;">${emojiOpts}</div>
+        </div>
+      </div>
+      <div style="margin-bottom:24px;">
+        <label style="font-size:12px;font-weight:700;color:#64748b;letter-spacing:1px;display:block;margin-bottom:8px;">COLOR</label>
+        <div style="display:flex;gap:10px;align-items:center;">${colorOpts}</div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button onclick="document.getElementById('nov-modal-overlay').remove()" 
+          style="padding:9px 20px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Cancelar</button>
+        <button onclick="cfgSaveNovedadModal('${id||''}')" 
+          style="padding:9px 20px;border-radius:8px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">💾 Guardar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e=>{ if(e.target===modal) modal.remove(); });
+  setTimeout(()=>document.getElementById('nov-nombre')?.focus(),100);
+}
+function cfgSaveNovedadModal(id){
+  const nombre = document.getElementById('nov-nombre')?.value.trim();
+  if(!nombre){ alert('Escribe un nombre para la novedad.'); return; }
+  const emoji = document.getElementById('nov-emoji-sel')?.textContent || '📋';
+  const colorEl = document.querySelector('.nov-color-opt.selected');
+  const color = colorEl ? parseInt(colorEl.dataset.idx) : 0;
+  const novedades = cfgGetNovedades();
+  if(id){
+    const idx = novedades.findIndex(n=>n.id===id);
+    if(idx>=0) novedades[idx]={...novedades[idx],nombre,emoji,color};
+  } else {
+    novedades.push({id:'nov'+Date.now(),nombre,emoji,color});
+  }
+  cfgSaveNovedades(novedades);
+  document.getElementById('nov-modal-overlay')?.remove();
+  const body=document.getElementById('cfg-body2'); if(body) cfgRenderNovedades(body);
+}
+function cfgDeleteNovedad(id){
+  if(!confirm('¿Eliminar este tipo de novedad?')) return;
+  const novedades = cfgGetNovedades().filter(n=>n.id!==id);
+  cfgSaveNovedades(novedades);
+  const body=document.getElementById('cfg-body2'); if(body) cfgRenderNovedades(body);
 }
 
 // ── MÓDULOS ───────────────────────────────────────────────────────
@@ -7012,11 +7137,18 @@ html { overflow-x: hidden; max-width: 100%; }
           <label>Módulo</label>
           <select id="ia-emp-area"><option value="">— Seleccionar módulo —</option></select>
         </div>
+        <!-- Novedad (oculto por defecto) -->
+        <div class="ia-fg" style="grid-column:1/-1;display:none;" id="ia-novedad-wrap">
+          <label>Tipo de novedad</label>
+          <select id="ia-emp-novedad"><option value="">— Seleccionar novedad —</option></select>
+        </div>
         <div class="ia-toast ok" id="ia-success-toast">✅ Ingreso registrado exitosamente</div>
         <div class="ia-toast bad" id="ia-absent-toast">❌ Falta registrada</div>
-        <div class="ia-action-btns">
+        <div class="ia-toast" id="ia-novedad-toast" style="display:none;background:rgba(234,179,8,.12);border:1px solid rgba(234,179,8,.3);color:#854d0e;border-radius:10px;padding:.75rem 1rem;font-size:.85rem;font-weight:700;text-align:center;">🟡 Novedad registrada</div>
+        <div class="ia-action-btns" style="grid-template-columns:1fr 1fr 1fr;">
           <button class="ia-btn-register" onclick="iaRegisterEntry('presente')">✅ Registrar Ingreso</button>
           <button class="ia-btn-absent"   onclick="iaRegisterEntry('falto')">❌ Faltó</button>
+          <button class="ia-btn-absent" onclick="iaToggleNovedadMode()" id="ia-btn-novedad" style="background:#fefce8;border-color:rgba(234,179,8,.4);color:#854d0e;">🟡 Novedad</button>
         </div>
       </div>
       <div class="ia-today-section">
@@ -7380,31 +7512,64 @@ window.iaClearEmployee=function(){
   document.getElementById('ia-emp-selected').value='';
   document.getElementById('ia-emp-search').focus();
 };
-window.iaRegisterEntry=function(status){
-  const empName=document.getElementById('ia-emp-selected').value||document.getElementById('ia-emp-search').value.trim();
-  const area=document.getElementById('ia-emp-area').value;
+window.iaToggleNovedadMode=function(){
+  const wrap=document.getElementById('ia-novedad-wrap');
+  const areaWrap=document.getElementById('ia-emp-area')?.closest('.ia-fg');
+  const btn=document.getElementById('ia-btn-novedad');
+  const isActive=wrap&&wrap.style.display!=='none';
+  if(isActive){
+    if(wrap) wrap.style.display='none';
+    if(areaWrap) areaWrap.style.display='';
+    if(btn){btn.style.background='#fefce8';btn.style.fontWeight='700';}
+  } else {
+    if(wrap){
+      wrap.style.display='';
+      // Poblar select con las novedades configuradas
+      const sel=document.getElementById('ia-emp-novedad');
+      const novedades=cfgGetNovedades();
+      sel.innerHTML='<option value="">— Seleccionar novedad —</option>';
+      novedades.forEach(n=>{ const o=document.createElement('option');o.value=n.nombre;o.textContent=n.emoji+' '+n.nombre;sel.appendChild(o); });
+    }
+    if(areaWrap) areaWrap.style.display='none';
+    if(btn){btn.style.background='rgba(234,179,8,.18)';btn.style.boxShadow='0 0 0 2px #ca8a04';}
+  }
+};
+window.iaRegisterEntry=function(status){\
+  const empName=document.getElementById('ia-emp-selected').value||document.getElementById('ia-emp-search').value.trim();\
   if(!empName){alert('Por favor selecciona un empleado.');return;}
+  const novedadMode=document.getElementById('ia-novedad-wrap')?.style.display!=='none';
+  if(novedadMode) status='novedad';
+  const area=status==='novedad'
+    ? (document.getElementById('ia-emp-novedad')?.value||'')
+    : document.getElementById('ia-emp-area').value;
   if(status==='presente'&&!area){alert('Por favor selecciona un módulo.');return;}
-  // Obtener nombre de la supervisora — usar currentMember si existe, si no el supervisor de iaState
+  if(status==='novedad'&&!area){alert('Por favor selecciona el tipo de novedad.');return;}
   let supName;
   if(iaIsAdmin()){
     const emp=iaState.employees.find(e=>e.name===empName);
     supName=emp&&emp.supId ? (emp.supId) : 'Admin';
   } else {
-    // currentMember tiene el nombre directo de la supervisora logueada
     supName = (typeof currentMember!=='undefined'&&currentMember)
       ? currentMember
       : (iaGetSup(iaCurrentUser)?.name || 'Supervisora');
   }
   const today=iaTodayStr();
   const newRecord={id:iaGenId(),empName,area:status==='falto'?'—':area,status,date:today,supervisor:supName};
-  // Actualizar localmente
   iaRecords=iaRecords.filter(r=>!(r.empName===empName&&r.date===today));
   iaRecords.push(newRecord);
-  // Enviar al servidor
   wsSend({type:'ia_add_record', record:newRecord});
-  iaClearEmployee(); document.getElementById('ia-emp-area').value='';
-  const toastId=status==='presente'?'ia-success-toast':'ia-absent-toast';
+  iaClearEmployee();
+  document.getElementById('ia-emp-area').value='';
+  if(document.getElementById('ia-emp-novedad')) document.getElementById('ia-emp-novedad').value='';
+  // Reset novedad mode
+  const wrap=document.getElementById('ia-novedad-wrap');
+  const areaWrap=document.getElementById('ia-emp-area')?.closest('.ia-fg');
+  const btn=document.getElementById('ia-btn-novedad');
+  if(wrap) wrap.style.display='none';
+  if(areaWrap) areaWrap.style.display='';
+  if(btn){btn.style.background='#fefce8';btn.style.boxShadow='';}
+  // Toast
+  const toastId=status==='presente'?'ia-success-toast':status==='novedad'?'ia-novedad-toast':'ia-absent-toast';
   const t=document.getElementById(toastId);if(t){t.style.display='block';setTimeout(()=>t.style.display='none',3000);}
   iaUpdateStats(); iaRenderTodayChips();
 };
@@ -7475,9 +7640,9 @@ function iaRenderHistory(){
   empty.style.display='none';
   tbody.innerHTML=data.map((r,i)=>`<tr>
     <td>${i+1}</td><td>${r.empName}</td>
-    <td>${r.status==='falto'?'<span style="color:#ef4444">—</span>':`<span class="ia-badge area">${r.area}</span>`}</td>
+    <td>${r.status==='falto'?'<span style="color:#ef4444">—</span>':r.status==='novedad'?`<span class="ia-badge" style="background:#fef9c3;color:#854d0e;border:1px solid #fde68a;">🟡 ${r.area}</span>`:`<span class="ia-badge area">${r.area}</span>`}</td>
     <td>${r.date}</td><td>${r.supervisor}</td>
-    <td>${r.status==='falto'?'<span class="ia-badge out">❌ Faltó</span>':'<span class="ia-badge in">✅ Presente</span>'}</td>
+    <td>${r.status==='falto'?'<span class="ia-badge out">❌ Faltó</span>':r.status==='novedad'?'<span class="ia-badge" style="background:#fef9c3;color:#854d0e;border:1px solid #fde68a;">🟡 Novedad</span>':'<span class="ia-badge in">✅ Presente</span>'}</td>
     <td><textarea class="ia-obs-input" data-id="${r.id}" placeholder="Agregar observación..." onchange="iaSaveObs('${r.id}',this.value)">${r.obs||''}</textarea></td>
   </tr>`).join('');
 }
@@ -7491,9 +7656,9 @@ function iaRenderAdminTable(){
   empty.style.display='none';
   tbody.innerHTML=data.map((r,i)=>`<tr>
     <td>${i+1}</td><td>${r.empName}</td>
-    <td>${r.status==='falto'?'<span style="color:#ef4444">—</span>':`<span class="ia-badge area">${r.area}</span>`}</td>
+    <td>${r.status==='falto'?'<span style="color:#ef4444">—</span>':r.status==='novedad'?`<span class="ia-badge" style="background:#fef9c3;color:#854d0e;border:1px solid #fde68a;">🟡 ${r.area}</span>`:`<span class="ia-badge area">${r.area}</span>`}</td>
     <td>${r.date}</td><td>${r.supervisor}</td>
-    <td>${r.status==='falto'?'<span class="ia-badge out">❌ Faltó</span>':'<span class="ia-badge in">✅ Presente</span>'}</td>
+    <td>${r.status==='falto'?'<span class="ia-badge out">❌ Faltó</span>':r.status==='novedad'?'<span class="ia-badge" style="background:#fef9c3;color:#854d0e;border:1px solid #fde68a;">🟡 Novedad</span>':'<span class="ia-badge in">✅ Presente</span>'}</td>
     <td><textarea class="ia-obs-input" data-id="${r.id}" placeholder="Agregar observación..." onchange="iaSaveObs('${r.id}',this.value)">${r.obs||''}</textarea></td>
     <td><button class="ia-btn-edit" onclick="iaOpenEditRecord('${r.id}')">✏️ Editar</button></td>
   </tr>`).join('');
