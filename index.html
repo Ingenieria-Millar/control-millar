@@ -2796,9 +2796,10 @@ function renderCfgModulos(){
     const card=document.createElement('div');
     card.style.cssText=`background:#141c2b;border:1px solid ${isDisabled?'#1e2d42':'rgba(34,197,94,0.2)'};border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:8px;opacity:${isDisabled?'0.5':'1'};`;
     const modPassVal = (cfg._modulos_pass||{})[id]||id;
+    const modSup = (cfg._modulos_supervisora||{})[id]||'';
     card.innerHTML=`<div style="flex:1;min-width:0;">
       <div style="font-family:Courier New,monospace;font-size:13px;font-weight:700;color:${isDisabled?'var(--muted)':'#cbd5e1'};letter-spacing:2px;">${displayName}</div>
-      <div style="font-size:10px;color:var(--muted);margin-top:2px;letter-spacing:1px;">🔑 ${modPassVal}</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:2px;letter-spacing:1px;">🔑 ${modPassVal}${modSup?' &nbsp;·&nbsp; 👤 '+modSup:''}</div>
     </div>`;
     const acts=document.createElement('div');
     acts.style.cssText='display:flex;gap:4px;';
@@ -2842,6 +2843,18 @@ function openModForm(mode, id='', nombre=''){
   nombreInput.style.opacity='1';
   document.getElementById('mf-pass').value=getModPass(id);
   document.getElementById('mf-error').textContent='';
+  // Poblar supervisoras desde miembros de perfiles
+  const selSup = document.getElementById('mf-supervisora');
+  if(selSup){
+    const allPM = (_appConfig&&_appConfig._perfil_members)
+      ? Object.values(_appConfig._perfil_members).flat().filter(m=>!m.disabled)
+      : [];
+    const supNames = [...new Set(allPM.map(m=>typeof m==='string'?m:m.nombre).filter(Boolean))].sort();
+    const cfg = loadConfig();
+    const currentSup = (cfg._modulos_supervisora||{})[mode==='edit'?id:''||'']||'';
+    selSup.innerHTML = '<option value="">— Sin supervisora —</option>' +
+      supNames.map(n=>`<option value="${n}"${currentSup===n?' selected':''}>${n}</option>`).join('');
+  }
   document.getElementById('modal-mod-form').classList.remove('hidden');
   setTimeout(()=>document.getElementById(mode==='create'?'mf-nombre':'mf-pass').focus(),100);
 }
@@ -2865,10 +2878,15 @@ function saveModForm(){
     // nombre can now be different from display name - save rename
     cfg._modulos_renamed[modFormTarget]=nombre;
   }
-  // Guardar contraseña si se definió
+  // Guardar contraseña
   const targetId = modFormMode==='create' ? nombre : modFormTarget;
   if(pass) cfg._modulos_pass[targetId]=pass;
   else delete cfg._modulos_pass[targetId];
+  // Guardar supervisora
+  const supVal = document.getElementById('mf-supervisora')?.value||'';
+  if(!cfg._modulos_supervisora) cfg._modulos_supervisora={};
+  if(supVal) cfg._modulos_supervisora[targetId]=supVal;
+  else delete cfg._modulos_supervisora[targetId];
   saveConfig(cfg);
   rebuildModules();
   broadcastModulosConfig();
@@ -4852,8 +4870,8 @@ function cfgRenderModulos(body){
 
   // Header
   const hdr=document.createElement('div');
-  hdr.style.cssText='display:grid;grid-template-columns:2fr 1.5fr auto;gap:0;padding:0 16px 8px;';
-  ['NOMBRE','CONTRASEÑA','ACCIONES'].forEach(t=>{
+  hdr.style.cssText='display:grid;grid-template-columns:2fr 1.2fr 1.5fr auto;gap:0;padding:0 16px 8px;';
+  ['NOMBRE','CONTRASEÑA','SUPERVISORA','ACCIONES'].forEach(t=>{
     const h=document.createElement('span');
     h.style.cssText='font-size:11px;font-weight:700;letter-spacing:1px;color:#64748b;text-transform:uppercase;';
     h.textContent=t; hdr.appendChild(h);
@@ -4872,7 +4890,7 @@ function cfgRenderModulos(body){
 
     const row=document.createElement('div');
     row.id='cfg-mod-row-'+m;
-    row.style.cssText='display:grid;grid-template-columns:2fr 1.5fr auto;gap:0;align-items:center;padding:10px 16px;border-top:1px solid #f1f5f9;border-radius:8px;transition:background .15s;'+(off?'opacity:.6;':'');
+    row.style.cssText='display:grid;grid-template-columns:2fr 1.2fr 1.5fr auto;gap:0;align-items:center;padding:10px 16px;border-top:1px solid #f1f5f9;border-radius:8px;transition:background .15s;'+(off?'opacity:.6;':'');
     row.onmouseenter=()=>row.style.background='#f8fafc';
     row.onmouseleave=()=>row.style.background='';
 
@@ -4909,7 +4927,7 @@ function cfgRenderModulos(body){
       cfgSwitchTab('modulos',document.getElementById('cfgn-modulos'));
     });
     acts.appendChild(bE); acts.appendChild(bT); acts.appendChild(bD);
-    row.appendChild(nm); row.appendChild(pw); row.appendChild(acts);
+    row.appendChild(nm); row.appendChild(pw); row.appendChild(sv); row.appendChild(acts);
     return row;
   }
 
@@ -5541,6 +5559,12 @@ function renderPermisosInto(body, nombre){
       <div style="display:flex;flex-direction:column;gap:5px;">
         <label style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Contraseña del módulo</label>
         <input id="mf-pass" type="text" placeholder="Dejar vacío = usar nombre como clave" style="padding:11px 14px;border-radius:8px;border:1px solid var(--border);background:#f8fafc;color:#0f172a;font-size:14px;font-family:'Courier New',monospace;letter-spacing:3px;outline:none;" oninput="this.style.borderColor='var(--border)'">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <label style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Supervisora</label>
+        <select id="mf-supervisora" style="padding:11px 14px;border-radius:8px;border:1px solid var(--border);background:#f8fafc;color:#0f172a;font-size:14px;outline:none;">
+          <option value="">— Sin supervisora —</option>
+        </select>
       </div>
     </div>
     <div id="mf-error" style="font-size:12px;color:var(--red);min-height:16px;text-align:center;"></div>
@@ -6945,7 +6969,7 @@ html { overflow-x: hidden; max-width: 100%; }
       <div class="ia-stat-card"><div class="ia-slabel">Presentes hoy</div><div class="ia-value" id="ia-stat-today">0</div><div class="ia-sub" id="ia-stat-date">—</div></div>
       <div class="ia-stat-card"><div class="ia-slabel">Faltas hoy</div><div class="ia-value absent" id="ia-stat-absent">0</div><div class="ia-sub">registradas</div></div>
       <div class="ia-stat-card"><div class="ia-slabel">Pendientes</div><div class="ia-value" id="ia-stat-pending">0</div><div class="ia-sub">sin registrar</div></div>
-      <div class="ia-stat-card"><div class="ia-slabel">Total registros</div><div class="ia-value" id="ia-stat-total">0</div><div class="ia-sub">todos los días</div></div>
+
     </div>
 
     <!-- REGISTRAR -->
@@ -7336,45 +7360,55 @@ window.iaRegisterEntry=function(status){
   const empName=document.getElementById('ia-emp-selected').value||document.getElementById('ia-emp-search').value.trim();
   const area=document.getElementById('ia-emp-area').value;
   if(!empName){alert('Por favor selecciona un empleado.');return;}
-  if(status==='presente'&&!area){alert('Por favor selecciona un área.');return;}
+  if(status==='presente'&&!area){alert('Por favor selecciona un módulo.');return;}
+  // Obtener nombre de la supervisora — usar currentMember si existe, si no el supervisor de iaState
   let supName;
   if(iaIsAdmin()){
-    const filtSupId=document.getElementById('ia-admin-sup-filter')?.value;
-    if(filtSupId){supName=iaGetSup(filtSupId)?.name||'Admin';}
-    else{const emp=iaState.employees.find(e=>e.name===empName);supName=emp&&emp.supId?iaGetSup(emp.supId)?.name:'Admin';}
-  } else {supName=iaGetSup(iaCurrentUser).name;}
+    const emp=iaState.employees.find(e=>e.name===empName);
+    supName=emp&&emp.supId ? (emp.supId) : 'Admin';
+  } else {
+    // currentMember tiene el nombre directo de la supervisora logueada
+    supName = (typeof currentMember!=='undefined'&&currentMember)
+      ? currentMember
+      : (iaGetSup(iaCurrentUser)?.name || 'Supervisora');
+  }
   const today=iaTodayStr();
   const newRecord={id:iaGenId(),empName,area:status==='falto'?'—':area,status,date:today,supervisor:supName};
   // Actualizar localmente
-  iaRecords=iaRecords.filter(r=>!(r.empName===empName&&r.date===today&&r.supervisor===supName));
+  iaRecords=iaRecords.filter(r=>!(r.empName===empName&&r.date===today));
   iaRecords.push(newRecord);
-  // Enviar al servidor para todos los dispositivos
+  // Enviar al servidor
   wsSend({type:'ia_add_record', record:newRecord});
   iaClearEmployee(); document.getElementById('ia-emp-area').value='';
   const toastId=status==='presente'?'ia-success-toast':'ia-absent-toast';
-  const t=document.getElementById(toastId);t.style.display='block';setTimeout(()=>t.style.display='none',3000);
+  const t=document.getElementById(toastId);if(t){t.style.display='block';setTimeout(()=>t.style.display='none',3000);}
   iaUpdateStats(); iaRenderTodayChips();
 };
 function iaUpdateStats(){
-  const today=iaTodayStr(),sup=iaGetSup(iaCurrentUser);
+  const today=iaTodayStr(), sup=iaGetSup(iaCurrentUser);
+  // Nombre de la supervisora logueada (puede ser currentMember o sup.name)
+  const supNombre = (typeof currentMember!=='undefined'&&currentMember) ? currentMember : (sup?sup.name:'');
   if(iaIsAdmin()){
     const tr=iaRecords.filter(r=>r.date===today);
     document.getElementById('ia-stat-today').textContent=tr.filter(r=>r.status==='presente').length;
     document.getElementById('ia-stat-absent').textContent=tr.filter(r=>r.status==='falto').length;
-    document.getElementById('ia-stat-total').textContent=iaRecords.length;
-    document.getElementById('ia-stat-pending').textContent=Math.max(0,iaState.employees.length-[...new Set(tr.map(r=>r.empName))].length);
+    // Pendientes = total empleados activos - ya registrados hoy
+    const pending=Math.max(0,iaState.employees.filter(e=>!e.disabled).length-new Set(tr.map(r=>r.empName)).size);
+    document.getElementById('ia-stat-pending').textContent=pending;
   } else {
-    const tr=iaRecords.filter(r=>r.date===today&&r.supervisor===sup.name);
+    const tr=iaRecords.filter(r=>r.date===today&&r.supervisor===supNombre);
     document.getElementById('ia-stat-today').textContent=tr.filter(r=>r.status==='presente').length;
     document.getElementById('ia-stat-absent').textContent=tr.filter(r=>r.status==='falto').length;
-    document.getElementById('ia-stat-total').textContent=iaRecords.filter(r=>r.supervisor===sup.name).length;
-    const empCount=iaState.employees.filter(e=>e.supId===iaCurrentUser).length;
-    document.getElementById('ia-stat-pending').textContent=Math.max(0,empCount-[...new Set(tr.map(r=>r.empName))].length);
+    // Pendientes = empleados de esta supervisora - ya registrados hoy
+    const misEmps=iaState.employees.filter(e=>!e.disabled&&(e.supId||'').toLowerCase()===supNombre.toLowerCase());
+    const pending=Math.max(0,misEmps.length-new Set(tr.map(r=>r.empName)).size);
+    document.getElementById('ia-stat-pending').textContent=pending;
   }
 }
 function iaRenderTodayChips(){
-  const today=iaTodayStr(),sup=iaGetSup(iaCurrentUser);
-  let recs=iaIsAdmin()?iaSortData(iaRecords.filter(r=>r.date===today),'area'):iaSortData(iaRecords.filter(r=>r.date===today&&r.supervisor===sup.name),'area');
+  const today=iaTodayStr();
+  const supNombreChips=(typeof currentMember!=='undefined'&&currentMember)?currentMember:(iaGetSup(iaCurrentUser)?.name||'');
+  let recs=iaIsAdmin()?iaSortData(iaRecords.filter(r=>r.date===today),'area'):iaSortData(iaRecords.filter(r=>r.date===today&&r.supervisor===supNombreChips),'area');
   const c=document.getElementById('ia-today-chips');
   if(!recs.length){c.innerHTML='<span style="color:#6b7a99;font-size:.85rem;">Aún no hay registros hoy</span>';return;}
   c.innerHTML=recs.map(r=>r.status==='falto'
