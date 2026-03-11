@@ -1609,7 +1609,8 @@ window.addEventListener('DOMContentLoaded', async ()=>{
     loadHistorialFromServer(),
     loadCargosFromServer(),
     loadTurnosFromServer(),
-    loadMaquinariaFromServer()
+    loadMaquinariaFromServer(),
+    cfgLoadNovedades()
   ]);
 
   applyConfig();
@@ -4875,8 +4876,26 @@ function cfgImportMaquinariaXLS(file){
 }
 
 // ── NOVEDADES ─────────────────────────────────────────────────────
-const NOVEDAD_EMOJIS = ['📋','🏖️','🏥','📝','🏠','⛔','🕐','✈️','👶','💊','⚠️','📌'];
-const NOVEDAD_COLORS = [
+// ── NOVEDADES — cache en memoria, persiste en servidor ────────────
+let _novedadesCache = null;
+const NOVEDADES_DEFAULT_CLIENT = [
+  {id:'nov1',nombre:'Vacaciones',emoji:'🏖️',color:1},
+  {id:'nov2',nombre:'Incapacidad',emoji:'🏥',color:4},
+  {id:'nov3',nombre:'Permiso',emoji:'📝',color:2},
+  {id:'nov4',nombre:'Calamidad doméstica',emoji:'🏠',color:3},
+  {id:'nov5',nombre:'Suspensión',emoji:'⛔',color:4},
+];
+async function cfgLoadNovedades(){
+  try{
+    const r=await fetch('/api/novedades');
+    _novedadesCache=await r.json();
+  }catch(e){ console.error('cfgLoadNovedades:',e); _novedadesCache=NOVEDADES_DEFAULT_CLIENT; }
+}
+function cfgGetNovedades(){ return _novedadesCache||NOVEDADES_DEFAULT_CLIENT; }
+function cfgSaveNovedades(arr){
+  _novedadesCache=arr;
+  fetch('/api/novedades',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(arr)}).catch(e=>console.error('cfgSaveNovedades:',e));
+}
   {bg:'#eff6ff',border:'#bfdbfe',text:'#2563eb'},
   {bg:'#f0fdf4',border:'#bbf7d0',text:'#16a34a'},
   {bg:'#fef9c3',border:'#fde68a',text:'#d97706'},
@@ -4885,18 +4904,6 @@ const NOVEDAD_COLORS = [
   {bg:'#f0f9ff',border:'#bae6fd',text:'#0369a1'},
 ];
 
-function cfgGetNovedades(){
-  try{ return JSON.parse(localStorage.getItem('cfg_novedades')||'null') || [
-    {id:'nov1',nombre:'Vacaciones',emoji:'🏖️',color:1},
-    {id:'nov2',nombre:'Incapacidad',emoji:'🏥',color:4},
-    {id:'nov3',nombre:'Permiso',emoji:'📝',color:2},
-    {id:'nov4',nombre:'Calamidad doméstica',emoji:'🏠',color:3},
-    {id:'nov5',nombre:'Suspensión',emoji:'⛔',color:4},
-  ]; } catch(e){ return []; }
-}
-function cfgSaveNovedades(arr){
-  localStorage.setItem('cfg_novedades', JSON.stringify(arr));
-}
 function cfgRenderNovedades(body){
   const q = cfgGetSearch();
   let items = cfgGetNovedades();
