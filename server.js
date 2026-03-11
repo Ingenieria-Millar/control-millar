@@ -43,6 +43,7 @@ const FILES = {
   maquinaria:    path.join(DATA_DIR, 'maquinaria.json'),
   turnos:        path.join(DATA_DIR, 'turnos.json'),
   historial:     path.join(DATA_DIR, 'historial.json'),
+  novedades:     path.join(DATA_DIR, 'novedades.json'),
 };
 
 // ── Helpers de persistencia ───────────────────────────────────────
@@ -437,6 +438,25 @@ app.post('/api/historial', (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// ── Novedades (tipos de ausencia justificada) ─────────────────────
+const NOVEDADES_DEFAULT = [
+  {id:'nov1',nombre:'Vacaciones',emoji:'🏖️',color:1},
+  {id:'nov2',nombre:'Incapacidad',emoji:'🏥',color:4},
+  {id:'nov3',nombre:'Permiso',emoji:'📝',color:2},
+  {id:'nov4',nombre:'Calamidad doméstica',emoji:'🏠',color:3},
+  {id:'nov5',nombre:'Suspensión',emoji:'⛔',color:4},
+];
+app.get('/api/novedades', (req, res) => {
+  res.json(readJSON(FILES.novedades, NOVEDADES_DEFAULT));
+});
+app.post('/api/novedades', (req, res) => {
+  try {
+    const data = Array.isArray(req.body) ? req.body : [];
+    writeJSON(FILES.novedades, data);
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 
 // ── RESET TOTAL ───────────────────────────────────────────────────
 // Borra todos los datos y deja el servidor en blanco.
@@ -454,7 +474,8 @@ app.get('/admin/reset', (req, res) => {
       FILES.ia_state, FILES.ia_records, FILES.modules_config,
       FILES.floor_state, FILES.ci_requests, FILES.ci_config,
       FILES.alistamientos, FILES.mantenimientos, FILES.alertas,
-      FILES.app_config, FILES.cargos, FILES.maquinaria, FILES.turnos, FILES.historial
+      FILES.app_config, FILES.cargos, FILES.maquinaria, FILES.turnos,
+      FILES.historial, FILES.novedades
     ];
     filesToReset.forEach(f => { if (fs.existsSync(f)) fs.unlinkSync(f); });
 
