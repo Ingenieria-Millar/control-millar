@@ -43,7 +43,6 @@ const FILES = {
   maquinaria:    path.join(DATA_DIR, 'maquinaria.json'),
   turnos:        path.join(DATA_DIR, 'turnos.json'),
   historial:     path.join(DATA_DIR, 'historial.json'),
-  novedades:     path.join(DATA_DIR, 'novedades.json'),
 };
 
 // ── Helpers de persistencia ───────────────────────────────────────
@@ -83,10 +82,28 @@ function saveDB(key, data) {
   catch (e) { console.error('Error guardando', key, e.message); }
 }
 
+// ── Perfil Programador — SIEMPRE debe existir, nunca se puede borrar ──
+const PROGRAMADOR_PROFILE = {
+  id: 'programador',
+  name: 'Programador',
+  role: 'programador',
+  pass: '1',
+  canDelete: false
+};
+
+function ensureProgramador(state) {
+  if (!state || typeof state !== 'object') state = { supervisors: [], employees: [] };
+  if (!Array.isArray(state.supervisors)) state.supervisors = [];
+  // Eliminar cualquier entrada duplicada y volver a insertar siempre al inicio
+  state.supervisors = state.supervisors.filter(s => s.id !== 'programador');
+  state.supervisors.unshift(PROGRAMADOR_PROFILE);
+  return state;
+}
+
 // Estado inicial vacío — los empleados y supervisores se crean desde la app
 // y quedan persistidos en data/ia_state.json en el servidor.
 function loadInitialState() {
-  return { supervisors: [], employees: [] };
+  return ensureProgramador({ supervisors: [], employees: [] });
 }
 
 // ── Estado Control de Asistencia ─────────────────────────────────
@@ -96,9 +113,12 @@ let modulesConfig = readJSON(FILES.modules_config, { disabled:[], extra:[], rena
 
 if (!iaState) {
   iaState = loadInitialState();
-  writeJSON(FILES.ia_state, iaState);
-  writeJSON(FILES.ia_records, iaRecords);
+} else {
+  // Garantizar que Programador siempre esté aunque el archivo ya exista
+  iaState = ensureProgramador(iaState);
 }
+writeJSON(FILES.ia_state, iaState);
+writeJSON(FILES.ia_records, iaRecords);
 
 function saveIaState()      { writeJSON(FILES.ia_state,      iaState);       }
 function saveIaRecords()    { writeJSON(FILES.ia_records,    iaRecords);     }
@@ -438,25 +458,6 @@ app.post('/api/historial', (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// ── Novedades (tipos de ausencia justificada) ─────────────────────
-const NOVEDADES_DEFAULT = [
-  {id:'nov1',nombre:'Vacaciones',emoji:'🏖️',color:1},
-  {id:'nov2',nombre:'Incapacidad',emoji:'🏥',color:4},
-  {id:'nov3',nombre:'Permiso',emoji:'📝',color:2},
-  {id:'nov4',nombre:'Calamidad doméstica',emoji:'🏠',color:3},
-  {id:'nov5',nombre:'Suspensión',emoji:'⛔',color:4},
-];
-app.get('/api/novedades', (req, res) => {
-  res.json(readJSON(FILES.novedades, NOVEDADES_DEFAULT));
-});
-app.post('/api/novedades', (req, res) => {
-  try {
-    const data = Array.isArray(req.body) ? req.body : [];
-    writeJSON(FILES.novedades, data);
-    res.json({ success: true });
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
-
 
 // ── RESET TOTAL ───────────────────────────────────────────────────
 // Borra todos los datos y deja el servidor en blanco.
@@ -474,8 +475,7 @@ app.get('/admin/reset', (req, res) => {
       FILES.ia_state, FILES.ia_records, FILES.modules_config,
       FILES.floor_state, FILES.ci_requests, FILES.ci_config,
       FILES.alistamientos, FILES.mantenimientos, FILES.alertas,
-      FILES.app_config, FILES.cargos, FILES.maquinaria, FILES.turnos,
-      FILES.historial, FILES.novedades
+      FILES.app_config, FILES.cargos, FILES.maquinaria, FILES.turnos, FILES.historial
     ];
     filesToReset.forEach(f => { if (fs.existsSync(f)) fs.unlinkSync(f); });
 
@@ -484,7 +484,7 @@ app.get('/admin/reset', (req, res) => {
 
     // Resetear estado en memoria
     MODULES.forEach(id => { states[id] = 'green'; lastMec[id] = ''; });
-    iaState       = { supervisors: [], employees: [] };
+    iaState       = ensureProgramador({ supervisors: [], employees: [] });
     iaRecords     = [];
     modulesConfig = { disabled:[], extra:[], renamed:{}, modPass:{} };
     ciRequests    = [];
@@ -696,7 +696,7 @@ wss.on('connection', (ws) => {
 
       else if (msg.type === 'ia_save_state') {
         if (!msg.state) { console.warn('WS ia_save_state: sin state'); return; }
-        iaState = msg.state;
+        iaState = ensureProgramador(msg.state); // Programador siempre presente
         saveIaState();
         broadcast({ type:'ia_save_state', state:iaState });
       }
