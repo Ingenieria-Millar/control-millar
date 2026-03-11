@@ -7945,6 +7945,63 @@ window.iaEditStatusChange=function(){
     [...BASE_MODS,...extraMods].forEach(a=>{const o=document.createElement('option');o.value=a;o.textContent=a;asel.appendChild(o);});
   }
 };
+
+// ── Navegación de tabs ────────────────────────────────────────────
+function iaShowTab(tab, btn){
+  document.querySelectorAll('.ia-panel').forEach(p=>{p.classList.add('hidden');p.style.display='none';});
+  document.querySelectorAll('.ia-tab-btn').forEach(b=>b.classList.remove('active'));
+  const panel=document.getElementById('ia-tab-'+tab);
+  if(panel){panel.classList.remove('hidden');panel.style.display='';}
+  if(btn) btn.classList.add('active');
+  if(tab==='history') iaRenderHistory();
+  else if(tab==='records') iaRenderAdminTable();
+  else if(tab==='config') iaRenderConfig();
+  else { iaRenderTodayChips(); iaUpdateStats(); }
+}
+
+// ── Registrar Ingreso (Presente) ─────────────────────────────────
+window.iaRegisterEntry=function(status){
+  const empName=document.getElementById('ia-emp-selected')?.value||document.getElementById('ia-emp-search')?.value.trim()||'';
+  if(!empName){alert('Por favor selecciona un empleado primero.');return;}
+  const area=document.getElementById('ia-emp-area')?.value||'—';
+  if(status==='presente'&&(!area||area==='—')){alert('Por favor selecciona un módulo.');return;}
+  let supName;
+  if(iaIsAdmin()){const emp=iaState.employees.find(e=>e.name===empName);supName=emp&&emp.supId?iaGetSup(emp.supId)?.name||'Admin':'Admin';}
+  else{supName=(typeof currentMember!=='undefined'&&currentMember)?currentMember:(iaGetSup(iaCurrentUser)?.name||'Supervisora');}
+  const today=iaTodayStr();
+  const newRecord={id:iaGenId(),empName,area:status==='falto'?'—':area,status,date:today,supervisor:supName};
+  iaRecords=iaRecords.filter(r=>!(r.empName===empName&&r.date===today));
+  iaRecords.push(newRecord);
+  wsSend({type:'ia_add_record',record:newRecord});
+  iaClearEmployee();if(document.getElementById('ia-emp-area'))document.getElementById('ia-emp-area').value='';
+  const toastId=status==='presente'?'ia-success-toast':'ia-absent-toast';
+  const t=document.getElementById(toastId);if(t){t.style.display='block';setTimeout(()=>t.style.display='none',3000);}
+  iaUpdateStats();iaRenderTodayChips();
+};
+
+// ── Exportar Excel ────────────────────────────────────────────────
+window.iaExportExcel=function(panel){
+  let data,fromId,toId;
+  if(panel==='history'){
+    fromId='ia-filter-from';toId='ia-filter-to';
+    const sup=iaGetSup(iaCurrentUser);
+    data=iaIsAdmin()?iaFilterByRange([...iaRecords],fromId,toId):iaFilterByRange(iaRecords.filter(r=>r.supervisor===sup.name),fromId,toId);
+    data=iaSortDataCol(data,iaSortHistoryCol,iaSortHistoryDir);
+  } else {
+    fromId='ia-admin-from';toId='ia-admin-to';
+    data=iaFilterByRange([...iaRecords],fromId,toId);
+    data=iaSortDataCol(data,iaSortAdminCol,iaSortAdminDir);
+  }
+  if(!data.length){alert('No hay registros para exportar.');return;}
+  const from=document.getElementById(fromId)?.value||'todos',to=document.getElementById(toId)?.value||'todos';
+  const wsData=[['#','Empleado','Módulo / Novedad','Fecha','Supervisor','Estado','Observaciones'],
+    ...data.map((r,i)=>[i+1,r.empName,r.area,r.date,r.supervisor,
+      r.status==='falto'?'Faltó':r.status==='novedad'?'Novedad: '+r.area:'Presente',r.obs||''])];
+  const wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet(wsData);
+  ws['!cols']=[{wch:5},{wch:40},{wch:15},{wch:12},{wch:20},{wch:12},{wch:35}];
+  XLSX.utils.book_append_sheet(wb,ws,'Asistencia');
+  XLSX.writeFile(wb,`Asistencia_${from}_${to}.xlsx`);
+};
 } // end runIngresoScript
 </script>
 <script>
