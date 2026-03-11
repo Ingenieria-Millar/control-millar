@@ -1737,7 +1737,12 @@ function mostrarAreaScreen(){
     } else {
       // Administrador, Supervisoras con area_ingreso
       desc='Control de ingreso y asistencia';
-      accion=()=>{ document.getElementById('area-screen').classList.add('hidden'); abrirControlIngreso(); };
+      accion=()=>{
+        checkMemberSelectionNeeded(currentUser, (member)=>{
+          document.getElementById('area-screen').classList.add('hidden');
+          abrirControlIngreso();
+        });
+      };
     }
     const c=makeCard('📋','Producción',desc,'ac-blue',accion);
     c.style.animationDelay=(idx*0.07)+'s'; idx++;
@@ -1754,8 +1759,10 @@ function mostrarAreaScreen(){
       if(soloMontajes||tieneAmbos){
         mostrarSubMenuMecanicos();
       } else {
-        document.getElementById('area-screen').classList.add('hidden');
-        entrarTablero();
+        checkMemberSelectionNeeded(currentUser, (member)=>{
+          document.getElementById('area-screen').classList.add('hidden');
+          entrarTablero();
+        });
       }
     });
     c.style.animationDelay=(idx*0.07)+'s'; idx++;
@@ -3420,6 +3427,8 @@ setInterval(()=>{const n=new Date();document.getElementById('clock').textContent
 .cfg-btn2.del:hover{background:#fee2e2;}
 .cfg-btn2.perms{border-color:#e9d5ff;background:#f5f3ff;color:#7c3aed;}
 .cfg-btn2.perms:hover{background:#ede9fe;}
+.cfg-btn2.members{border-color:#d1fae5;background:#f0fdf4;color:#059669;}
+.cfg-btn2.members:hover{background:#dcfce7;}
 /* MÓDULOS GRID */
 .cfg-mod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;}
 .cfg-mod-card{background:#fff;border:1px solid #bbf7d0;border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
@@ -3603,14 +3612,14 @@ setInterval(()=>{const n=new Date();document.getElementById('clock').textContent
 let cfgCurrentTab = 'perfiles';
 const CFG_TITLES = {
   perfiles:'🎭 Perfiles', usuarios:'👥 Usuarios', cargos:'🏷️ Cargos', turnos:'🕐 Turnos',
-  maquinaria:'⚙️ Maquinaria', modulos:'🏭 Módulos', areas:'📍 Áreas', permisos:'🔑 Permisos', permisos_perfil:'🔑 Permisos'
+  maquinaria:'⚙️ Maquinaria', modulos:'🏭 Módulos', areas:'📍 Áreas', permisos:'🔑 Permisos', permisos_perfil:'🔑 Permisos', miembros_perfil:'👥 Miembros'
 };
 const CFG_CREAR_LABELS = {
   perfiles:'+ Nuevo perfil', usuarios:'+ Nuevo usuario', cargos:'+ Nuevo cargo', maquinaria:'+ Nueva máquina',
   modulos:'+ Nuevo módulo', areas:'+ Nueva área', turnos:'+ Nuevo turno'
 };
 const CFG_EXCEL_TABS = ['maquinaria','turnos','usuarios','cargos','modulos','areas'];
-const CFG_NO_CREATE_TABS = ['permisos', 'permisos_perfil'];
+const CFG_NO_CREATE_TABS = ['permisos', 'permisos_perfil', 'miembros_perfil'];
 
 function openCfgScreen(){
   document.getElementById('cfg-screen').style.display='flex';
@@ -3683,10 +3692,13 @@ function cfgSwitchTab(tab, el){
     backBtn.onclick = ()=>cfgSwitchTab('perfiles', document.getElementById('cfgn-perfiles'));
     document.getElementById('cfg-sec-title2').parentNode.insertBefore(backBtn, document.getElementById('cfg-sec-title2'));
   }
-  backBtn.style.display = tab==='permisos_perfil' ? '' : 'none';
+  backBtn.style.display = (tab==='permisos_perfil'||tab==='miembros_perfil') ? '' : 'none';
   // Update title with profile name
   if(tab==='permisos_perfil' && _permCurrentUser){
     document.getElementById('cfg-sec-title2').textContent = '🔑 Permisos — ' + _permCurrentUser;
+  }
+  if(tab==='miembros_perfil' && _membersCurrentPerfil){
+    document.getElementById('cfg-sec-title2').textContent = '👥 Miembros — ' + _membersCurrentPerfil;
   }
   const body = document.getElementById('cfg-body2');
   if(!body) return;
@@ -3700,6 +3712,7 @@ function cfgSwitchTab(tab, el){
   if(tab==='areas')      cfgRenderAreas(body);
   if(tab==='permisos')   cfgRenderPermisos(body);
   if(tab==='permisos_perfil') cfgRenderPermisosPerfil(body);
+  if(tab==='miembros_perfil') cfgRenderMiembrosPerfil(body);
 }
 function cfgOnSearch(){
   const body = document.getElementById('cfg-body2');
@@ -4020,6 +4033,7 @@ function cfgRenderPerfiles(body){
       } else if(!isBuiltin){
         const bE=document.createElement('button'); bE.className='cfg-btn2 edit'; bE.textContent='✏️ Editar'; bE.onclick=()=>cfgOpenPerfilModal(nombre,data.pass); acts.appendChild(bE);
         const bP=document.createElement('button'); bP.className='cfg-btn2 perms'; bP.textContent='🔑 Permisos'; bP.onclick=()=>openPermisosModal(nombre); acts.appendChild(bP);
+        const bM=document.createElement('button'); bM.className='cfg-btn2 members'; bM.textContent='👥 Miembros'; bM.onclick=()=>openMembersScreen(nombre); acts.appendChild(bM);
         const bT=document.createElement('button'); bT.className=`cfg-btn2 ${isDisabled?'hab':'inh'}`; bT.textContent=isDisabled?'✅ Habilitar':'⏸ Inhabilitar'; bT.onclick=()=>toggleExtraUser(nombre); acts.appendChild(bT);
         const bD=document.createElement('button'); bD.className='cfg-btn2 del'; bD.textContent='🗑 Eliminar'; bD.onclick=()=>{openConfirmDelete('usuario',nombre,()=>{deleteExtraUser(nombre);cfgSwitchTab('perfiles',document.getElementById('cfgn-perfiles'));});}; acts.appendChild(bD);
       }
@@ -5090,6 +5104,151 @@ function cfgRenderPermisos(body){
   });
 
   body.appendChild(grid);
+}
+
+
+// ══════════════════════════════════════════════════════════════════
+//  MIEMBROS DE PERFIL
+//  Cada perfil puede tener sub-usuarios. Al entrar a un área,
+//  si el perfil tiene miembros, se muestra pantalla de selección.
+// ══════════════════════════════════════════════════════════════════
+let _membersCurrentPerfil = null;
+let currentMember = null; // sub-usuario seleccionado
+
+function getProfileMembers(perfil){
+  const cfg = loadConfig();
+  return (cfg._perfil_members && cfg._perfil_members[perfil]) || [];
+}
+function saveProfileMembers(perfil, members){
+  const cfg = loadConfig();
+  if(!cfg._perfil_members) cfg._perfil_members = {};
+  cfg._perfil_members[perfil] = members;
+  saveConfig(cfg);
+}
+
+function openMembersScreen(perfil){
+  _membersCurrentPerfil = perfil;
+  cfgSwitchTab('miembros_perfil', null);
+}
+
+function cfgRenderMiembrosPerfil(body){
+  if(!_membersCurrentPerfil){ body.innerHTML='<div style="padding:40px;text-align:center;color:#94a3b8;">No hay perfil seleccionado</div>'; return; }
+  const perfil = _membersCurrentPerfil;
+  const members = getProfileMembers(perfil);
+
+  // Header info
+  const info = document.createElement('div');
+  info.style.cssText='background:linear-gradient(135deg,#020d22,#04163d);border-radius:14px;padding:18px 22px;margin-bottom:18px;display:flex;align-items:center;gap:14px;';
+  info.innerHTML=`<div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:20px;border:2px solid rgba(255,255,255,.2);">👥</div><div><div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;letter-spacing:2px;color:#fff;text-transform:uppercase;">${perfil}</div><div style="font-size:12px;color:#94a3b8;margin-top:2px;">${members.length} miembro${members.length!==1?'s':''} · Al ingresar al área, verán la pantalla de selección</div></div>`;
+  body.appendChild(info);
+
+  // Add member input
+  const addRow = document.createElement('div');
+  addRow.style.cssText='display:flex;gap:10px;margin-bottom:16px;';
+  addRow.innerHTML=`
+    <input id="new-member-input" type="text" placeholder="Nombre del miembro..." 
+      style="flex:1;padding:10px 14px;border-radius:10px;border:1.5px solid #e2e8f0;font-family:'Nunito',sans-serif;font-size:14px;outline:none;"
+      onfocus="this.style.borderColor='#059669'" onblur="this.style.borderColor='#e2e8f0'"
+      onkeydown="if(event.key==='Enter')addProfileMember()">
+    <button onclick="addProfileMember()" style="padding:10px 20px;border-radius:10px;border:none;background:#059669;color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">+ Agregar</button>`;
+  body.appendChild(addRow);
+
+  // Members list
+  const list = document.createElement('div');
+  list.id = 'members-list';
+  list.style.cssText='display:flex;flex-direction:column;gap:8px;';
+
+  if(!members.length){
+    list.innerHTML='<div style="padding:32px;text-align:center;color:#94a3b8;font-size:13px;border:2px dashed #e2e8f0;border-radius:12px;">No hay miembros aún.<br>Agrega el primer miembro arriba.</div>';
+  } else {
+    members.forEach((m, idx) => {
+      const item = document.createElement('div');
+      item.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;';
+      item.innerHTML=`
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#d1fae5,#a7f3d0);display:flex;align-items:center;justify-content:center;font-size:14px;">👤</div>
+          <span style="font-size:14px;font-weight:600;color:#0f172a;">${m}</span>
+        </div>
+        <button onclick="removeProfileMember(${idx})" style="padding:5px 10px;border-radius:7px;border:1px solid #fecaca;background:#fef2f2;color:#dc2626;font-size:12px;cursor:pointer;">🗑</button>`;
+      list.appendChild(item);
+    });
+  }
+  body.appendChild(list);
+}
+
+function addProfileMember(){
+  const inp = document.getElementById('new-member-input');
+  const nombre = inp.value.trim();
+  if(!nombre) return;
+  const perfil = _membersCurrentPerfil;
+  const members = getProfileMembers(perfil);
+  if(members.includes(nombre)){ inp.style.borderColor='#ef4444'; setTimeout(()=>inp.style.borderColor='#e2e8f0',1000); return; }
+  members.push(nombre);
+  saveProfileMembers(perfil, members);
+  inp.value='';
+  // Re-render list
+  const body = document.getElementById('cfg-body2');
+  if(body){ body.innerHTML=''; cfgRenderMiembrosPerfil(body); }
+}
+
+function removeProfileMember(idx){
+  const perfil = _membersCurrentPerfil;
+  const members = getProfileMembers(perfil);
+  members.splice(idx, 1);
+  saveProfileMembers(perfil, members);
+  const body = document.getElementById('cfg-body2');
+  if(body){ body.innerHTML=''; cfgRenderMiembrosPerfil(body); }
+}
+
+// ── Pantalla de selección de miembro al entrar al área ────────────
+function checkMemberSelectionNeeded(perfil, onSelected){
+  const members = getProfileMembers(perfil);
+  if(!members.length){ onSelected(null); return; }
+  showMemberSelectionScreen(perfil, members, onSelected);
+}
+
+function showMemberSelectionScreen(perfil, members, onSelected){
+  // Create overlay screen
+  let overlay = document.getElementById('member-select-screen');
+  if(!overlay){
+    overlay = document.createElement('div');
+    overlay.id = 'member-select-screen';
+    overlay.style.cssText='position:fixed;inset:0;background:linear-gradient(135deg,#020d22 0%,#04163d 50%,#0a1628 100%);z-index:800;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;';
+    document.body.appendChild(overlay);
+  }
+  overlay.style.display='flex';
+  overlay.innerHTML=`
+    <div style="width:100%;max-width:480px;">
+      <div style="text-align:center;margin-bottom:32px;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;letter-spacing:3px;color:#60a5fa;text-transform:uppercase;margin-bottom:8px;">Perfil: ${perfil}</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:700;letter-spacing:2px;color:#fff;">¿QUIÉN ERES?</div>
+        <div style="font-size:14px;color:#64748b;margin-top:6px;">Selecciona tu nombre para continuar</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;max-height:60vh;overflow-y:auto;" id="member-select-list"></div>
+      <button onclick="cancelMemberSelection()" style="margin-top:20px;width:100%;padding:12px;border-radius:10px;border:1.5px solid rgba(255,255,255,.15);background:transparent;color:#64748b;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">← Volver</button>
+    </div>`;
+
+  const listEl = overlay.querySelector('#member-select-list');
+  members.forEach(m => {
+    const btn = document.createElement('button');
+    btn.style.cssText='padding:16px 20px;border-radius:12px;border:1.5px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:#fff;font-family:"Nunito",sans-serif;font-size:15px;font-weight:700;cursor:pointer;text-align:left;transition:all .15s;display:flex;align-items:center;gap:12px;';
+    btn.innerHTML=`<div style="width:36px;height:36px;border-radius:50%;background:rgba(5,150,105,.2);border:1.5px solid rgba(5,150,105,.4);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">👤</div><span>${m}</span>`;
+    btn.onmouseover=()=>{ btn.style.background='rgba(5,150,105,.15)'; btn.style.borderColor='rgba(5,150,105,.5)'; };
+    btn.onmouseout=()=>{ btn.style.background='rgba(255,255,255,.05)'; btn.style.borderColor='rgba(255,255,255,.1)'; };
+    btn.onclick=()=>{
+      currentMember = m;
+      overlay.style.display='none';
+      onSelected(m);
+    };
+    listEl.appendChild(btn);
+  });
+}
+
+function cancelMemberSelection(){
+  const overlay = document.getElementById('member-select-screen');
+  if(overlay) overlay.style.display='none';
+  // Volver a la pantalla de áreas
+  document.getElementById('area-screen').classList.remove('hidden');
 }
 
 // ── MODAL PERMISOS ────────────────────────────────────────────────
