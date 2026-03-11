@@ -7411,13 +7411,13 @@ function iaSortData(data,mode){
 // Sort state para historial y admin con flechitas
 let iaSortHistoryCol='area', iaSortHistoryDir=1;
 let iaSortAdminCol='area', iaSortAdminDir=1;
-function iaSetSortHistory(col){
+window.iaSetSortHistory=function iaSetSortHistory(col){
   if(iaSortHistoryCol===col) iaSortHistoryDir*=-1; else {iaSortHistoryCol=col;iaSortHistoryDir=1;}
   document.querySelectorAll('[id^="ia-hs-"]').forEach(el=>el.textContent='⇅');
   const el=document.getElementById('ia-hs-'+col);if(el)el.textContent=iaSortHistoryDir===1?'↑':'↓';
   iaRenderHistory();
 }
-function iaSetSortAdmin(col){
+window.iaSetSortAdmin=function iaSetSortAdmin(col){
   if(iaSortAdminCol===col) iaSortAdminDir*=-1; else {iaSortAdminCol=col;iaSortAdminDir=1;}
   document.querySelectorAll('[id^="ia-as-"]').forEach(el=>el.textContent='⇅');
   const el=document.getElementById('ia-as-'+col);if(el)el.textContent=iaSortAdminDir===1?'↑':'↓';
@@ -7850,7 +7850,7 @@ setInterval(function(){
 
 
 // ── Estadísticas de hoy ──────────────────────────────────────────
-function iaUpdateStats(){
+window.iaUpdateStats=function iaUpdateStats(){
   const today=iaTodayStr();
   const sup=iaGetSup(iaCurrentUser);
   const supName=sup?sup.name:(typeof currentMember!=='undefined'?currentMember:'');
@@ -7865,7 +7865,7 @@ function iaUpdateStats(){
 }
 
 // ── Chips de registros de hoy ─────────────────────────────────────
-function iaRenderTodayChips(){
+window.iaRenderTodayChips=function iaRenderTodayChips(){
   const c=document.getElementById('ia-today-chips');if(!c)return;
   const today=iaTodayStr();
   const sup=iaGetSup(iaCurrentUser);
@@ -7882,7 +7882,7 @@ function iaRenderTodayChips(){
 
 
 // ── Historial de Asistencia ───────────────────────────────────────
-function iaRenderHistory(){
+window.iaRenderHistory=function iaRenderHistory(){
   const sup=iaGetSup(iaCurrentUser);
   const supName=sup?sup.name:(typeof currentMember!=='undefined'?currentMember:'');
   let data=iaIsAdmin()?iaFilterByRange([...iaRecords],'ia-filter-from','ia-filter-to'):iaFilterByRange(iaRecords.filter(r=>r.supervisor===supName),'ia-filter-from','ia-filter-to');
@@ -7971,7 +7971,7 @@ window.iaEditStatusChange=function(){
 };
 
 // ── Navegación de tabs ────────────────────────────────────────────
-function iaShowTab(tab, btn){
+window.iaShowTab=function iaShowTab(tab, btn){
   document.querySelectorAll('.ia-panel').forEach(p=>{p.classList.add('hidden');p.style.display='none';});
   document.querySelectorAll('.ia-tab-btn').forEach(b=>b.classList.remove('active'));
   const panel=document.getElementById('ia-tab-'+tab);
