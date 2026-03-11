@@ -2497,11 +2497,12 @@ let _appConfigLoaded = false;
 function loadConfig(){ return _appConfig; }
 
 function saveConfig(cfg){
-  _appConfig = cfg;
+  // Mergear con _appConfig actual para no perder datos (ej: _perfil_members)
+  _appConfig = Object.assign({}, _appConfig, cfg);
   fetch('/api/app-config', {
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body: JSON.stringify(cfg)
+    body: JSON.stringify(_appConfig)
   }).catch(e=>console.error('saveConfig error:',e));
 }
 
