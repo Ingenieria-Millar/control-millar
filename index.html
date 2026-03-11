@@ -5144,7 +5144,7 @@ function cfgRenderMiembrosPerfil(body){
   // Header info
   const info = document.createElement('div');
   info.style.cssText='background:linear-gradient(135deg,#020d22,#04163d);border-radius:14px;padding:18px 22px;margin-bottom:18px;display:flex;align-items:center;gap:14px;';
-  info.innerHTML=`<div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:20px;border:2px solid rgba(255,255,255,.2);">👥</div><div><div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;letter-spacing:2px;color:#fff;text-transform:uppercase;">${perfil}</div><div style="font-size:12px;color:#94a3b8;margin-top:2px;">${members.length} miembro${members.length!==1?'s':''} · Al ingresar al área, verán la pantalla de selección</div></div>`;
+  info.innerHTML=`<div style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:20px;border:2px solid rgba(255,255,255,.2);">👥</div><div><div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;letter-spacing:2px;color:#fff;text-transform:uppercase;">${perfil}</div><div id="members-header-sub" style="font-size:12px;color:#94a3b8;margin-top:2px;">${members.length} miembro${members.length!==1?'s':''} · Al ingresar al área, verán la pantalla de selección</div></div>`;
   body.appendChild(info);
 
   // Add member input
@@ -5183,17 +5183,26 @@ function cfgRenderMiembrosPerfil(body){
 
 function addProfileMember(){
   const inp = document.getElementById('new-member-input');
+  if(!inp){ console.error('input not found'); return; }
   const nombre = inp.value.trim();
-  if(!nombre) return;
+  if(!nombre){ inp.focus(); return; }
   const perfil = _membersCurrentPerfil;
+  if(!perfil){ console.error('no perfil'); return; }
   const members = getProfileMembers(perfil);
-  if(members.includes(nombre)){ inp.style.borderColor='#ef4444'; setTimeout(()=>inp.style.borderColor='#e2e8f0',1000); return; }
+  if(members.includes(nombre)){
+    inp.style.borderColor='#ef4444';
+    setTimeout(()=>inp.style.borderColor='#e2e8f0',1000);
+    return;
+  }
   members.push(nombre);
   saveProfileMembers(perfil, members);
   inp.value='';
-  // Re-render list
-  const body = document.getElementById('cfg-body2');
-  if(body){ body.innerHTML=''; cfgRenderMiembrosPerfil(body); }
+  inp.focus();
+  // Solo re-renderizar la lista, no todo el body
+  renderMembersList(members);
+  // Actualizar contador en header
+  const hdrSub = document.querySelector('#members-header-sub');
+  if(hdrSub) hdrSub.textContent = members.length + ' miembro' + (members.length!==1?'s':'') + ' · Al ingresar al área, verán la pantalla de selección';
 }
 
 function removeProfileMember(idx){
@@ -5201,8 +5210,30 @@ function removeProfileMember(idx){
   const members = getProfileMembers(perfil);
   members.splice(idx, 1);
   saveProfileMembers(perfil, members);
-  const body = document.getElementById('cfg-body2');
-  if(body){ body.innerHTML=''; cfgRenderMiembrosPerfil(body); }
+  renderMembersList(members);
+  const hdrSub = document.querySelector('#members-header-sub');
+  if(hdrSub) hdrSub.textContent = members.length + ' miembro' + (members.length!==1?'s':'') + ' · Al ingresar al área, verán la pantalla de selección';
+}
+
+function renderMembersList(members){
+  const list = document.getElementById('members-list');
+  if(!list) return;
+  list.innerHTML = '';
+  if(!members.length){
+    list.innerHTML='<div style="padding:32px;text-align:center;color:#94a3b8;font-size:13px;border:2px dashed #e2e8f0;border-radius:12px;">No hay miembros aún.<br>Agrega el primer miembro arriba.</div>';
+    return;
+  }
+  members.forEach((m, idx) => {
+    const item = document.createElement('div');
+    item.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;';
+    item.innerHTML=`
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#d1fae5,#a7f3d0);display:flex;align-items:center;justify-content:center;font-size:14px;">👤</div>
+        <span style="font-size:14px;font-weight:600;color:#0f172a;">${m}</span>
+      </div>
+      <button onclick="removeProfileMember(${idx})" style="padding:5px 10px;border-radius:7px;border:1px solid #fecaca;background:#fef2f2;color:#dc2626;font-size:12px;cursor:pointer;">🗑</button>`;
+    list.appendChild(item);
+  });
 }
 
 // ── Pantalla de selección de miembro al entrar al área ────────────
