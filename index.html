@@ -5115,15 +5115,20 @@ function cfgRenderPermisos(body){
 let _membersCurrentPerfil = null;
 let currentMember = null; // sub-usuario seleccionado
 
-function getProfileMembers(perfil){
-  const cfg = loadConfig();
-  return (cfg._perfil_members && cfg._perfil_members[perfil]) || [];
-}
 function saveProfileMembers(perfil, members){
-  const cfg = loadConfig();
-  if(!cfg._perfil_members) cfg._perfil_members = {};
-  cfg._perfil_members[perfil] = members;
-  saveConfig(cfg);
+  // Actualizar caché en memoria directamente
+  if(!_appConfig._perfil_members) _appConfig._perfil_members = {};
+  _appConfig._perfil_members[perfil] = members;
+  // Guardar en servidor
+  fetch('/api/app-config', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(_appConfig)
+  }).catch(e=>console.error('saveProfileMembers error:',e));
+}
+
+function getProfileMembers(perfil){
+  return (_appConfig._perfil_members && _appConfig._perfil_members[perfil]) || [];
 }
 
 function openMembersScreen(perfil){
