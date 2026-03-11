@@ -1837,7 +1837,7 @@ function mostrarAreaScreen(){
 
   // CONFIGURACIONES — solo programador/admin
   if(isProg()){
-    const c=makeCard('⚙️','Configuraciones','Usuarios · Módulos · Permisos','ac-orange',()=>{
+    const c=makeCard('⚙️','Configuraciones','Empleados · Módulos · Permisos','ac-orange',()=>{
       document.getElementById('area-screen').classList.add('hidden');
       openConfigModal();
     });
@@ -3606,11 +3606,11 @@ setInterval(()=>{const n=new Date();document.getElementById('clock').textContent
 // ── CFG SCREEN LOGIC ──────────────────────────────────────────────
 let cfgCurrentTab = 'perfiles';
 const CFG_TITLES = {
-  perfiles:'🎭 Perfiles', usuarios:'👥 Usuarios', cargos:'🏷️ Cargos', turnos:'🕐 Turnos',
+  perfiles:'🎭 Perfiles', usuarios:'👥 Empleados', cargos:'🏷️ Cargos', turnos:'🕐 Turnos',
   maquinaria:'⚙️ Maquinaria', modulos:'🏭 Módulos', areas:'📍 Áreas', permisos:'🔑 Permisos', permisos_perfil:'🔑 Permisos', miembros_perfil:'👥 Miembros'
 };
 const CFG_CREAR_LABELS = {
-  perfiles:'+ Nuevo perfil', usuarios:'+ Nuevo usuario', cargos:'+ Nuevo cargo', maquinaria:'+ Nueva máquina',
+  perfiles:'+ Nuevo perfil', usuarios:'+ Nuevo empleado', cargos:'+ Nuevo cargo', maquinaria:'+ Nueva máquina',
   modulos:'+ Nuevo módulo', areas:'+ Nueva área', turnos:'+ Nuevo turno'
 };
 const CFG_EXCEL_TABS = ['maquinaria','turnos','usuarios','cargos','modulos','areas'];
@@ -6961,8 +6961,8 @@ html { overflow-x: hidden; max-width: 100%; }
           <input type="hidden" id="ia-emp-selected">
         </div>
         <div class="ia-fg" style="grid-column:1/-1">
-          <label>Área</label>
-          <select id="ia-emp-area"><option value="">— Seleccionar área —</option></select>
+          <label>Módulo</label>
+          <select id="ia-emp-area"><option value="">— Seleccionar módulo —</option></select>
         </div>
         <div class="ia-toast ok" id="ia-success-toast">✅ Ingreso registrado exitosamente</div>
         <div class="ia-toast bad" id="ia-absent-toast">❌ Falta registrada</div>
@@ -7257,14 +7257,11 @@ function iaBuildAdminSupFilter(){
 window.iaBuildAdminAreaSelect=function(){iaBuildAreaSelect();};
 function iaBuildAreaSelect(){
   const asel=document.getElementById('ia-emp-area');
-  asel.innerHTML='<option value="">— Seleccionar área —</option>';
-  if(iaIsAdmin()){
-    const filtSupId=document.getElementById('ia-admin-sup-filter')?.value;
-    let areas=filtSupId?(iaGetSup(filtSupId)?.areas||[]):[...new Set(iaNonAdminSups().flatMap(s=>s.areas||[]))].sort((a,b)=>iaAreaOrder(a)-iaAreaOrder(b));
-    areas.forEach(a=>{const o=document.createElement('option');o.value=a;o.textContent=a;asel.appendChild(o);});
-  } else {
-    (iaGetSup(iaCurrentUser)?.areas||[]).forEach(a=>{const o=document.createElement('option');o.value=a;o.textContent=a;asel.appendChild(o);});
-  }
+  if(!asel) return;
+  asel.innerHTML='<option value="">— Seleccionar módulo —</option>';
+  // Usar MODULES global (módulos activos del sistema)
+  const mods = typeof MODULES!=='undefined' ? MODULES : [];
+  mods.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;asel.appendChild(o);});
 }
 function iaRebuildAdminFilterSup(){
   const sel=document.getElementById('ia-admin-filter-sup');const cur=sel.value;
@@ -7274,16 +7271,15 @@ function iaRebuildAdminFilterSup(){
 }
 function iaGetAvailableEmployees(){
   const today=iaTodayStr();
+  const reg=new Set(iaRecords.filter(r=>r.date===today).map(r=>r.empName));
+  // Todos los empleados activos no registrados hoy
+  let pool = (iaState.employees||[]).filter(e=>!e.disabled&&!reg.has(e.name));
+  // Si es admin con filtro de supervisora aplicado
   if(iaIsAdmin()){
     const filtSupId=document.getElementById('ia-admin-sup-filter')?.value;
-    let pool=filtSupId?iaState.employees.filter(e=>e.supId===filtSupId):iaState.employees;
-    const reg=new Set(iaRecords.filter(r=>r.date===today).map(r=>r.empName));
-    return pool.filter(e=>!reg.has(e.name)).map(e=>e.name).sort();
-  } else {
-    const sup=iaGetSup(iaCurrentUser);
-    const reg=new Set(iaRecords.filter(r=>r.date===today&&r.supervisor===sup.name).map(r=>r.empName));
-    return iaState.employees.filter(e=>e.supId===iaCurrentUser&&!reg.has(e.name)).map(e=>e.name).sort();
+    if(filtSupId) pool=pool.filter(e=>e.supId===filtSupId);
   }
+  return pool.map(e=>e.name).sort((a,b)=>a.localeCompare(b));
 }
 window.iaFilterEmployees=function(){
   iaSelectedEmployee='';document.getElementById('ia-emp-selected').value='';
@@ -7455,7 +7451,7 @@ window.iaOpenEditRecord=function(id){
   document.getElementById('ia-edit-status').value=r.status;
   const allAreas=[...new Set(iaNonAdminSups().flatMap(s=>s.areas||[]))].sort((a,b)=>iaAreaOrder(a)-iaAreaOrder(b));
   const asel=document.getElementById('ia-edit-area');
-  asel.innerHTML='<option value="">— Sin área —</option>';
+  asel.innerHTML='<option value="">— Sin módulo —</option>';
   allAreas.forEach(a=>{const o=document.createElement('option');o.value=a;o.textContent=a;if(a===r.area)o.selected=true;asel.appendChild(o);});
   const ssel=document.getElementById('ia-edit-supervisor');ssel.innerHTML='';
   iaNonAdminSups().forEach(s=>{const o=document.createElement('option');o.value=s.name;o.textContent=s.name;if(s.name===r.supervisor)o.selected=true;ssel.appendChild(o);});
