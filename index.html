@@ -4909,13 +4909,6 @@ function cfgSaveNovedades(arr){
   _novedadesCache=arr;
   fetch('/api/novedades',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(arr)}).catch(e=>console.error('cfgSaveNovedades:',e));
 }
-  {bg:'#eff6ff',border:'#bfdbfe',text:'#2563eb'},
-  {bg:'#f0fdf4',border:'#bbf7d0',text:'#16a34a'},
-  {bg:'#fef9c3',border:'#fde68a',text:'#d97706'},
-  {bg:'#fdf4ff',border:'#e9d5ff',text:'#7c3aed'},
-  {bg:'#fff1f2',border:'#fecdd3',text:'#e11d48'},
-  {bg:'#f0f9ff',border:'#bae6fd',text:'#0369a1'},
-];
 
 function cfgRenderNovedades(body){
   const q = cfgGetSearch();
@@ -7386,15 +7379,10 @@ function iaFilterByRange(data,fromId,toId){
 window.iaBuildLoginSelect=function(){
   const sel=document.getElementById('ia-login-user');if(!sel)return;
   sel.innerHTML='<option value="">— Seleccionar usuario —</option>';
-  // Siempre usar los miembros del perfil "Supervisoras", sin importar con qué perfil se ingresó
-  const supervisorasMembers = (typeof getProfileMembers==='function')
-    ? getProfileMembers('Supervisoras').filter(m=>!m.disabled)
+  // Usar miembros del perfil actual si existen, si no usar supervisors del iaState
+  const profileMembers = (typeof getProfileMembers==='function' && currentUser)
+    ? getProfileMembers(currentUser).filter(m=>!m.disabled)
     : [];
-  const profileMembers = supervisorasMembers.length
-    ? supervisorasMembers
-    : (typeof getProfileMembers==='function' && currentUser)
-      ? getProfileMembers(currentUser).filter(m=>!m.disabled)
-      : [];
   if(profileMembers.length){
     profileMembers.forEach((m,i)=>{
       const nombre = typeof m==='string'?m:m.nombre;
