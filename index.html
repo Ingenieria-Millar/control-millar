@@ -6446,7 +6446,7 @@ function getIngresoHTML(){
   width:100%;min-width:140px;padding:.35rem .6rem;
   background:#fff;border:1.5px solid #e2e8f0;border-radius:6px;
   color:#0f172a;font-family:'Nunito',sans-serif;font-size:.8rem;
-  resize:vertical;min-height:36px;max-height:90px;
+  resize:none;min-height:36px;max-height:90px;
   outline:none;transition:border-color .2s;line-height:1.4;
 }
 .ia-obs-input:focus{border-color:#2563eb;background:#f8fbff;}
@@ -7684,11 +7684,7 @@ window.iaSaveEdit=function(){
   wsSend({type:'ia_edit_record', record:{...r}});
   iaCloseModal('ia-edit-modal');iaRenderAdminTable();
 };
-window.iaSaveObs=function(id, val){
-  const r=iaRecords.find(x=>x.id===id);if(!r)return;
-  r.obs=val.trim();
-  wsSend({type:'ia_edit_record', record:{...r}});
-};
+
 window.iaDeleteRecord=function(){
   if(!confirm('¿Eliminar este registro?'))return;
   iaRecords=iaRecords.filter(x=>x.id!==iaEditingRecordId);
@@ -7906,7 +7902,12 @@ window.iaRenderHistory=function iaRenderHistory(){
     <td>${r.status==='falto'?'<span style="color:#ef4444;font-weight:700;">—</span>':r.status==='novedad'?`<span style="color:#b91c1c;font-weight:700;">${r.area}</span>`:`<span class="ia-badge area">${r.area}</span>`}</td>
     <td>${r.date}</td><td>${r.supervisor}</td>
     <td>${(r.status==='falto'||r.status==='novedad')?'<span class="ia-badge out">❌ Faltó</span>':'<span class="ia-badge in">✅ Presente</span>'}</td>
-    <td><textarea class="ia-obs-input" data-id="${r.id}" placeholder="Agregar observación..." onchange="iaSaveObs('${r.id}',this.value)">${r.obs||''}</textarea></td>
+    <td>${iaIsAdmin()
+      ? `<textarea class="ia-obs-input" data-id="${r.id}" placeholder="Agregar observación..." onblur="iaSaveObs('${r.id}',this.value)">${r.obs||''}</textarea>`
+      : r.obs
+        ? `<span style="font-size:.82rem;color:#0f172a;padding:4px 6px;display:block;">${r.obs}</span>`
+        : `<textarea class="ia-obs-input" data-id="${r.id}" placeholder="Agregar observación..." onblur="iaSaveObs('${r.id}',this.value)"></textarea>`
+    }</td>
   </tr>`).join('');
 }
 
@@ -7933,7 +7934,7 @@ function iaRenderAdminTable(){
     <td>${r.status==='falto'?'<span style="color:#ef4444;font-weight:700;">—</span>':r.status==='novedad'?`<span style="color:#b91c1c;font-weight:700;">${r.area}</span>`:`<span class="ia-badge area">${r.area}</span>`}</td>
     <td>${r.date}</td><td>${r.supervisor}</td>
     <td>${(r.status==='falto'||r.status==='novedad')?'<span class="ia-badge out">❌ Faltó</span>':'<span class="ia-badge in">✅ Presente</span>'}</td>
-    <td><textarea class="ia-obs-input" data-id="${r.id}" placeholder="Agregar observación..." onchange="iaSaveObs('${r.id}',this.value)">${r.obs||''}</textarea></td>
+    <td><textarea class="ia-obs-input" data-id="${r.id}" placeholder="Agregar observación..." onblur="iaSaveObs('${r.id}',this.value)">${r.obs||''}</textarea></td>
     <td><button class="ia-btn-edit" onclick="iaOpenEditRecord('${r.id}')">✏️ Editar</button></td>
   </tr>`).join('');
 }
