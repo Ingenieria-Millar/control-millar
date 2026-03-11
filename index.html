@@ -7838,6 +7838,10 @@ setInterval(function(){
   const tabs=['register','history','records','config'];
   let activeTab='register';
   tabs.forEach(t=>{const btn=document.getElementById('ia-tab-btn-'+t);if(btn&&btn.classList.contains('active'))activeTab=t;});
+  // No re-renderizar si el usuario está escribiendo en un textarea
+  const focused = document.activeElement;
+  const isTyping = focused && focused.classList.contains('ia-obs-input');
+  if(isTyping) return;
   if(activeTab==='history') iaRenderHistory();
   else if(activeTab==='records') iaRenderAdminTable();
   else if(activeTab==='config') iaRenderConfig();
