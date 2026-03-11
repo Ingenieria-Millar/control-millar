@@ -1065,7 +1065,7 @@ tr:hover td{background:#f8fafc;}
       <div class="lp-card-sub">Inicia sesión para continuar</div>
       <div class="lp-fields">
         <div class="lp-fl">
-          <label>Usuario</label>
+          <label>Perfil</label>
           <div class="lp-fl-row">
             <span class="lp-fl-ico">👤</span>
             <select class="lp-ctrl" id="login-user">
@@ -1582,12 +1582,12 @@ function playAlertSound(){
 function populateLoginSelect(){
   const sel = document.getElementById('login-user');
   const prev = sel.value;
-  sel.innerHTML = '<option value="">— Selecciona tu usuario —</option>';
+  sel.innerHTML = '<option value="">— Selecciona un perfil —</option>';
 
   const cfg = loadConfig();
   const extras = (cfg._usuarios_extra||[]).filter(u=>!u.disabled);
 
-  // Perfiles del sistema (Programador + extras creados)
+  // Lista limpia de perfiles sin optgroup
   const perfilNames = Object.entries(USUARIOS)
     .filter(([k,v])=> v.perms && v.perms.length > 0)
     .map(([k])=>k)
@@ -1595,39 +1595,11 @@ function populateLoginSelect(){
     .filter((v,i,a)=>a.indexOf(v)===i)
     .sort((a,b)=>a.localeCompare(b));
 
-  // Empleados con cargo Supervisora del sistema IA
-  const normCargo = c => (c||'').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu,'').trim();
-  const iaEmps = (typeof iaState!=='undefined'&&iaState?.employees)||[];
-  const supervisoras = iaEmps
-    .filter(e => !e.disabled && /^supervisor[a]?s?$/.test(normCargo(e.cargo)))
-    .map(e => e.name)
-    .filter(Boolean)
-    .filter(n => !perfilNames.includes(n)) // no duplicar si ya existe como perfil
-    .sort((a,b)=>a.localeCompare(b));
-
-  // Grupo: Perfiles
-  if(perfilNames.length){
-    const grpP = document.createElement('optgroup');
-    grpP.label = 'Perfiles';
-    perfilNames.forEach(nombre=>{
-      const o = document.createElement('option');
-      o.value = nombre; o.textContent = nombre;
-      grpP.appendChild(o);
-    });
-    sel.appendChild(grpP);
-  }
-
-  // Grupo: Supervisoras
-  if(supervisoras.length){
-    const grpS = document.createElement('optgroup');
-    grpS.label = 'Supervisoras';
-    supervisoras.forEach(nombre=>{
-      const o = document.createElement('option');
-      o.value = '__sup__' + nombre; o.textContent = nombre;
-      grpS.appendChild(o);
-    });
-    sel.appendChild(grpS);
-  }
+  perfilNames.forEach(nombre=>{
+    const o = document.createElement('option');
+    o.value = nombre; o.textContent = nombre;
+    sel.appendChild(o);
+  });
 
   if(prev) sel.value = prev;
 }
@@ -3572,7 +3544,7 @@ setInterval(()=>{const n=new Date();document.getElementById('clock').textContent
     <!-- SIDEBAR -->
     <div class="cfg-sidebar">
       <div class="cfg-nav-item cfg-active" id="cfgn-perfiles" onclick="cfgSwitchTab('perfiles',this)"><span>🎭</span> Perfiles</div>
-      <div class="cfg-nav-item" id="cfgn-usuarios" onclick="cfgSwitchTab('usuarios',this)"><span>👥</span> Usuarios</div>
+      <div class="cfg-nav-item" id="cfgn-usuarios" onclick="cfgSwitchTab('usuarios',this)"><span>👥</span> Empleados</div>
       <div class="cfg-nav-item" id="cfgn-cargos" onclick="cfgSwitchTab('cargos',this)"><span>🏷️</span> Cargos</div>
       <div class="cfg-nav-item" id="cfgn-turnos" onclick="cfgSwitchTab('turnos',this)"><span>🕐</span> Turnos</div>
       <div class="cfg-nav-item" id="cfgn-maquinaria" onclick="cfgSwitchTab('maquinaria',this)"><span>⚙️</span> Maquinaria</div>
@@ -3768,9 +3740,18 @@ function cfgExportModulos(){
 function cfgExportAreas(){
   if(typeof XLSX==='undefined'){alert('Librería Excel no disponible');return;}
   const cfg=loadConfig();
-  const areas=cfg._areas||[];
-  if(!areas.length){showToastSimple('No hay áreas para exportar');return;}
-  const ws=XLSX.utils.json_to_sheet(areas.map(a=>({Nombre:a.nombre||a.name||a})));
+  const overrides=cfg._areas_overrides||{};
+  const deleted=cfg._areas_deleted||[];
+  const base=AREAS_CONFIG.filter(a=>!deleted.includes(a.key)).map(a=>({
+    Nombre:(overrides[a.key]&&overrides[a.key].label)||a.label,
+    Icono:(overrides[a.key]&&overrides[a.key].icon)||a.icon||'',
+    Tipo:'Base'
+  }));
+  const extras=(cfg._areas_extra||[]).map(a=>({Nombre:a.label||a.nombre||'',Icono:a.icon||'',Tipo:'Extra'}));
+  const rows=[...base,...extras];
+  if(!rows.length){showToastSimple('No hay áreas para exportar');return;}
+  const ws=XLSX.utils.json_to_sheet(rows);
+  ws['!cols']=[{wch:25},{wch:10},{wch:10}];
   const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Áreas');
   XLSX.writeFile(wb,'areas_millar.xlsx');
   showToastSimple('📥 Áreas exportadas');
@@ -3800,7 +3781,7 @@ function cfgConfirmarLimpiar(){
   const iaS = typeof iaState!=='undefined'&&iaState ? iaState : {};
   if(cfgCurrentTab==='usuarios'){
     if(iaS.employees) iaS.employees=[];
-    if(typeof saveIaState==='function') saveIaState();
+    if(typeof iaSaveState==='function') iaSaveState();
   } else if(cfgCurrentTab==='maquinaria'){
     cfgSaveMaquinaria([]);
   } else if(cfgCurrentTab==='turnos'){
@@ -4235,11 +4216,11 @@ function cfgRenderUsuarios(body){
       const acts=document.createElement('div'); acts.className='cfg-row-acts'; acts.style.cssText='display:flex;gap:4px;';
       const bE=document.createElement('button'); bE.className='cfg-row-btn'; bE.textContent='✏️'; bE.title='Editar'; bE.onclick=()=>cfgOpenUserModal(e);
       const bT=document.createElement('button'); bT.className=`cfg-row-btn tog ${isOff?'on':''}`; bT.textContent=isOff?'✅':'⏸'; bT.title=isOff?'Habilitar':'Inhabilitar';
-      bT.onclick=()=>{ e.disabled=!e.disabled; if(typeof saveIaState==='function') saveIaState(); applyFiltros(); };
+      bT.onclick=()=>{ e.disabled=!e.disabled; if(typeof iaSaveState==='function') iaSaveState(); applyFiltros(); };
       const bD=document.createElement('button'); bD.className='cfg-row-btn del'; bD.textContent='🗑'; bD.title='Eliminar';
       bD.onclick=()=>openConfirmDelete('usuario',e.name,()=>{
         const i=iaS.employees.indexOf(e); if(i>-1) iaS.employees.splice(i,1);
-        if(typeof saveIaState==='function') saveIaState();
+        if(typeof iaSaveState==='function') iaSaveState();
         applyFiltros();
         showToastSimple(`🗑 "${e.name}" eliminada`);
       });
@@ -4298,7 +4279,7 @@ function cfgSaveUserModal(){
   emp.modulo = modulo;
   emp.supId  = supId;   // ahora supId guarda el nombre de la supervisora
   emp.cargo  = cargo;
-  if(typeof saveIaState==='function') saveIaState();
+  if(typeof iaSaveState==='function') iaSaveState();
   document.getElementById('cfg-operaria-modal').style.display='none';
   cfgSwitchTab('usuarios', document.getElementById('cfgn-usuarios'));
   showToastSimple('✅ Usuario actualizado');
@@ -4351,7 +4332,7 @@ function cfgSaveNuevaOperaria(){
     const emp = iaS.employees[idx];
     if(emp){ emp.name=nombre; emp.cedula=cedula; emp.module=modulo; emp.modulo=modulo; emp.supId=supId; emp.cargo=cargo; }
   }
-  if(typeof saveIaState==='function') saveIaState();
+  if(typeof iaSaveState==='function') iaSaveState();
   document.getElementById('cfg-operaria-modal').style.display='none';
   document.getElementById('com-modal-title').textContent='✏️ EDITAR OPERARIA';
   cfgSwitchTab('usuarios', document.getElementById('cfgn-usuarios'));
@@ -4414,7 +4395,7 @@ function cfgImportUsuariosXLS(file){
           added++;
         }
       });
-      if(typeof saveIaState==='function') saveIaState();
+      if(typeof iaSaveState==='function') iaSaveState();
       cfgSwitchTab('usuarios', document.getElementById('cfgn-usuarios'));
       showToastSimple(`✅ Importadas: ${added} nuevas, ${updated} actualizadas`);
     } catch(err){
@@ -5173,8 +5154,8 @@ function cfgRenderMiembrosPerfil(body){
   const list = document.createElement('div');
   list.id = 'members-list';
   list.style.cssText='display:flex;flex-direction:column;gap:8px;';
-  renderMembersList(members);
   body.appendChild(list);
+  renderMembersList(members);
 }
 
 // ── Modal para crear/editar miembro ──────────────────────────────
@@ -6294,8 +6275,8 @@ function getIngresoHTML(){
 }
 .sp-user-btn-back{background:rgba(96,165,250,.12);border:1px solid rgba(96,165,250,.3);color:#93c5fd;}
 .sp-user-btn-back:hover{background:rgba(96,165,250,.22);border-color:rgba(96,165,250,.6);color:#bfdbfe;}
-.sp-user-btn-logout{background:rgba(252,165,165,.1);border:1px solid rgba(252,165,165,.28);color:#fca5a5;}
-.sp-user-btn-logout:hover{background:rgba(239,68,68,.18);border-color:rgba(252,165,165,.55);color:#fecaca;}
+.sp-user-btn-logout{background:rgba(239,68,68,.08);border:1.5px solid rgba(239,68,68,.35);color:#ef4444;font-weight:700;}
+.sp-user-btn-logout:hover{background:rgba(239,68,68,.2);border-color:rgba(239,68,68,.7);color:#fff;}
 
 
 /* ═══════════════════════════════════════════════════════════════
