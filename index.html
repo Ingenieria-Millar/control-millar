@@ -1414,12 +1414,11 @@ function connectWS(){
         if(msg.iaState){ iaState = msg.iaState; populateLoginSelect(); }
         if(msg.iaRecords) iaRecords = msg.iaRecords;
         if(msg.modulesConfig){
-          const cfg=loadConfig();
-          cfg._modulos_disabled=msg.modulesConfig.disabled||[];
-          cfg._modulos_extra=msg.modulesConfig.extra||[];
-          cfg._modulos_renamed=msg.modulesConfig.renamed||{};
-          cfg._modulos_pass=msg.modulesConfig.modPass||{};
-          saveConfig(cfg);
+          // Solo actualizar memoria — NO guardar en servidor (los módulos viven en modules_config.json)
+          _appConfig._modulos_disabled=msg.modulesConfig.disabled||[];
+          _appConfig._modulos_extra=msg.modulesConfig.extra||[];
+          _appConfig._modulos_renamed=msg.modulesConfig.renamed||{};
+          _appConfig._modulos_pass=msg.modulesConfig.modPass||{};
           rebuildModules();
         }
         iaReady = true;
@@ -1428,12 +1427,11 @@ function connectWS(){
         if(currentView==='single') renderBig();
 
       } else if(msg.type==='modules_config'){
-        const cfg=loadConfig();
-        cfg._modulos_disabled=msg.disabled||[];
-        cfg._modulos_extra=msg.extra||[];
-        cfg._modulos_renamed=msg.renamed||{};
-        cfg._modulos_pass=msg.modPass||{};
-        saveConfig(cfg);
+        // Solo actualizar memoria — NO guardar en servidor
+        _appConfig._modulos_disabled=msg.disabled||[];
+        _appConfig._modulos_extra=msg.extra||[];
+        _appConfig._modulos_renamed=msg.renamed||{};
+        _appConfig._modulos_pass=msg.modPass||{};
         rebuildModules();
         updateStats();
         if(currentView==='grid') renderGrid();
@@ -5166,8 +5164,9 @@ function openMemberModal(idx){
   const perfil = _membersCurrentPerfil;
   const members = getProfileMembers(perfil);
   const m = (_editingMemberIdx !== null) ? members[_editingMemberIdx] : null;
-  const nombre = m ? (typeof m==='string'?m:m.nombre) : '';
-  const pass   = m ? (m.pass||'') : '';
+  const nombre  = m ? (typeof m==='string'?m:m.nombre) : '';
+  const pass    = m ? (m.pass||'') : '';
+  const isAdmin = m ? (m.isAdmin||false) : false;
 
   // Remove existing modal if any
   const old = document.getElementById('member-modal-overlay');
@@ -5186,9 +5185,16 @@ function openMemberModal(idx){
         onfocus="this.style.borderColor='#059669'" onblur="this.style.borderColor='#e2e8f0'">
       <label style="font-size:12px;font-weight:700;color:#64748b;letter-spacing:.5px;display:block;margin-bottom:6px;">CONTRASEÑA</label>
       <input id="mm-pass" type="text" value="${pass}" placeholder="Contraseña de acceso"
-        style="width:100%;padding:10px 14px;border-radius:9px;border:1.5px solid #e2e8f0;font-size:14px;font-family:'Nunito',sans-serif;outline:none;margin-bottom:22px;"
+        style="width:100%;padding:10px 14px;border-radius:9px;border:1.5px solid #e2e8f0;font-size:14px;font-family:'Nunito',sans-serif;outline:none;margin-bottom:14px;"
         onfocus="this.style.borderColor='#059669'" onblur="this.style.borderColor='#e2e8f0'"
         onkeydown="if(event.key==='Enter')saveMemberModal()">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 14px;border-radius:9px;border:1.5px solid #e2e8f0;background:#f8fafc;margin-bottom:22px;">
+        <input id="mm-admin" type="checkbox" ${isAdmin?' checked':''} style="width:16px;height:16px;accent-color:#7c3aed;cursor:pointer;">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#0f172a;">Administrador</div>
+          <div style="font-size:11px;color:#94a3b8;">Acceso completo en Control de Ingresos</div>
+        </div>
+      </label>
       <div style="display:flex;gap:10px;">
         <button onclick="closeMemberModal()" style="flex:1;padding:10px;border-radius:9px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#64748b;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Cancelar</button>
         <button onclick="saveMemberModal()" style="flex:2;padding:10px;border-radius:9px;border:none;background:#059669;color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Guardar</button>
@@ -5211,17 +5217,16 @@ function saveMemberModal(){
   const perfil = _membersCurrentPerfil;
   const members = getProfileMembers(perfil);
 
+  const isAdmin = document.getElementById('mm-admin')?.checked || false;
   if(_editingMemberIdx !== null){
-    // Editar existente — conservar disabled
     const disabled = members[_editingMemberIdx].disabled || false;
-    members[_editingMemberIdx] = { nombre, pass, disabled };
+    members[_editingMemberIdx] = { nombre, pass, disabled, isAdmin };
   } else {
-    // Verificar duplicado
     if(members.find(m=>(typeof m==='string'?m:m.nombre)===nombre)){
       document.getElementById('mm-nombre').style.borderColor='#ef4444';
       return;
     }
-    members.push({ nombre, pass, disabled: false });
+    members.push({ nombre, pass, disabled: false, isAdmin });
   }
   saveProfileMembers(perfil, members);
   closeMemberModal();
@@ -5272,7 +5277,7 @@ function renderMembersList(members){
       <div style="display:flex;align-items:center;gap:10px;">
         <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,${isDisabled?'#fee2e2,#fecaca':'#d1fae5,#a7f3d0'});display:flex;align-items:center;justify-content:center;font-size:14px;">👤</div>
         <div>
-          <div style="font-size:14px;font-weight:700;color:#0f172a;">${nombre}</div>
+          <div style="font-size:14px;font-weight:700;color:#0f172a;">${nombre}${m.isAdmin?'<span style="margin-left:6px;font-size:10px;background:#f5f3ff;color:#7c3aed;border-radius:4px;padding:1px 6px;font-weight:700;">ADMIN</span>':''}</div>
           <div style="font-size:11px;color:#94a3b8;">Pass: ${'•'.repeat((m.pass||'').length||4)}${isDisabled?' · <span style=color:#ef4444>INACTIVO</span>':''}</div>
         </div>
       </div>
@@ -7193,11 +7198,14 @@ window.iaDoLogin=function(){
     if(mPass && pass!==mPass){document.getElementById('ia-login-error').style.display='block';return;}
     document.getElementById('ia-login-error').style.display='none';
     currentMember = typeof m==='string'?m:m.nombre;
-    // Crear supervisor temporal en iaState si no existe
+    const memberIsAdmin = typeof m==='object' && m.isAdmin === true;
+    // Crear o actualizar supervisor temporal en iaState
     let sup = iaState.supervisors.find(s=>s.name===currentMember);
     if(!sup){
-      sup={id:'member_tmp_'+idx, name:currentMember, pass:mPass, areas:[], isAdmin:false};
+      sup={id:'member_tmp_'+idx, name:currentMember, pass:mPass, areas:[], isAdmin:memberIsAdmin};
       iaState.supervisors.push(sup);
+    } else {
+      sup.isAdmin = memberIsAdmin;
     }
     iaCurrentUser=sup.id; iaInitApp();
     return;
