@@ -6947,12 +6947,7 @@ html { overflow-x: hidden; max-width: 100%; }
     <div class="ia-panel" id="ia-tab-register">
       <h3>Nuevo Ingreso</h3>
       <div class="ia-reg-grid">
-        <div class="ia-fg hidden" id="ia-admin-sup-filter-wrap" style="grid-column:1/-1">
-          <label>Supervisor (filtrar empleados)</label>
-          <select id="ia-admin-sup-filter" onchange="iaBuildAdminAreaSelect(); iaFilterEmployees()">
-            <option value="">— Todos los empleados —</option>
-          </select>
-        </div>
+<div class="ia-fg hidden" id="ia-admin-sup-filter-wrap" style="display:none!important"><select id="ia-admin-sup-filter"><option value="">— Todos los empleados —</option></select></div>
         <div class="ia-fg" style="grid-column:1/-1">
           <label>Buscar empleado</label>
           <div class="ia-search-wrapper">
@@ -7275,12 +7270,22 @@ function iaRebuildAdminFilterSup(){
 function iaGetAvailableEmployees(){
   const today=iaTodayStr();
   const reg=new Set(iaRecords.filter(r=>r.date===today).map(r=>r.empName));
-  // Todos los empleados activos no registrados hoy
   let pool = (iaState.employees||[]).filter(e=>!e.disabled&&!reg.has(e.name));
-  // Si es admin con filtro de supervisora aplicado
+
   if(iaIsAdmin()){
-    const filtSupId=document.getElementById('ia-admin-sup-filter')?.value;
-    if(filtSupId) pool=pool.filter(e=>e.supId===filtSupId);
+    // Admin: ver todos (sin filtro de supervisora en el formulario)
+  } else {
+    // Supervisora logueada: filtrar solo SUS empleados
+    // currentMember tiene el nombre de la supervisora (ej: "MARIA PINEDA")
+    const supNombre = (typeof currentMember!=='undefined'&&currentMember)
+      ? currentMember
+      : null;
+    if(supNombre){
+      pool = pool.filter(e => {
+        const empSup = (e.supId||e.supNombre||'').toLowerCase();
+        return empSup === supNombre.toLowerCase();
+      });
+    }
   }
   return pool.map(e=>e.name).sort((a,b)=>a.localeCompare(b));
 }
