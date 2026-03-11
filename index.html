@@ -6277,6 +6277,10 @@ function getIngresoHTML(){
   cursor:pointer;transition:all .2s;
 }
 .ia-sort-btn.active{border-color:#2563eb;color:#2563eb;background:rgba(37,99,235,.07);}
+.ia-filter-row th{padding:4px 6px!important;background:#f8fafc;}
+.ia-col-filter{width:100%;padding:5px 8px;font-size:.75rem;border:1.5px solid #e2e8f0;border-radius:6px;background:#fff;color:#0f172a;font-family:'Nunito',sans-serif;outline:none;transition:border-color .2s;box-sizing:border-box;}
+.ia-col-filter:focus{border-color:#2563eb;}
+.ia-col-filter::placeholder{color:#94a3b8;}
 .ia-btn-excel{
   padding:.55rem 1.2rem;
   background:rgba(5,150,105,.1);border:1px solid rgba(5,150,105,.3);
@@ -7171,17 +7175,30 @@ html { overflow-x: hidden; max-width: 100%; }
         <div class="ia-date-row">
           <div class="ia-ctrl-grp"><label>Desde</label><input type="date" id="ia-filter-from" onchange="iaRenderHistory()"></div>
           <div class="ia-ctrl-grp"><label>Hasta</label><input type="date" id="ia-filter-to" onchange="iaRenderHistory()"></div>
-          <div class="ia-sort-controls">
-            <span class="ia-sort-label">Ordenar:</span>
-            <button class="ia-sort-btn active" id="ia-sort-area-btn" onclick="iaSetSortHistory('area')">Por Área</button>
-            <button class="ia-sort-btn" id="ia-sort-name-btn" onclick="iaSetSortHistory('name')">Por Nombre</button>
-          </div>
           <button class="ia-btn-excel hidden" id="ia-btn-export-hist" onclick="iaExportExcel('history')">📊 Descargar Excel</button>
         </div>
       </div>
       <div class="ia-table-wrap">
         <table class="ia-table">
-          <thead><tr><th>#</th><th>Empleado</th><th>Área</th><th>Fecha</th><th>Supervisor</th><th>Estado</th><th>Observaciones</th></tr></thead>
+          <thead>
+            <tr><th>#</th><th>Empleado</th><th>Módulo / Novedad</th><th>Fecha</th><th>Supervisor</th><th>Estado</th><th>Observaciones</th></tr>
+            <tr class="ia-filter-row">
+              <th></th>
+              <th><input class="ia-col-filter" type="text" placeholder="Filtrar..." oninput="iaRenderHistory()" id="ia-fh-emp"></th>
+              <th><input class="ia-col-filter" type="text" placeholder="Filtrar..." oninput="iaRenderHistory()" id="ia-fh-area"></th>
+              <th><input class="ia-col-filter" type="text" placeholder="Filtrar..." oninput="iaRenderHistory()" id="ia-fh-fecha"></th>
+              <th><input class="ia-col-filter" type="text" placeholder="Filtrar..." oninput="iaRenderHistory()" id="ia-fh-sup"></th>
+              <th>
+                <select class="ia-col-filter" oninput="iaRenderHistory()" id="ia-fh-estado" style="padding:5px 6px;">
+                  <option value="">Todos</option>
+                  <option value="presente">✅ Presente</option>
+                  <option value="falto">❌ Faltó</option>
+                  <option value="novedad">🟡 Novedad</option>
+                </select>
+              </th>
+              <th></th>
+            </tr>
+          </thead>
           <tbody id="ia-hist-body"></tbody>
         </table>
         <div class="ia-empty" id="ia-hist-empty">📭 No hay registros para este rango</div>
@@ -7274,7 +7291,7 @@ html { overflow-x: hidden; max-width: 100%; }
     <h4>✏️ Editar Registro</h4>
     <div class="ia-fg"><label>Empleado</label><input type="text" id="ia-edit-emp" readonly style="opacity:.6;cursor:not-allowed;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;color:#0f172a;padding:.75rem 1rem;width:100%;"></div>
     <div class="ia-fg"><label>Área</label><select id="ia-edit-area" style="width:100%;padding:.75rem 1rem;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;color:#0f172a;outline:none;"></select></div>
-    <div class="ia-fg"><label>Estado</label><select id="ia-edit-status" style="width:100%;padding:.75rem 1rem;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;color:#0f172a;outline:none;"><option value="presente">✅ Presente</option><option value="falto">❌ Faltó</option></select></div>
+    <div class="ia-fg"><label>Estado</label><select id="ia-edit-status" onchange="iaEditStatusChange()" style="width:100%;padding:.75rem 1rem;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;color:#0f172a;outline:none;"><option value="presente">✅ Presente</option><option value="falto">❌ Faltó</option><option value="novedad">🟡 Novedad</option></select></div>
     <div class="ia-fg"><label>Supervisor</label><select id="ia-edit-supervisor" style="width:100%;padding:.75rem 1rem;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;color:#0f172a;outline:none;"></select></div>
     <div class="ia-fg"><label>Observaciones</label><textarea id="ia-edit-obs" placeholder="Observaciones opcionales..." style="width:100%;padding:.75rem 1rem;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;color:#0f172a;outline:none;font-family:'Nunito',sans-serif;font-size:.9rem;resize:vertical;min-height:70px;"></textarea></div>
     <div class="ia-modal-actions">
@@ -7628,8 +7645,6 @@ window.iaShowTab=function(name,btn){
 };
 window.iaSetSortHistory=function(mode){
   iaSortHistory=mode;
-  document.getElementById('ia-sort-area-btn').classList.toggle('active',mode==='area');
-  document.getElementById('ia-sort-name-btn').classList.toggle('active',mode==='name');
   iaRenderHistory();
 };
 window.iaSetSortAdmin=function(mode){
@@ -7641,6 +7656,17 @@ window.iaSetSortAdmin=function(mode){
 function iaRenderHistory(){
   const sup=iaGetSup(iaCurrentUser);
   let data=iaIsAdmin()?iaFilterByRange([...iaRecords],'ia-filter-from','ia-filter-to'):iaFilterByRange(iaRecords.filter(r=>r.supervisor===sup.name),'ia-filter-from','ia-filter-to');
+  // Filtros por columna
+  const fEmp=(document.getElementById('ia-fh-emp')?.value||'').toLowerCase().trim();
+  const fArea=(document.getElementById('ia-fh-area')?.value||'').toLowerCase().trim();
+  const fFecha=(document.getElementById('ia-fh-fecha')?.value||'').toLowerCase().trim();
+  const fSup=(document.getElementById('ia-fh-sup')?.value||'').toLowerCase().trim();
+  const fEst=(document.getElementById('ia-fh-estado')?.value||'');
+  if(fEmp)   data=data.filter(r=>r.empName.toLowerCase().includes(fEmp));
+  if(fArea)  data=data.filter(r=>(r.area||'').toLowerCase().includes(fArea));
+  if(fFecha) data=data.filter(r=>(r.date||'').toLowerCase().includes(fFecha));
+  if(fSup)   data=data.filter(r=>(r.supervisor||'').toLowerCase().includes(fSup));
+  if(fEst)   data=data.filter(r=>r.status===fEst);
   data=iaSortData(data,iaSortHistory);
   const tbody=document.getElementById('ia-hist-body'),empty=document.getElementById('ia-hist-empty');
   if(!data.length){tbody.innerHTML='';empty.style.display='block';return;}
@@ -7649,7 +7675,7 @@ function iaRenderHistory(){
     <td>${i+1}</td><td>${r.empName}</td>
     <td>${r.status==='falto'?'<span style="color:#ef4444">—</span>':r.status==='novedad'?`<span class="ia-badge" style="background:#fef9c3;color:#854d0e;border:1px solid #fde68a;">🟡 ${r.area}</span>`:`<span class="ia-badge area">${r.area}</span>`}</td>
     <td>${r.date}</td><td>${r.supervisor}</td>
-    <td>${r.status==='falto'?'<span class="ia-badge out">❌ Faltó</span>':r.status==='novedad'?'<span class="ia-badge" style="background:#fef9c3;color:#854d0e;border:1px solid #fde68a;">🟡 Novedad</span>':'<span class="ia-badge in">✅ Presente</span>'}</td>
+    <td>${r.status==='falto'?'<span class="ia-badge out">❌ Faltó</span>':r.status==='novedad'?`<span class="ia-badge" style="background:#fef9c3;color:#854d0e;border:1px solid #fde68a;">🟡 ${r.area}</span>`:'<span class="ia-badge in">✅ Presente</span>'}</td>
     <td><textarea class="ia-obs-input" data-id="${r.id}" placeholder="Agregar observación..." onchange="iaSaveObs('${r.id}',this.value)">${r.obs||''}</textarea></td>
   </tr>`).join('');
 }
@@ -7665,7 +7691,7 @@ function iaRenderAdminTable(){
     <td>${i+1}</td><td>${r.empName}</td>
     <td>${r.status==='falto'?'<span style="color:#ef4444">—</span>':r.status==='novedad'?`<span class="ia-badge" style="background:#fef9c3;color:#854d0e;border:1px solid #fde68a;">🟡 ${r.area}</span>`:`<span class="ia-badge area">${r.area}</span>`}</td>
     <td>${r.date}</td><td>${r.supervisor}</td>
-    <td>${r.status==='falto'?'<span class="ia-badge out">❌ Faltó</span>':r.status==='novedad'?'<span class="ia-badge" style="background:#fef9c3;color:#854d0e;border:1px solid #fde68a;">🟡 Novedad</span>':'<span class="ia-badge in">✅ Presente</span>'}</td>
+    <td>${r.status==='falto'?'<span class="ia-badge out">❌ Faltó</span>':r.status==='novedad'?`<span class="ia-badge" style="background:#fef9c3;color:#854d0e;border:1px solid #fde68a;">🟡 ${r.area}</span>`:'<span class="ia-badge in">✅ Presente</span>'}</td>
     <td><textarea class="ia-obs-input" data-id="${r.id}" placeholder="Agregar observación..." onchange="iaSaveObs('${r.id}',this.value)">${r.obs||''}</textarea></td>
     <td><button class="ia-btn-edit" onclick="iaOpenEditRecord('${r.id}')">✏️ Editar</button></td>
   </tr>`).join('');
@@ -7684,7 +7710,7 @@ window.iaExportExcel=function(panel){
   }
   if(!data.length){alert('No hay registros para exportar.');return;}
   const from=document.getElementById(fromId).value||'todos',to=document.getElementById(toId).value||'todos';
-  const wsData=[['#','Empleado','Área','Fecha','Supervisor','Estado','Observaciones'],...data.map((r,i)=>[i+1,r.empName,r.area,r.date,r.supervisor,r.status==='falto'?'Faltó':'Presente',r.obs||''])];
+  const wsData=[['#','Empleado','Módulo / Novedad','Fecha','Supervisor','Estado','Observaciones'],...data.map((r,i)=>[i+1,r.empName,r.area,r.date,r.supervisor,r.status==='falto'?'Faltó':r.status==='novedad'?'Novedad: '+r.area:'Presente',r.obs||''])];
   const wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet(wsData);
   ws['!cols']=[{wch:5},{wch:40},{wch:8},{wch:12},{wch:20},{wch:12},{wch:35}];
   XLSX.utils.book_append_sheet(wb,ws,'Asistencia');
@@ -7695,14 +7721,36 @@ window.iaOpenEditRecord=function(id){
   iaEditingRecordId=id;
   document.getElementById('ia-edit-emp').value=r.empName;
   document.getElementById('ia-edit-status').value=r.status;
+  // Área (módulos)
   const allAreas=[...new Set(iaNonAdminSups().flatMap(s=>s.areas||[]))].sort((a,b)=>iaAreaOrder(a)-iaAreaOrder(b));
   const asel=document.getElementById('ia-edit-area');
   asel.innerHTML='<option value="">— Sin módulo —</option>';
-  allAreas.forEach(a=>{const o=document.createElement('option');o.value=a;o.textContent=a;if(a===r.area)o.selected=true;asel.appendChild(o);});
+  allAreas.forEach(a=>{const o=document.createElement('option');o.value=a;o.textContent=a;if(a===r.area&&r.status!=='novedad')o.selected=true;asel.appendChild(o);});
+  // Si es novedad, agregar opciones de novedad al select de área
+  if(r.status==='novedad'){
+    const novedades=cfgGetNovedades();
+    asel.innerHTML='<option value="">— Seleccionar novedad —</option>';
+    novedades.forEach(n=>{const o=document.createElement('option');o.value=n.nombre;o.textContent=n.emoji+' '+n.nombre;if(n.nombre===r.area)o.selected=true;asel.appendChild(o);});
+  }
   const ssel=document.getElementById('ia-edit-supervisor');ssel.innerHTML='';
   iaNonAdminSups().forEach(s=>{const o=document.createElement('option');o.value=s.name;o.textContent=s.name;if(s.name===r.supervisor)o.selected=true;ssel.appendChild(o);});
   iaOpenModal('ia-edit-modal');
   document.getElementById('ia-edit-obs').value=r.obs||'';
+};
+window.iaEditStatusChange=function(){
+  const status=document.getElementById('ia-edit-status').value;
+  const asel=document.getElementById('ia-edit-area');
+  if(status==='novedad'){
+    const novedades=cfgGetNovedades();
+    asel.innerHTML='<option value="">— Seleccionar novedad —</option>';
+    novedades.forEach(n=>{const o=document.createElement('option');o.value=n.nombre;o.textContent=n.emoji+' '+n.nombre;asel.appendChild(o);});
+  } else if(status==='falto'){
+    asel.innerHTML='<option value="">— Sin módulo —</option>';
+  } else {
+    const allAreas=[...new Set(iaNonAdminSups().flatMap(s=>s.areas||[]))].sort((a,b)=>iaAreaOrder(a)-iaAreaOrder(b));
+    asel.innerHTML='<option value="">— Sin módulo —</option>';
+    allAreas.forEach(a=>{const o=document.createElement('option');o.value=a;o.textContent=a;asel.appendChild(o);});
+  }
 };
 window.iaSaveEdit=function(){
   const r=iaRecords.find(x=>x.id===iaEditingRecordId);if(!r)return;
