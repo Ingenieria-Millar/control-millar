@@ -4225,8 +4225,9 @@ function cfgRenderUsuarios(body){
     }
     tbl.querySelectorAll('.cfg-user-row').forEach(r=>r.remove());
     list.forEach(e=>{
-      const supObj = sups.find(s=>s.id===e.supId||s.name===e.supId)||iaS.supervisors?.find(s=>s.id===e.supId||s.name===e.supId);
-      const supNombreRow = supObj?supObj.name:(e.supId||e.supNombre||e.supervisora||'');
+      // supId puede ser el nombre directo (miembro de perfil) o un id de iaState.supervisors
+      const supObj = (iaS.supervisors||[]).find(s=>s.id===e.supId||s.name===e.supId);
+      const supNombreRow = supObj ? supObj.name : (e.supId||e.supNombre||e.supervisora||'');
       const isOff=!!e.disabled;
       const row=document.createElement('div'); row.className='cfg-user-row'+(isOff?' disabled':'');
       row.style.gridTemplateColumns=COLS;
@@ -4254,8 +4255,6 @@ function cfgRenderUsuarios(body){
 // ── MODAL EDITAR/CREAR USUARIO ────────────────────────────────────
 function cfgOpenUserModal(emp){
   const iaS = typeof iaState!=='undefined'&&iaState ? iaState : {supervisors:[]};
-  const allEmps = iaS.employees||[];
-  const sups = allEmps.filter(e=>!e.disabled&&/^supervisor[a]?$/i.test((e.cargo||'').trim()));
   const modal = document.getElementById('cfg-operaria-modal');
   if(!modal){ console.error('cfg-operaria-modal not found'); return; }
   document.getElementById('com-target-idx').value = (iaS.employees||[]).indexOf(emp);
@@ -4269,9 +4268,13 @@ function cfgOpenUserModal(emp){
   const selCargo = document.getElementById('com-cargo');
   const cargosM = cfgGetCargos();
   selCargo.innerHTML='<option value="">Sin cargo</option>'+cargosM.map(c=>`<option value="${c.nombre}"${emp.cargo===c.nombre?' selected':''}>${c.nombre}</option>`).join('');
-  // Poblar supervisoras
+  // Poblar supervisoras: usar miembros de perfiles
   const selSup = document.getElementById('com-supervisora');
-  selSup.innerHTML = '<option value="">Sin supervisora</option>'+sups.map(s=>`<option value="${s.name}"${emp.supId===s.name?' selected':''}>${s.name}</option>`).join('');
+  const allPerfilMembers = (_appConfig&&_appConfig._perfil_members)
+    ? Object.values(_appConfig._perfil_members).flat().filter(m=>!(m.disabled))
+    : [];
+  const supNames = [...new Set(allPerfilMembers.map(m=>typeof m==='string'?m:m.nombre).filter(Boolean))].sort();
+  selSup.innerHTML = '<option value="">Sin supervisora</option>'+supNames.map(n=>`<option value="${n}"${emp.supId===n?' selected':''}>${n}</option>`).join('');
   document.getElementById('com-error').textContent='';
   document.getElementById('com-modal-title').textContent='✏️ EDITAR USUARIO';
   modal.style.display='flex';
@@ -4305,7 +4308,11 @@ function cfgSaveUserModal(){
 function cfgOpenNuevaOperaria(){
   const iaS = typeof iaState!=='undefined'&&iaState ? iaState : {supervisors:[]};
   const allEmpsN = iaS.employees||[];
-  const supsN = allEmpsN.filter(e=>!e.disabled&&/^supervisor[a]?$/i.test((e.cargo||'').trim()));
+  // Supervisoras: usar miembros de perfiles
+  const _allPM = (_appConfig&&_appConfig._perfil_members)
+    ? Object.values(_appConfig._perfil_members).flat().filter(m=>!(m.disabled))
+    : [];
+  const supsN = [...new Set(_allPM.map(m=>typeof m==='string'?m:m.nombre).filter(Boolean))].sort().map(n=>({name:n}));
   const modal = document.getElementById('cfg-operaria-modal');
   if(!modal){ console.error('cfg-operaria-modal not found'); return; }
   document.getElementById('com-target-idx').value = '-1';
@@ -4378,11 +4385,26 @@ function cfgImportUsuariosXLS(file){
         // Validar módulo: debe existir en MODULES
         const moduloValido = (typeof MODULES!=='undefined' && MODULES.includes(moduloRaw)) ? moduloRaw : '';
         const modulo = moduloValido;
-        // Validar supervisora: debe ser un empleado activo con cargo supervisora/supervisor
-        const allEmps = iaS.employees||[];
-        const supsActivas = allEmps.filter(e=>!e.disabled&&/^supervisor[a]?$/i.test((e.cargo||'').trim()));
-        const supMatch = supsActivas.find(s=>s.name.toLowerCase()===supNom.toLowerCase());
-        const supId = supMatch ? supMatch.name : '';
+        // Validar supervisora: buscar en miembros del perfil (cualquier perfil del sistema)
+        let supId = '';
+        if(supNom){
+          // 1. Buscar en miembros de perfiles (_perfil_members)
+          const allPerfilMembers = _appConfig && _appConfig._perfil_members
+            ? Object.values(_appConfig._perfil_members).flat()
+            : [];
+          const memberMatch = allPerfilMembers.find(m=>{
+            const mNombre = typeof m==='string'?m:m.nombre;
+            return mNombre && mNombre.toLowerCase()===supNom.toLowerCase();
+          });
+          if(memberMatch){
+            supId = typeof memberMatch==='string'?memberMatch:memberMatch.nombre;
+          } else {
+            // 2. Fallback: buscar en iaState.employees con cargo supervisora
+            const supsActivas = (iaS.employees||[]).filter(e=>!e.disabled&&/^supervisor[a]?s?$/i.test((e.cargo||'').trim()));
+            const supMatch = supsActivas.find(s=>s.name.toLowerCase()===supNom.toLowerCase());
+            supId = supMatch ? supMatch.name : supNom; // guardar el nombre tal cual si no encontró
+          }
+        }
         const existing = iaS.employees.find(e=>e.cedula&&e.cedula===cedula);
         if(existing){
           existing.name=nombre; existing.cargo=cargo; existing.module=modulo; existing.modulo=modulo; existing.supId=supId; existing.disabled=(estado==='inactiva');
