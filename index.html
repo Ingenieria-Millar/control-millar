@@ -1411,7 +1411,7 @@ function connectWS(){
           if(msg.lastMec[id]) lastMec[id]=msg.lastMec[id];
         });
         // ── Control de Asistencia: recibir datos del servidor ──
-        if(msg.iaState)   iaState   = msg.iaState;
+        if(msg.iaState){ iaState = msg.iaState; populateLoginSelect(); }
         if(msg.iaRecords) iaRecords = msg.iaRecords;
         if(msg.modulesConfig){
           const cfg=loadConfig();
@@ -1476,6 +1476,7 @@ function connectWS(){
       } else if(msg.type==='ia_save_state'){
         iaState = msg.state;
         if(typeof iaBuildLoginSelect==='function') iaBuildLoginSelect();
+        populateLoginSelect(); // refrescar supervisoras en login
         if(typeof iaReady!=='undefined'&&iaReady){
           const tabs=['register','history','records','config'];let at='register';
           tabs.forEach(t=>{const b=document.getElementById('ia-tab-btn-'+t);if(b&&b.classList.contains('active'))at=t;});
@@ -1582,21 +1583,52 @@ function populateLoginSelect(){
   const sel = document.getElementById('login-user');
   const prev = sel.value;
   sel.innerHTML = '<option value="">— Selecciona tu usuario —</option>';
-  // Usuarios activos ordenados alfabéticamente
+
   const cfg = loadConfig();
   const extras = (cfg._usuarios_extra||[]).filter(u=>!u.disabled);
-  const allNames = Object.entries(USUARIOS)
-    .filter(([k,v])=> v.perms && v.perms.length > 0) // solo habilitados
+
+  // Perfiles del sistema (Programador + extras creados)
+  const perfilNames = Object.entries(USUARIOS)
+    .filter(([k,v])=> v.perms && v.perms.length > 0)
     .map(([k])=>k)
     .concat(extras.map(u=>u.nombre))
-    .filter((v,i,a)=>a.indexOf(v)===i) // deduplicar
+    .filter((v,i,a)=>a.indexOf(v)===i)
     .sort((a,b)=>a.localeCompare(b));
-  allNames.forEach(nombre=>{
-    const o = document.createElement('option');
-    o.value = nombre;
-    o.textContent = nombre;
-    sel.appendChild(o);
-  });
+
+  // Empleados con cargo Supervisora del sistema IA
+  const normCargo = c => (c||'').toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu,'').trim();
+  const iaEmps = (typeof iaState!=='undefined'&&iaState?.employees)||[];
+  const supervisoras = iaEmps
+    .filter(e => !e.disabled && /^supervisor[a]?s?$/.test(normCargo(e.cargo)))
+    .map(e => e.name)
+    .filter(Boolean)
+    .filter(n => !perfilNames.includes(n)) // no duplicar si ya existe como perfil
+    .sort((a,b)=>a.localeCompare(b));
+
+  // Grupo: Perfiles
+  if(perfilNames.length){
+    const grpP = document.createElement('optgroup');
+    grpP.label = 'Perfiles';
+    perfilNames.forEach(nombre=>{
+      const o = document.createElement('option');
+      o.value = nombre; o.textContent = nombre;
+      grpP.appendChild(o);
+    });
+    sel.appendChild(grpP);
+  }
+
+  // Grupo: Supervisoras
+  if(supervisoras.length){
+    const grpS = document.createElement('optgroup');
+    grpS.label = 'Supervisoras';
+    supervisoras.forEach(nombre=>{
+      const o = document.createElement('option');
+      o.value = '__sup__' + nombre; o.textContent = nombre;
+      grpS.appendChild(o);
+    });
+    sel.appendChild(grpS);
+  }
+
   if(prev) sel.value = prev;
 }
 
@@ -1626,15 +1658,29 @@ window.addEventListener('DOMContentLoaded', async ()=>{
 // PANTALLA 1 — LOGIN
 // ══════════════════════════════════════════════════════════════════
 function submitLogin(){
-  const usuario=document.getElementById('login-user').value;
+  const rawVal=document.getElementById('login-user').value;
   const pass=document.getElementById('login-pass').value;
   const err=document.getElementById('login-error');
   const inp=document.getElementById('login-pass');
-  if(!usuario){err.textContent='Selecciona un usuario';return;}
+  if(!rawVal){err.textContent='Selecciona un usuario';return;}
+
+  // ── Supervisora (login sin contraseña, accede a área de producción) ──
+  if(rawVal.startsWith('__sup__')){
+    const supNombre = rawVal.replace('__sup__','');
+    currentUser = supNombre;
+    currentUserRol = 'supervisora';
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('login-pass').value='';
+    document.getElementById('login-error').textContent='';
+    mostrarAreaScreen(); return;
+  }
+
+  const usuario = rawVal;
   if(!USUARIOS[usuario]){err.textContent='Usuario no válido';return;}
   // Usuario Módulos entra sin contraseña
   if(usuario==='Modulos'){
     currentUser=usuario;
+    currentUserRol='';
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('login-pass').value='';
     document.getElementById('login-error').textContent='';
@@ -1645,6 +1691,7 @@ function submitLogin(){
     setTimeout(()=>{inp.classList.remove('error');inp.focus();},400);return;
   }
   currentUser=usuario;
+  currentUserRol='';
   document.getElementById('login-screen').classList.add('hidden');
   document.getElementById('login-pass').value='';
   document.getElementById('login-error').textContent='';
@@ -4169,8 +4216,8 @@ function cfgRenderUsuarios(body){
     }
     tbl.querySelectorAll('.cfg-user-row').forEach(r=>r.remove());
     list.forEach(e=>{
-      const supObj = sups.find(s=>s.id===e.supId)||iaS.supervisors?.find(s=>s.id===e.supId);
-      const supNombreRow = supObj?supObj.name:(e.supNombre||e.supervisora||'');
+      const supObj = sups.find(s=>s.id===e.supId||s.name===e.supId)||iaS.supervisors?.find(s=>s.id===e.supId||s.name===e.supId);
+      const supNombreRow = supObj?supObj.name:(e.supId||e.supNombre||e.supervisora||'');
       const isOff=!!e.disabled;
       const row=document.createElement('div'); row.className='cfg-user-row'+(isOff?' disabled':'');
       row.style.gridTemplateColumns=COLS;
