@@ -7535,10 +7535,24 @@ window.iaBuildAdminAreaSelect=function(){iaBuildAreaSelect();};
 function iaBuildAreaSelect(){
   const asel=document.getElementById('ia-emp-area');
   if(!asel) return;
-  // Reconstruir MODULES para incluir extras y renombrados actualizados
   if(typeof rebuildModules==='function') rebuildModules();
   asel.innerHTML='<option value="">— Seleccionar módulo —</option>';
-  const mods = typeof MODULES!=='undefined' ? MODULES : [];
+  let mods=[];
+  if(iaIsAdmin()){
+    mods=typeof MODULES!=='undefined'?MODULES:[];
+    if(!mods.length){
+      const cfg=typeof loadConfig==='function'?loadConfig():{};
+      const disabled=cfg._modulos_disabled||[];
+      const extra=cfg._modulos_extra||[];
+      const renamed=cfg._modulos_renamed||{};
+      const base=['M01','M02','M03','M04','M05','M06','M07','M08','M09','M10','M11','M12','M13','M14','M15','M16','M17','M18','M19','M20','M21','M22','M23','M24','M25','M26','M27'];
+      mods=[...base,...extra].filter(m=>!disabled.includes(m)).map(m=>renamed[m]||m);
+    }
+  } else {
+    const sup=iaGetSup(iaCurrentUser);
+    const supAreas=sup&&sup.areas&&sup.areas.length?sup.areas:null;
+    mods=supAreas||(typeof MODULES!=='undefined'?MODULES:[]);
+  }
   mods.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;asel.appendChild(o);});
 }
 function iaRebuildAdminFilterSup(){
@@ -7839,12 +7853,13 @@ setInterval(function(){
 function iaUpdateStats(){
   const today=iaTodayStr();
   const sup=iaGetSup(iaCurrentUser);
+  const supName=sup?sup.name:(typeof currentMember!=='undefined'?currentMember:'');
   let tr=iaRecords.filter(r=>r.date===today);
-  if(sup&&!sup.isAdmin) tr=tr.filter(r=>r.supervisor===sup.name);
+  if(!iaIsAdmin()&&supName) tr=tr.filter(r=>r.supervisor===supName);
   document.getElementById('ia-stat-today').textContent=tr.filter(r=>r.status==='presente').length;
   document.getElementById('ia-stat-absent').textContent=tr.filter(r=>r.status==='falto'||r.status==='novedad').length;
   const pending=document.getElementById('ia-stat-pending');
-  if(pending) pending.textContent=(iaState.employees.filter(e=>!e.disabled&&(!sup||sup.isAdmin||e.supId===iaCurrentUser)).length-tr.length);
+  if(pending){ const empCount=iaState.employees.filter(e=>!e.disabled&&(!sup||sup.isAdmin||(e.supId&&e.supId===sup.name))).length; pending.textContent=Math.max(0,empCount-tr.length); }
   const dateEl=document.getElementById('ia-stat-date');
   if(dateEl) dateEl.textContent=iaFormatDateLong(today);
 }
@@ -7854,8 +7869,9 @@ function iaRenderTodayChips(){
   const c=document.getElementById('ia-today-chips');if(!c)return;
   const today=iaTodayStr();
   const sup=iaGetSup(iaCurrentUser);
+  const supName=sup?sup.name:(typeof currentMember!=='undefined'?currentMember:'');
   let recs=iaRecords.filter(r=>r.date===today);
-  if(sup&&!sup.isAdmin) recs=recs.filter(r=>r.supervisor===sup.name);
+  if(!iaIsAdmin()&&supName) recs=recs.filter(r=>r.supervisor===supName);
   recs=iaSortData(recs,iaSortHistory);
   if(!recs.length){c.innerHTML='<span style="color:#6b7a99;font-size:.85rem;">Aún no hay registros hoy</span>';return;}
   c.innerHTML=recs.map(r=>(r.status==='falto'||r.status==='novedad')
@@ -7868,7 +7884,8 @@ function iaRenderTodayChips(){
 // ── Historial de Asistencia ───────────────────────────────────────
 function iaRenderHistory(){
   const sup=iaGetSup(iaCurrentUser);
-  let data=iaIsAdmin()?iaFilterByRange([...iaRecords],'ia-filter-from','ia-filter-to'):iaFilterByRange(iaRecords.filter(r=>r.supervisor===sup.name),'ia-filter-from','ia-filter-to');
+  const supName=sup?sup.name:(typeof currentMember!=='undefined'?currentMember:'');
+  let data=iaIsAdmin()?iaFilterByRange([...iaRecords],'ia-filter-from','ia-filter-to'):iaFilterByRange(iaRecords.filter(r=>r.supervisor===supName),'ia-filter-from','ia-filter-to');
   const fEmp=(document.getElementById('ia-fh-emp')?.value||'').toLowerCase().trim();
   const fArea=(document.getElementById('ia-fh-area')?.value||'').toLowerCase().trim();
   const fFecha=(document.getElementById('ia-fh-fecha')?.value||'').toLowerCase().trim();
