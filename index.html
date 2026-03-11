@@ -1582,12 +1582,16 @@ function populateLoginSelect(){
   const prev = sel.value;
   sel.innerHTML = '<option value="">— Selecciona un perfil —</option>';
 
+  // Programador SIEMPRE aparece primero, sin depender de config
+  const oP = document.createElement('option');
+  oP.value = 'Programador'; oP.textContent = 'Programador';
+  sel.appendChild(oP);
+
   const cfg = loadConfig();
   const extras = (cfg._usuarios_extra||[]).filter(u=>!u.disabled);
 
-  // Lista limpia de perfiles sin optgroup
   const perfilNames = Object.entries(USUARIOS)
-    .filter(([k,v])=> v.perms && v.perms.length > 0)
+    .filter(([k,v])=> k !== 'Programador' && v.perms && v.perms.length > 0)
     .map(([k])=>k)
     .concat(extras.map(u=>u.nombre))
     .filter((v,i,a)=>a.indexOf(v)===i)
