@@ -1228,7 +1228,6 @@ tr:hover td{background:#f8fafc;}
       <div class="sp-modtable-grid" id="modtable-grid"></div>
     </div>
     <div class="sp-footer">
-      <button class="sp-logout-btn" onclick="volverAArea()">⬅ Atrás</button>
       <span class="sp-right-foot">© 2026 Ingenieria Confecciones Millar S.A.S.</span>
     </div>
   </div>
@@ -1359,6 +1358,14 @@ const states={}, timers={}, lastMec={}, acumRed={}, acumYellow={}, acumBlue={}, 
 MODULES.forEach(id=>{ states[id]='green'; timers[id]=Date.now(); lastMec[id]=''; acumRed[id]=0; acumYellow[id]=0; acumBlue[id]=0; acumOrange[id]=0; });
 
 let selectedMod=null, activeFilters=new Set(), currentView=null, pendingTransicion=null, currentUser=null;
+// ── Historial de navegación (stack) ──────────────────────────────
+const navHistory = [];
+function navPush(screen){ navHistory.push(screen); }
+function navBack(){
+  if(navHistory.length > 1) navHistory.pop();
+  const prev = navHistory[navHistory.length - 1];
+  if(prev) prev();
+}
 function hasPerm(p){ return currentUser&&USUARIOS[currentUser]&&USUARIOS[currentUser].perms.includes(p); }
 function isProg(){ return hasPerm('fix')&&hasPerm('modulos')&&hasPerm('tablero'); }
 
@@ -1678,6 +1685,7 @@ function submitLogin(){
 // PANTALLA 2 — SELECCIÓN DE ÁREA
 // ══════════════════════════════════════════════════════════════════
 function mostrarAreaScreen(){
+  navPush(mostrarAreaScreen);
   const btns=document.getElementById('area-btns');btns.innerHTML='';
 
   // Actualizar info de usuario en todos los paneles izquierdos
@@ -1851,7 +1859,7 @@ function mostrarSubMenuMecanicos(){
   back.className='sp-left-logout-btn';
   back.style.cssText='margin-top:4px;grid-column:1/-1;width:100%;justify-content:center;background:rgba(15,23,42,.06);border-color:#e2e8f0;color:#64748b;';
   back.textContent='⬅ Atrás';
-  back.onclick=mostrarAreaScreen;
+  back.onclick=navBack;
   btns.appendChild(back);
 }
 
@@ -1910,12 +1918,13 @@ function mostrarSubMenuCI(){
   back.className='sp-left-logout-btn';
   back.style.cssText='margin-top:4px;grid-column:1/-1;width:100%;justify-content:center;background:rgba(15,23,42,.06);border-color:#e2e8f0;color:#64748b;';
   back.textContent='⬅ Atrás';
-  back.onclick=mostrarAreaScreen;
+  back.onclick=navBack;
   btns.appendChild(back);
 }
 
 // Sub-menú dentro de Producción (Programador / Administrador)
 function mostrarSubMenuProduccion(){
+  navPush(mostrarSubMenuProduccion);
   const btns=document.getElementById('area-btns');btns.innerHTML='';
   function makeCard(icon,name,desc,colorClass,cb){
     const card=document.createElement('div');card.className='area-card-new '+colorClass;
@@ -1935,12 +1944,13 @@ function mostrarSubMenuProduccion(){
   back.className='sp-left-logout-btn';
   back.style.cssText='margin-top:4px;grid-column:1/-1;width:100%;justify-content:center;background:rgba(15,23,42,.06);border-color:#e2e8f0;color:#64748b;';
   back.textContent='⬅ Atrás';
-  back.onclick=mostrarAreaScreen;
+  back.onclick=navBack;
   btns.appendChild(back);
 }
 
 // Función para usuario Módulos: muestra login de módulo con listado
 function mostrarLoginModulos(){
+  navPush(mostrarLoginModulos);
   document.getElementById('modulo-pass').value='';
   document.getElementById('modulo-error').textContent='';
   ['p2','p3','p4'].forEach(function(id){
@@ -1999,6 +2009,7 @@ function submitModuloLogin(){
 
 // ── NAVEGACIÓN ────────────────────────────────────────────────────
 function volverLogin(){
+  navHistory.length = 0;
   ocultarTodo();currentUser=null;selectedMod=null;
   populateLoginSelect();
   document.getElementById('login-user').value='';
@@ -2008,7 +2019,7 @@ function volverLogin(){
 }
 function volverAArea(){
   ['modulo-login-screen','modtable-screen'].forEach(id=>document.getElementById(id).classList.add('hidden'));
-  mostrarAreaScreen();
+  navBack();
 }
 function ocultarTodo(){
   ['area-screen','modulo-login-screen','modtable-screen'].forEach(id=>document.getElementById(id).classList.add('hidden'));
@@ -2019,12 +2030,14 @@ function ocultarTodo(){
   currentView=null;
 }
 function entrarTablero(){
+  navPush(entrarTablero);
   const nombre = (currentUser==='Mecanicos'||currentUser==='Televisor') ? 'Tablero Planta' : 'Tablero General';
   const h1 = document.getElementById('main-header-title');
   if(h1) h1.textContent = nombre;
   setView('grid');
 }
 function abrirModtable(){
+  navPush(abrirModtable);
   const grid=document.getElementById('modtable-grid');grid.innerHTML='';
   MODULES.forEach(id=>{
     const btn=document.createElement('button');btn.className='sp-mod-btn';btn.textContent=id;
@@ -2064,14 +2077,14 @@ function atrasDesdeTablero(){
   document.getElementById('grid-view').classList.add('hidden');
   const h1 = document.getElementById('main-header-title');
   if(h1) h1.textContent = 'Confecciones Millar';
-  currentView=null;mostrarAreaScreen();
+  currentView=null; navBack();
 }
 function atrasDesdeModulo(){
   document.getElementById('nav-single').style.display='none';
   document.getElementById('single-view').classList.remove('active');
   const h1 = document.getElementById('main-header-title');
   if(h1) h1.textContent = 'Confecciones Millar';
-  currentView=null;volverAArea();
+  currentView=null; navBack();
 }
 
 // ── VISTAS ────────────────────────────────────────────────────────
@@ -5799,33 +5812,6 @@ function renderPermisosInto(body, nombre){
   flex-direction:column;
   overflow:hidden;
 ">
-  <!-- Barra superior con botón volver -->
-  <div style="
-    position:sticky;top:0;z-index:900;
-    display:flex;align-items:center;gap:14px;
-    padding:12px 20px;
-    background:rgba(10,14,26,0.97);
-    border-bottom:1px solid #1f2d44;
-    backdrop-filter:blur(10px);
-    flex-shrink:0;
-  ">
-    <button onclick="cerrarControlIngreso()" style="
-      display:flex;align-items:center;gap:8px;
-      padding:8px 16px;border-radius:8px;
-      border:1px solid rgba(99,179,237,0.35);
-      background:rgba(99,179,237,0.06);
-      color:#93c5fd;font-family:'Segoe UI',Arial,sans-serif;
-      font-size:13px;font-weight:700;letter-spacing:1px;
-      cursor:pointer;transition:all 0.2s;
-    "
-    onmouseover="this.style.background='rgba(99,179,237,0.14)'"
-    onmouseout="this.style.background='rgba(99,179,237,0.06)'"
-    >⬅ Volver a Millar</button>
-    <span style="font-size:11px;color:#4b5a72;letter-spacing:3px;text-transform:uppercase;">
-      Control de Piso — Confecciones Millar
-    </span>
-  </div>
-
   <!-- Contenedor scrolleable donde se inyecta el Control de Asistencia -->
   <div id="ingreso-body" style="flex:1;overflow-y:auto;"></div>
 </div>
@@ -5833,6 +5819,7 @@ function renderPermisosInto(body, nombre){
 <script>
 // ── CONTROL DE INGRESO ────────────────────────────────────────────
 function abrirControlIngreso(){
+  navPush(abrirControlIngreso);
   const screen = document.getElementById('ingreso-screen');
   screen.style.display = 'flex';
   // Solo inicializar la primera vez
@@ -5853,7 +5840,7 @@ function abrirControlIngreso(){
 
 function cerrarControlIngreso(){
   document.getElementById('ingreso-screen').style.display = 'none';
-  mostrarAreaScreen();
+  navBack();
 }
 
 function cargarAppIngreso(){
@@ -7123,6 +7110,7 @@ html { overflow-x: hidden; max-width: 100%; }
       <div id="ia-admin-badge-wrap"></div>
       <div class="ia-sup-badge"><div class="ia-sup-dot"></div><span id="ia-sup-name">—</span></div>
       <button class="ia-btn-logout" onclick="iaDoLogout()">Cerrar sesión</button>
+      <button class="ia-btn-logout" onclick="cerrarControlIngreso()" style="background:#e2e8f0;color:#1e3a8a;border-color:#cbd5e1;">⬅ Volver</button>
     </div>
   </div>
 
@@ -7450,7 +7438,9 @@ window.iaBuildLoginSelect=function(){
       const o=document.createElement('option');o.value='member_'+i;o.textContent=nombre;sel.appendChild(o);
     });
   } else {
-    iaState.supervisors.forEach(s=>{const o=document.createElement('option');o.value=s.id;o.textContent=s.isAdmin?`${s.name} (Administrador)`:s.name;sel.appendChild(o);});
+    // Mostrar solo supervisoras (excluir programador y administradores)
+    const supervisoras = iaState.supervisors.filter(s=>!s.isAdmin && s.id!=='programador');
+    supervisoras.forEach(s=>{const o=document.createElement('option');o.value=s.id;o.textContent=s.name;sel.appendChild(o);});
   }
 };
 window.iaDoLogin=function(){
