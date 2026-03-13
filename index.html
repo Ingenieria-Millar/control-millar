@@ -7157,7 +7157,6 @@ html { overflow-x: hidden; max-width: 100%; }
       <button class="ia-btn-primary" onclick="iaDoLogin()">Ingresar →</button>
       <p class="ia-err" id="ia-login-error">⚠ Usuario o contraseña incorrectos</p>
       <button onclick="cerrarControlIngreso()" style="margin-top:8px;width:100%;padding:11px;border-radius:9px;border:1.5px solid #e2e8f0;background:transparent;color:#64748b;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">← Volver</button>
-      <button onclick="cerrarControlIngreso()" style="margin-top:8px;width:100%;padding:11px;border-radius:9px;border:1.5px solid #e2e8f0;background:transparent;color:#64748b;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">← Volver</button>
     </div>
     <div class="ia-login-right-foot">© 2026 Ingeniería Confecciones Millar S.A.S.</div>
   </div>
@@ -7630,7 +7629,8 @@ function iaRebuildAdminFilterSup(){
 }
 function iaGetAvailableEmployees(){
   const today=iaTodayStr();
-  const reg=new Set(iaRecords.filter(r=>r.date===today).map(r=>r.empName));
+  const regDate=(iaIsAdmin()&&document.getElementById('ia-reg-fecha')?.value)||today;
+  const reg=new Set(iaRecords.filter(r=>r.date===regDate).map(r=>r.empName));
   let pool = (iaState.employees||[]).filter(e=>!e.disabled&&!reg.has(e.name));
 
   if(iaIsAdmin()){
@@ -8038,7 +8038,7 @@ window.iaRenderHistory=function iaRenderHistory(){
     <td>${r.status==='falto'?'<span style="color:#ef4444;font-weight:700;">—</span>':r.status==='novedad'?`<span style="color:#b91c1c;font-weight:700;">${r.area}</span>`:`<span class="ia-badge area">${r.area}</span>`}</td>
     <td>${r.date}</td><td>${r.supervisor}</td>
     <td>${(r.status==='falto'||r.status==='novedad')?'<span class="ia-badge out">❌ Faltó</span>':'<span class="ia-badge in">✅ Presente</span>'}</td>
-    <td><textarea class="ia-obs-input" data-id="${r.id}" placeholder="Sin observación..." readonly style="cursor:default;background:#f8fafc;color:#64748b;resize:none;">${r.obs||''}</textarea></td>
+    <td><textarea class="ia-obs-input" data-id="${r.id}" placeholder="Sin observación..." ${r.obs?'readonly style="cursor:default;background:#f8fafc;color:#64748b;resize:none;"':'style="resize:none;cursor:text;"'} onblur="iaObsSave('${r.id}',this)">${r.obs||''}</textarea></td>
   </tr>`).join('');
 }
 
@@ -8069,6 +8069,22 @@ function iaRenderAdminTable(){
     <td><textarea class="ia-obs-input" data-id="${r.id}" placeholder="Sin observación..." readonly style="cursor:default;background:#f8fafc;color:#64748b;resize:none;">${r.obs||''}</textarea></td>
     <td><button class="ia-btn-edit" onclick="iaOpenEditRecord('${r.id}')">✏️ Editar</button></td>
   </tr>`).join('');
+}
+// ── Guardar observación desde textarea ────────────────────────────
+function iaObsSave(id, el){
+  const val = el.value.trim();
+  const r = iaRecords.find(x=>x.id===id);
+  if(!r) return;
+  if(val === (r.obs||'').trim()) return; // sin cambios
+  r.obs = val;
+  wsSend({type:'ia_edit_record', record:{...r}});
+  // Si tenía contenido nuevo, volverlo readonly (solo admin puede re-editar)
+  if(val){
+    el.readOnly = true;
+    el.style.cursor = 'default';
+    el.style.background = '#f8fafc';
+    el.style.color = '#64748b';
+  }
 }
 window.iaOpenEditRecord=function(id){
   const r=iaRecords.find(x=>x.id===id);if(!r)return;
