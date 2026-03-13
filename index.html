@@ -7342,7 +7342,8 @@ html { overflow-x: hidden; max-width: 100%; }
             <span style="font-size:11px;color:#94a3b8;font-weight:400;">(dejar en hoy para registro normal)</span>
           </label>
           <input type="date" id="ia-reg-fecha" style="padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:9px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;outline:none;width:100%;box-sizing:border-box;"
-            onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+            onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'"
+            onchange="iaOnFechaChange()">
         </div>
         <div class="ia-fg" style="grid-column:1/-1">
           <label>Buscar empleado</label>
@@ -7786,6 +7787,14 @@ function iaGetAvailableEmployees(){
   }
   return pool.map(e=>e.name).sort((a,b)=>a.localeCompare(b));
 }
+window.iaOnFechaChange=function(){
+  // Al cambiar la fecha: limpiar empleado seleccionado, reconstruir módulos y dropdown
+  iaClearEmployee();
+  iaBuildAreaSelect();
+  // Redibujar dropdown vacío con empleados disponibles para esa fecha
+  const list=iaGetAvailableEmployees();
+  iaBuildDropdown([],'');
+};
 window.iaFilterEmployees=function(){
   iaSelectedEmployee='';document.getElementById('ia-emp-selected').value='';
   const q=document.getElementById('ia-emp-search').value.trim().toLowerCase();
@@ -8050,7 +8059,7 @@ setInterval(function(){
   if(activeTab==='history') iaRenderHistory();
   else if(activeTab==='records') iaRenderAdminTable();
   else if(activeTab==='config') iaRenderConfig();
-  else { iaRenderTodayChips(); iaUpdateStats(); }
+  else { iaRenderTodayChips(); iaUpdateStats(); iaBuildAreaSelect(); }
 }, 3000);
 
 
@@ -8207,7 +8216,7 @@ function iaRenderAdminTable(){
   </tr>`).join('');
 }
 // ── Guardar observación desde textarea ────────────────────────────
-function iaObsSave(id, el){
+window.iaObsSave=function(id, el){
   const val = el.value.trim();
   const r = iaRecords.find(x=>x.id===id);
   if(!r) return;
