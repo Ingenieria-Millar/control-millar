@@ -6340,7 +6340,7 @@ function getIngresoHTML(){
   cursor:pointer;transition:all .2s;
 }
 .ia-sort-btn.active{border-color:#2563eb;color:#2563eb;background:rgba(37,99,235,.07);}
-.ia-filter-row th{padding:4px 6px!important;background:#f8fafc;}
+.ia-filter-row th{padding:4px 6px!important;background:transparent;border-top:none!important;}
 .ia-col-filter{width:100%;padding:5px 8px;font-size:.75rem;border:1.5px solid #e2e8f0;border-radius:6px;background:#fff;color:#0f172a;font-family:'Nunito',sans-serif;outline:none;transition:border-color .2s;box-sizing:border-box;}
 .ia-col-filter:focus{border-color:#2563eb;}
 .ia-col-filter::placeholder{color:#94a3b8;}
@@ -6356,7 +6356,8 @@ function getIngresoHTML(){
 /* Table */
 .ia-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:10px;border:1px solid var(--border);background:#fff;box-shadow:0 1px 6px rgba(0,0,0,.06);}
 .ia-table{width:100%;border-collapse:collapse;font-size:.88rem;}
-.ia-table thead tr{border-bottom:2px solid #e2e8f0;}
+.ia-table thead tr{border-bottom:none;}
+.ia-filter-row th{padding:4px 6px!important;background:transparent;border-top:none!important;border-bottom:2px solid #e2e8f0;}
 .ia-table th{
   text-align:left;padding:.8rem 1rem;font-size:.72rem;font-weight:700;
   letter-spacing:.1em;text-transform:uppercase;color:#64748b;
@@ -7156,6 +7157,7 @@ html { overflow-x: hidden; max-width: 100%; }
       <button class="ia-btn-primary" onclick="iaDoLogin()">Ingresar →</button>
       <p class="ia-err" id="ia-login-error">⚠ Usuario o contraseña incorrectos</p>
       <button onclick="cerrarControlIngreso()" style="margin-top:8px;width:100%;padding:11px;border-radius:9px;border:1.5px solid #e2e8f0;background:transparent;color:#64748b;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">← Volver</button>
+      <button onclick="cerrarControlIngreso()" style="margin-top:8px;width:100%;padding:11px;border-radius:9px;border:1.5px solid #e2e8f0;background:transparent;color:#64748b;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">← Volver</button>
     </div>
     <div class="ia-login-right-foot">© 2026 Ingeniería Confecciones Millar S.A.S.</div>
   </div>
@@ -7268,7 +7270,6 @@ html { overflow-x: hidden; max-width: 100%; }
                   <option value="">Todos</option>
                   <option value="presente">✅ Presente</option>
                   <option value="falto">❌ Faltó</option>
-                  <option value="novedad">🟡 Novedad</option>
                 </select>
               </th>
               <th></th>
@@ -7316,7 +7317,6 @@ html { overflow-x: hidden; max-width: 100%; }
                   <option value="">Todos</option>
                   <option value="presente">✅ Presente</option>
                   <option value="falto">❌ Faltó</option>
-                  <option value="novedad">🟡 Novedad</option>
                 </select>
               </th>
               <th></th>
@@ -7383,7 +7383,7 @@ html { overflow-x: hidden; max-width: 100%; }
     <h4>✏️ Editar Registro</h4>
     <div class="ia-fg"><label>Empleado</label><input type="text" id="ia-edit-emp" readonly style="opacity:.6;cursor:not-allowed;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;color:#0f172a;padding:.75rem 1rem;width:100%;"></div>
     <div class="ia-fg"><label>Área</label><select id="ia-edit-area" style="width:100%;padding:.75rem 1rem;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;color:#0f172a;outline:none;"></select></div>
-    <div class="ia-fg"><label>Estado</label><select id="ia-edit-status" onchange="iaEditStatusChange()" style="width:100%;padding:.75rem 1rem;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;color:#0f172a;outline:none;"><option value="presente">✅ Presente</option><option value="falto">❌ Faltó</option><option value="novedad">🟡 Novedad</option></select></div>
+    <div class="ia-fg"><label>Estado</label><select id="ia-edit-status" onchange="iaEditStatusChange()" style="width:100%;padding:.75rem 1rem;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;color:#0f172a;outline:none;"><option value="presente">✅ Presente</option><option value="falto">❌ Faltó</option></select></div>
     <div class="ia-fg"><label>Supervisor</label><select id="ia-edit-supervisor" style="width:100%;padding:.75rem 1rem;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;color:#0f172a;outline:none;"></select></div>
     <div class="ia-fg"><label>Observaciones</label><textarea id="ia-edit-obs" placeholder="Observaciones opcionales..." style="width:100%;padding:.75rem 1rem;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;color:#0f172a;outline:none;font-family:'Nunito',sans-serif;font-size:.9rem;resize:vertical;min-height:70px;"></textarea></div>
     <div class="ia-modal-actions">
@@ -7559,6 +7559,7 @@ function iaInitApp(){
   const adminTabs=document.querySelectorAll('#ingreso-app-root .admin-tab');
   if(sup.isAdmin){
     document.getElementById('ia-admin-badge-wrap').innerHTML='<span class="ia-badge-admin">⚙️ ADMINISTRADOR</span>';
+    document.querySelector('.ia-sup-badge').style.display='none';
     adminTabs.forEach(b=>{
       if(b.id==='ia-tab-btn-config'){b.classList.add('hidden');b.style.display='none';return;}
       b.classList.remove('hidden');b.style.display='';
@@ -7571,6 +7572,7 @@ function iaInitApp(){
     iaBuildAdminSupFilter();
   } else {
     document.getElementById('ia-admin-badge-wrap').innerHTML='';
+    document.querySelector('.ia-sup-badge').style.display='';
     adminTabs.forEach(b=>{b.classList.add('hidden');b.style.display='none';});
     document.getElementById('ia-btn-export-hist').classList.add('hidden');
     document.getElementById('ia-admin-sup-filter-wrap').classList.add('hidden');
@@ -7907,14 +7909,56 @@ window.iaUpdateStats=function iaUpdateStats(){
   const today=iaTodayStr();
   const sup=iaGetSup(iaCurrentUser);
   const supName=sup?sup.name:(typeof currentMember!=='undefined'?currentMember:'');
-  let tr=iaRecords.filter(r=>r.date===today);
+
+  // Si el historial está activo y tiene filtro de fechas, usar ese rango
+  const fromVal=document.getElementById('ia-filter-from')?.value||'';
+  const toVal=document.getElementById('ia-filter-to')?.value||'';
+  const histTab=document.getElementById('ia-tab-btn-history');
+  const usingRange = histTab && histTab.classList.contains('active') && (fromVal||toVal);
+
+  let tr;
+  if(usingRange){
+    tr=iaRecords.filter(r=>{
+      if(fromVal && r.date<fromVal) return false;
+      if(toVal && r.date>toVal) return false;
+      return true;
+    });
+  } else {
+    tr=iaRecords.filter(r=>r.date===today);
+  }
   if(!iaIsAdmin()&&supName) tr=tr.filter(r=>r.supervisor===supName);
+
   document.getElementById('ia-stat-today').textContent=tr.filter(r=>r.status==='presente').length;
   document.getElementById('ia-stat-absent').textContent=tr.filter(r=>r.status==='falto'||r.status==='novedad').length;
   const pending=document.getElementById('ia-stat-pending');
-  if(pending){ const empCount=iaState.employees.filter(e=>!e.disabled&&(!sup||sup.isAdmin||(e.supId&&e.supId===sup.name))).length; pending.textContent=Math.max(0,empCount-tr.length); }
+  if(pending){
+    if(usingRange){
+      pending.textContent='—';
+    } else {
+      const empCount=iaState.employees.filter(e=>!e.disabled&&(!sup||sup.isAdmin||(e.supId&&e.supId===sup.name))).length;
+      pending.textContent=Math.max(0,empCount-tr.length);
+    }
+  }
+  // Labels dinámicos
+  const labelToday=document.querySelector('#ia-stat-today')?.closest('.ia-stat-card')?.querySelector('.ia-slabel');
+  const labelAbsent=document.querySelector('#ia-stat-absent')?.closest('.ia-stat-card')?.querySelector('.ia-slabel');
+  if(usingRange){
+    if(labelToday) labelToday.textContent='Presentes (rango)';
+    if(labelAbsent) labelAbsent.textContent='Faltas (rango)';
+  } else {
+    if(labelToday) labelToday.textContent='Presentes hoy';
+    if(labelAbsent) labelAbsent.textContent='Faltas hoy';
+  }
   const dateEl=document.getElementById('ia-stat-date');
-  if(dateEl) dateEl.textContent=iaFormatDateLong(today);
+  if(dateEl){
+    if(usingRange){
+      const desde=fromVal||'...';
+      const hasta=toVal||'...';
+      dateEl.textContent=desde===hasta?desde:desde+' → '+hasta;
+    } else {
+      dateEl.textContent=iaFormatDateLong(today);
+    }
+  }
 }
 
 // ── Chips de registros de hoy ─────────────────────────────────────
@@ -7939,6 +7983,8 @@ window.iaRenderHistory=function iaRenderHistory(){
   const sup=iaGetSup(iaCurrentUser);
   const supName=sup?sup.name:(typeof currentMember!=='undefined'?currentMember:'');
   let data=iaIsAdmin()?iaFilterByRange([...iaRecords],'ia-filter-from','ia-filter-to'):iaFilterByRange(iaRecords.filter(r=>r.supervisor===supName),'ia-filter-from','ia-filter-to');
+  // Actualizar contadores con el rango activo
+  if(typeof iaUpdateStats==='function') iaUpdateStats();
   const fEmp=(document.getElementById('ia-fh-emp')?.value||'').toLowerCase().trim();
   const fArea=(document.getElementById('ia-fh-area')?.value||'').toLowerCase().trim();
   const fFecha=(document.getElementById('ia-fh-fecha')?.value||'').toLowerCase().trim();
@@ -7959,12 +8005,7 @@ window.iaRenderHistory=function iaRenderHistory(){
     <td>${r.status==='falto'?'<span style="color:#ef4444;font-weight:700;">—</span>':r.status==='novedad'?`<span style="color:#b91c1c;font-weight:700;">${r.area}</span>`:`<span class="ia-badge area">${r.area}</span>`}</td>
     <td>${r.date}</td><td>${r.supervisor}</td>
     <td>${(r.status==='falto'||r.status==='novedad')?'<span class="ia-badge out">❌ Faltó</span>':'<span class="ia-badge in">✅ Presente</span>'}</td>
-    <td>${iaIsAdmin()
-      ? `<textarea class="ia-obs-input" data-id="${r.id}" placeholder="Agregar observación..." onblur="iaSaveObs('${r.id}',this.value)">${r.obs||''}</textarea>`
-      : r.obs
-        ? `<span style="font-size:.82rem;color:#0f172a;padding:4px 6px;display:block;">${r.obs}</span>`
-        : `<textarea class="ia-obs-input" data-id="${r.id}" placeholder="Agregar observación..." onblur="iaSaveObs('${r.id}',this.value)"></textarea>`
-    }</td>
+    <td><textarea class="ia-obs-input" data-id="${r.id}" placeholder="Sin observación..." readonly style="cursor:default;background:#f8fafc;color:#64748b;resize:none;">${r.obs||''}</textarea></td>
   </tr>`).join('');
 }
 
@@ -7991,7 +8032,7 @@ function iaRenderAdminTable(){
     <td>${r.status==='falto'?'<span style="color:#ef4444;font-weight:700;">—</span>':r.status==='novedad'?`<span style="color:#b91c1c;font-weight:700;">${r.area}</span>`:`<span class="ia-badge area">${r.area}</span>`}</td>
     <td>${r.date}</td><td>${r.supervisor}</td>
     <td>${(r.status==='falto'||r.status==='novedad')?'<span class="ia-badge out">❌ Faltó</span>':'<span class="ia-badge in">✅ Presente</span>'}</td>
-    <td><textarea class="ia-obs-input" data-id="${r.id}" placeholder="Agregar observación..." onblur="iaSaveObs('${r.id}',this.value)">${r.obs||''}</textarea></td>
+    <td><textarea class="ia-obs-input" data-id="${r.id}" placeholder="Sin observación..." readonly style="cursor:default;background:#f8fafc;color:#64748b;resize:none;">${r.obs||''}</textarea></td>
     <td><button class="ia-btn-edit" onclick="iaOpenEditRecord('${r.id}')">✏️ Editar</button></td>
   </tr>`).join('');
 }
