@@ -16,6 +16,18 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 header{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:linear-gradient(135deg,#020d22 0%,#04163d 50%,#0a2570 100%);border-bottom:none;box-shadow:0 2px 12px rgba(2,13,34,0.3);min-width:0;flex-wrap:wrap;}
 header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);}
 .hd-left{display:flex;align-items:center;gap:12px;}
+header.tablero-mode{background:#fff;border-bottom:1px solid #e2e8f0;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+header.tablero-mode::after{background:none;}
+header.tablero-mode #main-header-title{color:#0f172a;}
+header.tablero-mode .conn-label{color:#64748b;}
+header.tablero-mode .clock{color:#0f172a;}
+header.tablero-mode .live-dot{box-shadow:0 0 0 3px rgba(34,197,94,.2);}
+#hd-tablero-right{display:none;align-items:center;gap:12px;}
+#hd-tablero-right.visible{display:flex;}
+.hd-user-badge{display:flex;align-items:center;gap:7px;padding:6px 14px;border-radius:20px;background:#f1f5f9;border:1px solid #e2e8f0;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;color:#0f172a;}
+.hd-user-dot{width:8px;height:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 2px rgba(34,197,94,.25);}
+.hd-back-btn{padding:7px 16px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#1e3a8a;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all .2s;}
+.hd-back-btn:hover{background:#f1f5f9;border-color:#93c5fd;}
 .hd-logo{width:36px;height:36px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 0 0 2px rgba(255,255,255,.2),0 2px 8px rgba(0,0,0,.3);flex-shrink:0;}
 .hd-logo img{width:100%;height:100%;object-fit:contain;padding:3px;}
 .live-dot{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.3);}
@@ -28,7 +40,7 @@ h1{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;lett
 .stats{position:relative;z-index:2;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 24px;background:#fff;border-bottom:1px solid var(--border);overflow-x:auto;box-shadow:0 1px 4px rgba(0,0,0,.05);}
 .stats>*{align-self:center;}
 .stat-todos{min-width:54px;justify-content:center;}
-.stat{display:flex;align-items:center;gap:6px;padding:5px 14px;height:32px;box-sizing:border-box;border-radius:6px;background:var(--bg);border:1px solid var(--border);font-size:13px;font-weight:700;cursor:pointer;transition:all 0.2s;user-select:none;color:var(--text);}
+.stat{display:flex;align-items:center;align-self:center;gap:6px;padding:5px 14px;height:32px;box-sizing:border-box;border-radius:6px;background:var(--bg);border:1px solid var(--border);font-size:13px;font-weight:700;cursor:pointer;transition:all 0.2s;user-select:none;color:var(--text);}
 .stat:hover{border-color:#93c5fd;background:#eff6ff;color:#2563eb;}
 .stat.active-filter.fg{border-color:var(--green);background:rgba(34,197,94,0.08);color:var(--green);}
 .stat.active-filter.fy{border-color:var(--yellow);background:rgba(234,179,8,0.08);color:var(--yellow);}
@@ -996,6 +1008,10 @@ tr:hover td{background:#f8fafc;}
   <div style="display:flex;align-items:center;gap:20px">
     <span class="conn-label" id="conn-label">DEMO LOCAL ✓</span>
     <span class="clock" id="clock">00:00:00</span>
+  </div>
+  <div id="hd-tablero-right">
+    <div class="hd-user-badge"><span class="hd-user-dot"></span><span id="hd-user-name"></span></div>
+    <button class="hd-back-btn" onclick="atrasDesdeTablero()">← Volver</button>
   </div>
 </header>
 
@@ -2022,6 +2038,12 @@ function entrarTablero(){
   const nombre = (currentUser==='Mecanicos'||currentUser==='Televisor') ? 'Tablero Planta' : 'Tablero General';
   const h1 = document.getElementById('main-header-title');
   if(h1) h1.textContent = nombre;
+  // Header modo blanco
+  document.querySelector('header').classList.add('tablero-mode');
+  const hdRight = document.getElementById('hd-tablero-right');
+  const hdUser  = document.getElementById('hd-user-name');
+  if(hdUser) hdUser.textContent = currentUser || '';
+  if(hdRight) hdRight.classList.add('visible');
   setView('grid');
 }
 function abrirModtable(){
@@ -2064,6 +2086,10 @@ function atrasDesdeTablero(){
   document.getElementById('grid-view').classList.add('hidden');
   const h1 = document.getElementById('main-header-title');
   if(h1) h1.textContent = 'Confecciones Millar';
+  // Revertir header
+  document.querySelector('header').classList.remove('tablero-mode');
+  const hdRight = document.getElementById('hd-tablero-right');
+  if(hdRight) hdRight.classList.remove('visible');
   currentView=null;mostrarAreaScreen();
 }
 function atrasDesdeModulo(){
@@ -2219,7 +2245,7 @@ function renderGrid(){
   if(!visible.length){grid.innerHTML='<div class="empty-msg">✅ No hay módulos en este estado</div>';return;}
   const canClick=hasPerm('fix');
   visible.forEach(id=>{
-    const s=states[id];
+    const s=states[id]||'green';
     const sVis=esPlanta&&s==='orange'?'green':s;
     const div=document.createElement('div');
     div.className=`module ${canClick?'clickable':'readonly'} ${sVis}`;div.id=`mod-${id}`;
