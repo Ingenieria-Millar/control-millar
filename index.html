@@ -7196,11 +7196,19 @@ html { overflow-x: hidden; max-width: 100%; }
 
     </div>
 
-    <!-- REGISTRAR -->
-    <div class="ia-panel" id="ia-tab-register">
+    <!-- REGISTRAR -->\n    <div class="ia-panel" id="ia-tab-register">
       <h3>Nuevo Ingreso</h3>
       <div class="ia-reg-grid">
 <div class="ia-fg hidden" id="ia-admin-sup-filter-wrap" style="display:none!important"><select id="ia-admin-sup-filter"><option value="">— Todos los empleados —</option></select></div>
+        <!-- Fecha de registro (solo admin) -->
+        <div class="ia-fg admin-tab hidden" id="ia-reg-fecha-wrap" style="grid-column:1/-1;display:none!important;">
+          <label style="display:flex;align-items:center;gap:8px;">
+            📅 Fecha del registro
+            <span style="font-size:11px;color:#94a3b8;font-weight:400;">(dejar en hoy para registro normal)</span>
+          </label>
+          <input type="date" id="ia-reg-fecha" style="padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:9px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;outline:none;width:100%;box-sizing:border-box;"
+            onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+        </div>
         <div class="ia-fg" style="grid-column:1/-1">
           <label>Buscar empleado</label>
           <div class="ia-search-wrapper">
@@ -7570,6 +7578,10 @@ function iaInitApp(){
     iaRebuildAdminFilterSup();
     document.getElementById('ia-admin-sup-filter-wrap').classList.remove('hidden');
     iaBuildAdminSupFilter();
+    const regFechaWrap=document.getElementById('ia-reg-fecha-wrap');
+    if(regFechaWrap){regFechaWrap.classList.remove('hidden');regFechaWrap.style.display='';}
+    const regFecha=document.getElementById('ia-reg-fecha');
+    if(regFecha) regFecha.value=t;
   } else {
     document.getElementById('ia-admin-badge-wrap').innerHTML='';
     document.querySelector('.ia-sup-badge').style.display='';
@@ -7706,8 +7718,9 @@ window.iaRegistrarFalto=function(){
   if(iaIsAdmin()){const emp=iaState.employees.find(e=>e.name===empName);supName=emp&&emp.supId?iaGetSup(emp.supId)?.name||'Admin':'Admin';}
   else{supName=(typeof currentMember!=='undefined'&&currentMember)?currentMember:(iaGetSup(iaCurrentUser)?.name||'Supervisora');}
   const today=iaTodayStr();
-  const newRecord={id:iaGenId(),empName,area:'—',status:'falto',date:today,supervisor:supName};
-  iaRecords=iaRecords.filter(r=>!(r.empName===empName&&r.date===today));
+  const regDate=(iaIsAdmin()&&document.getElementById('ia-reg-fecha')?.value)||today;
+  const newRecord={id:iaGenId(),empName,area:'—',status:'falto',date:regDate,supervisor:supName};
+  iaRecords=iaRecords.filter(r=>!(r.empName===empName&&r.date===regDate));
   iaRecords.push(newRecord);
   wsSend({type:'ia_add_record',record:newRecord});
   iaCerrarNovedad();iaClearEmployee();document.getElementById('ia-emp-area').value='';
@@ -7721,8 +7734,9 @@ window.iaRegistrarNovedad=function(nombre,emoji){
   if(iaIsAdmin()){const emp=iaState.employees.find(e=>e.name===empName);supName=emp&&emp.supId?iaGetSup(emp.supId)?.name||'Admin':'Admin';}
   else{supName=(typeof currentMember!=='undefined'&&currentMember)?currentMember:(iaGetSup(iaCurrentUser)?.name||'Supervisora');}
   const today=iaTodayStr();
-  const newRecord={id:iaGenId(),empName,area:nombre,status:'novedad',date:today,supervisor:supName};
-  iaRecords=iaRecords.filter(r=>!(r.empName===empName&&r.date===today));
+  const regDate=(iaIsAdmin()&&document.getElementById('ia-reg-fecha')?.value)||today;
+  const newRecord={id:iaGenId(),empName,area:nombre,status:'novedad',date:regDate,supervisor:supName};
+  iaRecords=iaRecords.filter(r=>!(r.empName===empName&&r.date===regDate));
   iaRecords.push(newRecord);
   wsSend({type:'ia_add_record',record:newRecord});
   iaCerrarNovedad();iaClearEmployee();document.getElementById('ia-emp-area').value='';
@@ -7910,11 +7924,21 @@ window.iaUpdateStats=function iaUpdateStats(){
   const sup=iaGetSup(iaCurrentUser);
   const supName=sup?sup.name:(typeof currentMember!=='undefined'?currentMember:'');
 
-  // Si el historial está activo y tiene filtro de fechas, usar ese rango
-  const fromVal=document.getElementById('ia-filter-from')?.value||'';
-  const toVal=document.getElementById('ia-filter-to')?.value||'';
+  // Detectar pestaña activa y usar su filtro de fechas
   const histTab=document.getElementById('ia-tab-btn-history');
-  const usingRange = histTab && histTab.classList.contains('active') && (fromVal||toVal);
+  const recordsTab=document.getElementById('ia-tab-btn-records');
+  const histActive = histTab && histTab.classList.contains('active');
+  const recordsActive = recordsTab && recordsTab.classList.contains('active');
+
+  let fromVal='', toVal='';
+  if(histActive){
+    fromVal=document.getElementById('ia-filter-from')?.value||'';
+    toVal=document.getElementById('ia-filter-to')?.value||'';
+  } else if(recordsActive){
+    fromVal=document.getElementById('ia-admin-from')?.value||'';
+    toVal=document.getElementById('ia-admin-to')?.value||'';
+  }
+  const usingRange = (histActive||recordsActive) && (fromVal||toVal);
 
   let tr;
   if(usingRange){
@@ -8020,6 +8044,7 @@ window.iaRenderHistory=function iaRenderHistory(){
 
 // ── Editar Registros (Admin) ──────────────────────────────────────
 function iaRenderAdminTable(){
+  if(typeof iaUpdateStats==='function') iaUpdateStats();
   let data=iaFilterByRange([...iaRecords],'ia-admin-from','ia-admin-to');
   const fEmp=(document.getElementById('ia-fa-emp')?.value||'').toLowerCase().trim();
   const fArea=(document.getElementById('ia-fa-area')?.value||'').toLowerCase().trim();
@@ -8101,8 +8126,9 @@ window.iaRegisterEntry=function(status){
   if(iaIsAdmin()){const emp=iaState.employees.find(e=>e.name===empName);supName=emp&&emp.supId?iaGetSup(emp.supId)?.name||'Admin':'Admin';}
   else{supName=(typeof currentMember!=='undefined'&&currentMember)?currentMember:(iaGetSup(iaCurrentUser)?.name||'Supervisora');}
   const today=iaTodayStr();
-  const newRecord={id:iaGenId(),empName,area:status==='falto'?'—':area,status,date:today,supervisor:supName};
-  iaRecords=iaRecords.filter(r=>!(r.empName===empName&&r.date===today));
+  const regDate=(iaIsAdmin()&&document.getElementById('ia-reg-fecha')?.value)||today;
+  const newRecord={id:iaGenId(),empName,area:status==='falto'?'—':area,status,date:regDate,supervisor:supName};
+  iaRecords=iaRecords.filter(r=>!(r.empName===empName&&r.date===regDate));
   iaRecords.push(newRecord);
   wsSend({type:'ia_add_record',record:newRecord});
   iaClearEmployee();if(document.getElementById('ia-emp-area'))document.getElementById('ia-emp-area').value='';
