@@ -8077,8 +8077,17 @@ function iaObsSave(id, el){
   if(!r) return;
   if(val === (r.obs||'').trim()) return; // sin cambios
   r.obs = val;
-  wsSend({type:'ia_edit_record', record:{...r}});
-  // Si tenía contenido nuevo, volverlo readonly (solo admin puede re-editar)
+  // Guardar por HTTP (confiable) + broadcast por WS
+  fetch('/api/ia-record-obs', {
+    method:'PATCH',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({id, obs: val})
+  }).catch(e => {
+    // Fallback: intentar por WebSocket
+    wsSend({type:'ia_edit_record', record:{...r}});
+    console.warn('iaObsSave fetch error, usando WS:', e);
+  });
+  // Bloquear campo una vez guardado
   if(val){
     el.readOnly = true;
     el.style.cursor = 'default';
