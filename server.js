@@ -469,6 +469,17 @@ app.post('/api/turnos', (req, res) => {
 });
 
 // ── Historial mecánicos ───────────────────────────────────────────
+app.patch('/api/ia-record-obs', (req, res) => {
+  const { id, obs } = req.body;
+  if (!id) return res.status(400).json({ error: 'sin id' });
+  const idx = iaRecords.findIndex(r => r.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'no encontrado' });
+  iaRecords[idx].obs = obs || '';
+  saveIaRecords();
+  broadcast({ type: 'ia_edit_record', record: iaRecords[idx] });
+  res.json({ success: true, record: iaRecords[idx] });
+});
+
 app.get('/api/historial', (req, res) => {
   res.json(readJSON(FILES.historial, []));
 });
