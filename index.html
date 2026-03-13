@@ -5320,15 +5320,22 @@ function cfgRenderMiembrosPerfil(body){
   const perfil = _membersCurrentPerfil;
   const members = getProfileMembers(perfil);
 
-  // Topbar con contador y botón nuevo
+  // Topbar con contador y botones
   const topbar = document.createElement('div');
-  topbar.style.cssText='display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;';
+  topbar.style.cssText='display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;';
   topbar.innerHTML=`
     <div>
       <div style="font-size:15px;font-weight:700;color:#0f172a;">Miembros de <span style="color:#059669;">${perfil}</span></div>
       <div id="members-header-sub" style="font-size:12px;color:#94a3b8;margin-top:2px;">${members.length} miembro${members.length!==1?'s':''}</div>
     </div>
-    <button onclick="openMemberModal()" style="padding:9px 18px;border-radius:9px;border:none;background:#059669;color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;">+ Nuevo miembro</button>`;
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <button onclick="downloadMembersTemplate()" title="Descargar plantilla Excel" style="padding:8px 14px;border-radius:8px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#475569;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;">📄 Plantilla</button>
+      <label title="Importar desde Excel" style="padding:8px 14px;border-radius:8px;border:1.5px solid #2563eb;background:#eff6ff;color:#2563eb;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;">
+        📥 Importar<input type="file" accept=".xlsx,.xls,.csv" style="display:none;" onchange="importMembersExcel(event)">
+      </label>
+      <button onclick="exportMembersExcel()" title="Exportar a Excel" style="padding:8px 14px;border-radius:8px;border:1.5px solid #059669;background:#f0fdf4;color:#059669;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;">📤 Exportar</button>
+      <button onclick="openMemberModal()" style="padding:9px 18px;border-radius:9px;border:none;background:#059669;color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;">+ Nuevo miembro</button>
+    </div>`;
   body.appendChild(topbar);
 
   // Members list
@@ -5441,6 +5448,77 @@ function _updateMembersCounter(members){
   const active = members.filter(m=>!(m.disabled)).length;
   const hdr = document.getElementById('members-header-sub');
   if(hdr) hdr.textContent = active + ' miembro' + (active!==1?'s':'') + (members.length!==active?' ('+members.length+' total)':'');
+}
+
+// ── Excel helpers para miembros ───────────────────────────────────
+function _membersToRows(members){
+  return members.map(m=>({
+    'Nombre': typeof m==='string'?m:(m.nombre||''),
+    'Contraseña': typeof m==='object'?(m.pass||''):'',
+    'Administrador': typeof m==='object'&&m.isAdmin?'SI':'NO',
+    'Activo': typeof m==='object'&&m.disabled?'NO':'SI'
+  }));
+}
+
+function downloadMembersTemplate(){
+  if(typeof XLSX==='undefined'){ alert('Librería XLSX no disponible'); return; }
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet([
+    { 'Nombre':'Ejemplo Empleado', 'Contraseña':'1234', 'Administrador':'NO', 'Activo':'SI' }
+  ]);
+  // Ancho de columnas
+  ws['!cols'] = [{wch:28},{wch:16},{wch:14},{wch:10}];
+  XLSX.utils.book_append_sheet(wb, ws, 'Miembros');
+  XLSX.writeFile(wb, 'Plantilla_Miembros.xlsx');
+}
+
+function exportMembersExcel(){
+  if(typeof XLSX==='undefined'){ alert('Librería XLSX no disponible'); return; }
+  const perfil = _membersCurrentPerfil;
+  const members = getProfileMembers(perfil);
+  if(!members.length){ alert('No hay miembros para exportar'); return; }
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.json_to_sheet(_membersToRows(members));
+  ws['!cols'] = [{wch:28},{wch:16},{wch:14},{wch:10}];
+  XLSX.utils.book_append_sheet(wb, ws, 'Miembros');
+  const fecha = new Date().toISOString().split('T')[0];
+  XLSX.writeFile(wb, `Miembros_${perfil}_${fecha}.xlsx`);
+}
+
+function importMembersExcel(event){
+  if(typeof XLSX==='undefined'){ alert('Librería XLSX no disponible'); return; }
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      const wb = XLSX.read(e.target.result, { type:'binary' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws);
+      if(!rows.length){ alert('El archivo está vacío'); return; }
+      const perfil = _membersCurrentPerfil;
+      const existing = getProfileMembers(perfil);
+      let added=0, skipped=0;
+      rows.forEach(row=>{
+        const nombre = (row['Nombre']||row['nombre']||'').toString().trim();
+        const pass   = (row['Contraseña']||row['contrasena']||row['pass']||'').toString().trim();
+        const isAdmin= (row['Administrador']||'').toString().trim().toUpperCase()==='SI';
+        const activo = (row['Activo']||'SI').toString().trim().toUpperCase()!=='NO';
+        if(!nombre){ skipped++; return; }
+        if(existing.find(m=>(typeof m==='string'?m:m.nombre)===nombre)){ skipped++; return; }
+        existing.push({ nombre, pass, disabled:!activo, isAdmin });
+        added++;
+      });
+      saveProfileMembers(perfil, existing);
+      renderMembersList(existing);
+      _updateMembersCounter(existing);
+      alert(`✅ Importación completada:\n• ${added} miembro(s) agregado(s)\n• ${skipped} omitido(s) (sin nombre o duplicado)`);
+    } catch(err){
+      alert('Error al leer el archivo: ' + err.message);
+    }
+    event.target.value = '';
+  };
+  reader.readAsBinaryString(file);
 }
 
 function renderMembersList(members){
