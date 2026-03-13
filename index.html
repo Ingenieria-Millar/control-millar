@@ -7930,15 +7930,24 @@ window.iaUpdateStats=function iaUpdateStats(){
 
   document.getElementById('ia-stat-today').textContent=tr.filter(r=>r.status==='presente').length;
   document.getElementById('ia-stat-absent').textContent=tr.filter(r=>r.status==='falto'||r.status==='novedad').length;
+
   const pending=document.getElementById('ia-stat-pending');
   if(pending){
-    if(usingRange){
-      pending.textContent='—';
-    } else {
-      const empCount=iaState.employees.filter(e=>!e.disabled&&(!sup||sup.isAdmin||(e.supId&&e.supId===sup.name))).length;
-      pending.textContent=Math.max(0,empCount-tr.length);
+    const emps=iaState.employees.filter(e=>!e.disabled&&(!sup||sup.isAdmin||(e.supId&&e.supId===sup.name)));
+    const dateFrom=usingRange&&fromVal?fromVal:today;
+    const dateTo=usingRange&&toVal?toVal:today;
+    let totalPending=0;
+    const d=new Date(dateFrom+'T00:00:00');
+    const end=new Date(dateTo+'T00:00:00');
+    while(d<=end){
+      const dateStr=d.toISOString().split('T')[0];
+      const registeredThatDay=new Set(tr.filter(r=>r.date===dateStr).map(r=>r.empName));
+      totalPending+=emps.filter(e=>!registeredThatDay.has(e.name)).length;
+      d.setDate(d.getDate()+1);
     }
+    pending.textContent=totalPending;
   }
+
   // Labels dinámicos
   const labelToday=document.querySelector('#ia-stat-today')?.closest('.ia-stat-card')?.querySelector('.ia-slabel');
   const labelAbsent=document.querySelector('#ia-stat-absent')?.closest('.ia-stat-card')?.querySelector('.ia-slabel');
