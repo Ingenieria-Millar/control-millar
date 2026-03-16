@@ -95,9 +95,9 @@ function connectWS(){
       const msg = JSON.parse(e.data);
 
       if(msg.type === 'init'){
-        // Recibir estado inicial
-        iaState   = msg.iaState   || iaState;
-        iaRecords = msg.iaRecords || iaRecords;
+        // Recibir estado inicial — garantizar que nunca sea null
+        iaState   = msg.iaState   || iaState   || { supervisors:[], employees:[] };
+        iaRecords = msg.iaRecords || iaRecords  || [];
         // Reconstruir MODULES si hay config de módulos
         if(msg.modulesConfig){
           _appConfig._modulos_disabled = msg.modulesConfig.disabled || [];
@@ -213,11 +213,9 @@ async function loadConfigFromServer(){
   } catch(e){ console.warn('No se pudo cargar app-config:', e.message); }
 }
 
-// ── Init ─────────────────────────────────────────────
-(async ()=>{
-  await loadConfigFromServer();
-  connectWS();
-})();
+// ── Init — WS se conecta de inmediato, config en paralelo ────
+connectWS();
+loadConfigFromServer(); // no bloquea — se aplica cuando llega
 
 // ════════════════════════════════════════════════════════
 //  HTML del Control de Asistencia
