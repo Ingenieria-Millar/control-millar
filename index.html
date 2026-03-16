@@ -1413,6 +1413,7 @@ const states={}, timers={}, lastMec={}, acumRed={}, acumYellow={}, acumBlue={}, 
 MODULES.forEach(id=>{ states[id]='green'; timers[id]=Date.now(); lastMec[id]=''; acumRed[id]=0; acumYellow[id]=0; acumBlue[id]=0; acumOrange[id]=0; });
 
 let selectedMod=null, activeFilters=new Set(), currentView=null, pendingTransicion=null, currentUser=null;
+let hiddenMods=new Set(JSON.parse(localStorage.getItem('hiddenMods')||'[]'));
 function hasPerm(p){ return currentUser&&USUARIOS[currentUser]&&USUARIOS[currentUser].perms.includes(p); }
 function isProg(){ return hasPerm('fix')&&hasPerm('modulos')&&hasPerm('tablero'); }
 
@@ -2295,8 +2296,7 @@ function renderGrid(){
     const mecHtml=(sVis==='yellow'||sVis==='red')&&lastMec[id]?`<span class="mod-mec">🔧 ${lastMec[id]}</span>`:`<span class="mod-mec"></span>`;
     div.innerHTML=`<button class="mod-hide-btn" title="Ocultar/mostrar módulo" onclick="toggleHideModule('${id}',event)">👁</button><span class="mod-id">${id}</span><div class="light"></div><span class="mod-label">${LABELS[sVis]}</span><span class="mod-timer" id="timer-${id}"></span>${mecHtml}`;
     if(canClick) div.addEventListener('click',e=>{if(document.body.classList.contains('vista-edit'))return;addRipple(div,e);applyChange(id);});
-    const hiddenMods=JSON.parse(localStorage.getItem('hiddenMods')||'[]');
-    if(hiddenMods.includes(id)) div.classList.add('mod-hidden-card');
+    if(hiddenMods.has(id)) div.classList.add('mod-hidden-card');
     grid.appendChild(div);
   });
 }
@@ -2359,11 +2359,9 @@ function toggleHideModule(id, e){
   e.stopPropagation();
   const card=document.getElementById('mod-'+id);
   if(!card) return;
-  const hidden=JSON.parse(localStorage.getItem('hiddenMods')||'[]');
-  const idx=hidden.indexOf(id);
-  if(idx===-1){ hidden.push(id); card.classList.add('mod-hidden-card'); }
-  else{ hidden.splice(idx,1); card.classList.remove('mod-hidden-card'); }
-  localStorage.setItem('hiddenMods', JSON.stringify(hidden));
+  if(hiddenMods.has(id)){ hiddenMods.delete(id); card.classList.remove('mod-hidden-card'); }
+  else{ hiddenMods.add(id); card.classList.add('mod-hidden-card'); }
+  localStorage.setItem('hiddenMods', JSON.stringify([...hiddenMods]));
 }
 function updateStats(){
   const esPlanta=(currentUser==='Mecanicos'||currentUser==='Televisor');
