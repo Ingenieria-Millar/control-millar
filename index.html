@@ -2241,8 +2241,14 @@ function entrarTablero(){
     const el = document.getElementById('stat-'+c);
     if(el) el.classList.remove('active-filter');
   });
-  setView('grid');
-  setTimeout(()=>{ if(currentView==='grid') renderGrid(); }, 100);
+  // Esperar a que el WS haya enviado el init antes de renderizar
+  function doEnter(){
+    setView('grid');
+    setTimeout(()=>{ if(currentView==='grid') renderGrid(); }, 50);
+    setTimeout(()=>{ if(currentView==='grid') renderGrid(); }, 400);
+  }
+  if(iaReady){ doEnter(); }
+  else { iaWaitReady(doEnter); }
 }
 function abrirModtable(){
   const grid=document.getElementById('modtable-grid');grid.innerHTML='';
@@ -8314,6 +8320,12 @@ window.iaRemoveArea=function(supId,area){
 
 // Inicializar: esperar datos del servidor antes de mostrar login
 iaWaitReady(function(){
+  // Si el servidor no tiene supervisores, usar los datos iniciales hardcodeados
+  if(!iaState || !iaState.supervisors || iaState.supervisors.length===0){
+    iaState = JSON.parse(JSON.stringify(IA_INITIAL));
+    // Sincronizar al servidor
+    if(typeof wsSend==='function') wsSend({type:'ia_save_state', state: iaState});
+  }
   iaBuildLoginSelect();
 });
 
