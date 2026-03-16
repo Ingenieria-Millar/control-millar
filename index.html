@@ -651,6 +651,7 @@ body::before{
 .module-card:not(.alert)::before{background:#16a34a;}
 .module-card:hover{border-color:#93c5fd;transform:translateY(-2px);box-shadow:0 4px 16px rgba(37,99,235,.12);}
 .module-card.hidden-filter{display:none;}
+.module.hidden-filter{display:none !important;}
 .card-id{font-family:'Courier New',monospace;font-size:10px;color:#475569;margin-bottom:7px;letter-spacing:2px;font-weight:700;}
 .card-ball{
   width:42px;height:42px;border-radius:50%;margin:0 auto 7px;
@@ -1071,9 +1072,10 @@ tr:hover td{background:#f8fafc;}
     <div class="live-dot online" id="live-dot"></div>
     <h1 id="main-header-title">Confecciones Millar</h1>
   </div>
-  <div style="display:flex;align-items:center;gap:20px">
+  <div style="display:flex;align-items:center;gap:20px;flex-direction:column;align-items:flex-end;gap:2px;padding:10px 0;">
     <span class="conn-label" id="conn-label">DEMO LOCAL ✓</span>
-    <span class="clock" id="clock">00:00:00</span>
+    <span class="clock" id="clock" style="font-size:13px;letter-spacing:1px;"></span>
+    <span id="header-date" style="font-size:11px;color:rgba(255,255,255,.55);letter-spacing:1px;font-family:'Nunito',sans-serif;font-weight:600;text-transform:capitalize;"></span>
   </div>
   <div id="hd-tablero-right">
     <div class="hd-user-badge"><span class="hd-user-dot"></span><span id="hd-user-name"></span></div>
@@ -1082,18 +1084,19 @@ tr:hover td{background:#f8fafc;}
 </header>
 
 <div class="stats" id="stats-bar" style="display:none;">
-  <div class="stat stat-todos active-filter-todos" id="stat-todos" onclick="toggleFilter('todos')"><span>Todos</span></div>
-  <div class="stat fg" id="stat-green"  onclick="toggleFilter('green')"><div class="sd g"></div><span id="cnt-g">0</span>&nbsp;Operativos</div>
-  <div class="stat fy" id="stat-yellow" onclick="toggleFilter('yellow')"><div class="sd y"></div><span id="cnt-y">0</span>&nbsp;Atendiendo</div>
-  <div class="stat fr" id="stat-red"    onclick="toggleFilter('red')"><div class="sd r"></div><span id="cnt-r">0</span>&nbsp;Alerta</div>
-  <div class="stat fb" id="stat-blue"   onclick="toggleFilter('blue')"><div class="sd" style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:#3b82f6;box-shadow:0 0 6px rgba(59,130,246,0.7);"></div><span id="cnt-b">0</span>&nbsp;En Cambio</div>
-  <div class="stat fo" id="stat-orange" onclick="toggleFilter('orange')"><div class="sd" style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:#f97316;box-shadow:0 0 6px rgba(249,115,22,0.7);"></div><span id="cnt-o">0</span>&nbsp;Espera CI</div>
-  <div class="view-toggle">
-    <button class="btn-bar purple" onclick="openAcumuladoModal()">📊 Acumulado</button>
+  <div style="display:flex;align-items:center;flex:1;flex-wrap:nowrap;">
+    <div class="stat stat-todos active-filter-todos" id="stat-todos" onclick="toggleFilter('todos')"><span>Todos</span></div>
+    <div class="stat fg" id="stat-green"  onclick="toggleFilter('green')" style="align-self:stretch;display:flex;align-items:center;"><div class="sd g"></div><span id="cnt-g">0</span>&nbsp;Operativos</div>
+    <div class="stat fy" id="stat-yellow" onclick="toggleFilter('yellow')"><div class="sd y"></div><span id="cnt-y">0</span>&nbsp;Atendiendo</div>
+    <div class="stat fr" id="stat-red"    onclick="toggleFilter('red')"><div class="sd r"></div><span id="cnt-r">0</span>&nbsp;Alerta</div>
+    <div class="stat fb" id="stat-blue"   onclick="toggleFilter('blue')"><div class="sd" style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:#3b82f6;box-shadow:0 0 6px rgba(59,130,246,0.7);"></div><span id="cnt-b">0</span>&nbsp;En Cambio</div>
+    <div class="stat fo" id="stat-orange" onclick="toggleFilter('orange')"><div class="sd" style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:#f97316;box-shadow:0 0 6px rgba(249,115,22,0.7);"></div><span id="cnt-o">0</span>&nbsp;Espera CI</div>
+  </div>
+  <div class="view-toggle" style="margin-left:auto;">
     <button class="btn-bar green"  id="btn-excel-bar" style="display:none;" onclick="openExcelModal()">📥 Excel</button>
     <button class="btn-bar yellow" id="btn-fix-mec"   style="display:none;" onclick="openFixMecModal()">🔧 Corregir</button>
-    <button class="btn-bar"        onclick="openHideModPanel()" title="Ocultar módulos">👁 Ocultar</button>
-    <button class="btn-vista" id="btn-vista" onclick="toggleVistaModo()">✎ Vista</button>
+    <button class="btn-bar purple" onclick="openAcumuladoModal()">📊 Acumulado</button>
+    <button class="btn-bar"        onclick="openHideModPanel()" title="Mostrar/ocultar módulos">👁 Mostrar</button>
   </div>
 </div>
 
@@ -1546,7 +1549,8 @@ function connectWS(){
         }
         iaReady = true;
         updateStats();
-        if(currentView==='grid')   renderGrid();
+        // Siempre renderizar al recibir init para evitar pantalla en blanco
+        renderGrid();
         if(currentView==='single') renderBig();
 
       } else if(msg.type==='modules_config'){
@@ -1639,12 +1643,10 @@ function setConnStatus(online){
   const lbl=document.getElementById('conn-label');
   if(online){
     dot.className='live-dot online';
-    lbl.textContent='EN LÍNEA ✓';
-    lbl.style.color='var(--green)';
+    if(lbl){ lbl.textContent='EN LÍNEA ✓'; lbl.style.color='var(--green)'; }
   } else {
     dot.className='live-dot offline';
-    lbl.textContent='RECONECTANDO...';
-    lbl.style.color='var(--red)';
+    if(lbl){ lbl.textContent='RECONECTANDO...'; lbl.style.color='var(--red)'; }
   }
 }
 
@@ -1735,6 +1737,22 @@ function populateLoginSelect(){
   if(prev) sel.value = prev;
 }
 
+// ── Reloj + fecha en tiempo real en el header ─────────────────────
+function updateHeaderClock(){
+  const now=new Date();
+  const hh=String(now.getHours()).padStart(2,'0');
+  const mm=String(now.getMinutes()).padStart(2,'0');
+  const ss=String(now.getSeconds()).padStart(2,'0');
+  const clockEl=document.getElementById('clock');
+  if(clockEl) clockEl.textContent=`${hh}:${mm}:${ss}`;
+  const dateEl=document.getElementById('header-date');
+  if(dateEl){
+    const dateStr=now.toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+    dateEl.textContent=dateStr;
+  }
+}
+setInterval(updateHeaderClock,1000);
+
 window.addEventListener('DOMContentLoaded', async ()=>{
   // Cargar todos los datos desde el servidor antes de iniciar la app
   await Promise.all([
@@ -1750,6 +1768,7 @@ window.addEventListener('DOMContentLoaded', async ()=>{
   rebuildModules();
   populateLoginSelect();
   updateStats();
+  updateHeaderClock();
   setConnStatus(false);
   connectWS();
   document.getElementById('login-pass').addEventListener('keydown',e=>{if(e.key==='Enter')submitLogin();});
@@ -2160,6 +2179,8 @@ function entrarTablero(){
   if(hdUser) hdUser.textContent = currentUser || '';
   if(hdRight) hdRight.classList.add('visible');
   setView('grid');
+  // Garantizar que el grid se muestre aunque el WS init ya haya llegado antes
+  setTimeout(()=>{ if(currentView==='grid') renderGrid(); }, 100);
 }
 function abrirModtable(){
   const grid=document.getElementById('modtable-grid');grid.innerHTML='';
@@ -2300,7 +2321,13 @@ function openMecanicoModal(titulo,subtitulo){
   document.getElementById('mec-title').textContent=titulo;
   document.getElementById('mec-sub').textContent=subtitulo;
   const list=document.getElementById('mec-list');list.innerHTML='';
-  MECANICOS.forEach(nombre=>{
+  // Usar miembros del perfil si están disponibles, si no usar la lista fija
+  let mecList = MECANICOS;
+  if(typeof getProfileMembers==='function' && currentUser){
+    const members = getProfileMembers(currentUser).filter(m=>!m.disabled).map(m=>typeof m==='string'?m:m.nombre);
+    if(members.length) mecList = members;
+  }
+  mecList.forEach(nombre=>{
     const btn=document.createElement('button');btn.className='mec-btn';btn.textContent='🔧 '+nombre;
     btn.addEventListener('click',()=>selectMecanico(nombre));list.appendChild(btn);
   });
@@ -6164,7 +6191,7 @@ function renderPermisosInto(body, nombre){
   overflow:hidden;
 ">
   <!-- Contenedor scrolleable donde se inyecta el Control de Asistencia -->
-  <div id="ingreso-body" style="flex:1;overflow-y:auto;"></div>
+  <div id="ingreso-body" style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y;"></div>
 </div>
 
 
@@ -6213,6 +6240,13 @@ function cargarAppIngreso(){
 
     /* Reset scoped al contenedor */
     #ingreso-body *{ box-sizing:border-box; }
+
+    /* Evitar salto de scroll en móviles — no usar position:fixed en elementos internos */
+    #ingreso-body input, #ingreso-body select, #ingreso-body textarea {
+      font-size: 16px !important; /* Evita zoom automático en iOS que causa salto */
+    }
+    /* Prevenir que el foco en inputs cause scroll al top */
+    #ingreso-body .ia-dropdown { position:absolute; }
 
     /* Variables unificadas — paleta Confecciones Millar */
     #ingreso-body {
@@ -7931,15 +7965,19 @@ function iaGetAvailableEmployees(){
   let pool = (iaState.employees||[]).filter(e=>!e.disabled&&!reg.has(e.name));
 
   if(iaIsAdmin()){
-    // Admin: ver todos (sin filtro de supervisora en el formulario)
+    // Admin: filtrar por supervisora seleccionada en el dropdown (si hay)
+    const filterSupId = document.getElementById('ia-admin-sup-filter')?.value;
+    if(filterSupId) pool = pool.filter(e=>e.supId===filterSupId);
   } else {
     // Supervisora logueada: filtrar solo SUS empleados
-    // currentMember tiene el nombre de la supervisora (ej: "MARIA PINEDA")
-    const supNombre = (typeof currentMember!=='undefined'&&currentMember)
-      ? currentMember
-      : null;
+    const supNombre = (typeof currentMember!=='undefined'&&currentMember) ? currentMember : null;
     if(supNombre){
+      // Buscar el supervisor por nombre para obtener su id
+      const supObj = iaState.supervisors.find(s=>s.name===supNombre);
+      const supId = supObj ? supObj.id : null;
       pool = pool.filter(e => {
+        // Comparar por supId (forma correcta) o por supNombre (compatibilidad)
+        if(supId && e.supId === supId) return true;
         const empSup = (e.supId||e.supNombre||'').toLowerCase();
         return empSup === supNombre.toLowerCase();
       });
