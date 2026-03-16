@@ -7738,6 +7738,7 @@ window.iaBuildAdminAreaSelect=function(){iaBuildAreaSelect();};
 function iaBuildAreaSelect(){
   const asel=document.getElementById('ia-emp-area');
   if(!asel) return;
+  const prevVal=asel.value; // preservar selección actual
   if(typeof rebuildModules==='function') rebuildModules();
   asel.innerHTML='<option value="">— Seleccionar módulo —</option>';
   let mods=[];
@@ -7757,6 +7758,7 @@ function iaBuildAreaSelect(){
     mods=supAreas||(typeof MODULES!=='undefined'?MODULES:[]);
   }
   mods.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;asel.appendChild(o);});
+  if(prevVal) asel.value=prevVal; // restaurar selección
 }
 function iaRebuildAdminFilterSup(){
   const sel=document.getElementById('ia-admin-filter-sup');const cur=sel.value;
