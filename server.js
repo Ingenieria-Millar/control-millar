@@ -622,7 +622,7 @@ wss.on('connection', (ws) => {
         if (msg.state === 'red') lastMec[msg.id] = '';
         else if (msg.mecanico)   lastMec[msg.id] = msg.mecanico;
         saveFloorState(); // #1
-        broadcast({ type:'change', id:msg.id, state:msg.state, mecanico:msg.mecanico||'' });
+        broadcast({ type:'change', id:msg.id, state:msg.state, mecanico:msg.mecanico||'', limite:msg.limite||null });
       }
 
       // ── Config de Módulos ─────────────────────────────────────
