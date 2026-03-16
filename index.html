@@ -1546,6 +1546,8 @@ function isProg(){ return hasPerm('fix')&&hasPerm('modulos')&&hasPerm('tablero')
 let iaState   = null;
 let iaRecords = [];
 let iaReady   = false;
+// Timeout de seguridad: si el WS no responde en 8s, liberar igualmente
+setTimeout(()=>{ if(!iaReady){ console.warn('iaReady timeout — liberando sin datos del servidor'); iaReady=true; } }, 8000);
 
 function iaSaveState(){
   wsSend({ type: 'ia_save_state', state: JSON.parse(JSON.stringify(iaState)) });
@@ -2231,6 +2233,14 @@ function entrarTablero(){
   const hdUser  = document.getElementById('hd-user-name');
   if(hdUser) hdUser.textContent = currentUser || '';
   if(hdRight) hdRight.classList.add('visible');
+  // Limpiar filtros al entrar — evita tablero vacío
+  activeFilters.clear();
+  const todosEl = document.getElementById('stat-todos');
+  if(todosEl) todosEl.classList.add('active-filter-todos');
+  ['green','yellow','red','blue','orange'].forEach(c=>{
+    const el = document.getElementById('stat-'+c);
+    if(el) el.classList.remove('active-filter');
+  });
   setView('grid');
   setTimeout(()=>{ if(currentView==='grid') renderGrid(); }, 100);
 }
@@ -2459,8 +2469,9 @@ function renderGrid(){
   const grid=document.getElementById('grid');
   const esPlanta=(currentUser==='Mecanicos'||currentUser==='Televisor');
   const canClick=hasPerm('fix');
-  // Construir DOM solo si no existe aún o si MODULES cambió
-  if(grid._builtFor!==MODULES.join(',')||grid._canClick!==canClick){
+  // Reconstruir si cambió MODULES, cambió canClick, o el grid está vacío
+  const gridEmpty = !grid.querySelector('[id^="mod-"]');
+  if(grid._builtFor!==MODULES.join(',')||grid._canClick!==canClick||gridEmpty){
     grid.innerHTML='';
     MODULES.forEach(id=>{
       const div=document.createElement('div');
@@ -6268,8 +6279,18 @@ function abrirControlIngreso(){
     // Esperar datos del servidor antes de cargar la app
     iaWaitReady(function(){
       body.innerHTML = '';
-      cargarAppIngreso();
+      try {
+        cargarAppIngreso();
+      } catch(err) {
+        console.error('Error en cargarAppIngreso:', err);
+        body.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;gap:12px;color:#6b7a99;font-family:Segoe UI,sans-serif;"><span style="font-size:24px;">⚠️</span><span style="font-size:13px;">Error al cargar: ' + err.message + '</span><button onclick="location.reload()" style="padding:8px 20px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#1e3a8a;font-weight:700;cursor:pointer;">Recargar</button></div>';
+      }
     });
+    // Si tarda más de 9s, mostrar botón de reintento
+    setTimeout(()=>{
+      if(document.getElementById('ingreso-app-root')) return;
+      body.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:60vh;gap:16px;color:#6b7a99;font-family:Segoe UI,sans-serif;"><span style="font-size:24px;">⚠️</span><span style="font-size:13px;letter-spacing:1px;">Sin respuesta del servidor</span><button onclick="location.reload()" style="padding:8px 20px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#1e3a8a;font-weight:700;cursor:pointer;">Reintentar</button></div>';
+    }, 9000);
   }
 }
 
