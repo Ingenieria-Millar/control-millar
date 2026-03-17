@@ -2220,8 +2220,8 @@ window.iaRemoveArea=function(supId,area){
   if(!confirm(`¿Quitar "${area}"?`))return;const sup=iaGetSup(supId);sup.areas=sup.areas.filter(a=>a!==area);iaSaveState();iaRenderAreaManager();if(iaIsAdmin())iaBuildAreaSelect();
 };
 
-// Inicializar: esperar datos del servidor antes de mostrar login
-iaWaitReady(function(){
+// Inicializar: los datos ya están disponibles cuando runIngresoScript se ejecuta
+(function(){
   // Si el servidor no tiene supervisores, usar los datos iniciales hardcodeados
   if(!iaState || !iaState.supervisors || iaState.supervisors.length===0){
     iaState = JSON.parse(JSON.stringify(IA_INITIAL));
@@ -2229,11 +2229,11 @@ iaWaitReady(function(){
     if(typeof wsSend==='function') wsSend({type:'ia_save_state', state: iaState});
   }
   iaBuildLoginSelect();
-});
+})();
 
 // ── Auto-actualización cada 3 segundos ───────────────────────
 setInterval(function(){
-  if(!iaReady) return;
+  if(!wsReady) return;
   const tabs=['register','history','records','config'];
   let activeTab='register';
   tabs.forEach(t=>{const btn=document.getElementById('ia-tab-btn-'+t);if(btn&&btn.classList.contains('active'))activeTab=t;});
