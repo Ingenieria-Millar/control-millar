@@ -35,7 +35,8 @@ input,select,textarea{ font-size:16px !important; }
 <!-- Loader inicial -->
 <div id="ia-loader">
   <div class="ia-spin"></div>
-  <span style="font-size:13px;letter-spacing:2px;text-transform:uppercase;">Cargando datos...</span>
+  <span id="ia-loader-msg" style="font-size:13px;letter-spacing:2px;text-transform:uppercase;">Cargando datos...</span>
+  <div id="ia-debug" style="margin-top:20px;font-size:11px;color:#94a3b8;font-family:monospace;text-align:left;max-width:400px;line-height:1.8;"></div>
 </div>
 
 <!-- Contenedor principal — se llena cuando el WS está listo -->
@@ -47,6 +48,13 @@ input,select,textarea{ font-size:16px !important; }
 //  Archivo independiente, se comunica con el servidor
 //  vía WebSocket propio (igual que el index)
 // ══════════════════════════════════════════════════════
+
+// ── Debug visible en pantalla ────────────────────────
+function dbg(msg){
+  console.log('[ingresos]', msg);
+  const el = document.getElementById('ia-debug');
+  if(el) el.innerHTML += '• ' + msg + '<br>';
+}
 
 // ── Parámetros recibidos desde el index ──────────────
 const _params   = new URLSearchParams(window.location.search);
@@ -82,19 +90,24 @@ function iaSaveState(){
 
 function connectWS(){
   const proto = location.protocol==='https:' ? 'wss' : 'ws';
-  ws = new WebSocket(`${proto}://${location.host}`);
+  const url = `${proto}://${location.host}`;
+  dbg('Conectando WS → ' + url);
+  ws = new WebSocket(url);
 
   ws.onopen = () => {
     wsReady = true;
     reconnectDelay = 1000;
     clearTimeout(reconnectTimer);
+    dbg('WS conectado ✓');
   };
 
   ws.onmessage = (e) => {
     try{
       const msg = JSON.parse(e.data);
+      dbg('Mensaje: ' + msg.type);
 
       if(msg.type === 'init'){
+        dbg('init → iaState=' + !!msg.iaState + ' records=' + (msg.iaRecords||[]).length);
         // Recibir estado inicial — garantizar que nunca sea null
         iaState   = msg.iaState   || iaState   || { supervisors:[], employees:[] };
         iaRecords = msg.iaRecords || iaRecords  || [];
@@ -149,14 +162,15 @@ function connectWS(){
         rebuildModules();
         if(typeof iaBuildAreaSelect==='function') iaBuildAreaSelect();
       }
-    } catch(err){ console.error('WS parse error:', err); }
+    } catch(err){ dbg('ERROR: ' + err.message); console.error('WS parse error:', err); }
   };
 
-  ws.onclose = () => {
+  ws.onclose = (e) => {
     wsReady = false;
+    dbg('WS cerrado — code:' + e.code + ' reason:' + (e.reason||'?'));
     reconnectTimer = setTimeout(()=>{ reconnectDelay=Math.min(reconnectDelay*2,30000); connectWS(); }, reconnectDelay);
   };
-  ws.onerror = () => { ws.close(); };
+  ws.onerror = (e) => { dbg('WS error'); ws.close(); };
 }
 
 // ── Reconstruir array MODULES ────────────────────────
@@ -185,7 +199,7 @@ function getProfileMembers(perfil){
 let _appArranged = false;
 setTimeout(()=>{
   if(!_appArranged){
-    console.warn('WS timeout — arrancando sin datos del servidor');
+    dbg('TIMEOUT — arrancando sin WS');
     if(!iaState) iaState = { supervisors:[], employees:[] };
     arrancarApp();
   }
@@ -195,11 +209,25 @@ setTimeout(()=>{
 function arrancarApp(){
   if(_appArranged) return;
   _appArranged = true;
-  document.getElementById('ia-loader').style.display   = 'none';
-  const root = document.getElementById('ingreso-app-root');
-  root.style.display = 'block';
-  root.innerHTML = getIngresoHTML();
-  runIngresoScript();
+  dbg('arrancarApp — iaState=' + !!iaState);
+  try {
+    document.getElementById('ia-loader').style.display = 'none';
+    const root = document.getElementById('ingreso-app-root');
+    root.style.display = 'block';
+    root.innerHTML = getIngresoHTML();
+    dbg('HTML inyectado ✓');
+    runIngresoScript();
+    dbg('runIngresoScript ✓');
+  } catch(err) {
+    dbg('ERROR arrancarApp: ' + err.message); console.error('[IA] ERROR:', err);
+    document.getElementById('ia-loader').innerHTML =
+      '<div style="color:#ef4444;padding:40px;text-align:center;font-family:sans-serif;">' +
+      '<div style="font-size:24px;margin-bottom:12px;">⚠️ Error al cargar</div>' +
+      '<div style="font-size:13px;margin-bottom:16px;">' + err.message + '</div>' +
+      '<button onclick="location.reload()" style="padding:8px 20px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#1e3a8a;font-weight:700;cursor:pointer;">Recargar</button>' +
+      '</div>';
+    document.getElementById('ia-loader').style.display = 'flex';
+  }
 }
 
 // ── Cargar config adicional del servidor (perfil_members, etc.) ──
