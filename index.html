@@ -1122,7 +1122,7 @@ function connectWS(){
         else if(s!=='blue'){ delete cambioLimites[id]; }
         if(s==='red') lastMec[id]='';
         else if(msg.mecanico) lastMec[id]=msg.mecanico;
-        if(s!=='green'&&(currentUser==='Televisor'||currentUser==='Mecanicos')){
+        if(s!=='green'&&s!=='yellow'&&(currentUser==='Televisor'||currentUser==='Mecanicos')){
           playAlertSound();
         }
         updateStats();
@@ -6055,29 +6055,21 @@ function cfgSavePerfilModal(){
     <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#1e3a8a;margin-bottom:4px;">Solicitar Insumo</div>
     <div id="si-modulo-lbl" style="font-size:12px;color:#64748b;margin-bottom:20px;"></div>
 
-    <!-- Quién solicita -->
-    <div style="margin-bottom:14px;">
-      <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:6px;">1. QUIÉN SOLICITA</div>
-      <select id="si-quien" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;background:#f8fafc;outline:none;">
-        <option value="">— Selecciona —</option>
-      </select>
-    </div>
-
     <!-- Referencia -->
     <div style="margin-bottom:14px;">
-      <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:6px;">2. REFERENCIA</div>
+      <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:6px;">1. REFERENCIA</div>
       <input id="si-ref" type="text" placeholder="Ej: REF-001" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;background:#f8fafc;outline:none;">
     </div>
 
     <!-- OP / OC -->
     <div style="margin-bottom:14px;">
-      <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:6px;">3. OP / OC</div>
+      <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:6px;">2. OP / OC</div>
       <input id="si-op" type="text" placeholder="Ej: OP-2024-001" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;background:#f8fafc;outline:none;">
     </div>
 
     <!-- Tipo de insumo -->
     <div style="margin-bottom:22px;">
-      <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:6px;">4. TIPO DE INSUMO</div>
+      <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:6px;">3. TIPO DE INSUMO</div>
       <select id="si-tipo" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;background:#f8fafc;outline:none;">
         <option value="">— Seleccionar —</option>
       </select>
@@ -6094,32 +6086,26 @@ function cfgSavePerfilModal(){
 <script>
 // ── Solicitar Insumos — Modal independiente ───────────────────────
 function siOpen(){
-  // Poblar selector de quién solicita — miembros del perfil actual
-  const sel = document.getElementById('si-quien');
-  sel.innerHTML = '<option value="">— Selecciona —</option>';
-  const members = (typeof getProfileMembers==='function' && currentUser)
-    ? getProfileMembers(currentUser).filter(m=>!m.disabled).map(m=>typeof m==='string'?m:(m.nombre||m.name||''))
-    : [];
-  if(members.length){
-    members.forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=m; sel.appendChild(o); });
-  } else {
-    // Si no hay miembros configurados, usar el usuario actual
-    const o=document.createElement('option'); o.value=currentUser; o.textContent=currentUser; sel.appendChild(o);
-    sel.value=currentUser;
-  }
-
-  // Poblar tipos de insumo desde configuración del servidor (vía WS ciConfig)
-  const tipoSel = document.getElementById('si-tipo');
-  tipoSel.innerHTML = '<option value="">— Seleccionar —</option>';
-  if(typeof ciConfig !== 'undefined' && ciConfig.tipoInsumoList){
-    ciConfig.tipoInsumoList.forEach(t=>{ const o=document.createElement('option'); o.value=t.name; o.textContent=t.name; tipoSel.appendChild(o); });
-  }
-
   // Limpiar campos
   document.getElementById('si-ref').value = '';
   document.getElementById('si-op').value  = '';
   document.getElementById('si-error').style.display = 'none';
-  document.getElementById('si-modulo-lbl').textContent = currentUser ? 'Perfil: ' + currentUser : '';
+  // Mostrar módulo actual
+  const modLabel = selectedMod || currentUser || '';
+  document.getElementById('si-modulo-lbl').textContent = modLabel ? 'Módulo: ' + modLabel : '';
+
+  // Cargar tipos de insumo desde el servidor
+  const tipoSel = document.getElementById('si-tipo');
+  tipoSel.innerHTML = '<option value="">— Cargando... —</option>';
+  fetch('/api/ci-config')
+    .then(r=>r.json())
+    .then(data=>{
+      tipoSel.innerHTML = '<option value="">— Seleccionar —</option>';
+      if(data.tipoInsumoList){
+        data.tipoInsumoList.forEach(t=>{ const o=document.createElement('option'); o.value=t.name; o.textContent=t.name; tipoSel.appendChild(o); });
+      }
+    })
+    .catch(()=>{ tipoSel.innerHTML = '<option value="">— Error al cargar —</option>'; });
 
   // Mostrar
   const ov = document.getElementById('si-overlay');
@@ -6131,13 +6117,13 @@ function siClose(){
 }
 
 function siEnviar(){
-  const quien = document.getElementById('si-quien').value.trim();
   const ref   = document.getElementById('si-ref').value.trim();
   const op    = document.getElementById('si-op').value.trim();
   const tipo  = document.getElementById('si-tipo').value.trim();
+  const quien = selectedMod || currentUser || '';
   const errEl = document.getElementById('si-error');
 
-  if(!quien || !ref || !op || !tipo){
+  if(!ref || !op || !tipo){
     errEl.textContent = 'Por favor completa todos los campos';
     errEl.style.display = 'block';
     return;
