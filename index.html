@@ -1124,7 +1124,8 @@ function connectWS(){
         else if(s!=='blue'){ delete cambioLimites[id]; }
         if(s==='red') lastMec[id]='';
         else if(msg.mecanico) lastMec[id]=msg.mecanico;
-        if(s!=='green'&&s!=='yellow'&&(currentUser==='Televisor'||currentUser==='Mecanicos')){
+        const esPlantaSnd=(currentUser==='Televisor'||currentUser==='Mecanicos');
+        if(s!=='green'&&s!=='yellow'&&!(esPlantaSnd&&s==='orange')&&esPlantaSnd){
           playAlertSound();
         }
         updateStats();
@@ -1228,9 +1229,21 @@ async function loadHistorialFromServer(){
   catch(e){ console.error('loadHistorial:',e); _historialCache=[]; }
 }
 function logChange(modulo,prev,next,durMs,mecanico){
-  if(!((prev==='red'&&next==='yellow')||(prev==='yellow'&&next==='green'))) return;
+  // Solo loguear si hubo tiempo real en el estado anterior
+  if(!prev||prev==='green'||durMs<1000) return;
   const h=loadHistory();
-  h.push({fecha:new Date().toLocaleDateString('es-CO'),modulo,estadoAnterior:prev,estadoNuevo:next,durMinutos:parseFloat((durMs/60000).toFixed(2)),mecanico:mecanico||''});
+  const now=new Date();
+  h.push({
+    fecha:now.toLocaleDateString('es-CO'),
+    fechaISO:now.toISOString().split('T')[0],
+    hora:now.toLocaleTimeString('es-CO'),
+    modulo,
+    tipo:prev,
+    estadoAnterior:prev,
+    estadoNuevo:next,
+    durMinutos:parseFloat((durMs/60000).toFixed(2)),
+    mecanico:mecanico||''
+  });
   if(h.length>10000) h.splice(0,h.length-10000);
   saveHistory(h);
 }
@@ -1913,7 +1926,8 @@ function commitChange(id,s,mecanico,limite){
   states[id]=s;timers[id]=ahora;
   if(mecanico) lastMec[id]=mecanico;
   if(s==='red') lastMec[id]=''; // Resetear mecánico al volver a alerta
-  if(s!=='green'&&(currentUser==='Televisor'||currentUser==='Mecanicos')){
+  const _esPlantaSnd=(currentUser==='Televisor'||currentUser==='Mecanicos');
+  if(s!=='green'&&s!=='yellow'&&!(_esPlantaSnd&&s==='orange')&&_esPlantaSnd){
     playAlertSound();
   }
   // Enviar cambio al servidor para sincronizar otros dispositivos
@@ -2187,34 +2201,42 @@ function renderAcumulado(){
   const now=Date.now();
   const filtMod=document.getElementById('acum-f-modulo').value;
   const filtTipo=document.getElementById('acum-f-tipo')?.value||'';
-  // Filtro fecha (basado en changeLog si existe, sino solo sesión actual)
   const desde=document.getElementById('acum-f-desde')?.value||'';
   const hasta=document.getElementById('acum-f-hasta')?.value||'';
   const TIPO_LABELS={red:'Alerta',yellow:'Atendiendo',blue:'En Cambio',orange:'Espera CI'};
   const TIPO_COLORS={red:'#ef4444',yellow:'#eab308',blue:'#2563eb',orange:'#f97316'};
   const TIPO_ICONS={red:'🔴',yellow:'🟡',blue:'🔵',orange:'🟠'};
-  // Construir filas: una por módulo×tipo con tiempo > 0
+
+  // Combinar historial guardado + sesión actual en memoria
+  const hist=loadHistory();
   let rows=[];
+
+  // Del historial persistido
+  hist.forEach(r=>{
+    if(!r.tipo||r.tipo==='green') return;
+    if(!(r.tipo in TIPO_LABELS)) return;
+    if(desde && r.fechaISO && r.fechaISO < desde) return;
+    if(hasta && r.fechaISO && r.fechaISO > hasta) return;
+    rows.push({id:r.modulo,tipo:r.tipo,minutos:r.durMinutos,ms:r.durMinutos*60000,fecha:r.fecha});
+  });
+
+  // De la sesión actual (no guardados aún)
   MODULES.forEach(id=>{
     const s=states[id];
     const cur=now-timers[id];
-    const vals={
-      red:   acumRed[id]   +(s==='red'    ?cur:0),
-      yellow:acumYellow[id]+(s==='yellow' ?cur:0),
-      blue:  acumBlue[id]  +(s==='blue'   ?cur:0),
-      orange:acumOrange[id]+(s==='orange' ?cur:0),
-    };
+    const vals={red:acumRed[id]+(s==='red'?cur:0),yellow:acumYellow[id]+(s==='yellow'?cur:0),blue:acumBlue[id]+(s==='blue'?cur:0),orange:acumOrange[id]+(s==='orange'?cur:0)};
     Object.entries(vals).forEach(([tipo,ms])=>{
-      if(ms<=0) return;
-      const minutos=(ms/60000).toFixed(2);
-      rows.push({id,tipo,ms,minutos});
+      if(ms<1000) return;
+      rows.push({id,tipo,minutos:parseFloat((ms/60000).toFixed(2)),ms,fecha:'Hoy'});
     });
   });
+
   if(filtMod) rows=rows.filter(r=>r.id===filtMod);
   if(filtTipo) rows=rows.filter(r=>r.tipo===filtTipo);
   rows.sort((a,b)=>acumSortDesc?(b.ms-a.ms):(a.ms-b.ms));
+
   const tbody=document.getElementById('acum-tbody');tbody.innerHTML='';
-  rows.forEach(({id,tipo,minutos})=>{
+  rows.forEach(({id,tipo,minutos,fecha})=>{
     const color=TIPO_COLORS[tipo]||'#64748b';
     const icon=TIPO_ICONS[tipo]||'';
     const label=TIPO_LABELS[tipo]||tipo;
