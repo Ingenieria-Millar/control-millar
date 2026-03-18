@@ -1055,11 +1055,6 @@ function connectWS(){
     reconnectDelay=1000; // reset backoff on successful connect
     clearTimeout(reconnectTimer);
     setConnStatus(true);
-    // ── Heartbeat: evita que Render corte la conexión WS idle (~55s) ──
-    if(ws._pingInterval) clearInterval(ws._pingInterval);
-    ws._pingInterval=setInterval(()=>{
-      if(ws && ws.readyState===1) ws.send(JSON.stringify({type:'ping'}));
-    }, 30000);
   };
 
   ws.onmessage=(e)=>{
@@ -1119,7 +1114,8 @@ function connectWS(){
         else if(s!=='blue'){ delete cambioLimites[id]; }
         if(s==='red') lastMec[id]='';
         else if(msg.mecanico) lastMec[id]=msg.mecanico;
-        if((s==='red'||s==='blue')&&(currentUser==='Televisor'||currentUser==='Mecanicos')){
+        if(s!=='green'&&(currentUser==='Televisor'||currentUser==='Mecanicos')){
+          playAlertSound();
         }
         updateStats();
         if(selectedMod===id) renderBig();
@@ -1166,7 +1162,6 @@ function connectWS(){
 
   ws.onclose=()=>{
     wsReady=false;
-    if(ws._pingInterval){ clearInterval(ws._pingInterval); ws._pingInterval=null; }
     setConnStatus(false);
     // Reconexión con backoff exponencial: 1s → 2s → 4s → ... → 30s max
     reconnectTimer=setTimeout(()=>{
@@ -1898,7 +1893,8 @@ function commitChange(id,s,mecanico,limite){
   states[id]=s;timers[id]=ahora;
   if(mecanico) lastMec[id]=mecanico;
   if(s==='red') lastMec[id]=''; // Resetear mecánico al volver a alerta
-  if((s==='red'||s==='blue')&&(currentUser==='Televisor'||currentUser==='Mecanicos')){
+  if(s!=='green'&&(currentUser==='Televisor'||currentUser==='Mecanicos')){
+    playAlertSound();
   }
   // Enviar cambio al servidor para sincronizar otros dispositivos
   wsSend({type:'change', id, state:s, mecanico:mecanico||'', limite:limite||null});
