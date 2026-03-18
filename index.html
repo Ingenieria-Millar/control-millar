@@ -373,7 +373,7 @@ select.lp-ctrl{background-color:#fff;
 .fix-mod-opt:hover{background:#eff6ff;border-color:#93c5fd;color:#1e3a8a;}
 .fix-mod-opt.selected{background:#eff6ff;border-color:#2563eb;color:#1e3a8a;}
 /* ACUMULADO */
-.acum-box{background:#fff;border:1px solid var(--border);border-radius:16px;padding:28px 32px;display:flex;flex-direction:column;gap:16px;width:95%;max-width:700px;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(15,23,42,.15);animation:slup 0.25s ease;}
+.acum-box{background:#fff;border:1px solid var(--border);border-radius:16px;padding:28px 32px;display:flex;flex-direction:column;gap:16px;width:95%;max-width:700px;max-height:88vh;overflow-y:visible;box-shadow:0 20px 60px rgba(15,23,42,.15);animation:slup 0.25s ease;}
 .acum-title{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#0f172a;text-align:center;}
 .acum-sub{font-family:'Nunito',sans-serif;font-size:11px;color:var(--muted);text-align:center;letter-spacing:.5px;}
 .acum-table{width:100%;border-collapse:collapse;}
@@ -638,6 +638,7 @@ select.sp-ctrl{background-color:#fff;
   </div>
 </div>
 
+<div id="filter-hint" style="display:none;"></div>
 <div id="nav-single">
   <button class="btn-bar" onclick="cambiarModulo()">📱 Cambiar Módulo</button>
   <button class="btn-bar blue" onclick="atrasDesdeModulo()">⬅ Atrás</button>
@@ -981,8 +982,9 @@ select.sp-ctrl{background-color:#fff;
       <button class="acum-sort-btn" id="acum-sort-btn" onclick="toggleAcumSort()">↓ Mayor tiempo</button>
       <span class="acum-count" id="acum-count"></span>
     </div>
-    <table class="acum-table">
-      <thead>
+    <div style="overflow-y:auto;max-height:50vh;border-radius:10px;border:1px solid var(--border);">
+    <table class="acum-table" style="margin:0;">
+      <thead style="position:sticky;top:0;z-index:2;">
         <tr>
           <th>Módulo</th>
           <th>Estado</th>
@@ -995,6 +997,7 @@ select.sp-ctrl{background-color:#fff;
       </thead>
       <tbody id="acum-tbody"></tbody>
     </table>
+    </div>
   </div>
 </div>
 
@@ -1593,8 +1596,8 @@ function mostrarSubMenuMontajes(){
 
 // CI: accesible en /ci (página independiente)
 function onImpIns(){
-  // Falta de insumos → abrir Tablero CI en nueva pestaña
-  window.open('/ci', '_blank');
+  cancelImproductivo();
+  if(typeof siOpen==='function') siOpen();
 }
 
 // Sub-menú dentro de Producción (Programador / Administrador)
