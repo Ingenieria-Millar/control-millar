@@ -567,6 +567,11 @@ select.sp-ctrl{background-color:#fff;
 
   <!-- Derecha: reloj + punto conexión + usuario + volver -->
   <div style="display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;">
+    <div style="display:flex;align-items:center;gap:.6rem;">
+      <span id="live-dot" class="live-dot"></span>
+      <span id="conn-label" class="conn-label"></span>
+    </div>
+    <span id="clock" class="clock"></span>
 
     <div id="hd-tablero-right" style="display:none;align-items:center;gap:.7rem;">
       <div class="hd-user-badge"><span class="hd-user-dot"></span><span id="hd-user-name"></span></div>
@@ -1176,6 +1181,7 @@ function connectWS(){
 function setConnStatus(online){
   const dot=document.getElementById('live-dot');
   const lbl=document.getElementById('conn-label');
+  if(!dot) return;
   if(online){
     dot.className='live-dot online';
     if(lbl){ lbl.textContent='EN LÍNEA ✓'; lbl.style.color='var(--green)'; }
