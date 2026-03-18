@@ -572,6 +572,16 @@ app.post('/api/app-config', (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// CI Config (para modal Solicitar Insumos en index.html)
+app.get('/api/ci-config', (req, res) => {
+  res.json(ciConfig);
+});
+
+// CI Config (para modal Solicitar Insumos en index.html)
+app.get('/api/ci-config', (req, res) => {
+  res.json(ciConfig);
+});
+
 // Novedades
 app.get('/api/novedades',  (req, res) => res.json(readJSON(FILES.novedades, [])));
 app.post('/api/novedades', (req, res) => {
