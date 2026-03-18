@@ -55,7 +55,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .gear-btn:hover{background:#f1f5f9;border-color:#93c5fd;transform:rotate(30deg);}
 
 /* ── FILTER TABS ── */
-.filter-tabs{display:flex;border-bottom:1px solid var(--border);background:#fff;flex-shrink:0;overflow-x:auto;scrollbar-width:none;box-shadow:0 1px 4px rgba(0,0,0,.05);}
+.filter-tabs{display:none!important;}
 .filter-tabs::-webkit-scrollbar{display:none;}
 .ftab{padding:10px 16px;font-size:clamp(10px,1.8vw,12px);font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);display:flex;align-items:center;gap:6px;white-space:nowrap;flex-shrink:0;font-family:'Nunito',sans-serif;transition:all .2s;}
 .ftab.active{color:var(--blue);border-bottom-color:var(--blue);}
@@ -361,30 +361,24 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
       </div>
       <div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0f172a;line-height:1.1;">TABLERO <span style="color:#2563eb;">FALTANTE DE INSUMOS</span></div>
-        <div id="ci-topbar-date" style="font-size:12px;color:#64748b;font-family:'Nunito',sans-serif;font-weight:600;margin-top:1px;"></div>
+        
       </div>
     </div>
     <div class="topbar-right">
       <div id="ws-dot" title="Conectando..." style="width:9px;height:9px;border-radius:50%;background:#ef4444;flex-shrink:0;box-shadow:0 0 6px rgba(239,68,68,.7);transition:all .3s;"></div>
-      <button class="sound-btn" id="sound-btn" onclick="ci_toggleSound()">🔊</button>
       <button class="gear-btn" onclick="ci_openGearLogin()">⚙</button>
       <button class="ibtn ibtn-ghost" onclick="ci_showScreen('home')">← INICIO</button>
     </div>
   </div>
-  <div class="filter-tabs">
-    <div class="ftab active" id="ftab-all" onclick="ci_setFilter('all')">TODOS <span class="ftab-count" id="fc-all">0</span></div>
-    <div class="ftab ftab-green" id="ftab-op" onclick="ci_setFilter('op')">🟢 OPERATIVO <span class="ftab-count" id="fc-op">0</span></div>
-    <div class="ftab ftab-red" id="ftab-alert" onclick="ci_setFilter('alert')">🔴 ALERTA <span class="ftab-count" id="fc-alert">0</span></div>
-    <div class="ftab" id="ftab-hist" onclick="ci_switchView('history')" style="margin-left:auto;">📋 HISTÓRICO</div>
-  </div>
-  <div class="view active" id="view-board">
+
+  <div class="view" id="view-board" style="display:none!important;">
     <div class="alerts-banner" id="alerts-banner" style="display:none">
       <div class="abanner-title">⚠ SOLICITUDES ACTIVAS</div>
       <div class="alerts-list" id="alerts-list"></div>
     </div>
     <div class="modules-grid" id="modules-grid"></div>
   </div>
-  <div class="view" id="view-history">
+  <div class="view active" id="view-history">
     <div class="history-header">
       <div class="history-title">📋 HISTÓRICO DE SOLICITUDES</div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
@@ -393,67 +387,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
       </div>
     </div>
     <!-- Filtros -->
-    <div class="hist-filters">
-      <div style="display:flex;flex-direction:column;gap:4px;">
-        <label>Módulo</label>
-        <select class="hist-filter-sel" id="filter-module" onchange="ci_renderHistory()"><option value="">Todos</option></select>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:4px;">
-        <label>Referencia</label>
-        <input class="hist-filter-inp" id="filter-ref" oninput="ci_renderHistory()" placeholder="Buscar...">
-      </div>
-      <div style="display:flex;flex-direction:column;gap:4px;">
-        <label>OP/OC</label>
-        <input class="hist-filter-inp" id="filter-op" oninput="ci_renderHistory()" placeholder="Buscar...">
-      </div>
-      <div style="display:flex;flex-direction:column;gap:4px;">
-        <label>Tipo insumo</label>
-        <select class="hist-filter-sel" id="filter-tipo" onchange="ci_renderHistory()"><option value="">Todos</option></select>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:4px;">
-        <label>Estado</label>
-        <select class="hist-filter-sel" id="filter-estado" onchange="ci_renderHistory()">
-          <option value="">Todos</option>
-          <option value="alert">⚠ Alerta</option>
-          <option value="pending-confirm">⏳ Confirmación</option>
-          <option value="done">✓ Cumplido</option>
-        </select>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:4px;">
-        <label>Desde</label>
-        <input type="date" class="hist-filter-sel" id="filter-fecha-desde" onchange="ci_renderHistory()">
-      </div>
-      <div style="display:flex;flex-direction:column;gap:4px;">
-        <label>Hasta</label>
-        <input type="date" class="hist-filter-sel" id="filter-fecha-hasta" onchange="ci_renderHistory()">
-      </div>
-      <button onclick="ci_clearDateFilter()" style="padding:6px 14px;border-radius:7px;border:1.5px solid var(--border);background:#f1f5f9;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;align-self:flex-end;">✕ Limpiar</button>
-    </div>
-    <!-- Tarjetas -->
-    <div class="hist-cards-grid" id="history-tbody">
-      <div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px;font-size:14px;">Sin solicitudes aún</div>
-    </div>
-  </div>
-</div>
-
-<!-- ── MODAL FORMULARIO SOLICITUD ── -->
-<div class="overlay" id="form-overlay">
-  <div class="modal">
-    <div class="modal-header">
-      <div><div class="modal-title">SOLICITAR INSUMO</div><div class="modal-sub" id="modal-mod-lbl">Módulo: —</div></div>
-      <button class="close-btn" onclick="ci_closeModal()">✕</button>
-    </div>
-    <div class="fg"><label class="fl">1. Referencia</label><input class="fi" id="f-ref" type="text" placeholder="Ej: REF-001"></div>
-    <div class="fg"><label class="fl">2. OP / OC</label><input class="fi" id="f-op" type="text" placeholder="Ej: OP-2024-001"></div>
-    <div class="fg"><label class="fl">3. Tipo de Insumo</label><select class="fs" id="f-tipo" onchange="ci_onTipoChange()"></select></div>
-    <div id="f-campos-wrap" style="display:none">
-      <div id="f-row-qty-talla" style="display:none">
-        <div style="display:flex;gap:12px;flex-wrap:wrap;">
-          <div class="fg" style="flex:1;min-width:120px"><label class="fl">4. Cantidad</label><input class="fi" id="f-qty" type="number" min="1" placeholder="0"></div>
-          <div class="fg" style="flex:1;min-width:120px"><label class="fl">Talla</label><input class="fi" id="f-talla" type="text" placeholder="Ej: M, XL..."></div>
-        </div>
-      </div>
-      <div id="f-row-qty-only" style="display:none">
+    <div id="f-row-qty-only" style="display:none">
         <div class="fg"><label class="fl">4. Cantidad</label><input class="fi" id="f-qty-only" type="number" min="1" placeholder="0"></div>
       </div>
       <div id="f-row-elastico" style="display:none">
@@ -555,6 +489,7 @@ function ci_wsConnect(){
       document.getElementById('ci-loader').style.display='none';
       document.getElementById('ci-app').style.display='block';
       ci_showScreen('dashboard');
+      ci_switchView('history');
     };
     ci_ws.onclose=()=>{
       ci_wsReady=false;
@@ -885,9 +820,9 @@ function ci_confirmResponse(accepted){
 }
 
 function ci_switchView(v){
-  ci_currentView=v;
-  document.getElementById('view-board').classList.toggle('active',v==='board');
-  document.getElementById('view-history').classList.toggle('active',v==='history');
+  ci_currentView='history'; v='history';
+  document.getElementById('view-board').classList.remove('active');
+  document.getElementById('view-history').classList.add('active');
   ['ftab-all','ftab-op','ftab-alert'].forEach(id=>document.getElementById(id)?.classList.toggle('active',v==='board'&&id==='ftab-'+ci_currentFilter));
   document.getElementById('ftab-hist')?.classList.toggle('active',v==='history');
   if(v==='history')ci_renderHistory();
@@ -939,18 +874,17 @@ function ci_renderHistory(){
     return`<div class="hist-card ${cardCls}">
       <div class="hist-card-top">
         <div class="hist-card-mod">${h.module}</div>
-        <div style="display:flex;align-items:center;gap:6px;">
-          <span style="font-size:11px;color:var(--muted);font-weight:700;">#${h.n}</span>
-          <span class="badge ${badgeCls}">${badgeTxt}</span>
-        </div>
+        <span class="badge ${badgeCls}">${badgeTxt}</span>
       </div>
       <div class="hist-card-row"><span class="hist-card-lbl">Referencia</span><span class="hist-card-val">${h.ref||'—'}</span></div>
       <div class="hist-card-row"><span class="hist-card-lbl">OP / OC</span><span class="hist-card-val">${h.op||'—'}</span></div>
       <div class="hist-card-row"><span class="hist-card-lbl">Tipo insumo</span><span class="hist-card-val">${h.tipo||'—'}</span></div>
       <div class="hist-card-row"><span class="hist-card-lbl">Cantidad</span><span class="hist-card-val">${h.qty||'—'}</span></div>
-      <div class="hist-card-row"><span class="hist-card-lbl">Fecha / Hora</span><span class="hist-card-val" style="font-family:monospace;font-size:11px;">${fecha} ${hora}</span></div>
+      <div class="hist-card-row"><span class="hist-card-lbl">Fecha</span><span class="hist-card-val">${fecha}</span></div>
+      <div class="hist-card-row"><span class="hist-card-lbl">Hora inicio</span><span class="hist-card-val" style="font-family:monospace;">${hora}</span></div>
+      <div class="hist-card-row"><span class="hist-card-lbl">Hora fin</span><span class="hist-card-val" style="font-family:monospace;">${isDone?(h.resolvedAt||'—'):'—'}</span></div>
       <div class="hist-card-row"><span class="hist-card-lbl">T. Espera</span><span class="hist-card-val hist-card-timer">${waitDisp}</span></div>
-      <div class="hist-card-row"><span class="hist-card-lbl">T. Atención</span><span class="hist-card-val" style="font-family:monospace;font-size:11px;">${isDone?(h.resolvedAt??'—'):'—'}</span></div>
+
       <div class="hist-card-actions">
         ${obsSel}
         ${editBtn}
