@@ -99,7 +99,7 @@ h1{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;lett
 .btn-bar.purple{border-color:rgba(124,58,237,0.35);background:rgba(124,58,237,0.06);color:#7c3aed;}
 .btn-bar.purple:hover{background:rgba(124,58,237,0.12);}
 #nav-single{display:none;position:relative;z-index:2;padding:8px 24px;background:#fff;border-bottom:1px solid var(--border);gap:8px;justify-content:flex-end;align-items:center;}
-main{position:relative;z-index:1;padding:24px;max-width:1200px;margin:0 auto;padding-bottom:24px;width:100%;box-sizing:border-box;}
+main{position:relative;z-index:1;padding:16px;max-width:100%;margin:0 auto;padding-bottom:16px;width:100%;box-sizing:border-box;}
 main.tablero-mode{max-width:100%;padding:12px;padding-bottom:12px;}
 #grid-view .grid{width:100%;}
 /* Botón Vista */
@@ -117,7 +117,7 @@ body.vista-edit .mod-hidden-card .mod-hide-btn{background:rgba(34,197,94,.25);}
 /* Banner modo edición */
 #vista-edit-banner{display:none;position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:999;background:#1e3a8a;color:#fff;padding:10px 22px;border-radius:24px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:.5px;box-shadow:0 4px 20px rgba(30,58,138,.35);gap:12px;align-items:center;}
 body.vista-edit #vista-edit-banner{display:flex;}
-.grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;}
 .module{position:relative;background:#f8fafc;border:1.5px solid #cbd5e1;border-radius:12px;padding:14px 10px 10px;display:flex;flex-direction:column;align-items:center;gap:5px;overflow:hidden;transition:transform 0.15s,border-color 0.3s,box-shadow 0.3s;user-select:none;-webkit-tap-highlight-color:transparent;animation:fi 0.25s ease;box-shadow:0 1px 4px rgba(0,0,0,.05);}
 @keyframes fi{from{opacity:0;transform:scale(0.92);}to{opacity:1;transform:scale(1);}}
 .module.readonly{cursor:default;}.module.clickable{cursor:pointer;}.module.clickable:hover{transform:scale(1.03);}
@@ -1938,7 +1938,7 @@ function applyGridFilter(){
     const div=document.getElementById('mod-'+id);
     if(!div) return;
     const s=states[id]||'green';
-    const sVis=esPlanta&&s==='orange'?'green':s;
+    const sVis=s;
     const filtrado=activeFilters.size>0&&!activeFilters.has(sVis);
     div.classList.toggle('hidden-filter', filtrado);
     if(!filtrado) anyVisible=true;
@@ -1979,7 +1979,7 @@ function renderGrid(){
     const div=document.getElementById('mod-'+id);
     if(!div) return;
     const s=states[id]||'green';
-    const sVis=esPlanta&&s==='orange'?'green':s;
+    const sVis=s;
     const mecHtml=(sVis==='yellow'||sVis==='red')&&lastMec[id]?`<span class="mod-mec">🔧 ${lastMec[id]}</span>`:`<span class="mod-mec"></span>`;
     div.className=`module ${canClick?'clickable':'readonly'} ${sVis}`;
     div.innerHTML=`<span class="mod-id">${id}</span><div class="light"></div><span class="mod-label">${LABELS[sVis]}</span><span class="mod-timer" id="timer-${id}"></span>${mecHtml}`;
@@ -2071,7 +2071,7 @@ function updateStats(){
   const esPlanta=(currentUser==='Mecanicos'||currentUser==='Televisor');
   let g=0,y=0,r=0,b=0,o=0;
   Object.values(states).forEach(s=>{
-    if(s==='green'||(esPlanta&&s==='orange'))g++;
+    if(s==='green')g++;
     else if(s==='yellow')y++;
     else if(s==='red')r++;
     else if(s==='blue')b++;
@@ -2083,7 +2083,7 @@ function updateStats(){
   const eb=document.getElementById('cnt-b');if(eb)eb.textContent=b;
   const eo=document.getElementById('cnt-o');if(eo)eo.textContent=o;
   const statO=document.getElementById('stat-orange');
-  if(statO) statO.style.display=esPlanta?'none':'';
+  if(statO) statO.style.display='';
 }
 // ── Formatear milisegundos a string legible (1h 02m / 5m 30s) ────────
 function formatTime(ms){
@@ -2099,7 +2099,7 @@ setInterval(()=>{
     const el=document.getElementById("timer-"+id);
     if(!el)return;
     const s=states[id];
-    if(esPlanta&&s==='orange'){el.textContent="";return;}
+    if(esPlanta&&s==='orange'){el.textContent=formatTime(Date.now()-timers[id]);return;}
     if(s==="blue"&&cambioLimites[id]){
       const rem=cambioLimites[id]-now;
       if(rem<=0){delete cambioLimites[id];commitChange(id,"green",null);}
