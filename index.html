@@ -351,6 +351,7 @@ select.lp-ctrl{background-color:#fff;
 .modal-btn.secondary:hover{background:#f1f5f9;color:#0f172a;border-color:#94a3b8;transform:none;}
 .mec-btn{width:100%;padding:11px 16px;border-radius:8px;border:1.5px solid var(--border);background:#f8fafc;color:#0f172a;font-family:'Nunito',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.18s;text-align:left;}
 .mec-btn:hover{background:#eff6ff;border-color:#93c5fd;color:#1e3a8a;}
+.hidden-filter{display:none!important;}
 /* EXCEL */
 .excel-modal-box{background:#fff;border:1px solid var(--border);border-radius:16px;padding:36px 40px;display:flex;flex-direction:column;gap:20px;min-width:340px;max-width:420px;box-shadow:0 20px 60px rgba(15,23,42,.15);animation:slup 0.25s ease;}
 .excel-title{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#0f172a;}
@@ -633,7 +634,7 @@ select.sp-ctrl{background-color:#fff;
   <div class="view-toggle" style="margin-left:auto;">
     <button class="btn-bar green"  id="btn-excel-bar" style="display:none;" onclick="openExcelModal()">📥 Excel</button>
     <button class="btn-bar yellow" id="btn-fix-mec"   style="display:none;" onclick="openFixMecModal()">🔧 Corregir</button>
-    <button class="btn-bar purple" onclick="openAcumuladoModal()">📊 Acumulado</button>
+    <button class="btn-bar purple" onclick="openAcumuladoScreen()">📊 Acumulado</button>
 
   </div>
 </div>
@@ -908,7 +909,7 @@ select.sp-ctrl{background-color:#fff;
     <div class="modal-icon">🔧</div>
     <div class="modal-title" id="mec-title">¿Quién atendió?</div>
     <div class="modal-sub"   id="mec-sub">Selecciona el mecánico</div>
-    <div style="width:100%;display:flex;flex-direction:column;gap:8px;" id="mec-list"></div>
+    <div style="width:100%;display:flex;flex-direction:column;gap:8px;max-height:320px;overflow-y:auto;padding-right:4px;" id="mec-list"></div>
     <button class="modal-btn secondary" onclick="cancelMecanico()">Cancelar</button>
   </div>
 </div>
@@ -959,11 +960,16 @@ select.sp-ctrl{background-color:#fff;
 </div>
 
 <!-- MODAL: Acumulado -->
-<div class="modal-overlay hidden" id="modal-acumulado">
-  <div class="acum-box">
+<div id="acum-screen" style="display:none;position:fixed;inset:0;z-index:800;background:var(--bg);overflow-y:auto;flex-direction:column;">
+  <div style="background:#fff;border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:2;box-shadow:0 1px 4px rgba(0,0,0,.06);">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:1.3rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#1e3a8a;">📊 Tiempo Acumulado por Módulo</div>
+    <button class="btn-bar" onclick="closeAcumuladoScreen()" style="font-size:13px;">⬅ Volver</button>
+  </div>
+  <div style="padding:20px 24px;">
+  <div style="background:#fff;border-radius:14px;padding:20px 24px;box-shadow:0 2px 12px rgba(0,0,0,.06);">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-      <div class="acum-title" style="margin-bottom:0;">📊 Tiempo Acumulado por Módulo</div>
-      <button class="modal-btn secondary" onclick="closeAcumuladoModal()" style="margin:0;padding:5px 16px;font-size:13px;">✕ Cerrar</button>
+      <div class="acum-title" style="margin-bottom:0;"></div>
+      <div></div>
     </div>
     <div class="acum-sub" id="acum-fecha"></div>
     <div class="acum-filters">
@@ -998,6 +1004,7 @@ select.sp-ctrl{background-color:#fff;
       <tbody id="acum-tbody"></tbody>
     </table>
     </div>
+  </div>
   </div>
 </div>
 
@@ -2147,6 +2154,14 @@ function renderBig(){
 // ── MODAL ACUMULADO ───────────────────────────────────────────────
 let acumSortDesc=true;
 // ── Modal de tiempo acumulado por módulo ─────────────────────────────
+function openAcumuladoScreen(){
+  const scr=document.getElementById('acum-screen');
+  scr.style.display='flex';
+  openAcumuladoModal();
+}
+function closeAcumuladoScreen(){
+  document.getElementById('acum-screen').style.display='none';
+}
 function openAcumuladoModal(){
   const fMod=document.getElementById('acum-f-modulo');
   const prev=fMod.value;
@@ -2204,7 +2219,7 @@ function renderAcumulado(){
   });
   document.getElementById('acum-count').textContent=`${rows.length} de ${MODULES.length} módulos`;
 }
-function closeAcumuladoModal(){document.getElementById('modal-acumulado').classList.add('hidden');}
+function closeAcumuladoModal(){} // legacy — pantalla manejada por closeAcumuladoScreen
 
 // ── CORREGIR MECÁNICO ─────────────────────────────────────────────
 function openFixMecModal(){
@@ -6068,11 +6083,23 @@ function cfgSavePerfilModal(){
     </div>
 
     <!-- Tipo de insumo -->
-    <div style="margin-bottom:22px;">
+    <div style="margin-bottom:14px;">
       <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:6px;">3. TIPO DE INSUMO</div>
-      <select id="si-tipo" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;background:#f8fafc;outline:none;">
+      <select id="si-tipo" onchange="siOnTipoChange()" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;background:#f8fafc;outline:none;">
         <option value="">— Seleccionar —</option>
       </select>
+    </div>
+
+    <!-- Cantidad -->
+    <div style="margin-bottom:14px;">
+      <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:6px;">4. CANTIDAD</div>
+      <input id="si-qty" type="number" min="1" placeholder="Ej: 10" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;background:#f8fafc;outline:none;">
+    </div>
+
+    <!-- Talla (solo si aplica) -->
+    <div id="si-talla-wrap" style="display:none;margin-bottom:22px;">
+      <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:6px;">5. TALLA</div>
+      <input id="si-talla" type="text" placeholder="Ej: S, M, L, XL" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;background:#f8fafc;outline:none;">
     </div>
 
     <div id="si-error" style="color:#ef4444;font-size:12px;font-weight:700;margin-bottom:10px;display:none;text-align:center;"></div>
@@ -6089,6 +6116,9 @@ function siOpen(){
   // Limpiar campos
   document.getElementById('si-ref').value = '';
   document.getElementById('si-op').value  = '';
+  document.getElementById('si-qty').value  = '';
+  document.getElementById('si-talla').value = '';
+  document.getElementById('si-talla-wrap').style.display = 'none';
   document.getElementById('si-error').style.display = 'none';
   // Mostrar módulo actual
   const modLabel = selectedMod || currentUser || '';
@@ -6112,6 +6142,12 @@ function siOpen(){
   ov.style.display = 'flex';
 }
 
+function siOnTipoChange(){
+  // Mostrar talla solo si el tipo tiene 'talla' en el flow o en el nombre
+  const tipo = document.getElementById('si-tipo').value.toLowerCase();
+  const necesitaTalla = tipo.includes('talla') || tipo.includes('marquilla') || tipo.includes('transfer') || tipo.includes('prelavado');
+  document.getElementById('si-talla-wrap').style.display = necesitaTalla ? 'block' : 'none';
+}
 function siClose(){
   document.getElementById('si-overlay').style.display = 'none';
 }
@@ -6120,20 +6156,20 @@ function siEnviar(){
   const ref   = document.getElementById('si-ref').value.trim();
   const op    = document.getElementById('si-op').value.trim();
   const tipo  = document.getElementById('si-tipo').value.trim();
+  const qty   = document.getElementById('si-qty').value.trim();
+  const talla = document.getElementById('si-talla').value.trim();
   const quien = selectedMod || currentUser || '';
   const errEl = document.getElementById('si-error');
 
-  if(!ref || !op || !tipo){
+  if(!ref || !op || !tipo || !qty){
     errEl.textContent = 'Por favor completa todos los campos';
     errEl.style.display = 'block';
     return;
   }
   errEl.style.display = 'none';
 
-  // Usar el módulo del solicitante o el perfil como identificador
   const modulo = quien;
   const now    = new Date();
-
 
   const newReq = {
     _id:        Date.now() + '-' + Math.random().toString(36).slice(2),
@@ -6142,7 +6178,8 @@ function siEnviar(){
     ref,
     op,
     tipo,
-    qty:        '',
+    qty:        qty,
+    talla:      talla,
     fecha:      now.toLocaleDateString('es-CO'),
     hora:       now.toLocaleTimeString('es-CO'),
     datetime:   now.toLocaleDateString('es-CO') + ' ' + now.toLocaleTimeString('es-CO'),
@@ -6154,6 +6191,11 @@ function siEnviar(){
   };
 
   if(typeof wsSend==='function') wsSend({ type:'ci_new_request', request:newReq });
+
+  // Cambiar el módulo a estado Espera CI (orange)
+  if(modulo && typeof commitChange==='function' && typeof states!=='undefined' && states[modulo]!==undefined){
+    commitChange(modulo, 'orange', null);
+  }
 
   siClose();
 
