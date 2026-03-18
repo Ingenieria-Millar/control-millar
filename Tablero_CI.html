@@ -490,9 +490,15 @@ function ci_wsConnect(){
       document.getElementById('ci-app').style.display='block';
       ci_showScreen('dashboard');
       ci_switchView('history');
+      // Heartbeat — evita que Render corte la conexión WS idle
+      if(ci_ws._pingInterval) clearInterval(ci_ws._pingInterval);
+      ci_ws._pingInterval=setInterval(()=>{
+        if(ci_ws && ci_ws.readyState===1) ci_ws.send(JSON.stringify({type:'ping'}));
+      }, 30000);
     };
     ci_ws.onclose=()=>{
       ci_wsReady=false;
+      if(ci_ws._pingInterval){ clearInterval(ci_ws._pingInterval); ci_ws._pingInterval=null; }
       ci_showWsStatus(false);
       setTimeout(ci_wsConnect,3000);
     };
