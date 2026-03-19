@@ -368,6 +368,12 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
       <div style="display:flex;flex-direction:column;gap:2px;position:relative;">
         <label>Fecha</label>
         <button id="mec-btn-date" class="ibtn ibtn-ghost" style="padding:6px 12px;font-size:12px;" onclick="ci_mecToggleDateFilter()">📅 Rango</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px;">
+        <label>&nbsp;</label>
+        <button class="ibtn ibtn-primary" onclick="ci_mecExportExcel()" style="padding:6px 14px;font-size:12px;">⬇ Excel</button>
+      </div>
+      <div style="display:none;"><!-- anchor -->
         <div id="mec-date-panel" style="display:none;position:absolute;top:100%;left:0;z-index:100;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:14px;box-shadow:0 4px 20px rgba(0,0,0,.12);margin-top:4px;min-width:240px;">
           <div style="display:flex;flex-direction:column;gap:8px;">
             <div style="display:flex;flex-direction:column;gap:3px;"><label style="font-size:10px;font-weight:700;color:#64748b;letter-spacing:1px;">DESDE</label><input type="date" id="mec-fecha-desde" style="border:1.5px solid #e2e8f0;border-radius:7px;padding:7px 10px;font-size:13px;"></div>
@@ -1515,6 +1521,37 @@ function ci_mecRefresh() {
 }
 
 let _mec_dateActive = false;
+
+function ci_mecExportExcel(){
+  if(typeof XLSX==='undefined'){alert('Librería XLSX no disponible');return;}
+  const fDesde=document.getElementById('mec-fecha-desde')?.value||'';
+  const fHasta=document.getElementById('mec-fecha-hasta')?.value||'';
+  const hoyISO=new Date().toISOString().split('T')[0];
+  function normFecha(f){
+    if(!f)return'';
+    if(f.includes('/')){const p=f.split('/');if(p.length===3)return(p[2].length===4)?p[2]+'-'+p[1].padStart(2,'0')+'-'+p[0].padStart(2,'0'):p[0]+'-'+p[1].padStart(2,'0')+'-'+p[2].padStart(2,'0');}
+    return f;
+  }
+  let data = ci_requests.filter(r => r.mecanicoNombre===ci_mecUser||(r.esMecanico&&r.module===ci_mecUser));
+  data = data.filter(h=>{
+    const fc=normFecha(h.fecha||(h.datetime?h.datetime.split(' ')[0]:''));
+    if(_mec_dateActive&&(fDesde||fHasta)){if(fDesde&&fc<fDesde)return false;if(fHasta&&fc>fHasta)return false;}
+    else if(!_mec_dateActive){if(fc!==hoyISO)return false;}
+    return true;
+  });
+  if(!data.length){alert('No hay registros para exportar');return;}
+  const headers=['Mecánico','Módulo','Referencia','Insumos','Fecha','Hora','T. Espera','Estado'];
+  const rows=data.map(h=>{
+    const insumos=h.insumos?h.insumos.map(i=>i.qty?i.tipo+' ('+i.qty+')':i.tipo).join(', '):(h.tipo||'');
+    const estado=h.status==='done'?'Cumplido':h.status==='alert'?'Pendiente':'Confirmando';
+    return[h.mecanicoNombre||h.module,h.module,h.ref||'',insumos,h.fecha||'',h.hora||'',ci_fmt(h.waitTime||0),estado];
+  });
+  const ws=XLSX.utils.aoa_to_sheet([headers,...rows]);
+  ws['!cols']=[{wch:16},{wch:8},{wch:12},{wch:30},{wch:12},{wch:14},{wch:10},{wch:12}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Solicitudes');
+  XLSX.writeFile(wb,'solicitudes_mecanicos_'+new Date().toLocaleDateString('es-CO').replace(/\//g,'-')+'.xlsx');
+}
 function ci_mecToggleDateFilter(){
   const panel=document.getElementById('mec-date-panel'),btn=document.getElementById('mec-btn-date');
   const open=panel.style.display==='none';panel.style.display=open?'block':'none';
@@ -1549,7 +1586,8 @@ function ci_mecRenderHistory() {
   const hoyISO = new Date().toISOString().split('T')[0];
   let mine = ci_requests.filter(r => r.mecanicoNombre === ci_mecUser || (r.esMecanico && r.module === ci_mecUser));
   mine = mine.filter(h => {
-    if(fEst && h.status!==fEst) return false;
+    if(fEst==='alert'&&h.status!=='alert'&&h.status!=='pending-confirm')return false;
+    else if(fEst==='done'&&h.status!=='done')return false;
     if(_mec_dateActive && (fDesde||fHasta)){
       let fc=h.fecha||(h.datetime?h.datetime.split(' ')[0]:'');
       if(fc&&fc.includes('/')){const p=fc.split('/');if(p.length===3)fc=(p[2].length===4)?p[2]+'-'+p[1].padStart(2,'0')+'-'+p[0].padStart(2,'0'):p[0]+'-'+p[1].padStart(2,'0')+'-'+p[2].padStart(2,'0');}
