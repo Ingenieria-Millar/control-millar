@@ -530,6 +530,10 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
       <select class="fs" id="mec-f-modulo"><option value="">— Selecciona el módulo —</option></select>
     </div>
     <div class="fg">
+      <label class="fl">Referencia</label>
+      <input class="fi" type="text" id="mec-f-ref" placeholder="Ej: REF-001" autocomplete="off">
+    </div>
+    <div class="fg">
       <label class="fl">Insumos solicitados</label>
       <div id="mec-insumos-cont"></div>
       <button onclick="ci_mecAddInsumoRow()" style="margin-top:4px;background:none;border:1.5px dashed #93c5fd;border-radius:7px;color:#2563eb;font-size:13px;font-weight:700;padding:7px 14px;cursor:pointer;width:100%;">+ Agregar insumo</button>
@@ -1086,13 +1090,12 @@ function ci_renderHistory(){
       :'';
     return`<div class="hist-card ${cardCls}">
       <div class="hist-card-top">
-        <div class="hist-card-mod">${h.module}</div>
+        <div class="hist-card-mod">${h.esMecanico&&h.mecanicoNombre?h.mecanicoNombre:h.module}</div>
         <span class="badge ${badgeCls}">${badgeTxt}</span>
       </div>
       <div class="hist-card-row"><span class="hist-card-lbl">Referencia</span><span class="hist-card-val">${h.ref||'—'}</span></div>
-      <div class="hist-card-row"><span class="hist-card-lbl">OP / OC</span><span class="hist-card-val">${h.op||'—'}</span></div>
-      <div class="hist-card-row"><span class="hist-card-lbl">Tipo insumo</span><span class="hist-card-val">${h.tipo||'—'}</span></div>
-      <div class="hist-card-row"><span class="hist-card-lbl">Cantidad</span><span class="hist-card-val">${h.qty||'—'}</span></div>
+      <div class="hist-card-row"><span class="hist-card-lbl">${h.esMecanico?'Módulo':'OP / OC'}</span><span class="hist-card-val">${h.esMecanico?(h.module||'—'):(h.op||'—')}</span></div>
+      <div class="hist-card-row"><span class="hist-card-lbl">Insumos</span><span class="hist-card-val" style="text-align:right;">${h.insumos?h.insumos.map(i=>i.tipo+' ('+i.qty+')').join('<br>'):(h.tipo||'—')}</span></div>
       <div class="hist-card-row"><span class="hist-card-lbl">Fecha</span><span class="hist-card-val">${fecha}</span></div>
       <div class="hist-card-row"><span class="hist-card-lbl">Hora inicio</span><span class="hist-card-val" style="font-family:monospace;">${hora}</span></div>
       <div class="hist-card-row"><span class="hist-card-lbl">Hora fin</span><span class="hist-card-val" style="font-family:monospace;">${isDone?(h.resolvedAt||'—'):'—'}</span></div>
@@ -1343,6 +1346,7 @@ function ci_mecOpenModal() {
   // Poblar tipos de insumo
   ci_mecBuildInsumoRows();
   const lbl=document.getElementById('mec-modal-lbl');if(lbl)lbl.textContent='Mecánico: '+ci_mecUser;
+  const refEl=document.getElementById('mec-f-ref');if(refEl)refEl.value='';
   document.getElementById('mec-form-overlay').classList.add('open');
 }
 function ci_mecBuildInsumoRows(){
@@ -1366,7 +1370,9 @@ function ci_mecAddInsumoRow(){
 
 function ci_mecSubmit() {
   const modulo = document.getElementById('mec-f-modulo')?.value;
+  const ref = document.getElementById('mec-f-ref')?.value.trim();
   if(!modulo){ alert('Selecciona el módulo'); return; }
+  if(!ref){ alert('Ingresa la referencia'); return; }
   const cont = document.getElementById('mec-insumos-cont');
   const rows = cont ? cont.children : [];
   const insumos = [];
@@ -1377,26 +1383,28 @@ function ci_mecSubmit() {
   }
   if(!insumos.length){ alert('Agrega al menos un insumo con cantidad'); return; }
   const now = new Date();
-  // Crear una solicitud por cada insumo
-  insumos.forEach(ins => {
-    const newReq = {
-      _id: Date.now()+'-'+Math.random().toString(36).slice(2),
-      n: ci_requests.length+1,
-      module: modulo,
-      mecanicoNombre: ci_mecUser,
-      ref: ci_mecUser,
-      op: 'Mecánico',
-      tipo: ins.tipo, qty: ins.qty,
-      fecha: now.toLocaleDateString('es-CO'),
-      hora: now.toLocaleTimeString('es-CO'),
-      datetime: now.toLocaleDateString('es-CO')+' '+now.toLocaleTimeString('es-CO'),
-      status: 'alert', waitTime: null, resolvedAt: null, obs: '',
-      alertStart: now.getTime(),
-      esMecanico: true
-    };
-    ci_requests.unshift(newReq);
-    ci_wsSend({ type: 'ci_new_request', request: newReq });
-  });
+  // Una sola tarjeta con todos los insumos
+  const tipoDisplay = insumos.map(i => i.tipo + ' (' + i.qty + ')').join(', ');
+  const qtyDisplay  = insumos.map(i => i.qty).join(', ');
+  const newReq = {
+    _id: Date.now()+'-'+Math.random().toString(36).slice(2),
+    n: ci_requests.length+1,
+    module: modulo,
+    mecanicoNombre: ci_mecUser,
+    ref: ref,
+    op: 'Mecánico',
+    tipo: tipoDisplay,
+    qty: qtyDisplay,
+    insumos: insumos,
+    fecha: now.toLocaleDateString('es-CO'),
+    hora: now.toLocaleTimeString('es-CO'),
+    datetime: now.toLocaleDateString('es-CO')+' '+now.toLocaleTimeString('es-CO'),
+    status: 'alert', waitTime: null, resolvedAt: null, obs: '',
+    alertStart: now.getTime(),
+    esMecanico: true
+  };
+  ci_requests.unshift(newReq);
+  ci_wsSend({ type: 'ci_new_request', request: newReq });
   document.getElementById('mec-form-overlay').classList.remove('open');
   ci_mecRefresh();
   ci_mecRenderHistory();
