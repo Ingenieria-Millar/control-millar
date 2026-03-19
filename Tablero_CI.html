@@ -451,16 +451,19 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
     </div>
     <div class="modules-grid" id="modules-grid"></div>
   </div>
+  <!-- Stats bar estilo tablero planta -->
+  <div class="ci-stats">
+    <div id="ci-tab-all"   class="ci-stab ci-stab-todos ci-tab-on" onclick="ci_setTabFilter('')">Todos <span id="ci-cnt-all">0</span></div>
+    <div id="ci-tab-alert" class="ci-stab ci-stab-red"    onclick="ci_setTabFilter('alert')"><div class="ci-sd ci-sd-red"></div><span id="ci-cnt-alert">0</span>&nbsp;Alerta</div>
+    <div id="ci-tab-done"  class="ci-stab ci-stab-green"  onclick="ci_setTabFilter('done')"><div class="ci-sd ci-sd-green"></div><span id="ci-cnt-done">0</span>&nbsp;Cumplido</div>
+    <div id="ci-tab-pend"  class="ci-stab ci-stab-yellow" onclick="ci_setTabFilter('pending-confirm')"><div class="ci-sd ci-sd-yellow"></div><span id="ci-cnt-pend">0</span>&nbsp;Confirmando</div>
+  </div>
+
   <div class="view active" id="view-history">
 
     <!-- Filtros -->
     <div class="hist-filters">
       <div style="display:flex;align-items:flex-end;gap:0;">
-        <div id="ci-tab-all"   class="ci-stab ci-stab-active" onclick="ci_setTabFilter('')">Todos <span id="ci-cnt-all">0</span></div>
-        <div id="ci-tab-alert" class="ci-stab ci-stab-red"    onclick="ci_setTabFilter('alert')"><div class="ci-sd ci-sd-red"></div><span id="ci-cnt-alert">0</span>&nbsp;Alerta</div>
-        <div id="ci-tab-done"  class="ci-stab ci-stab-green"  onclick="ci_setTabFilter('done')"><div class="ci-sd ci-sd-green"></div><span id="ci-cnt-done">0</span>&nbsp;Cumplido</div>
-        <div id="ci-tab-pend"  class="ci-stab ci-stab-yellow" onclick="ci_setTabFilter('pending-confirm')"><div class="ci-sd ci-sd-yellow"></div><span id="ci-cnt-pend">0</span>&nbsp;Confirmando</div>
-      </div>
       <div style="display:flex;flex-direction:column;gap:2px;position:relative;">
         <label>Fecha</label>
         <button id="btn-date-filter" class="ibtn ibtn-ghost" style="padding:6px 12px;font-size:12px;" onclick="ci_toggleDateFilter()">📅 Rango</button>
@@ -896,17 +899,11 @@ let _ci_tabFilter='';
 function ci_setTabFilter(val){
   _ci_tabFilter=val;
   window._ci_tabFilter=val;
-  // Reset all tabs
   ['ci-tab-all','ci-tab-alert','ci-tab-done','ci-tab-pend'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el){el.classList.remove('ci-stab-active','ci-tab-on');}
+    const el=document.getElementById(id);if(el)el.classList.remove('ci-tab-on');
   });
-  if(!val){
-    const el=document.getElementById('ci-tab-all');if(el)el.classList.add('ci-stab-active');
-  } else {
-    const map={'alert':'ci-tab-alert','done':'ci-tab-done','pending-confirm':'ci-tab-pend'};
-    const el=document.getElementById(map[val]);if(el)el.classList.add('ci-tab-on');
-  }
+  const map={'':'ci-tab-all','alert':'ci-tab-alert','done':'ci-tab-done','pending-confirm':'ci-tab-pend'};
+  const el=document.getElementById(map[val]||'ci-tab-all');if(el)el.classList.add('ci-tab-on');
   ci_renderHistory();
 }
 function ci_updateBanner(){
