@@ -453,16 +453,17 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   </div>
   <div class="view active" id="view-history">
 
-    <!-- Stats bar estilo tablero planta -->
-    <div class="ci-stats">
-      <div id="ci-tab-all"   class="ci-stab ci-stab-todos ci-tab-on" onclick="ci_setTabFilter('')">Todos <span id="ci-cnt-all">0</span></div>
-      <div id="ci-tab-alert" class="ci-stab ci-stab-red"    onclick="ci_setTabFilter('alert')"><div class="ci-sd ci-sd-red"></div><span id="ci-cnt-alert">0</span>&nbsp;Alerta</div>
-      <div id="ci-tab-done"  class="ci-stab ci-stab-green"  onclick="ci_setTabFilter('done')"><div class="ci-sd ci-sd-green"></div><span id="ci-cnt-done">0</span>&nbsp;Cumplido</div>
-      <div id="ci-tab-pend"  class="ci-stab ci-stab-yellow" onclick="ci_setTabFilter('pending-confirm')"><div class="ci-sd ci-sd-yellow"></div><span id="ci-cnt-pend">0</span>&nbsp;Confirmando</div>
-    </div>
-
     <!-- Filtros -->
     <div class="hist-filters">
+      <div style="display:flex;flex-direction:column;gap:2px;">
+        <label>Estado</label>
+        <select id="filter-estado" onchange="ci_renderHistory()" style="border:1.5px solid #e2e8f0;border-radius:7px;padding:6px 10px;font-size:13px;font-family:'Nunito',sans-serif;background:#f8fafc;cursor:pointer;height:34px;">
+          <option value="">Todos</option>
+          <option value="alert">⚠ Alerta</option>
+          <option value="done">✓ Cumplido</option>
+          <option value="pending-confirm">⏳ Confirmando</option>
+        </select>
+      </div>
       <div style="display:flex;flex-direction:column;gap:2px;position:relative;">
         <label>Fecha</label>
         <button id="btn-date-filter" class="ibtn ibtn-ghost" style="padding:6px 12px;font-size:12px;" onclick="ci_toggleDateFilter()">📅 Rango</button>
@@ -1006,7 +1007,7 @@ function ci_switchView(v){
 
 function ci_renderHistory(){
   const tbody=document.getElementById('history-tbody');if(!tbody)return;
-  const fEst=window._ci_tabFilter||'';
+  const fEst=document.getElementById('filter-estado')?.value||'';
   const fDesde=document.getElementById('filter-fecha-desde')?.value||'';
   const fHasta=document.getElementById('filter-fecha-hasta')?.value||'';
   const hoy=new Date().toLocaleDateString('es-CO'); // dd/m/yyyy formato colombiano
