@@ -339,7 +339,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   <div class="topbar">
     <div class="topbar-title">
       🔧 <span style="color:#2563eb;">SOLICITAR INSUMOS</span>
-      <span class="topbar-sub" id="mec-name-lbl">—</span>
+      
     </div>
     <div class="topbar-right">
       <div id="ws-dot-mec" style="width:9px;height:9px;border-radius:50%;background:#ef4444;flex-shrink:0;box-shadow:0 0 6px rgba(239,68,68,.7);transition:all .3s;"></div>
@@ -349,41 +349,37 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
     </div>
   </div>
 
-  <!-- Tabs Solicitar / Historial -->
-  <div style="display:flex;border-bottom:2px solid #e2e8f0;background:#fff;padding:0 24px;">
-    <button id="mec-tab-sol" onclick="ci_mecSwitchTab('sol')"
-      style="padding:14px 24px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:2px;text-transform:uppercase;border:none;background:none;cursor:pointer;border-bottom:3px solid #2563eb;color:#2563eb;margin-bottom:-2px;">
-      🚨 SOLICITAR
-    </button>
-    <button id="mec-tab-hist" onclick="ci_mecSwitchTab('hist')"
-      style="padding:14px 24px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:2px;text-transform:uppercase;border:none;background:none;cursor:pointer;border-bottom:3px solid transparent;color:#64748b;margin-bottom:-2px;">
-      📋 HISTORIAL
-    </button>
-  </div>
-
-  <!-- Vista: Solicitar -->
-  <div id="mec-view-sol" style="flex:1;display:flex;flex-direction:column;align-items:center;padding:24px;gap:16px;">
-    <div class="mod-card" id="mec-card" style="width:min(400px,96vw);">
-      <div class="mod-id" id="mec-id-lbl">—</div>
-      <div class="big-ball" id="mec-ball"><div class="shine"></div></div>
-      <div class="mod-status" id="mec-status">OPERATIVO</div>
-      <div class="ci-mod-timer" id="mec-timer">00:00</div>
-      <div class="mod-active-count" id="mec-active-count"></div>
-      <div class="mod-hint" id="mec-hint">PRESIONA EL BOTÓN PARA SOLICITAR INSUMO</div>
-      <div class="mod-info" id="mec-info">
-        <div class="irow"><span class="ilbl">REFERENCIA</span><span class="ival" id="mec-mi-ref">—</span></div>
-        <div class="irow"><span class="ilbl">OP / OC</span><span class="ival" id="mec-mi-op">—</span></div>
-        <div class="irow"><span class="ilbl">INSUMO</span><span class="ival" id="mec-mi-tipo">—</span></div>
-        <div class="irow"><span class="ilbl">CANTIDAD</span><span class="ival" id="mec-mi-qty">—</span></div>
+  <!-- Vista: Historial (principal) + botón flotante -->
+  <div id="mec-view-hist" style="display:flex;flex:1;flex-direction:column;padding:20px;gap:12px;position:relative;">
+  <!-- Botón flotante solicitar -->
+  <button onclick="ci_mecOpenModal()" title="Solicitar Insumo"
+    style="position:fixed;bottom:28px;right:28px;z-index:200;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#1e3a8a,#2563eb);border:none;color:#fff;font-size:26px;cursor:pointer;box-shadow:0 4px 18px rgba(37,99,235,.5);display:flex;align-items:center;justify-content:center;transition:transform .2s;"
+    onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">+</button>
+    <!-- Filtros mecánico -->
+    <div class="hist-filters" style="margin-bottom:12px;">
+      <div style="display:flex;flex-direction:column;gap:2px;">
+        <label>Estado</label>
+        <select id="mec-filter-estado" onchange="ci_mecRenderHistory()" style="border:1.5px solid #e2e8f0;border-radius:7px;padding:6px 10px;font-size:13px;font-family:'Nunito',sans-serif;background:#f8fafc;cursor:pointer;height:34px;">
+          <option value="">Todos</option>
+          <option value="alert">⏳ Pendiente</option>
+          <option value="done">✓ Cumplido</option>
+        </select>
       </div>
-      <div class="mod-btns">
-        <button class="btn-sol" id="mec-btn-sol" onclick="ci_mecOpenModal()">🚨 SOLICITAR INSUMO</button>
+      <div style="display:flex;flex-direction:column;gap:2px;position:relative;">
+        <label>Fecha</label>
+        <button id="mec-btn-date" class="ibtn ibtn-ghost" style="padding:6px 12px;font-size:12px;" onclick="ci_mecToggleDateFilter()">📅 Rango</button>
+        <div id="mec-date-panel" style="display:none;position:absolute;top:100%;left:0;z-index:100;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:14px;box-shadow:0 4px 20px rgba(0,0,0,.12);margin-top:4px;min-width:240px;">
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;flex-direction:column;gap:3px;"><label style="font-size:10px;font-weight:700;color:#64748b;letter-spacing:1px;">DESDE</label><input type="date" id="mec-fecha-desde" style="border:1.5px solid #e2e8f0;border-radius:7px;padding:7px 10px;font-size:13px;"></div>
+            <div style="display:flex;flex-direction:column;gap:3px;"><label style="font-size:10px;font-weight:700;color:#64748b;letter-spacing:1px;">HASTA</label><input type="date" id="mec-fecha-hasta" style="border:1.5px solid #e2e8f0;border-radius:7px;padding:7px 10px;font-size:13px;"></div>
+            <div style="display:flex;gap:6px;">
+              <button class="ibtn ibtn-primary" style="flex:1;font-size:12px;padding:7px;" onclick="ci_mecApplyDate()">✔ Aplicar</button>
+              <button class="ibtn ibtn-ghost" style="flex:1;font-size:12px;padding:7px;" onclick="ci_mecClearDate()">✕ Limpiar</button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
-
-  <!-- Vista: Historial -->
-  <div id="mec-view-hist" style="display:none;flex:1;flex-direction:column;padding:20px;gap:12px;">
     <div class="hist-cards-grid" id="mec-history"></div>
   </div>
 </div>
@@ -818,6 +814,8 @@ function ci_buildElasticoSelect(){const s=document.getElementById('f-elastico-su
 function ci_buildLoginSelect(){const s=document.getElementById('login-sel');if(!s)return;s.innerHTML='<option value="">— Selecciona tu módulo —</option>';ci_sortAZ(ci_moduleList).forEach(id=>{const o=document.createElement('option');o.value=id;o.textContent=id;s.appendChild(o);});}
 
 function ci_showScreen(n){
+  // Si el mecánico está en su pantalla, no lo saques salvo que sea logout explícito
+  if(n==='dashboard' && ci_mecUser && document.getElementById('s-mec')?.classList.contains('active')) return;
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('s-'+n).classList.add('active');
   if(n==='dashboard'){ci_buildGrid();ci_applyFilter(ci_currentFilter);ci_updateCounters();ci_updateBanner();}
@@ -1282,6 +1280,7 @@ if(location.protocol!=='file:'){
 //  MECÁNICOS CI
 // ══════════════════════════════════════════════════════════════════
 let ci_mecUser = null;
+let ci_mecTipoList = [{name:'Hilos',flow:'qty_only'},{name:'Tela',flow:'qty_only'},{name:'Botones',flow:'qty_only'}]; // Lista independiente mecánicos
 
 // Cargar mecánicos desde /api/app-config
 async function ci_loadMecList() {
@@ -1312,7 +1311,6 @@ function ci_doMecLogin() {
   const mecUserLbl=document.getElementById('mec-user-lbl');if(mecUserLbl)mecUserLbl.textContent=ci_mecUser;
   document.getElementById('mec-id-lbl').textContent = ci_mecUser;
   ci_showScreen('mec');
-  ci_mecRefresh();
   ci_mecRenderHistory();
   // Sincronizar dot WS
   const dot = document.getElementById('ws-dot-mec');
@@ -1360,7 +1358,7 @@ function ci_mecOpenConfig(){
 function ci_mecCloseConfig(){ document.getElementById('mec-config-overlay').classList.remove('open'); }
 function ci_mecBuildTipoManager(){
   const el=document.getElementById('mec-tipo-manager');if(!el)return;
-  el.innerHTML=ci_tipoInsumoList.map((t,i)=>{
+  el.innerHTML=ci_mecTipoList.map((t,i)=>{
     const safe=t.name.replace(/"/g,'&quot;');
     return`<div class="list-row"><input class="list-row-inp" id="mti-${i}" value="${safe}" readonly><div class="list-row-actions"><button class="btn-lst-edit" id="mte-${i}" onclick="ci_mecStartTipo(${i})">—</button><button class="btn-lst-confirm" id="mtc-${i}" onclick="ci_mecConfirmTipo(${i})">✔</button><button class="btn-lst-del" onclick="ci_mecDelTipo(${i})">×</button></div></div>`;
   }).join('');
@@ -1369,23 +1367,26 @@ function ci_mecStartTipo(i){const inp=document.getElementById('mti-'+i),eb=docum
 function ci_mecConfirmTipo(i){
   const inp=document.getElementById('mti-'+i),n=inp.value.trim();
   if(!n){alert('El nombre no puede estar vacío');return;}
-  if(ci_tipoInsumoList.findIndex((t,j)=>t.name.toLowerCase()===n.toLowerCase()&&j!==i)>=0){alert('Ya existe');return;}
-  ci_tipoInsumoList[i].name=n;ci_mecBuildTipoManager();ci_syncConfig();
+  if(ci_mecTipoList.findIndex((t,j)=>t.name.toLowerCase()===n.toLowerCase()&&j!==i)>=0){alert('Ya existe');return;}
+  ci_mecTipoList[i].name=n;ci_mecBuildTipoManager();
 }
 function ci_mecDelTipo(i){
   if(!confirm('¿Eliminar "'+ci_tipoInsumoList[i].name+'"?'))return;
-  ci_tipoInsumoList.splice(i,1);ci_mecBuildTipoManager();ci_syncConfig();
+  ci_mecTipoList.splice(i,1);ci_mecBuildTipoManager();
 }
 function ci_mecAddTipo(){
   const inp=document.getElementById('mec-tipo-add-inp'),name=inp.value.trim();
   if(!name){alert('Escribe el nombre');return;}
-  if(ci_tipoInsumoList.find(t=>t.name.toLowerCase()===name.toLowerCase())){alert('Ya existe');return;}
-  ci_tipoInsumoList.push({name,flow:'qty_only'});
-  inp.value='';ci_mecBuildTipoManager();ci_syncConfig();
+  if(ci_mecTipoList.find(t=>t.name.toLowerCase()===name.toLowerCase())){alert('Ya existe');return;}
+  ci_mecTipoList.push({name,flow:'qty_only'});
+  inp.value='';ci_mecBuildTipoManager();
 }
 function ci_mecLogout() {
   ci_mecUser = null;
-  ci_showScreen('dashboard');
+  // Forzar salida sin restricción
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('s-dashboard').classList.add('active');
+  ci_buildGrid();ci_applyFilter(ci_currentFilter);ci_updateCounters();ci_updateBanner();
 }
 
 function ci_mecOpenModal() {
@@ -1413,7 +1414,7 @@ function ci_mecAddInsumoRow(){
   div.style.cssText='display:flex;gap:8px;align-items:center;margin-bottom:8px;';
   div.innerHTML=`<select class="fs" style="flex:1;" id="mec-tipo-${idx}">
     <option value="">— Tipo de insumo —</option>
-    ${ci_tipoInsumoList.map(t=>`<option value="${t.name}">${t.name}</option>`).join('')}
+    ${ci_mecTipoList.map(t=>`<option value="${t.name}">${t.name}</option>`).join('')}
   </select>
   <input class="fi" type="number" min="1" placeholder="Cant." style="width:80px;" id="mec-qty-${idx}">
   ${idx>0?`<button onclick="this.parentElement.remove()" style="background:none;border:none;color:#ef4444;font-size:18px;cursor:pointer;padding:0 4px;">×</button>`:'<span style="width:24px;"></span>'}`;
@@ -1515,9 +1516,54 @@ function ci_mecRefresh() {
   }
 }
 
+let _mec_dateActive = false;
+function ci_mecToggleDateFilter(){
+  const panel=document.getElementById('mec-date-panel'),btn=document.getElementById('mec-btn-date');
+  const open=panel.style.display==='none';panel.style.display=open?'block':'none';
+  if(open){setTimeout(()=>{document.addEventListener('click',function h(e){if(!panel.contains(e.target)&&e.target!==btn){panel.style.display='none';document.removeEventListener('click',h);}});},100);}
+}
+function ci_mecApplyDate(){
+  _mec_dateActive=true;
+  document.getElementById('mec-date-panel').style.display='none';
+  ci_mecRenderHistory();
+}
+function ci_mecClearDate(){
+  _mec_dateActive=false;
+  const d=document.getElementById('mec-fecha-desde'),h=document.getElementById('mec-fecha-hasta');
+  if(d)d.value='';if(h)h.value='';
+  document.getElementById('mec-date-panel').style.display='none';
+  ci_mecRenderHistory();
+}
+function ci_mecRequestDelete(idx){
+  const pass=prompt('Ingresa la contraseña de administrador:');
+  if(!pass)return;
+  if(pass.trim().toUpperCase()!=='A123'){alert('⚠ Contraseña incorrecta');return;}
+  const reqId=ci_requests[idx]?._id;
+  ci_requests.splice(idx,1);
+  if(reqId)ci_wsSend({type:'ci_delete_request',reqId:reqId});
+  ci_mecRenderHistory();
+}
 function ci_mecRenderHistory() {
   const el = document.getElementById('mec-history'); if (!el) return;
-  const mine = ci_requests.filter(r => r.mecanicoNombre === ci_mecUser || (r.esMecanico && r.module === ci_mecUser));
+  const fEst = document.getElementById('mec-filter-estado')?.value||'';
+  const fDesde = document.getElementById('mec-fecha-desde')?.value||'';
+  const fHasta = document.getElementById('mec-fecha-hasta')?.value||'';
+  const hoyISO = new Date().toISOString().split('T')[0];
+  let mine = ci_requests.filter(r => r.mecanicoNombre === ci_mecUser || (r.esMecanico && r.module === ci_mecUser));
+  mine = mine.filter(h => {
+    if(fEst && h.status!==fEst) return false;
+    if(_mec_dateActive && (fDesde||fHasta)){
+      let fc=h.fecha||(h.datetime?h.datetime.split(' ')[0]:'');
+      if(fc&&fc.includes('/')){const p=fc.split('/');if(p.length===3)fc=(p[2].length===4)?p[2]+'-'+p[1].padStart(2,'0')+'-'+p[0].padStart(2,'0'):p[0]+'-'+p[1].padStart(2,'0')+'-'+p[2].padStart(2,'0');}
+      if(fDesde&&fc<fDesde)return false;
+      if(fHasta&&fc>fHasta)return false;
+    } else if(!_mec_dateActive){
+      let fc=h.fecha||(h.datetime?h.datetime.split(' ')[0]:'');
+      if(fc&&fc.includes('/')){const p=fc.split('/');if(p.length===3)fc=(p[2].length===4)?p[2]+'-'+p[1].padStart(2,'0')+'-'+p[0].padStart(2,'0'):p[0]+'-'+p[1].padStart(2,'0')+'-'+p[2].padStart(2,'0');}
+      if(fc!==hoyISO)return false;
+    }
+    return true;
+  });
   if (!mine.length) { el.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:30px;font-size:14px;">Sin solicitudes</div>'; return; }
   el.innerHTML = mine.map((h, i) => {
     const idx = ci_requests.indexOf(h);
@@ -1548,6 +1594,9 @@ function ci_mecRenderHistory() {
       <div class="hist-card-row"><span class="hist-card-lbl">Hora</span><span class="hist-card-val" style="font-family:monospace;">${hora}</span></div>
       <div class="hist-card-row"><span class="hist-card-lbl">T. Espera</span><span class="hist-card-val hist-card-timer">${waitDisp}</span></div>
       ${confirmBtn}
+      <div style="margin-top:8px;text-align:right;">
+        <button onclick="ci_mecRequestDelete(${idx})" style="background:none;border:1px solid #fca5a5;border-radius:6px;color:#ef4444;font-size:11px;font-weight:700;padding:4px 10px;cursor:pointer;">🗑 Eliminar</button>
+      </div>
     </div>`;
   }).join('');
 }
