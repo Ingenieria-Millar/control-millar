@@ -1137,10 +1137,13 @@ function connectWS(){
       } else if(msg.type==='ci_cumplido_request'){
         // CI marcó cumplido — mostrar notificación si es el módulo afectado
         const req = msg.request;
+        // Guardar en cache local para ciConfirmarRecepcion
+        if(!window._ciRequests) window._ciRequests=[];
+        const idx = window._ciRequests.findIndex(r=>r._id===req._id);
+        if(idx>-1) window._ciRequests[idx]=req; else window._ciRequests.unshift(req);
         if(req && req.module === selectedMod && currentView==='single'){
           showCiCumplidoModal(req);
         } else if(req && req.module){
-          // Toast visible aunque no esté en single
           showToastSimple('📦 ' + req.module + ' — Insumo listo para confirmar');
         }
       } else if(msg.type==='ia_add_record'){
@@ -6227,20 +6230,41 @@ function showCiCumplidoModal(req){
         <div><b>Referencia:</b> ${req.ref||'—'}</div>
         <div><b>Cantidad:</b> ${req.qty||'—'}</div>
       </div>
-      <button onclick="ciConfirmarRecepcion('${req._id}')" style="width:100%;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,#15803d,#22c55e);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:2px;cursor:pointer;margin-bottom:10px;">
-        ✅ SÍ, LO RECIBÍ
-      </button>
+      <div style="display:flex;gap:10px;">
+        <button onclick="ciConfirmarRecepcion('${req._id}',true)" style="flex:1;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,#15803d,#22c55e);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;cursor:pointer;">
+          ✅ SÍ, RECIBÍ
+        </button>
+        <button onclick="ciConfirmarRecepcion('${req._id}',false)" style="flex:1;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,#991b1b,#ef4444);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;cursor:pointer;">
+          ✖ NO RECIBÍ
+        </button>
+      </div>
     </div>`;
   ov.style.display = 'flex';
 }
-function ciConfirmarRecepcion(reqId){
+function ciConfirmarRecepcion(reqId, accepted){
   const ov = document.getElementById('ci-confirm-overlay');
   if(ov) ov.style.display = 'none';
-  // Cambiar módulo a verde
-  if(selectedMod && typeof commitChange==='function'){
-    commitChange(selectedMod, 'green', null);
+  if(!typeof wsSend==='function') return;
+  if(accepted){
+    // Buscar la solicitud en _ciRequests si existe
+    const existing = (window._ciRequests||[]).find(r=>r._id===reqId);
+    const req = Object.assign({}, existing||{_id:reqId}, {
+      status: 'done',
+      resolvedAt: new Date().toLocaleTimeString('es-CO'),
+      waitTime: existing ? Math.floor((Date.now()-(existing.alertStart||Date.now()))/1000) : 0
+    });
+    if(typeof wsSend==='function') wsSend({type:'ci_update_request', request: req});
+    showToastSimple('✅ Insumo confirmado como recibido');
+  } else {
+    // No recibido — vuelve a alerta, tiempo sigue contando
+    const existing = (window._ciRequests||[]).find(r=>r._id===reqId);
+    const req = Object.assign({}, existing||{_id:reqId}, {
+      status: 'alert',
+      waitTime: null
+    });
+    if(typeof wsSend==='function') wsSend({type:'ci_update_request', request: req});
+    showToastSimple('⚠ No recibido — solicitud reactivada en el CI');
   }
-  showToastSimple('✅ Insumo confirmado — Módulo vuelve a Operativo');
 }
 function siOnTipoChange(){
   // Mostrar talla solo si el tipo tiene 'talla' en el flow o en el nombre
