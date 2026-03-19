@@ -895,6 +895,7 @@ select.sp-ctrl{background-color:#fff;
       <button class="mec-btn" onclick="onImpMec()" style="border-left:4px solid #dc2626;">🔴 Fallo Mecánico</button>
       <button class="mec-btn" onclick="onImpRef()" style="border-left:4px solid #1d4ed8;">🔵 Cambio de Referencia</button>
       <button class="mec-btn" onclick="onImpIns()" style="border-left:4px solid #ea580c;">🟠 Falta de Insumos</button>
+      <button class="mec-btn" onclick="onImpProd()" style="border-left:4px solid #7c3aed;">🟣 Solicitar Producción</button>
     </div>
     <button onclick="cancelImproductivo()" style="margin-top:6px;background:none;border:none;color:#94a3b8;font-size:13px;cursor:pointer;font-family:Nunito,sans-serif;">✕ Cancelar</button>
   </div>
@@ -1484,7 +1485,7 @@ function mostrarAreaScreen(){
   // SOLICITAR INSUMOS
   if(hasPerm('area_solicitar_insumos')){
     const c=makeCard('📦','Solicitar Insumos','Reportar faltante de insumos','ac-teal',()=>{
-      siOpen();
+      window.location.href='/ci?mec=1&perfil='+(currentUser||'');
     });
     c.style.animationDelay=(idx*0.07)+'s'; idx++;
     btns.appendChild(c);
@@ -1629,6 +1630,19 @@ function mostrarSubMenuMontajes(){
 function onImpIns(){
   cancelImproductivo();
   if(typeof siOpen==='function') siOpen();
+}
+function onImpProd(){
+  const id=pendingMod;
+  cancelImproductivo();
+  if(!id)return;
+  // Abrir modal de solicitud CI con el módulo como origen
+  if(typeof siOpen==='function'){
+    // Temporalmente setear selectedMod para que siOpen lo use
+    const _prev=selectedMod;
+    selectedMod=id;
+    siOpen();
+    selectedMod=_prev;
+  }
 }
 
 // Sub-menú dentro de Producción (Programador / Administrador)
