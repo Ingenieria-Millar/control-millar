@@ -319,6 +319,60 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   </div>
 </div>
 
+
+<!-- ── PANTALLA LOGIN MECÁNICO ── -->
+<div id="s-mec-login" class="screen">
+  <div style="flex:1;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 30%,#0a1a2a,var(--bg) 70%)">
+    <div class="login-card">
+      <div class="l-icon">🔧</div>
+      <div class="l-title">ACCESO MECÁNICO</div>
+      <div class="l-sub">SELECCIONA TU NOMBRE E INGRESA</div>
+      <select class="l-select" id="mec-login-sel"><option value="">— Selecciona tu nombre —</option></select>
+      <div id="mec-login-err" style="display:none;color:#ef4444;font-size:13px;font-weight:700;margin-bottom:10px;">Selecciona un nombre</div>
+      <button class="l-btn" onclick="ci_doMecLogin()">INGRESAR</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── PANTALLA MECÁNICO ── -->
+<div id="s-mec" class="screen">
+  <div class="topbar">
+    <div class="topbar-title">
+      🔧 <span style="color:#2563eb;">SOLICITAR INSUMOS</span>
+      <span class="topbar-sub" id="mec-name-lbl">—</span>
+    </div>
+    <div class="topbar-right">
+      <div id="ws-dot-mec" style="width:9px;height:9px;border-radius:50%;background:#ef4444;flex-shrink:0;box-shadow:0 0 6px rgba(239,68,68,.7);transition:all .3s;"></div>
+      <button class="ibtn ibtn-ghost" onclick="ci_mecLogout()">🚪 Salir</button>
+    </div>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:24px;gap:16px;">
+    <!-- Tarjeta estado -->
+    <div class="mod-card" id="mec-card" style="width:min(400px,96vw);">
+      <div class="mod-id" id="mec-id-lbl">—</div>
+      <div class="big-ball" id="mec-ball"><div class="shine"></div></div>
+      <div class="mod-status" id="mec-status">OPERATIVO</div>
+      <div class="ci-mod-timer" id="mec-timer">00:00</div>
+      <div class="mod-active-count" id="mec-active-count"></div>
+      <div class="mod-hint" id="mec-hint">PRESIONA EL BOTÓN PARA SOLICITAR INSUMO</div>
+      <div class="mod-info" id="mec-info">
+        <div class="irow"><span class="ilbl">REFERENCIA</span><span class="ival" id="mec-mi-ref">—</span></div>
+        <div class="irow"><span class="ilbl">OP / OC</span><span class="ival" id="mec-mi-op">—</span></div>
+        <div class="irow"><span class="ilbl">INSUMO</span><span class="ival" id="mec-mi-tipo">—</span></div>
+        <div class="irow"><span class="ilbl">CANTIDAD</span><span class="ival" id="mec-mi-qty">—</span></div>
+      </div>
+      <div class="mod-btns">
+        <button class="btn-sol" id="mec-btn-sol" onclick="ci_mecOpenModal()">🚨 SOLICITAR INSUMO</button>
+      </div>
+    </div>
+    <!-- Historial propio -->
+    <div style="width:min(900px,98vw);">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:2px;color:#1e3a8a;margin-bottom:12px;text-transform:uppercase;">📋 MIS SOLICITUDES</div>
+      <div class="hist-cards-grid" id="mec-history"></div>
+    </div>
+  </div>
+</div>
+
 <!-- ── PANTALLA LOGIN MÓDULO ── -->
 <div id="s-login" class="screen">
   <div style="flex:1;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 30%,#0a1a2a,var(--bg) 70%)">
@@ -328,7 +382,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
       <div class="l-sub">SELECCIONA TU MÓDULO E INGRESA</div>
       <select class="l-select" id="login-sel"></select>
       <button class="l-btn" onclick="ci_doLogin()">INGRESAR</button>
-      <button class="l-back" onclick="ci_showScreen('home')">← REGRESAR AL INICIO</button>
+      <button class="l-back" onclick="ci_showScreen('dashboard')">← REGRESAR AL TABLERO</button>
     </div>
   </div>
 </div>
@@ -351,7 +405,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
       </div>
       <div class="mod-btns">
         <button class="btn-sol" id="btn-sol" onclick="ci_openModal()">🚨 SOLICITAR INSUMO</button>
-        <button class="btn-ghost" onclick="ci_showScreen('home')">🏠 REGRESAR AL INICIO</button>
+        <button class="btn-ghost" onclick="ci_showScreen('dashboard')">🏠 REGRESAR AL TABLERO</button>
       </div>
     </div>
   </div>
@@ -372,7 +426,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
     <div class="topbar-right">
       <div id="ws-dot" title="Conectando..." style="width:9px;height:9px;border-radius:50%;background:#ef4444;flex-shrink:0;box-shadow:0 0 6px rgba(239,68,68,.7);transition:all .3s;"></div>
       <button class="gear-btn" onclick="ci_openGearLogin()">⚙</button>
-      <button class="ibtn ibtn-ghost" onclick="ci_showScreen('home')">← INICIO</button>
+      
     </div>
   </div>
 
@@ -393,26 +447,6 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
     </div>
     <!-- Filtros -->
     <div class="hist-filters">
-      <div style="display:flex;flex-direction:column;gap:2px;">
-        <label>Módulo</label>
-        <select id="filter-module" style="border:1.5px solid #e2e8f0;border-radius:7px;padding:6px 10px;font-size:13px;font-family:'Nunito',sans-serif;background:#f8fafc;cursor:pointer;" onchange="ci_renderHistory()">
-          <option value="">Todos</option>
-        </select>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:2px;">
-        <label>Referencia</label>
-        <input id="filter-ref" type="text" placeholder="Buscar..." style="border:1.5px solid #e2e8f0;border-radius:7px;padding:6px 10px;font-size:13px;font-family:'Nunito',sans-serif;background:#f8fafc;width:120px;" oninput="ci_renderHistory()">
-      </div>
-      <div style="display:flex;flex-direction:column;gap:2px;">
-        <label>OP / OC</label>
-        <input id="filter-op" type="text" placeholder="Buscar..." style="border:1.5px solid #e2e8f0;border-radius:7px;padding:6px 10px;font-size:13px;font-family:'Nunito',sans-serif;background:#f8fafc;width:120px;" oninput="ci_renderHistory()">
-      </div>
-      <div style="display:flex;flex-direction:column;gap:2px;">
-        <label>Tipo Insumo</label>
-        <select id="filter-tipo" style="border:1.5px solid #e2e8f0;border-radius:7px;padding:6px 10px;font-size:13px;font-family:'Nunito',sans-serif;background:#f8fafc;cursor:pointer;" onchange="ci_renderHistory()">
-          <option value="">Todos</option>
-        </select>
-      </div>
       <div style="display:flex;flex-direction:column;gap:2px;">
         <label>Estado</label>
         <select id="filter-estado" style="border:1.5px solid #e2e8f0;border-radius:7px;padding:6px 10px;font-size:13px;font-family:'Nunito',sans-serif;background:#f8fafc;cursor:pointer;" onchange="ci_renderHistory()">
@@ -555,7 +589,7 @@ function ci_wsConnect(){
       const app=document.getElementById('ci-app');
       if(loader)loader.style.display='none';
       if(app)app.style.display='block';
-      ci_showScreen('home');
+      ci_showScreen('dashboard');
       ci_showWsStatus(false);
     }
   },8000);
@@ -641,6 +675,8 @@ function ci_handleWsMessage(msg){
         ci_syncCard(id);ci_updateCounters();ci_updateBanner();ci_applyFilter(ci_currentFilter);ci_renderHistory();
         if(ci_soundEnabled&&document.getElementById('s-dashboard').classList.contains('active'))ci_playSiren();
         if(ci_currentUser===id&&document.getElementById('s-module').classList.contains('active'))ci_refreshDetail();
+        if(typeof ci_mecRefresh==='function'&&ci_mecUser===id)ci_mecRefresh();
+        if(typeof ci_mecRenderHistory==='function'&&ci_mecUser===id)ci_mecRenderHistory();
       }
     }
     else if(msg.type==='ci_cumplido_request'){
@@ -690,6 +726,8 @@ function ci_wsSend(obj){
 function ci_showWsStatus(online){
   const dot=document.getElementById('ws-dot');
   if(dot){dot.style.background=online?'#22c55e':'#ef4444';dot.title=online?'Conectado':'Sin conexión';}
+  const dotMec=document.getElementById('ws-dot-mec');
+  if(dotMec){dotMec.style.background=online?'#22c55e':'#ef4444';dotMec.title=online?'Conectado':'Sin conexión';}
 }
 
 const CI_SOUNDS=[{id:'ambulance',name:'Sirena Ambulancia'},{id:'industrial',name:'Alarma Industrial'},{id:'beep_fast',name:'Beep Rápido'},{id:'beep_slow',name:'Beep Lento'},{id:'low_alarm',name:'Alarma Grave'},{id:'high_pitch',name:'Pitido Agudo'},{id:'pulse',name:'Pulso Digital'},{id:'klaxon',name:'Klaxon'},{id:'two_tone',name:'Dos Tonos'},{id:'three_tone',name:'Tres Tonos'},{id:'nuclear',name:'Alerta Nuclear'},{id:'metallic',name:'Timbre Metálico'},{id:'buzz_low',name:'Zumbido Grave'},{id:'buzz_high',name:'Zumbido Agudo'},{id:'escalating',name:'Alarma Escalante'},{id:'screech',name:'Chirrido Agudo'},{id:'bell_alarm',name:'Campana de Alarma'},{id:'sos',name:'Señal Morse SOS'},{id:'electronic',name:'Alerta Electrónica'},{id:'megaphone',name:'Megáfono'}];
@@ -814,6 +852,14 @@ setInterval(()=>{
     ci_requests.forEach((h,i)=>{if(h.status==='alert'){const el=document.getElementById('wt-'+i);if(el)el.textContent=ci_fmt(Math.floor((Date.now()-Number(h.alertStart))/1000));}});
   }
   ci_updateCounters();ci_updateBanner();
+  // Timer pantalla mecánico
+  if(ci_mecUser&&document.getElementById('s-mec')?.classList.contains('active')){
+    const mecPend=ci_getPendingReqs(ci_mecUser);
+    if(mecPend.length){
+      const oldest=ci_getActiveReqs(ci_mecUser).length?ci_getActiveReqs(ci_mecUser)[ci_getActiveReqs(ci_mecUser).length-1]:mecPend[mecPend.length-1];
+      const mt=document.getElementById('mec-timer');if(mt)mt.textContent=ci_fmt(ci_getElapsed(oldest));
+    }
+  }
 },1000);
 
 function ci_updateCounters(){
@@ -903,7 +949,7 @@ function ci_confirmResponse(accepted){
     ci_syncCard(id);ci_updateCounters();ci_updateBanner();ci_applyFilter(ci_currentFilter);
     if(document.getElementById('s-module').classList.contains('active')&&ci_currentUser===id)ci_refreshDetail();
     ci_wsSend({type:'ci_update_request',request:h});
-    ci_showScreen('home');
+    ci_showScreen('dashboard');
   }else{
     h.status='alert';h.waitTime=null;
     ci_wsSend({type:'ci_update_request',request:h});
@@ -924,21 +970,10 @@ function ci_switchView(v){
 
 function ci_renderHistory(){
   const tbody=document.getElementById('history-tbody');if(!tbody)return;
-  function populateSel(id,values){const s=document.getElementById(id);if(!s)return;const cur=s.value;const first=s.options[0];s.innerHTML='';s.appendChild(first);values.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;s.appendChild(o);});s.value=cur;}
-  populateSel('filter-module',[...new Set(ci_requests.map(r=>r.module))].sort());
-  populateSel('filter-tipo',[...new Set(ci_requests.map(r=>r.tipo))].sort());
-  const fMod=(document.getElementById('filter-module')?.value||'').toLowerCase();
-  const fRef=(document.getElementById('filter-ref')?.value||'').toLowerCase();
-  const fOp=(document.getElementById('filter-op')?.value||'').toLowerCase();
-  const fTipo=(document.getElementById('filter-tipo')?.value||'').toLowerCase();
   const fEst=document.getElementById('filter-estado')?.value||'';
   const fDesde=document.getElementById('filter-fecha-desde')?.value||'';
   const fHasta=document.getElementById('filter-fecha-hasta')?.value||'';
   const filtered=ci_requests.filter(h=>{
-    if(fMod&&h.module.toLowerCase()!==fMod)return false;
-    if(fRef&&!(h.ref||'').toLowerCase().includes(fRef))return false;
-    if(fOp&&!(h.op||'').toLowerCase().includes(fOp))return false;
-    if(fTipo&&(h.tipo||'').toLowerCase()!==fTipo)return false;
     if(fEst&&h.status!==fEst)return false;
     if(fDesde||fHasta){const fechaReg=h.fecha||(h.datetime?h.datetime.split(' ')[0]:'');if(fDesde&&fechaReg<fDesde)return false;if(fHasta&&fechaReg>fHasta)return false;}
     return true;
@@ -1097,8 +1132,222 @@ if(location.protocol!=='file:'){
   // Modo demo sin servidor
   document.getElementById('ci-loader').style.display='none';
   document.getElementById('ci-app').style.display='block';
-  ci_showScreen('home');
+  ci_showScreen('dashboard');
 }
+
+// ══════════════════════════════════════════════════════════════════
+//  MECÁNICOS CI
+// ══════════════════════════════════════════════════════════════════
+let ci_mecUser = null;
+
+// Cargar mecánicos desde /api/app-config
+async function ci_loadMecList() {
+  try {
+    const res = await fetch('/api/app-config');
+    const cfg = await res.json();
+    const members = (cfg._perfil_members && cfg._perfil_members['Mecanicos']) || [];
+    const sel = document.getElementById('mec-login-sel');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">— Selecciona tu nombre —</option>';
+    members.filter(m => !m.disabled).forEach(m => {
+      const nombre = typeof m === 'string' ? m : m.nombre;
+      if (!nombre) return;
+      const o = document.createElement('option');
+      o.value = nombre; o.textContent = nombre;
+      sel.appendChild(o);
+    });
+  } catch(e) { console.error('[MEC] Error cargando mecánicos:', e); }
+}
+
+function ci_doMecLogin() {
+  const sel = document.getElementById('mec-login-sel');
+  const err = document.getElementById('mec-login-err');
+  if (!sel.value) { err.style.display = 'block'; return; }
+  err.style.display = 'none';
+  ci_mecUser = sel.value;
+  document.getElementById('mec-name-lbl').textContent = ci_mecUser;
+  document.getElementById('mec-id-lbl').textContent = ci_mecUser;
+  ci_showScreen('mec');
+  ci_mecRefresh();
+  ci_mecRenderHistory();
+  // Sincronizar dot WS
+  const dot = document.getElementById('ws-dot-mec');
+  const mainDot = document.getElementById('ws-dot');
+  if (dot && mainDot) dot.style.background = mainDot.style.background;
+}
+
+function ci_mecLogout() {
+  ci_mecUser = null;
+  ci_showScreen('dashboard');
+}
+
+function ci_mecOpenModal() {
+  document.getElementById('modal-mod-lbl').textContent = 'Mecánico: ' + ci_mecUser;
+  ['f-ref','f-op','f-qty','f-qty-only','f-metros'].forEach(x => { const el=document.getElementById(x); if(el) el.value=''; });
+  document.getElementById('f-tipo').value = '';
+  document.getElementById('f-talla') && (document.getElementById('f-talla').value = '');
+  document.getElementById('f-elastico-sub').value = '';
+  document.getElementById('f-campos-wrap').style.display = 'none';
+  ['f-row-qty-talla','f-row-qty-only','f-row-elastico'].forEach(id => document.getElementById(id).style.display = 'none');
+  // Marcar que la solicitud es de mecánico
+  document.getElementById('form-overlay').dataset.mecMode = '1';
+  document.getElementById('form-overlay').classList.add('open');
+}
+
+// Override ci_submitRequest para manejar modo mecánico
+const _ci_submitRequest_orig = ci_submitRequest;
+function ci_submitRequest() {
+  const isMec = document.getElementById('form-overlay').dataset.mecMode === '1';
+  if (!isMec) { _ci_submitRequest_orig(); return; }
+  // Lógica igual pero con mecánico como "module"
+  const ref = document.getElementById('f-ref').value.trim();
+  const op  = document.getElementById('f-op').value.trim();
+  const tipoSel = document.getElementById('f-tipo');
+  const tipo = tipoSel.value;
+  const flow = tipoSel.options[tipoSel.selectedIndex]?.dataset?.flow || '';
+  if (!ref || !op || !tipo) { alert('Por favor completa todos los campos'); return; }
+  let qty = '', talla = '';
+  if (flow === 'qty_talla') {
+    qty = document.getElementById('f-qty').value;
+    talla = document.getElementById('f-talla').value;
+    if (!qty || !talla) { alert('Por favor ingresa cantidad y talla'); return; }
+  } else if (flow === 'qty_only') {
+    qty = document.getElementById('f-qty-only').value;
+    if (!qty) { alert('Por favor ingresa la cantidad'); return; }
+  } else if (flow === 'elastico') {
+    const sub = document.getElementById('f-elastico-sub').value;
+    qty = document.getElementById('f-metros').value;
+    if (!sub) { alert('Selecciona el tipo de elástico'); return; }
+    if (!qty) { alert('Ingresa la cantidad en metros'); return; }
+    talla = sub; qty = qty + ' mts';
+  }
+  const id = ci_mecUser;
+  const now = new Date();
+  const tipoDisplay = talla ? tipo + ' · ' + talla : tipo;
+  const newReq = {
+    _id: Date.now() + '-' + Math.random().toString(36).slice(2),
+    n: ci_requests.length + 1,
+    module: id, ref, op,
+    tipo: tipoDisplay, qty,
+    fecha: now.toLocaleDateString('es-CO'),
+    hora: now.toLocaleTimeString('es-CO'),
+    datetime: now.toLocaleDateString('es-CO') + ' ' + now.toLocaleTimeString('es-CO'),
+    status: 'alert', waitTime: null, resolvedAt: null, obs: '',
+    alertStart: now.getTime(),
+    esMecanico: true
+  };
+  ci_requests.unshift(newReq);
+  ci_wsSend({ type: 'ci_new_request', request: newReq });
+  document.getElementById('form-overlay').dataset.mecMode = '';
+  ci_closeModal();
+  ci_mecRefresh();
+  ci_mecRenderHistory();
+  if (ci_soundEnabled) ci_playSiren();
+}
+
+function ci_mecRefresh() {
+  if (!ci_mecUser) return;
+  const id = ci_mecUser;
+  const active = ci_getActiveReqs(id);
+  const allP = ci_getPendingReqs(id);
+  const card = document.getElementById('mec-card');
+  const ball = document.getElementById('mec-ball');
+  const status = document.getElementById('mec-status');
+  const timerEl = document.getElementById('mec-timer');
+  const info = document.getElementById('mec-info');
+  const hint = document.getElementById('mec-hint');
+  const btnSol = document.getElementById('mec-btn-sol');
+  const countEl = document.getElementById('mec-active-count');
+  if (!card) return;
+  if (allP.length > 0) {
+    card.className = 'mod-card is-alert';
+    ball.className = 'big-ball red';
+    status.className = 'mod-status red'; status.textContent = 'ALERTA';
+    const oldest = active.length ? active[active.length-1] : allP[allP.length-1];
+    timerEl.className = 'ci-mod-timer show'; timerEl.textContent = ci_fmt(ci_getElapsed(oldest));
+    const latest = active.length ? active[0] : allP[0];
+    info.className = 'mod-info show';
+    document.getElementById('mec-mi-ref').textContent = latest.ref || '—';
+    document.getElementById('mec-mi-op').textContent = latest.op || '—';
+    document.getElementById('mec-mi-tipo').textContent = latest.tipo || '—';
+    document.getElementById('mec-mi-qty').textContent = latest.qty || '—';
+    if (allP.length > 1) { countEl.textContent = '⚠ ' + allP.length + ' SOLICITUDES PENDIENTES'; countEl.className = 'mod-active-count show'; }
+    else countEl.className = 'mod-active-count';
+    hint.textContent = allP.length + ' SOLICITUD(ES) ACTIVA(S)';
+    btnSol.textContent = '🚨 NUEVA SOLICITUD';
+  } else {
+    card.className = 'mod-card';
+    ball.className = 'big-ball';
+    status.className = 'mod-status'; status.textContent = 'OPERATIVO';
+    timerEl.className = 'ci-mod-timer';
+    info.className = 'mod-info';
+    countEl.className = 'mod-active-count';
+    hint.textContent = 'PRESIONA EL BOTÓN PARA SOLICITAR INSUMO';
+    btnSol.textContent = '🚨 SOLICITAR INSUMO';
+  }
+  // Verificar si hay confirmación pendiente
+  const pend = ci_requests.find(r => r.module === id && r.status === 'pending-confirm');
+  if (pend) {
+    ci_pendingConfirmIdx = ci_requests.indexOf(pend);
+    document.getElementById('conf-module').textContent = pend.module;
+    document.getElementById('conf-detail').textContent = pend.tipo + ' · ' + pend.qty + ' · Ref: ' + pend.ref;
+    document.getElementById('confirm-overlay').classList.add('open');
+    if (ci_soundEnabled) ci_playSiren();
+  }
+}
+
+function ci_mecRenderHistory() {
+  const el = document.getElementById('mec-history'); if (!el) return;
+  const mine = ci_requests.filter(r => r.module === ci_mecUser);
+  if (!mine.length) { el.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:30px;font-size:14px;">Sin solicitudes</div>'; return; }
+  el.innerHTML = mine.map((h, i) => {
+    const idx = ci_requests.indexOf(h);
+    const isAlert = h.status === 'alert', isDone = h.status === 'done', isPending = h.status === 'pending-confirm';
+    const badgeCls = isAlert ? 'badge-alert' : isDone ? 'badge-done' : 'badge-pending';
+    const badgeTxt = isAlert ? '⚠ ALERTA' : isDone ? '✓ CUMPLIDO' : '⏳ CONFIRMANDO';
+    const cardCls = isAlert ? 'card-alert' : isDone ? 'card-done' : 'card-pending';
+    const waitDisp = isDone || isPending ? ci_fmt(h.waitTime || 0) : (isAlert ? ci_fmt(ci_getElapsed(h)) : '—');
+    const fecha = h.fecha || (h.datetime ? h.datetime.split(' ')[0] : '—');
+    const hora  = h.hora  || (h.datetime ? h.datetime.replace(fecha+' ','') : '—');
+    return `<div class="hist-card ${cardCls}">
+      <div class="hist-card-top">
+        <div class="hist-card-mod">${h.module}</div>
+        <span class="badge ${badgeCls}">${badgeTxt}</span>
+      </div>
+      <div class="hist-card-row"><span class="hist-card-lbl">Referencia</span><span class="hist-card-val">${h.ref||'—'}</span></div>
+      <div class="hist-card-row"><span class="hist-card-lbl">OP / OC</span><span class="hist-card-val">${h.op||'—'}</span></div>
+      <div class="hist-card-row"><span class="hist-card-lbl">Tipo insumo</span><span class="hist-card-val">${h.tipo||'—'}</span></div>
+      <div class="hist-card-row"><span class="hist-card-lbl">Cantidad</span><span class="hist-card-val">${h.qty||'—'}</span></div>
+      <div class="hist-card-row"><span class="hist-card-lbl">Fecha</span><span class="hist-card-val">${fecha}</span></div>
+      <div class="hist-card-row"><span class="hist-card-lbl">Hora</span><span class="hist-card-val" style="font-family:monospace;">${hora}</span></div>
+      <div class="hist-card-row"><span class="hist-card-lbl">T. Espera</span><span class="hist-card-val hist-card-timer">${waitDisp}</span></div>
+    </div>`;
+  }).join('');
+}
+
+// Detectar ?mec=1 en la URL para entrar directo al login de mecánico
+(function(){
+  const params = new URLSearchParams(location.search);
+  if (params.get('mec') === '1') {
+    // Esperar a que el WS conecte, luego mostrar login mecánico
+    const _orig = ci_showScreen;
+    let _intercepted = false;
+    window._ci_showScreen_mec = function(n) {
+      if (!_intercepted && n === 'dashboard') {
+        _intercepted = true;
+        ci_loadMecList().then(() => { _orig.call(window, 'mec-login'); });
+        return;
+      }
+      _orig.call(window, n);
+    };
+    // Reemplazar showScreen solo para la carga inicial
+    const origShow = ci_showScreen;
+    ci_showScreen = window._ci_showScreen_mec;
+    // Restaurar después de la primera llamada al dashboard
+    setTimeout(() => { ci_showScreen = origShow; }, 5000);
+  }
+})();
+
 </script>
 </body>
 </html>
