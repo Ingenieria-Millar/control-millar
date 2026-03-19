@@ -519,6 +519,26 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   </div>
 </div>
 
+
+<!-- ── MODAL SOLICITUD MECÁNICO ── -->
+<div class="overlay" id="mec-form-overlay">
+  <div class="form-modal" style="max-width:480px;">
+    <div class="form-title">🔧 SOLICITAR INSUMO</div>
+    <div class="form-sub" id="mec-modal-lbl">Mecánico: —</div>
+    <div class="fg">
+      <label class="fl">¿Para qué módulo?</label>
+      <select class="fs" id="mec-f-modulo"><option value="">— Selecciona el módulo —</option></select>
+    </div>
+    <div class="fg">
+      <label class="fl">Insumos solicitados</label>
+      <div id="mec-insumos-cont"></div>
+      <button onclick="ci_mecAddInsumoRow()" style="margin-top:4px;background:none;border:1.5px dashed #93c5fd;border-radius:7px;color:#2563eb;font-size:13px;font-weight:700;padding:7px 14px;cursor:pointer;width:100%;">+ Agregar insumo</button>
+    </div>
+    <button class="submit-btn" onclick="ci_mecSubmit()">🚨 ENVIAR SOLICITUD</button>
+    <button class="btn-admin-back" style="margin-top:8px;" onclick="ci_mecCloseModal()">← CANCELAR</button>
+  </div>
+</div>
+
 <!-- ── MODAL CONFIRMACIÓN ── -->
 <div class="overlay" id="confirm-overlay">
   <div class="confirm-modal">
@@ -701,6 +721,10 @@ function ci_handleWsMessage(msg){
       const h=msg.request;
       const idx=ci_requests.findIndex(r=>r._id===h._id);
       if(idx>-1)ci_requests[idx]=h;
+      // Notificar al mecánico si está en su pantalla
+      if(h.esMecanico&&ci_mecUser&&(h.mecanicoNombre===ci_mecUser||h.module===ci_mecUser)&&document.getElementById('s-mec')?.classList.contains('active')){
+        ci_mecRenderHistory();
+      }
       if(ci_currentUser===h.module&&document.getElementById('s-module').classList.contains('active')){
         ci_pendingConfirmIdx=idx>-1?idx:0;
         if(idx>-1){
@@ -957,7 +981,7 @@ function ci_submitRequest(){
 
 function ci_markCumplido(idx){
   const h=ci_requests[idx];if(!h||h.status!=='alert')return;
-  if(!h.obs||!h.obs.trim()){alert('⚠ Debes seleccionar una observación antes de marcar como CUMPLIDO.');return;}
+  if(!h.esMecanico && (!h.obs||!h.obs.trim())){alert('⚠ Debes seleccionar una observación antes de marcar como CUMPLIDO.');return;}
   h.status='pending-confirm';h.waitTime=ci_getElapsed(h);
   ci_wsSend({type:'ci_cumplido_request',request:h});
   ci_wsSend({type:'ci_update_request',request:h});
@@ -986,6 +1010,8 @@ function ci_confirmResponse(accepted){
     ci_syncCard(id);ci_updateCounters();ci_updateBanner();ci_applyFilter(ci_currentFilter);
     if(document.getElementById('s-module').classList.contains('active')&&ci_currentUser===id)ci_refreshDetail();
     ci_wsSend({type:'ci_update_request',request:h});
+    // Si es solicitud de mecánico, notificar para confirmación en su pantalla
+    if(h.esMecanico) ci_wsSend({type:'ci_cumplido_request',request:h});
     ci_showScreen('dashboard');
   }else{
     h.status='alert';h.waitTime=null;
@@ -1205,6 +1231,7 @@ function ci_delObs(i){if(!confirm('¿Eliminar "'+ci_obsList[i]+'"?'))return;ci_o
   _on('gear-overlay','click',function(e){if(e.target===this)ci_closeGearLogin();});
   _on('settings-overlay','click',function(e){if(e.target===this)ci_closeSettings();});
   _on('mini-auth-overlay','click',function(e){if(e.target===this)ci_closeMiniAuth();});
+  _on('mec-form-overlay','click',function(e){if(e.target===this)ci_mecCloseModal();});
 })();
 
 // ── Leer perfil desde URL ────────────────────────────────────────
@@ -1286,74 +1313,96 @@ function ci_mecSwitchTab(tab){
     ci_mecRenderHistory();
   }
 }
+
+function ci_mecConfirmRecibo(idx, accepted){
+  const h = ci_requests[idx]; if(!h) return;
+  if(accepted){
+    h.status = 'done';
+    h.resolvedAt = new Date().toLocaleTimeString('es-CO');
+    if(!h.waitTime||h.waitTime===0) h.waitTime = Math.floor((Date.now()-h.alertStart)/1000);
+    ci_wsSend({type:'ci_update_request', request:h});
+  } else {
+    h.status = 'alert'; h.waitTime = null;
+    ci_wsSend({type:'ci_update_request', request:h});
+  }
+  ci_mecRefresh();
+  ci_mecRenderHistory();
+}
 function ci_mecLogout() {
   ci_mecUser = null;
   ci_showScreen('dashboard');
 }
 
 function ci_mecOpenModal() {
-  document.getElementById('modal-mod-lbl').textContent = 'Mecánico: ' + ci_mecUser;
-  ['f-ref','f-op','f-qty','f-qty-only','f-metros'].forEach(x => { const el=document.getElementById(x); if(el) el.value=''; });
-  document.getElementById('f-tipo').value = '';
-  document.getElementById('f-talla') && (document.getElementById('f-talla').value = '');
-  document.getElementById('f-elastico-sub').value = '';
-  document.getElementById('f-campos-wrap').style.display = 'none';
-  ['f-row-qty-talla','f-row-qty-only','f-row-elastico'].forEach(id => document.getElementById(id).style.display = 'none');
-  // Marcar que la solicitud es de mecánico
-  document.getElementById('form-overlay').dataset.mecMode = '1';
-  document.getElementById('form-overlay').classList.add('open');
+  // Poblar módulos
+  const sel = document.getElementById('mec-f-modulo');
+  if(sel){
+    sel.innerHTML = '<option value="">— Selecciona el módulo —</option>';
+    ci_moduleList.forEach(m=>{ const o=document.createElement('option');o.value=m;o.textContent=m;sel.appendChild(o); });
+  }
+  // Poblar tipos de insumo
+  ci_mecBuildInsumoRows();
+  const lbl=document.getElementById('mec-modal-lbl');if(lbl)lbl.textContent='Mecánico: '+ci_mecUser;
+  document.getElementById('mec-form-overlay').classList.add('open');
+}
+function ci_mecBuildInsumoRows(){
+  const cont=document.getElementById('mec-insumos-cont');if(!cont)return;
+  cont.innerHTML='';
+  ci_mecAddInsumoRow();
+}
+function ci_mecAddInsumoRow(){
+  const cont=document.getElementById('mec-insumos-cont');if(!cont)return;
+  const idx=cont.children.length;
+  const div=document.createElement('div');
+  div.style.cssText='display:flex;gap:8px;align-items:center;margin-bottom:8px;';
+  div.innerHTML=`<select class="fs" style="flex:1;" id="mec-tipo-${idx}">
+    <option value="">— Tipo de insumo —</option>
+    ${ci_tipoInsumoList.map(t=>`<option value="${t.name}">${t.name}</option>`).join('')}
+  </select>
+  <input class="fi" type="number" min="1" placeholder="Cant." style="width:80px;" id="mec-qty-${idx}">
+  ${idx>0?`<button onclick="this.parentElement.remove()" style="background:none;border:none;color:#ef4444;font-size:18px;cursor:pointer;padding:0 4px;">×</button>`:'<span style="width:24px;"></span>'}`;
+  cont.appendChild(div);
 }
 
-// Override ci_submitRequest para manejar modo mecánico
-const _ci_submitRequest_orig = ci_submitRequest;
-function ci_submitRequest() {
-  const isMec = document.getElementById('form-overlay').dataset.mecMode === '1';
-  if (!isMec) { _ci_submitRequest_orig(); return; }
-  // Lógica igual pero con mecánico como "module"
-  const ref = document.getElementById('f-ref').value.trim();
-  const op  = document.getElementById('f-op').value.trim();
-  const tipoSel = document.getElementById('f-tipo');
-  const tipo = tipoSel.value;
-  const flow = tipoSel.options[tipoSel.selectedIndex]?.dataset?.flow || '';
-  if (!ref || !op || !tipo) { alert('Por favor completa todos los campos'); return; }
-  let qty = '', talla = '';
-  if (flow === 'qty_talla') {
-    qty = document.getElementById('f-qty').value;
-    talla = document.getElementById('f-talla').value;
-    if (!qty || !talla) { alert('Por favor ingresa cantidad y talla'); return; }
-  } else if (flow === 'qty_only') {
-    qty = document.getElementById('f-qty-only').value;
-    if (!qty) { alert('Por favor ingresa la cantidad'); return; }
-  } else if (flow === 'elastico') {
-    const sub = document.getElementById('f-elastico-sub').value;
-    qty = document.getElementById('f-metros').value;
-    if (!sub) { alert('Selecciona el tipo de elástico'); return; }
-    if (!qty) { alert('Ingresa la cantidad en metros'); return; }
-    talla = sub; qty = qty + ' mts';
+function ci_mecSubmit() {
+  const modulo = document.getElementById('mec-f-modulo')?.value;
+  if(!modulo){ alert('Selecciona el módulo'); return; }
+  const cont = document.getElementById('mec-insumos-cont');
+  const rows = cont ? cont.children : [];
+  const insumos = [];
+  for(let i=0;i<rows.length;i++){
+    const tipo = document.getElementById('mec-tipo-'+i)?.value;
+    const qty  = document.getElementById('mec-qty-'+i)?.value;
+    if(tipo && qty) insumos.push({tipo, qty});
   }
-  const id = ci_mecUser;
+  if(!insumos.length){ alert('Agrega al menos un insumo con cantidad'); return; }
   const now = new Date();
-  const tipoDisplay = talla ? tipo + ' · ' + talla : tipo;
-  const newReq = {
-    _id: Date.now() + '-' + Math.random().toString(36).slice(2),
-    n: ci_requests.length + 1,
-    module: id, ref, op,
-    tipo: tipoDisplay, qty,
-    fecha: now.toLocaleDateString('es-CO'),
-    hora: now.toLocaleTimeString('es-CO'),
-    datetime: now.toLocaleDateString('es-CO') + ' ' + now.toLocaleTimeString('es-CO'),
-    status: 'alert', waitTime: null, resolvedAt: null, obs: '',
-    alertStart: now.getTime(),
-    esMecanico: true
-  };
-  ci_requests.unshift(newReq);
-  ci_wsSend({ type: 'ci_new_request', request: newReq });
-  document.getElementById('form-overlay').dataset.mecMode = '';
-  ci_closeModal();
+  // Crear una solicitud por cada insumo
+  insumos.forEach(ins => {
+    const newReq = {
+      _id: Date.now()+'-'+Math.random().toString(36).slice(2),
+      n: ci_requests.length+1,
+      module: modulo,
+      mecanicoNombre: ci_mecUser,
+      ref: ci_mecUser,
+      op: 'Mecánico',
+      tipo: ins.tipo, qty: ins.qty,
+      fecha: now.toLocaleDateString('es-CO'),
+      hora: now.toLocaleTimeString('es-CO'),
+      datetime: now.toLocaleDateString('es-CO')+' '+now.toLocaleTimeString('es-CO'),
+      status: 'alert', waitTime: null, resolvedAt: null, obs: '',
+      alertStart: now.getTime(),
+      esMecanico: true
+    };
+    ci_requests.unshift(newReq);
+    ci_wsSend({ type: 'ci_new_request', request: newReq });
+  });
+  document.getElementById('mec-form-overlay').classList.remove('open');
   ci_mecRefresh();
   ci_mecRenderHistory();
-  if (ci_soundEnabled) ci_playSiren();
+  // NO sonar aquí — solo suena en el tablero CI
 }
+function ci_mecCloseModal(){ document.getElementById('mec-form-overlay').classList.remove('open'); }
 
 function ci_mecRefresh() {
   if (!ci_mecUser) return;
@@ -1408,7 +1457,7 @@ function ci_mecRefresh() {
 
 function ci_mecRenderHistory() {
   const el = document.getElementById('mec-history'); if (!el) return;
-  const mine = ci_requests.filter(r => r.module === ci_mecUser);
+  const mine = ci_requests.filter(r => r.mecanicoNombre === ci_mecUser || (r.esMecanico && r.module === ci_mecUser));
   if (!mine.length) { el.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:30px;font-size:14px;">Sin solicitudes</div>'; return; }
   el.innerHTML = mine.map((h, i) => {
     const idx = ci_requests.indexOf(h);
@@ -1419,18 +1468,26 @@ function ci_mecRenderHistory() {
     const waitDisp = isDone || isPending ? ci_fmt(h.waitTime || 0) : (isAlert ? ci_fmt(ci_getElapsed(h)) : '—');
     const fecha = h.fecha || (h.datetime ? h.datetime.split(' ')[0] : '—');
     const hora  = h.hora  || (h.datetime ? h.datetime.replace(fecha+' ','') : '—');
+    const confirmBtn = isPending ? `
+      <div style="margin-top:12px;padding:14px;background:#fffbeb;border:1.5px solid #fcd34d;border-radius:10px;text-align:center;">
+        <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:10px;">📦 ¿Recibiste el insumo?</div>
+        <div style="display:flex;gap:8px;justify-content:center;">
+          <button onclick="ci_mecConfirmRecibo(${idx},true)" style="padding:8px 20px;background:#22c55e;color:#fff;border:none;border-radius:7px;font-weight:700;font-size:13px;cursor:pointer;">✔ Sí, recibí</button>
+          <button onclick="ci_mecConfirmRecibo(${idx},false)" style="padding:8px 20px;background:#ef4444;color:#fff;border:none;border-radius:7px;font-weight:700;font-size:13px;cursor:pointer;">✖ No recibí</button>
+        </div>
+      </div>` : '';
     return `<div class="hist-card ${cardCls}">
       <div class="hist-card-top">
         <div class="hist-card-mod">${h.module}</div>
         <span class="badge ${badgeCls}">${badgeTxt}</span>
       </div>
-      <div class="hist-card-row"><span class="hist-card-lbl">Referencia</span><span class="hist-card-val">${h.ref||'—'}</span></div>
-      <div class="hist-card-row"><span class="hist-card-lbl">OP / OC</span><span class="hist-card-val">${h.op||'—'}</span></div>
+      <div class="hist-card-row"><span class="hist-card-lbl">Módulo</span><span class="hist-card-val">${h.module||'—'}</span></div>
       <div class="hist-card-row"><span class="hist-card-lbl">Tipo insumo</span><span class="hist-card-val">${h.tipo||'—'}</span></div>
       <div class="hist-card-row"><span class="hist-card-lbl">Cantidad</span><span class="hist-card-val">${h.qty||'—'}</span></div>
       <div class="hist-card-row"><span class="hist-card-lbl">Fecha</span><span class="hist-card-val">${fecha}</span></div>
       <div class="hist-card-row"><span class="hist-card-lbl">Hora</span><span class="hist-card-val" style="font-family:monospace;">${hora}</span></div>
       <div class="hist-card-row"><span class="hist-card-lbl">T. Espera</span><span class="hist-card-val hist-card-timer">${waitDisp}</span></div>
+      ${confirmBtn}
     </div>`;
   }).join('');
 }
