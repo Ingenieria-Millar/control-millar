@@ -293,7 +293,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 <!-- Loader inicial -->
 <div id="ci-loader">
   <div class="ci-spin"></div>
-  <span style="font-size:13px;letter-spacing:2px;text-transform:uppercase;">Conectando...</span>
+  <span id="ci-loader-txt" style="font-size:13px;letter-spacing:2px;text-transform:uppercase;">Conectando...</span>
 </div>
 
 <!-- App principal -->
@@ -476,30 +476,51 @@ let ci_moduleData={},ci_requests=[],ci_currentUser=null,ci_soundEnabled=true,ci_
 let ci_currentFilter='all',ci_currentView='board',ci_pendingConfirmIdx=null,ci_selectedSound='ambulance',ci_miniAuthTargetIdx=null,ci_miniAuthMode='obs';
 
 // ── WebSocket ──────────────────────────────────────────────────────
-let ci_ws=null,ci_wsReady=false;
+let ci_ws=null,ci_wsReady=false,ci_wsConnected=false;
 function ci_wsConnect(){
   const proto=location.protocol==='https:'?'wss:':'ws:';
   const url=proto+'//'+location.host;
+  // Timeout: si en 8s no conecta, libera la app y sigue reintentando
+  let _loaderReleased=ci_wsConnected;
+  const _timeout=setTimeout(()=>{
+    if(!_loaderReleased){
+      _loaderReleased=true;
+      const loader=document.getElementById('ci-loader');
+      const app=document.getElementById('ci-app');
+      if(loader)loader.style.display='none';
+      if(app)app.style.display='block';
+      ci_showScreen('home');
+      ci_showWsStatus(false);
+    }
+  },8000);
   try{
     ci_ws=new WebSocket(url);
     ci_ws.onopen=()=>{
-      ci_wsReady=true;
+      clearTimeout(_timeout);
+      ci_wsReady=true;ci_wsConnected=true;
       ci_wsSend({type:'ci_init'});
       ci_showWsStatus(true);
-      document.getElementById('ci-loader').style.display='none';
-      document.getElementById('ci-app').style.display='block';
+      const loader=document.getElementById('ci-loader');
+      const app=document.getElementById('ci-app');
+      if(loader)loader.style.display='none';
+      if(app)app.style.display='block';
       ci_showScreen('dashboard');
       ci_switchView('history');
-      // Heartbeat — evita que Render corte la conexión WS idle
-      if(ci_ws._pingInterval) clearInterval(ci_ws._pingInterval);
+      if(ci_ws._pingInterval)clearInterval(ci_ws._pingInterval);
       ci_ws._pingInterval=setInterval(()=>{
-        if(ci_ws && ci_ws.readyState===1) ci_ws.send(JSON.stringify({type:'ping'}));
-      }, 30000);
+        if(ci_ws&&ci_ws.readyState===1)ci_ws.send(JSON.stringify({type:'ping'}));
+      },30000);
     };
     ci_ws.onclose=()=>{
+      clearTimeout(_timeout);
       ci_wsReady=false;
-      if(ci_ws._pingInterval){ clearInterval(ci_ws._pingInterval); ci_ws._pingInterval=null; }
+      if(ci_ws._pingInterval){clearInterval(ci_ws._pingInterval);ci_ws._pingInterval=null;}
       ci_showWsStatus(false);
+      // Si nunca llegó a conectar, actualizar texto del loader
+      if(!ci_wsConnected){
+        const loaderTxt=document.getElementById('ci-loader-txt');
+        if(loaderTxt)loaderTxt.textContent='Reintentando conexión...';
+      }
       setTimeout(ci_wsConnect,3000);
     };
     ci_ws.onerror=()=>{
@@ -507,10 +528,10 @@ function ci_wsConnect(){
       ci_showWsStatus(false);
     };
     ci_ws.onmessage=(e)=>{
-      try{ const msg=JSON.parse(e.data); ci_handleWsMessage(msg); }
-      catch(err){ console.error('[CI] msg error',err); }
+      try{const msg=JSON.parse(e.data);ci_handleWsMessage(msg);}
+      catch(err){console.error('[CI] msg error',err);}
     };
-  }catch(err){ setTimeout(ci_wsConnect,3000); }
+  }catch(err){clearTimeout(_timeout);setTimeout(ci_wsConnect,3000);}
 }
 
 function ci_handleWsMessage(msg){
@@ -731,9 +752,10 @@ setInterval(()=>{
 
 function ci_updateCounters(){
   let a=0;ci_moduleList.forEach(id=>{if(ci_getPendingReqs(id).length>0)a++;});
-  document.getElementById('fc-all').textContent=ci_moduleList.length;
-  document.getElementById('fc-op').textContent=ci_moduleList.length-a;
-  document.getElementById('fc-alert').textContent=a;
+  const elAll=document.getElementById('fc-all'),elOp=document.getElementById('fc-op'),elAlert=document.getElementById('fc-alert');
+  if(elAll)elAll.textContent=ci_moduleList.length;
+  if(elOp)elOp.textContent=ci_moduleList.length-a;
+  if(elAlert)elAlert.textContent=a;
 }
 function ci_updateBanner(){
   const dateEl=document.getElementById('ci-topbar-date');
@@ -990,13 +1012,16 @@ function ci_addObs(){const inp=document.getElementById('obs-add-inp'),name=inp.v
 function ci_delObs(i){if(!confirm('¿Eliminar "'+ci_obsList[i]+'"?'))return;ci_obsList.splice(i,1);ci_buildObsManager();ci_syncConfig();}
 
 // ── Event listeners ────────────────────────────────────────────────
-
-document.getElementById('gear-pass').addEventListener('keydown',e=>{if(e.key==='Enter')ci_doGearLogin();});
-document.getElementById('mini-auth-pass').addEventListener('keydown',e=>{if(e.key==='Enter')ci_doMiniAuth();});
-document.getElementById('form-overlay').addEventListener('click',function(e){if(e.target===this)ci_closeModal();});
-document.getElementById('gear-overlay').addEventListener('click',function(e){if(e.target===this)ci_closeGearLogin();});
-document.getElementById('settings-overlay').addEventListener('click',function(e){if(e.target===this)ci_closeSettings();});
-document.getElementById('mini-auth-overlay').addEventListener('click',function(e){if(e.target===this)ci_closeMiniAuth();});
+(function(){
+  const _el=id=>document.getElementById(id);
+  const _on=(id,ev,fn)=>{const el=_el(id);if(el)el.addEventListener(ev,fn);};
+  _on('gear-pass','keydown',e=>{if(e.key==='Enter')ci_doGearLogin();});
+  _on('mini-auth-pass','keydown',e=>{if(e.key==='Enter')ci_doMiniAuth();});
+  _on('form-overlay','click',function(e){if(e.target===this)ci_closeModal();});
+  _on('gear-overlay','click',function(e){if(e.target===this)ci_closeGearLogin();});
+  _on('settings-overlay','click',function(e){if(e.target===this)ci_closeSettings();});
+  _on('mini-auth-overlay','click',function(e){if(e.target===this)ci_closeMiniAuth();});
+})();
 
 // ── Iniciar ────────────────────────────────────────────────────────
 ci_buildTipoSelect();ci_buildElasticoSelect();ci_buildLoginSelect();
