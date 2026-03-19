@@ -1635,14 +1635,31 @@ function onImpProd(){
   const id=pendingMod;
   cancelImproductivo();
   if(!id)return;
-  // Abrir modal de solicitud CI con el módulo como origen
-  if(typeof siOpen==='function'){
-    // Temporalmente setear selectedMod para que siOpen lo use
-    const _prev=selectedMod;
-    selectedMod=id;
-    siOpen();
-    selectedMod=_prev;
-  }
+  // Enviar alerta directo al CI sin formulario — módulo sigue OPERATIVO (verde)
+  const now=new Date();
+  const newReq={
+    _id: Date.now()+'-'+Math.random().toString(36).slice(2),
+    n: Date.now(),
+    module: id,
+    ref: id,
+    op: 'Producción',
+    tipo: 'Solicitud Producción',
+    qty: '1',
+    fecha: now.toLocaleDateString('es-CO'),
+    hora: now.toLocaleTimeString('es-CO'),
+    datetime: now.toLocaleDateString('es-CO')+' '+now.toLocaleTimeString('es-CO'),
+    status: 'alert',
+    waitTime: null, resolvedAt: null, obs: '',
+    alertStart: now.getTime(),
+    esMecanico: false
+  };
+  if(typeof wsSend==='function') wsSend({type:'ci_new_request', request:newReq});
+  // Toast de confirmación
+  const toast=document.createElement('div');
+  toast.textContent='✅ Solicitud de producción enviada al CI';
+  toast.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:12px 24px;border-radius:12px;font-family:Nunito,sans-serif;font-size:14px;font-weight:700;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.2);';
+  document.body.appendChild(toast);
+  setTimeout(()=>toast.remove(),2800);
 }
 
 // Sub-menú dentro de Producción (Programador / Administrador)
