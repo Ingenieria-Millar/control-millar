@@ -346,8 +346,21 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
       <button class="ibtn ibtn-ghost" onclick="ci_mecLogout()">🚪 Salir</button>
     </div>
   </div>
-  <div style="flex:1;display:flex;flex-direction:column;align-items:center;padding:24px;gap:16px;">
-    <!-- Tarjeta estado -->
+
+  <!-- Tabs Solicitar / Historial -->
+  <div style="display:flex;border-bottom:2px solid #e2e8f0;background:#fff;padding:0 24px;">
+    <button id="mec-tab-sol" onclick="ci_mecSwitchTab('sol')"
+      style="padding:14px 24px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:2px;text-transform:uppercase;border:none;background:none;cursor:pointer;border-bottom:3px solid #2563eb;color:#2563eb;margin-bottom:-2px;">
+      🚨 SOLICITAR
+    </button>
+    <button id="mec-tab-hist" onclick="ci_mecSwitchTab('hist')"
+      style="padding:14px 24px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:2px;text-transform:uppercase;border:none;background:none;cursor:pointer;border-bottom:3px solid transparent;color:#64748b;margin-bottom:-2px;">
+      📋 HISTORIAL
+    </button>
+  </div>
+
+  <!-- Vista: Solicitar -->
+  <div id="mec-view-sol" style="flex:1;display:flex;flex-direction:column;align-items:center;padding:24px;gap:16px;">
     <div class="mod-card" id="mec-card" style="width:min(400px,96vw);">
       <div class="mod-id" id="mec-id-lbl">—</div>
       <div class="big-ball" id="mec-ball"><div class="shine"></div></div>
@@ -365,11 +378,11 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
         <button class="btn-sol" id="mec-btn-sol" onclick="ci_mecOpenModal()">🚨 SOLICITAR INSUMO</button>
       </div>
     </div>
-    <!-- Historial propio -->
-    <div style="width:min(900px,98vw);">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:2px;color:#1e3a8a;margin-bottom:12px;text-transform:uppercase;">📋 MIS SOLICITUDES</div>
-      <div class="hist-cards-grid" id="mec-history"></div>
-    </div>
+  </div>
+
+  <!-- Vista: Historial -->
+  <div id="mec-view-hist" style="display:none;flex:1;flex-direction:column;padding:20px;gap:12px;">
+    <div class="hist-cards-grid" id="mec-history"></div>
   </div>
 </div>
 
@@ -425,8 +438,9 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
     </div>
     <div class="topbar-right">
       <div id="ws-dot" title="Conectando..." style="width:9px;height:9px;border-radius:50%;background:#ef4444;flex-shrink:0;box-shadow:0 0 6px rgba(239,68,68,.7);transition:all .3s;"></div>
+      <span id="ci-perfil-lbl" style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:1.5px;color:#475569;text-transform:uppercase;"></span>
       <button class="gear-btn" onclick="ci_openGearLogin()">⚙</button>
-      
+      <button class="ibtn ibtn-ghost" onclick="history.back()" style="font-size:12px;padding:6px 14px;">← VOLVER</button>
     </div>
   </div>
 
@@ -438,33 +452,34 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
     <div class="modules-grid" id="modules-grid"></div>
   </div>
   <div class="view active" id="view-history">
-    <div class="history-header">
-      <div class="history-title">📋 HISTÓRICO DE SOLICITUDES</div>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-        <button class="ibtn ibtn-ghost" style="border-color:#93c5fd;color:#1e3a8a;" onclick="ci_switchView('board')">← TABLERO</button>
-        <button class="ibtn ibtn-primary" onclick="ci_exportExcel()">⬇ EXCEL</button>
-      </div>
-    </div>
+
     <!-- Filtros -->
     <div class="hist-filters">
-      <div style="display:flex;flex-direction:column;gap:2px;">
-        <label>Estado</label>
-        <select id="filter-estado" style="border:1.5px solid #e2e8f0;border-radius:7px;padding:6px 10px;font-size:13px;font-family:'Nunito',sans-serif;background:#f8fafc;cursor:pointer;" onchange="ci_renderHistory()">
-          <option value="">Todos</option>
-          <option value="alert">Alerta</option>
-          <option value="done">Cumplido</option>
-          <option value="pending-confirm">Confirmando</option>
-        </select>
+      <div style="display:flex;align-items:flex-end;gap:0;">
+        <div id="ci-tab-all"   class="ci-stab ci-stab-active" onclick="ci_setTabFilter('')">Todos <span id="ci-cnt-all">0</span></div>
+        <div id="ci-tab-alert" class="ci-stab ci-stab-red"    onclick="ci_setTabFilter('alert')"><div class="ci-sd ci-sd-red"></div><span id="ci-cnt-alert">0</span>&nbsp;Alerta</div>
+        <div id="ci-tab-done"  class="ci-stab ci-stab-green"  onclick="ci_setTabFilter('done')"><div class="ci-sd ci-sd-green"></div><span id="ci-cnt-done">0</span>&nbsp;Cumplido</div>
+        <div id="ci-tab-pend"  class="ci-stab ci-stab-yellow" onclick="ci_setTabFilter('pending-confirm')"><div class="ci-sd ci-sd-yellow"></div><span id="ci-cnt-pend">0</span>&nbsp;Confirmando</div>
       </div>
       <div style="display:flex;flex-direction:column;gap:2px;position:relative;">
         <label>Fecha</label>
         <button id="btn-date-filter" class="ibtn ibtn-ghost" style="padding:6px 12px;font-size:12px;" onclick="ci_toggleDateFilter()">📅 Rango</button>
         <div id="date-filter-panel" style="display:none;position:absolute;top:100%;left:0;z-index:100;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:14px;box-shadow:0 4px 20px rgba(0,0,0,.12);margin-top:4px;min-width:240px;">
           <div style="display:flex;flex-direction:column;gap:8px;">
-            <div style="display:flex;flex-direction:column;gap:3px;"><label style="font-size:10px;font-weight:700;color:#64748b;letter-spacing:1px;">DESDE</label><input type="date" id="filter-fecha-desde" style="border:1.5px solid #e2e8f0;border-radius:7px;padding:7px 10px;font-size:13px;" onchange="ci_renderHistory()"></div>
-            <div style="display:flex;flex-direction:column;gap:3px;"><label style="font-size:10px;font-weight:700;color:#64748b;letter-spacing:1px;">HASTA</label><input type="date" id="filter-fecha-hasta" style="border:1.5px solid #e2e8f0;border-radius:7px;padding:7px 10px;font-size:13px;" onchange="ci_renderHistory()"></div>
-            <button class="ibtn ibtn-ghost" style="font-size:11px;padding:5px;" onclick="ci_clearDateFilter()">✕ Limpiar fechas</button>
+            <div style="display:flex;flex-direction:column;gap:3px;"><label style="font-size:10px;font-weight:700;color:#64748b;letter-spacing:1px;">DESDE</label><input type="date" id="filter-fecha-desde" style="border:1.5px solid #e2e8f0;border-radius:7px;padding:7px 10px;font-size:13px;"></div>
+            <div style="display:flex;flex-direction:column;gap:3px;"><label style="font-size:10px;font-weight:700;color:#64748b;letter-spacing:1px;">HASTA</label><input type="date" id="filter-fecha-hasta" style="border:1.5px solid #e2e8f0;border-radius:7px;padding:7px 10px;font-size:13px;"></div>
+            <div style="display:flex;gap:6px;">
+              <button class="ibtn ibtn-primary" style="flex:1;font-size:12px;padding:7px;" onclick="ci_applyDateFilter()">✔ Aplicar</button>
+              <button class="ibtn ibtn-ghost" style="flex:1;font-size:12px;padding:7px;" onclick="ci_clearDateFilter()">✕ Limpiar</button>
+            </div>
           </div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px;">
+        <label>&nbsp;</label>
+        <div style="display:flex;gap:6px;">
+          <button class="ibtn ibtn-primary" onclick="ci_exportExcel()" style="padding:6px 14px;font-size:12px;">⬇ Excel</button>
+          <button class="gear-btn" onclick="ci_openGearLogin()" style="padding:6px 11px;font-size:15px;">⚙</button>
         </div>
       </div>
     </div>
@@ -868,6 +883,31 @@ function ci_updateCounters(){
   if(elAll)elAll.textContent=ci_moduleList.length;
   if(elOp)elOp.textContent=ci_moduleList.length-a;
   if(elAlert)elAlert.textContent=a;
+  // Tab counters
+  const cAll=ci_requests.length;
+  const cAlert=ci_requests.filter(r=>r.status==='alert').length;
+  const cDone=ci_requests.filter(r=>r.status==='done').length;
+  const cPend=ci_requests.filter(r=>r.status==='pending-confirm').length;
+  const _s=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  _s('ci-cnt-all',cAll);_s('ci-cnt-alert',cAlert);_s('ci-cnt-done',cDone);_s('ci-cnt-pend',cPend);
+}
+
+let _ci_tabFilter='';
+function ci_setTabFilter(val){
+  _ci_tabFilter=val;
+  window._ci_tabFilter=val;
+  // Reset all tabs
+  ['ci-tab-all','ci-tab-alert','ci-tab-done','ci-tab-pend'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){el.classList.remove('ci-stab-active','ci-tab-on');}
+  });
+  if(!val){
+    const el=document.getElementById('ci-tab-all');if(el)el.classList.add('ci-stab-active');
+  } else {
+    const map={'alert':'ci-tab-alert','done':'ci-tab-done','pending-confirm':'ci-tab-pend'};
+    const el=document.getElementById(map[val]);if(el)el.classList.add('ci-tab-on');
+  }
+  ci_renderHistory();
 }
 function ci_updateBanner(){
   const dateEl=document.getElementById('ci-topbar-date');
@@ -970,12 +1010,33 @@ function ci_switchView(v){
 
 function ci_renderHistory(){
   const tbody=document.getElementById('history-tbody');if(!tbody)return;
-  const fEst=document.getElementById('filter-estado')?.value||'';
+  const fEst=window._ci_tabFilter||'';
   const fDesde=document.getElementById('filter-fecha-desde')?.value||'';
   const fHasta=document.getElementById('filter-fecha-hasta')?.value||'';
+  const hoy=new Date().toLocaleDateString('es-CO'); // dd/m/yyyy formato colombiano
+  const hoyISO=new Date().toISOString().split('T')[0]; // yyyy-mm-dd
   const filtered=ci_requests.filter(h=>{
     if(fEst&&h.status!==fEst)return false;
-    if(fDesde||fHasta){const fechaReg=h.fecha||(h.datetime?h.datetime.split(' ')[0]:'');if(fDesde&&fechaReg<fDesde)return false;if(fHasta&&fechaReg>fHasta)return false;}
+    if(window._ci_dateActive&&(fDesde||fHasta)){
+      const fechaReg=h.fecha||(h.datetime?h.datetime.split(' ')[0]:'');
+      // Normalizar fecha del registro a yyyy-mm-dd para comparar
+      let fechaCmp=fechaReg;
+      if(fechaReg&&fechaReg.includes('/')){
+        const p=fechaReg.split('/');
+        if(p.length===3) fechaCmp=(p[2].length===4)?p[2]+'-'+p[1].padStart(2,'0')+'-'+p[0].padStart(2,'0'):p[0]+'-'+p[1].padStart(2,'0')+'-'+p[2].padStart(2,'0');
+      }
+      if(fDesde&&fechaCmp<fDesde)return false;
+      if(fHasta&&fechaCmp>fHasta)return false;
+    } else if(!window._ci_dateActive){
+      // Sin filtro activo → solo mostrar hoy
+      const fechaReg=h.fecha||(h.datetime?h.datetime.split(' ')[0]:'');
+      let fechaCmp=fechaReg;
+      if(fechaReg&&fechaReg.includes('/')){
+        const p=fechaReg.split('/');
+        if(p.length===3) fechaCmp=(p[2].length===4)?p[2]+'-'+p[1].padStart(2,'0')+'-'+p[0].padStart(2,'0'):p[0]+'-'+p[1].padStart(2,'0')+'-'+p[2].padStart(2,'0');
+      }
+      if(fechaCmp!==hoyISO)return false;
+    }
     return true;
   });
   if(!filtered.length){tbody.innerHTML='<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px;font-size:14px;">Sin resultados</div>';return;}
@@ -1060,13 +1121,38 @@ function ci_toggleDateFilter(){
   btn.style.background=open?'#eff6ff':'';btn.style.borderColor=open?'#2563eb':'';
   if(open){setTimeout(()=>{document.addEventListener('click',function handler(e){if(!panel.contains(e.target)&&e.target!==btn){panel.style.display='none';btn.style.background='';document.removeEventListener('click',handler);}});},100);}
 }
+function ci_applyDateFilter(){
+  // Cerrar panel y renderizar
+  const panel=document.getElementById('date-filter-panel');
+  if(panel)panel.style.display='none';
+  const btn=document.getElementById('btn-date-filter');
+  if(btn){const d=document.getElementById('filter-fecha-desde')?.value,h=document.getElementById('filter-fecha-hasta')?.value;
+    btn.style.background=(d||h)?'#eff6ff':'';btn.style.borderColor=(d||h)?'#2563eb':'';}
+  window._ci_dateActive=true;
+  ci_renderHistory();
+}
 function ci_clearDateFilter(){
   const d=document.getElementById('filter-fecha-desde'),h=document.getElementById('filter-fecha-hasta');
-  if(d)d.value='';if(h)h.value='';ci_renderHistory();
+  if(d)d.value='';if(h)h.value='';
+  window._ci_dateActive=false;
+  const btn=document.getElementById('btn-date-filter');
+  if(btn){btn.style.background='';btn.style.borderColor='';}
+  const panel=document.getElementById('date-filter-panel');
+  if(panel)panel.style.display='none';
+  ci_renderHistory();
 }
 function ci_exportExcel(){
   if(typeof XLSX==='undefined'){alert('Librería XLSX no disponible');return;}
-  const done=ci_requests.filter(r=>r.status==='done');
+  const fDesde2=document.getElementById('filter-fecha-desde')?.value||'';
+  const fHasta2=document.getElementById('filter-fecha-hasta')?.value||'';
+  const hoyISO2=new Date().toISOString().split('T')[0];
+  const done=ci_requests.filter(r=>{
+    let fechaCmp=r.fecha||(r.datetime?r.datetime.split(' ')[0]:'');
+    if(fechaCmp&&fechaCmp.includes('/')){const p=fechaCmp.split('/');if(p.length===3)fechaCmp=(p[2].length===4)?p[2]+'-'+p[1].padStart(2,'0')+'-'+p[0].padStart(2,'0'):p[0]+'-'+p[1].padStart(2,'0')+'-'+p[2].padStart(2,'0');}
+    if(window._ci_dateActive&&(fDesde2||fHasta2)){if(fDesde2&&fechaCmp<fDesde2)return false;if(fHasta2&&fechaCmp>fHasta2)return false;}
+    else if(!window._ci_dateActive){if(fechaCmp!==hoyISO2)return false;}
+    return true;
+  });
   if(!done.length){alert('No hay solicitudes CUMPLIDAS para descargar');return;}
   const headers=['#','Módulo','Referencia','OP/OC','Tipo Insumo','Cantidad','Fecha','Hora','T. Espera','T. Atención','Estado','Observaciones'];
   const rows=done.map(h=>{const fecha=h.fecha||(h.datetime?h.datetime.split(' ')[0]:'');const hora=h.hora||(h.datetime?h.datetime.replace(fecha+' ',''):'');return[h.n,h.module,h.ref,h.op,h.tipo,h.qty,fecha,hora,ci_fmt(h.waitTime||0),h.resolvedAt||'','CUMPLIDO',h.obs||''];});
@@ -1124,6 +1210,16 @@ function ci_delObs(i){if(!confirm('¿Eliminar "'+ci_obsList[i]+'"?'))return;ci_o
   _on('mini-auth-overlay','click',function(e){if(e.target===this)ci_closeMiniAuth();});
 })();
 
+// ── Leer perfil desde URL ────────────────────────────────────────
+(function(){
+  const params = new URLSearchParams(location.search);
+  const perfil = params.get('perfil');
+  if(perfil){
+    const el = document.getElementById('ci-perfil-lbl');
+    if(el) el.textContent = perfil;
+  }
+})();
+
 // ── Iniciar ────────────────────────────────────────────────────────
 ci_buildTipoSelect();ci_buildElasticoSelect();ci_buildLoginSelect();
 if(location.protocol!=='file:'){
@@ -1176,6 +1272,23 @@ function ci_doMecLogin() {
   if (dot && mainDot) dot.style.background = mainDot.style.background;
 }
 
+
+function ci_mecSwitchTab(tab){
+  const sol=document.getElementById('mec-view-sol');
+  const hist=document.getElementById('mec-view-hist');
+  const tabSol=document.getElementById('mec-tab-sol');
+  const tabHist=document.getElementById('mec-tab-hist');
+  if(tab==='sol'){
+    sol.style.display='flex'; hist.style.display='none';
+    tabSol.style.borderBottomColor='#2563eb'; tabSol.style.color='#2563eb';
+    tabHist.style.borderBottomColor='transparent'; tabHist.style.color='#64748b';
+  } else {
+    sol.style.display='none'; hist.style.display='flex';
+    tabHist.style.borderBottomColor='#2563eb'; tabHist.style.color='#2563eb';
+    tabSol.style.borderBottomColor='transparent'; tabSol.style.color='#64748b';
+    ci_mecRenderHistory();
+  }
+}
 function ci_mecLogout() {
   ci_mecUser = null;
   ci_showScreen('dashboard');
