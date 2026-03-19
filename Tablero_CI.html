@@ -343,6 +343,8 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
     </div>
     <div class="topbar-right">
       <div id="ws-dot-mec" style="width:9px;height:9px;border-radius:50%;background:#ef4444;flex-shrink:0;box-shadow:0 0 6px rgba(239,68,68,.7);transition:all .3s;"></div>
+      <span id="mec-user-lbl" style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;color:#475569;text-transform:uppercase;"></span>
+      <button class="gear-btn" onclick="ci_mecOpenConfig()" title="Configurar tipos de insumo">⚙</button>
       <button class="ibtn ibtn-ghost" onclick="ci_mecLogout()">🚪 Salir</button>
     </div>
   </div>
@@ -519,6 +521,24 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   </div>
 </div>
 
+
+
+<!-- ── MODAL CONFIG MECÁNICO (Tipos de Insumo) ── -->
+<div class="settings-overlay" id="mec-config-overlay">
+  <div class="settings-box">
+    <div class="settings-hdr">
+      <div><div class="settings-title">⚙ TIPOS DE INSUMO</div><div class="settings-sub">Gestión para solicitudes</div></div>
+      <button class="close-btn" onclick="ci_mecCloseConfig()">✕</button>
+    </div>
+    <div class="sec-title">📋 Tipos de Insumo</div>
+    <div class="list-manager" id="mec-tipo-manager"></div>
+    <div class="list-add-row">
+      <input class="list-add-inp" id="mec-tipo-add-inp" placeholder="Nuevo tipo...">
+      <button class="btn-lst-add" onclick="ci_mecAddTipo()">+ AGREGAR</button>
+    </div>
+    <div class="settings-close-row"><button class="btn-settings-close" onclick="ci_mecCloseConfig()">CERRAR</button></div>
+  </div>
+</div>
 
 <!-- ── MODAL SOLICITUD MECÁNICO ── -->
 <div class="overlay" id="mec-form-overlay">
@@ -985,7 +1005,7 @@ function ci_submitRequest(){
 
 function ci_markCumplido(idx){
   const h=ci_requests[idx];if(!h||h.status!=='alert')return;
-  if(!h.esMecanico && (!h.obs||!h.obs.trim())){alert('⚠ Debes seleccionar una observación antes de marcar como CUMPLIDO.');return;}
+  if(!h.esMecanico && h.tipo!=='Solicitud Producción' && (!h.obs||!h.obs.trim())){alert('⚠ Debes seleccionar una observación antes de marcar como CUMPLIDO.');return;}
   h.status='pending-confirm';h.waitTime=ci_getElapsed(h);
   ci_wsSend({type:'ci_cumplido_request',request:h});
   ci_wsSend({type:'ci_update_request',request:h});
@@ -1289,6 +1309,7 @@ function ci_doMecLogin() {
   err.style.display = 'none';
   ci_mecUser = sel.value;
   document.getElementById('mec-name-lbl').textContent = ci_mecUser;
+  const mecUserLbl=document.getElementById('mec-user-lbl');if(mecUserLbl)mecUserLbl.textContent=ci_mecUser;
   document.getElementById('mec-id-lbl').textContent = ci_mecUser;
   ci_showScreen('mec');
   ci_mecRefresh();
@@ -1330,6 +1351,37 @@ function ci_mecConfirmRecibo(idx, accepted){
   }
   ci_mecRefresh();
   ci_mecRenderHistory();
+}
+
+function ci_mecOpenConfig(){
+  ci_mecBuildTipoManager();
+  document.getElementById('mec-config-overlay').classList.add('open');
+}
+function ci_mecCloseConfig(){ document.getElementById('mec-config-overlay').classList.remove('open'); }
+function ci_mecBuildTipoManager(){
+  const el=document.getElementById('mec-tipo-manager');if(!el)return;
+  el.innerHTML=ci_tipoInsumoList.map((t,i)=>{
+    const safe=t.name.replace(/"/g,'&quot;');
+    return`<div class="list-row"><input class="list-row-inp" id="mti-${i}" value="${safe}" readonly><div class="list-row-actions"><button class="btn-lst-edit" id="mte-${i}" onclick="ci_mecStartTipo(${i})">—</button><button class="btn-lst-confirm" id="mtc-${i}" onclick="ci_mecConfirmTipo(${i})">✔</button><button class="btn-lst-del" onclick="ci_mecDelTipo(${i})">×</button></div></div>`;
+  }).join('');
+}
+function ci_mecStartTipo(i){const inp=document.getElementById('mti-'+i),eb=document.getElementById('mte-'+i),cb=document.getElementById('mtc-'+i);inp.readOnly=false;inp.focus();inp.select();eb.style.display='none';cb.style.display='flex';}
+function ci_mecConfirmTipo(i){
+  const inp=document.getElementById('mti-'+i),n=inp.value.trim();
+  if(!n){alert('El nombre no puede estar vacío');return;}
+  if(ci_tipoInsumoList.findIndex((t,j)=>t.name.toLowerCase()===n.toLowerCase()&&j!==i)>=0){alert('Ya existe');return;}
+  ci_tipoInsumoList[i].name=n;ci_mecBuildTipoManager();ci_syncConfig();
+}
+function ci_mecDelTipo(i){
+  if(!confirm('¿Eliminar "'+ci_tipoInsumoList[i].name+'"?'))return;
+  ci_tipoInsumoList.splice(i,1);ci_mecBuildTipoManager();ci_syncConfig();
+}
+function ci_mecAddTipo(){
+  const inp=document.getElementById('mec-tipo-add-inp'),name=inp.value.trim();
+  if(!name){alert('Escribe el nombre');return;}
+  if(ci_tipoInsumoList.find(t=>t.name.toLowerCase()===name.toLowerCase())){alert('Ya existe');return;}
+  ci_tipoInsumoList.push({name,flow:'qty_only'});
+  inp.value='';ci_mecBuildTipoManager();ci_syncConfig();
 }
 function ci_mecLogout() {
   ci_mecUser = null;
@@ -1379,12 +1431,12 @@ function ci_mecSubmit() {
   for(let i=0;i<rows.length;i++){
     const tipo = document.getElementById('mec-tipo-'+i)?.value;
     const qty  = document.getElementById('mec-qty-'+i)?.value;
-    if(tipo && qty) insumos.push({tipo, qty});
+    if(tipo) insumos.push({tipo, qty: qty||''});
   }
-  if(!insumos.length){ alert('Agrega al menos un insumo con cantidad'); return; }
+  if(!insumos.length){ alert('Agrega al menos un tipo de insumo'); return; }
   const now = new Date();
   // Una sola tarjeta con todos los insumos
-  const tipoDisplay = insumos.map(i => i.tipo + ' (' + i.qty + ')').join(', ');
+  const tipoDisplay = insumos.map(i => i.qty ? i.tipo + ' (' + i.qty + ')' : i.tipo).join(', ');
   const qtyDisplay  = insumos.map(i => i.qty).join(', ');
   const newReq = {
     _id: Date.now()+'-'+Math.random().toString(36).slice(2),
