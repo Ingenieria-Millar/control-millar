@@ -59,6 +59,64 @@ body { overflow-x: hidden; max-width: 100vw; }
   html { font-size: 20px; }
   .ia-reg-grid { grid-template-columns: repeat(5, 1fr); }
 }
+
+/* Fix scroll en select nativo en móvil */
+#ia-emp-area {
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+/* Aumentar tamaño mínimo del select en móvil para mejor UX */
+@media (max-width: 767px) {
+  #ia-emp-area {
+    font-size: 16px !important;
+    min-height: 44px;
+  }
+}
+
+/* ── TOPBAR UNIFICADO — igual al Tablero CI ── */
+.ia-header, .nav-bar, nav.nav-bar {
+  position: sticky; top: 0; z-index: 50; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 clamp(12px,2.5vw,24px); gap: 8px; min-height: 64px;
+  background: #fff;
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 1px 6px rgba(0,0,0,.07);
+  position: relative;
+  flex-wrap: nowrap;
+}
+/* Raya degradada ABAJO */
+.ia-header::after, .nav-bar::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);
+  top: auto;
+}
+/* Badge usuario — igual al CI */
+.ia-sup-badge, .hd-user-badge {
+  display: flex; align-items: center; gap: 7px;
+  padding: 6px 14px; border-radius: 8px;
+  background: #fff; border: 1.5px solid #e2e8f0;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 14px; font-weight: 700;
+  color: #475569; letter-spacing: 1.5px; text-transform: uppercase;
+}
+/* Dot verde */
+.ia-sup-dot, .hd-user-dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: #22c55e; box-shadow: 0 0 6px rgba(34,197,94,.7);
+  flex-shrink: 0;
+}
+/* Botón volver */
+.ia-header .btn-volver, .nav-bar .btn-volver, .hd-back-btn {
+  padding: 6px 14px; border-radius: 8px;
+  border: 1.5px solid #e2e8f0; background: #fff;
+  color: #1e3a8a; font-family: 'Nunito', sans-serif;
+  font-size: 12px; font-weight: 700; cursor: pointer;
+  transition: all .2s; white-space: nowrap;
+}
+.ia-header .btn-volver:hover, .hd-back-btn:hover {
+  background: #f1f5f9; border-color: #93c5fd;
+}
 </style>
 </head>
 <body>
@@ -475,7 +533,7 @@ function getIngresoHTML(){
   position:sticky;top:0;z-index:50;
 }
 .ia-header::after{
-  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  content:'';position:absolute;bottom:0;top:auto;left:0;right:0;height:3px;
   background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);
 }
 .ia-header-logo{
@@ -495,7 +553,9 @@ function getIngresoHTML(){
 .ia-header-right{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;}
 .ia-sup-badge{
   display:flex;align-items:center;gap:.5rem;
-  background:#f1f5f9;border:1px solid #e2e8f0;
+  background:#fff;border:1.5px solid #e2e8f0;
+  font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;
+  color:#475569;letter-spacing:1.5px;text-transform:uppercase;
   padding:.45rem 1rem;border-radius:8px;font-size:.82rem;color:#0f172a;
   font-family:'Nunito',sans-serif;font-weight:600;
 }
@@ -2261,7 +2321,7 @@ setInterval(function(){
   if(activeTab==='history') iaRenderHistory();
   else if(activeTab==='records') iaRenderAdminTable();
   else if(activeTab==='config') iaRenderConfig();
-  else { iaRenderTodayChips(); iaUpdateStats(); iaBuildAreaSelect(); }
+  else { iaRenderTodayChips(); iaUpdateStats(); const _asel=document.getElementById('ia-emp-area'); if(document.activeElement!==_asel) iaBuildAreaSelect(); }
 }, 3000);
 
 
@@ -2532,6 +2592,16 @@ window.iaExportExcel=function(panel){
   XLSX.writeFile(wb,`Asistencia_${from}_${to}.xlsx`);
 };
 } // end runIngresoScript
+
+// Fix scroll en selector de módulo en móvil
+(function(){
+  document.addEventListener('DOMContentLoaded', function(){
+    const sel = document.getElementById('ia-emp-area');
+    if(!sel) return;
+    sel.addEventListener('touchstart', function(e){ e.stopPropagation(); }, {passive:true});
+    sel.addEventListener('touchmove', function(e){ e.stopPropagation(); }, {passive:true});
+  });
+})();
 </script>
 </body>
 </html>
