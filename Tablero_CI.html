@@ -778,6 +778,8 @@ function ci_wsConnect(){
       ci_wsReady=true;ci_wsConnected=true;
       ci_wsSend({type:'ci_init'});
       ci_showWsStatus(true);
+      // Cargar tipos de insumo de mecánicos desde servidor al iniciar
+      ci_mecLoadTipoList();
       const loader=document.getElementById('ci-loader');
       const app=document.getElementById('ci-app');
       if(loader)loader.style.display='none';
@@ -1411,6 +1413,19 @@ async function ci_mecLoadTipoList(){
     const cfg = await res.json();
     if(cfg._mec_tipo_list && cfg._mec_tipo_list.length){
       ci_mecTipoList = cfg._mec_tipo_list;
+    }
+    // Actualizar select del formulario si está visible
+    const cont = document.getElementById('mec-insumos-cont');
+    if(cont && cont.children.length){
+      Array.from(cont.children).forEach((row, i) => {
+        const sel = document.getElementById('mec-tipo-'+i);
+        if(sel){
+          const cur = sel.value;
+          sel.innerHTML = '<option value="">— Tipo de insumo —</option>' +
+            ci_mecTipoList.map(t=>`<option value="${t.name}">${t.name}</option>`).join('');
+          sel.value = cur;
+        }
+      });
     }
   } catch(e){ console.error('[MEC] Error cargando tipos:', e); }
 }
