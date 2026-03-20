@@ -6393,17 +6393,7 @@ function cfgSavePerfilModal(){
     </div>
 
     <!-- Talla (solo si aplica) -->
-    <!-- Tipo de elástico (solo si aplica) -->
-    <div id="si-elastico-wrap" style="display:none;margin-bottom:14px;">
-      <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:6px;">4. TIPO DE ELÁSTICO</div>
-      <select id="si-elastico-sub" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;background:#f8fafc;outline:none;"><option value="">— Seleccionar tipo —</option></select>
-    </div>
-    <!-- Cantidad en metros (solo para elástico) -->
-    <div id="si-metros-wrap" style="display:none;margin-bottom:14px;">
-      <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:6px;">5. CANTIDAD <span style="color:#ef4444;font-size:10px">(METROS)</span></div>
-      <input id="si-metros" type="number" min="0.1" step="0.1" placeholder="0.0" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;background:#f8fafc;outline:none;">
-    </div>
-        <div id="si-talla-wrap" style="display:none;margin-bottom:22px;">
+    <div id="si-talla-wrap" style="display:none;margin-bottom:22px;">
       <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:6px;">5. TALLA</div>
       <input id="si-talla" type="text" placeholder="Ej: S, M, L, XL" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;background:#f8fafc;outline:none;">
     </div>
@@ -6438,9 +6428,8 @@ function siOpen(){
     .then(data=>{
       tipoSel.innerHTML = '<option value="">— Seleccionar —</option>';
       if(data.tipoInsumoList){
-        data.tipoInsumoList.forEach(t=>{ const o=document.createElement('option'); o.value=t.name; o.dataset.flow=t.flow||'qty_only'; o.textContent=t.name; tipoSel.appendChild(o); });
+        data.tipoInsumoList.forEach(t=>{ const o=document.createElement('option'); o.value=t.name; o.textContent=t.name; tipoSel.appendChild(o); });
       }
-      window._siElasticoList = data.elasticoList||[];
     })
     .catch(()=>{ tipoSel.innerHTML = '<option value="">— Error al cargar —</option>'; });
 
@@ -6506,22 +6495,10 @@ function ciConfirmarRecepcion(reqId, accepted){
   }
 }
 function siOnTipoChange(){
-  const sel = document.getElementById('si-tipo');
-  const flow = sel.options[sel.selectedIndex]?.dataset?.flow || '';
-  // Ocultar todos los bloques opcionales
-  document.getElementById('si-talla-wrap').style.display    = 'none';
-  document.getElementById('si-elastico-wrap').style.display = 'none';
-  document.getElementById('si-metros-wrap').style.display   = 'none';
-  if(flow === 'qty_talla'){
-    document.getElementById('si-talla-wrap').style.display = 'block';
-  } else if(flow === 'elastico'){
-    // Poblar sub-select de elásticos
-    const sub = document.getElementById('si-elastico-sub');
-    sub.innerHTML = '<option value="">— Seleccionar tipo —</option>';
-    (window._siElasticoList||[]).forEach(e=>{ const o=document.createElement('option'); o.value=e; o.textContent=e; sub.appendChild(o); });
-    document.getElementById('si-elastico-wrap').style.display = 'block';
-    document.getElementById('si-metros-wrap').style.display   = 'block';
-  }
+  // Mostrar talla solo si el tipo tiene 'talla' en el flow o en el nombre
+  const tipo = document.getElementById('si-tipo').value.toLowerCase();
+  const necesitaTalla = tipo.includes('talla') || tipo.includes('marquilla') || tipo.includes('transfer') || tipo.includes('prelavado');
+  document.getElementById('si-talla-wrap').style.display = necesitaTalla ? 'block' : 'none';
 }
 function siClose(){
   document.getElementById('si-overlay').style.display = 'none';
@@ -6530,27 +6507,11 @@ function siClose(){
 function siEnviar(){
   const ref   = document.getElementById('si-ref').value.trim();
   const op    = document.getElementById('si-op').value.trim();
-  const tipoSel = document.getElementById('si-tipo');
-  const tipo  = tipoSel.value.trim();
-  const flow  = tipoSel.options[tipoSel.selectedIndex]?.dataset?.flow || '';
+  const tipo  = document.getElementById('si-tipo').value.trim();
+  const qty   = document.getElementById('si-qty').value.trim();
+  const talla = document.getElementById('si-talla').value.trim();
   const quien = selectedMod || currentUser || '';
   const errEl = document.getElementById('si-error');
-
-  let qty = '', talla = '';
-  if(flow === 'elastico'){
-    const sub = document.getElementById('si-elastico-sub').value;
-    const metros = document.getElementById('si-metros').value.trim();
-    if(!sub){ errEl.textContent='Selecciona el tipo de elástico'; errEl.style.display='block'; return; }
-    if(!metros){ errEl.textContent='Ingresa la cantidad en metros'; errEl.style.display='block'; return; }
-    talla = sub;
-    qty   = metros + ' mts';
-  } else if(flow === 'qty_talla'){
-    qty   = document.getElementById('si-qty').value.trim();
-    talla = document.getElementById('si-talla').value.trim();
-    if(!qty||!talla){ errEl.textContent='Por favor completa cantidad y talla'; errEl.style.display='block'; return; }
-  } else {
-    qty = document.getElementById('si-qty').value.trim();
-  }
 
   if(!ref || !op || !tipo || !qty){
     errEl.textContent = 'Por favor completa todos los campos';
@@ -6568,7 +6529,7 @@ function siEnviar(){
     module:     modulo,
     ref,
     op,
-    tipo:       flow==='elastico' ? tipo+' · '+talla : tipo,
+    tipo,
     qty:        qty,
     talla:      talla,
     fecha:      now.toLocaleDateString('es-CO'),
