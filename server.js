@@ -283,9 +283,6 @@ app.get('/alistamiento', (req, res) =>
 );
 
 const CI_PATH = path.join(__dirname, 'Tablero_CI.html');
-console.log('CI_PATH:', CI_PATH, '| exists:', fs.existsSync(CI_PATH));
-console.log('__dirname:', __dirname);
-console.log('Files in __dirname:', fs.readdirSync(__dirname).join(', '));
 app.get('/ci', (req, res) => {
   if (!fs.existsSync(CI_PATH)) {
     console.error('Tablero_CI.html no encontrado en:', CI_PATH);
@@ -570,11 +567,6 @@ app.post('/api/app-config', (req, res) => {
     writeJSON(FILES.app_config, deepMerge(existing, req.body));
     res.json({ success: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
-});
-
-// CI Config (para modal Solicitar Insumos en index.html)
-app.get('/api/ci-config', (req, res) => {
-  res.json(ciConfig);
 });
 
 // CI Config (para modal Solicitar Insumos en index.html)
