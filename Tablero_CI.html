@@ -291,6 +291,121 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 #ci-loader{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:16px;color:var(--muted);}
 .ci-spin{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg)}}
+
+/* ════════════════════════════════════════════════════════════
+   RESPONSIVE — Mobile · Tablet · Desktop · TV
+   Solo estilos, sin tocar lógica JS
+   ════════════════════════════════════════════════════════════ */
+
+/* Base global */
+html { font-size: 16px; }
+*, *::before, *::after { box-sizing: border-box; }
+body { overflow-x: hidden; max-width: 100vw; }
+img, video, iframe { max-width: 100%; }
+
+/* Topbar responsive */
+.topbar { padding: 0 clamp(10px, 3vw, 24px); min-height: clamp(52px, 8vh, 64px); gap: clamp(4px, 1vw, 8px); flex-wrap: nowrap; }
+.topbar-title { font-size: clamp(13px, 2vw, 22px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60vw; }
+.topbar-right { gap: clamp(4px, 1vw, 8px); flex-shrink: 0; }
+.ibtn { padding: clamp(5px, 1vw, 7px) clamp(8px, 1.5vw, 18px); font-size: clamp(11px, 1.2vw, 13px); }
+
+/* Hist cards grid — 1 col mobile, 2 tablet, 3 desktop, 4 TV */
+.hist-cards-grid {
+  display: grid;
+  gap: clamp(10px, 1.5vw, 16px);
+  grid-template-columns: 1fr;
+}
+@media (min-width: 600px) {
+  .hist-cards-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 1024px) {
+  .hist-cards-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (min-width: 1600px) {
+  .hist-cards-grid { grid-template-columns: repeat(4, 1fr); }
+  html { font-size: 18px; }
+  .topbar { min-height: 72px; }
+}
+@media (min-width: 2000px) {
+  .hist-cards-grid { grid-template-columns: repeat(5, 1fr); }
+  html { font-size: 20px; }
+}
+
+/* Hist filters — fila en desktop, columna en móvil */
+.hist-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(8px, 1.5vw, 12px);
+  padding: clamp(8px, 1.5vw, 14px) clamp(10px, 2vw, 18px);
+  align-items: flex-end;
+}
+.hist-filters > div { flex-shrink: 0; }
+
+/* Hist cards */
+.hist-card { padding: clamp(12px, 2vw, 18px); }
+.hist-card-mod { font-size: clamp(16px, 2.5vw, 22px); }
+.hist-card-row { font-size: clamp(11px, 1.3vw, 13px); }
+.hist-card-lbl { font-size: clamp(9px, 1vw, 11px); }
+
+/* Modales responsive */
+.form-modal, .confirm-modal, .gear-card, .settings-box, .mini-auth-box {
+  width: min(480px, 96vw);
+  max-height: 92vh;
+  overflow-y: auto;
+}
+.confirm-modal { width: min(380px, 96vw); }
+.gear-card { width: min(360px, 96vw); }
+.mini-auth-box { width: min(340px, 96vw); }
+
+/* Login cards */
+.login-card, .admin-card { width: min(400px, 94vw); padding: clamp(24px, 4vw, 44px) clamp(20px, 4vw, 36px); }
+.home-card { width: min(420px, 94vw); padding: clamp(28px, 4vw, 48px) clamp(20px, 4vw, 36px); }
+
+/* View padding */
+.view { padding: clamp(10px, 2vw, 20px); }
+
+/* Botón flotante + */
+@media (max-width: 599px) {
+  button[style*="position:fixed"][style*="bottom:28px"] {
+    width: 50px; height: 50px; font-size: 22px; bottom: 18px !important; right: 18px !important;
+  }
+}
+
+/* Módulo screen centrado */
+.mod-wrap { padding: clamp(12px, 2vw, 24px); }
+.mod-card { width: min(380px, 96vw); padding: clamp(20px, 3vw, 36px) clamp(16px, 3vw, 28px); }
+
+/* Settings box más ancho en desktop */
+@media (min-width: 1024px) {
+  .settings-box { width: min(560px, 96vw); }
+}
+
+/* ── MOBILE (<600px) ── */
+@media (max-width: 599px) {
+  .topbar-title { max-width: 50vw; font-size: clamp(12px, 3.5vw, 16px); }
+  .ibtn { padding: 5px 10px; font-size: 11px; }
+  .gear-btn { padding: 5px 8px; font-size: 14px; }
+  .hist-filters { flex-direction: column; align-items: stretch; }
+  .hist-filters > div { width: 100%; }
+  .hist-filters select, .hist-filters input, .hist-filters button { width: 100%; }
+  .view { padding: 10px; }
+  .fi, .fs { font-size: 16px; } /* evita zoom en iOS */
+}
+
+/* ── TABLET (600–1023px) ── */
+@media (min-width: 600px) and (max-width: 1023px) {
+  .topbar-title { font-size: clamp(14px, 2.5vw, 19px); }
+}
+
+/* ── TV (>1600px) ── */
+@media (min-width: 1600px) {
+  .hist-card-mod { font-size: clamp(20px, 1.5vw, 26px); }
+  .hist-card-row { font-size: clamp(13px, 1vw, 16px); }
+  .ibtn { padding: 9px 22px; font-size: 15px; }
+  .gear-btn { padding: 8px 14px; font-size: 20px; }
+  .topbar-title { font-size: clamp(20px, 1.8vw, 28px); }
+  .badge { font-size: 12px; padding: 4px 12px; }
+}
 </style>
 </head>
 <body>
@@ -344,8 +459,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
     <div class="topbar-right">
       <div id="ws-dot-mec" style="width:9px;height:9px;border-radius:50%;background:#ef4444;flex-shrink:0;box-shadow:0 0 6px rgba(239,68,68,.7);transition:all .3s;"></div>
       <span id="mec-user-lbl" style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;color:#475569;text-transform:uppercase;"></span>
-      <button class="gear-btn" onclick="ci_mecOpenConfig()" title="Configurar tipos de insumo">⚙</button>
-      <button class="ibtn ibtn-ghost" onclick="ci_mecLogout()">🚪 Salir</button>
+      <button class="ibtn ibtn-ghost" onclick="ci_mecLogout()">← VOLVER</button>
     </div>
   </div>
 
@@ -368,12 +482,6 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
       <div style="display:flex;flex-direction:column;gap:2px;position:relative;">
         <label>Fecha</label>
         <button id="mec-btn-date" class="ibtn ibtn-ghost" style="padding:6px 12px;font-size:12px;" onclick="ci_mecToggleDateFilter()">📅 Rango</button>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:2px;">
-        <label>&nbsp;</label>
-        <button class="ibtn ibtn-primary" onclick="ci_mecExportExcel()" style="padding:6px 14px;font-size:12px;">⬇ Excel</button>
-      </div>
-      <div style="display:none;"><!-- anchor -->
         <div id="mec-date-panel" style="display:none;position:absolute;top:100%;left:0;z-index:100;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:14px;box-shadow:0 4px 20px rgba(0,0,0,.12);margin-top:4px;min-width:240px;">
           <div style="display:flex;flex-direction:column;gap:8px;">
             <div style="display:flex;flex-direction:column;gap:3px;"><label style="font-size:10px;font-weight:700;color:#64748b;letter-spacing:1px;">DESDE</label><input type="date" id="mec-fecha-desde" style="border:1.5px solid #e2e8f0;border-radius:7px;padding:7px 10px;font-size:13px;"></div>
@@ -383,6 +491,13 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
               <button class="ibtn ibtn-ghost" style="flex:1;font-size:12px;padding:7px;" onclick="ci_mecClearDate()">✕ Limpiar</button>
             </div>
           </div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px;">
+        <label>&nbsp;</label>
+        <div style="display:flex;gap:6px;">
+          <button class="ibtn ibtn-primary" onclick="ci_mecExportExcel()" style="padding:6px 14px;font-size:12px;">⬇ Excel</button>
+          <button class="gear-btn" onclick="ci_mecOpenConfig()" title="Configurar tipos de insumo" style="padding:6px 11px;font-size:15px;">⚙</button>
         </div>
       </div>
     </div>
@@ -443,7 +558,6 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
     <div class="topbar-right">
       <div id="ws-dot" title="Conectando..." style="width:9px;height:9px;border-radius:50%;background:#ef4444;flex-shrink:0;box-shadow:0 0 6px rgba(239,68,68,.7);transition:all .3s;"></div>
       <span id="ci-perfil-lbl" style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:1.5px;color:#475569;text-transform:uppercase;"></span>
-      <button class="gear-btn" onclick="ci_openGearLogin()">⚙</button>
       <button class="ibtn ibtn-ghost" onclick="history.back()" style="font-size:12px;padding:6px 14px;">← VOLVER</button>
     </div>
   </div>
@@ -750,6 +864,7 @@ function ci_handleWsMessage(msg){
       // Notificar al mecánico si está en su pantalla
       if(h.esMecanico&&ci_mecUser&&(h.mecanicoNombre===ci_mecUser||h.module===ci_mecUser)&&document.getElementById('s-mec')?.classList.contains('active')){
         ci_mecRenderHistory();
+        ci_mecPlayAlert();
       }
       if(ci_currentUser===h.module&&document.getElementById('s-module').classList.contains('active')){
         ci_pendingConfirmIdx=idx>-1?idx:0;
@@ -1369,8 +1484,11 @@ function ci_mecConfirmRecibo(idx, accepted){
     if(!h.waitTime||h.waitTime===0) h.waitTime = Math.floor((Date.now()-h.alertStart)/1000);
     ci_wsSend({type:'ci_update_request', request:h});
   } else {
-    h.status = 'alert'; h.waitTime = null;
+    h.status = 'alert'; h.waitTime = null; h.alertStart = Date.now();
     ci_wsSend({type:'ci_update_request', request:h});
+    // Sonar en el CI — reenviar como nueva alerta
+    ci_wsSend({type:'ci_new_request', request:h});
+    if(ci_soundEnabled && document.getElementById('s-dashboard')?.classList.contains('active')) ci_playSiren();
   }
   ci_mecRefresh();
   ci_mecRenderHistory();
@@ -1407,6 +1525,19 @@ function ci_mecAddTipo(){
   if(ci_mecTipoList.find(t=>t.name.toLowerCase()===name.toLowerCase())){alert('Ya existe');return;}
   ci_mecTipoList.push({name,flow:'qty_only'});
   inp.value='';ci_mecBuildTipoManager();ci_mecSaveTipoList();
+}
+
+function ci_mecPlayAlert(){
+  try{
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    [0,0.2,0.4].forEach(t=>{
+      const osc=ctx.createOscillator(),gain=ctx.createGain();
+      osc.connect(gain);gain.connect(ctx.destination);
+      osc.frequency.value=880;gain.gain.setValueAtTime(0.3,ctx.currentTime+t);
+      gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+t+0.18);
+      osc.start(ctx.currentTime+t);osc.stop(ctx.currentTime+t+0.18);
+    });
+  }catch(e){}
 }
 function ci_mecLogout() {
   ci_mecUser = null;
