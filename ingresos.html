@@ -1984,6 +1984,7 @@ function iaInitApp(){
   iaBuildAreaSelect();
   iaShowTab('register',document.getElementById('ia-tab-btn-register'));
   iaUpdateStats(); iaRenderTodayChips();
+  cfgLoadNovedades();
 }
 function iaBuildAdminSupFilter(){
   const sel=document.getElementById('ia-admin-sup-filter');
@@ -2092,6 +2093,20 @@ window.iaClearEmployee=function(){
   document.getElementById('ia-emp-selected').value='';
   document.getElementById('ia-emp-search').focus();
 };
+let _novedadesCache=null;
+const NOVEDADES_DEFAULT_CLIENT=[
+  {id:'nov1',nombre:'Vacaciones',emoji:'🏖️',color:1},
+  {id:'nov2',nombre:'Incapacidad',emoji:'🏥',color:4},
+  {id:'nov3',nombre:'Permiso',emoji:'📝',color:2},
+  {id:'nov4',nombre:'Calamidad doméstica',emoji:'🏠',color:3},
+  {id:'nov5',nombre:'Suspensión',emoji:'⛔',color:4},
+];
+async function cfgLoadNovedades(){
+  try{const r=await fetch('/api/novedades');_novedadesCache=await r.json();}
+  catch(e){console.error('cfgLoadNovedades:',e);_novedadesCache=NOVEDADES_DEFAULT_CLIENT;}
+}
+function cfgGetNovedades(){return _novedadesCache||NOVEDADES_DEFAULT_CLIENT;}
+
 window.iaToggleNovedadMode=function(){
   const empName=document.getElementById('ia-emp-selected')?.value||document.getElementById('ia-emp-search')?.value.trim()||'';
   if(!empName){alert('Por favor selecciona un empleado primero.');return;}
