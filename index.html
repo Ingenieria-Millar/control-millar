@@ -1605,13 +1605,7 @@ window.addEventListener('DOMContentLoaded', async ()=>{
       if(s && s.user){
         // Verificar que el usuario sigue siendo válido
         // Si la sesión tiene perms guardados, aplicarlos antes de verificar
-        if(s.perms && s.perms.length && typeof USUARIOS!=='undefined'){
-          if(!USUARIOS[s.user]) USUARIOS[s.user] = {pass:'', perms:[]};
-          // Solo aplicar si el usuario no tiene perms ya (aún no llegaron del servidor)
-          if(!USUARIOS[s.user].perms || USUARIOS[s.user].perms.length === 0){
-            USUARIOS[s.user].perms = s.perms;
-          }
-        }
+        // Los perms siempre vienen del servidor (applyConfig ya los cargó)
         const isUsuario = typeof USUARIOS!=='undefined' && USUARIOS[s.user] && (USUARIOS[s.user].perms||[]).length > 0;
         const isSup = !isUsuario && s.rol === 'supervisora';
         const isValid = isUsuario || isSup || s.user === 'Modulos';
@@ -1679,7 +1673,7 @@ function submitLogin(){
   document.getElementById('login-screen').classList.add('hidden');
   document.getElementById('login-pass').value='';
   document.getElementById('login-error').textContent='';
-  try{ localStorage.setItem('cm_session', JSON.stringify({user: usuario, pass: pass, rol:'', perms: USUARIOS[usuario]?.perms||[]})); }catch(e){}
+  try{ localStorage.setItem('cm_session', JSON.stringify({user: usuario, pass: pass, rol:''})); }catch(e){}
   mostrarAreaScreen();
 }
 
@@ -1711,9 +1705,10 @@ function mostrarAreaScreen(){
   let idx=0;
 
   // ── DIAGNÓSTICO TEMPORAL ──
-  console.log('[AREA] currentUser:', currentUser, '| currentUserRol:', currentUserRol);
-  console.log('[AREA] USUARIOS[user]:', JSON.stringify(USUARIOS[currentUser]));
-  console.log('[AREA] hasPerm area_ci:', hasPerm('area_ci'), '| area_ingreso:', hasPerm('area_ingreso'), '| area_produccion:', hasPerm('area_produccion'), '| modulos:', hasPerm('modulos'));
+  if(currentUser==='Televisor'){
+    const perms = (USUARIOS[currentUser]?.perms||[]).join(', ')||'NINGUNO';
+    alert('TELEVISOR PERMS:\n' + perms + '\n\narea_ci: ' + hasPerm('area_ci') + '\narea_ingreso: ' + hasPerm('area_ingreso'));
+  }
 
   // PRODUCCION
   if(hasPerm('area_ingreso')||hasPerm('area_produccion')){
