@@ -1713,11 +1713,13 @@ function mostrarAreaScreen(){
   // PRODUCCION
   if(hasPerm('area_ingreso')||hasPerm('area_produccion')){
     let desc, accion;
+    // Perfiles de planta (Televisor, Mecanicos) nunca van a Control de Ingresos
+    const _esPlanta = (currentUser==='Televisor'||currentUser==='Mecanicos');
     if(currentUser==='Programador'){
       desc='Control de ingresos · Acceso módulos';
       accion=()=>mostrarSubMenuProduccion();
-    } else if(hasPerm('modulos')&&!hasPerm('area_asistencia')){
-      // Perfil con Acceso Login Módulos pero sin Control de Asistencia
+    } else if(hasPerm('modulos')&&!hasPerm('area_asistencia')||_esPlanta){
+      // Perfil con Acceso Login Módulos pero sin Control de Asistencia, o perfil de planta
       desc='Acceso módulos';
       accion=()=>{ document.getElementById('area-screen').classList.add('hidden'); mostrarLoginModulos(); };
     } else {
@@ -3661,8 +3663,7 @@ function togglePerm(user, perm, enabled){
   else USUARIOS[user] = {pass: (extras[ei]?.pass||''), perms: base};
 }
 
-// Apply saved config on load
-applyConfig();
+// Apply saved config on load — se llama desde DOMContentLoaded tras cargar datos del servidor
 
 // ── UTILS ─────────────────────────────────────────────────────────
 function showToast(id,state){
