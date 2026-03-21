@@ -558,14 +558,23 @@ function connectWS(){
     reconnectDelay = 1000;
     clearTimeout(reconnectTimer);
     setDot(true);
-    dbg('WS conectado ✓ — solicitando ci_init');
-    wsSend({ type: 'ci_init' });
+    dbg('WS conectado ✓');
+    // El servidor manda 'init' automáticamente al conectar
+    // pero también pedimos ci_init por si acaso
+    setTimeout(() => wsSend({ type: 'ci_init' }), 100);
   };
 
   ws.onmessage = (e) => {
     try{
       const msg = JSON.parse(e.data);
       dbg('msg: ' + msg.type);
+
+      // El servidor manda 'init' al conectar — aprovechar para pedir ci_init
+      if(msg.type === 'init'){
+        dbg('init del servidor recibido — pidiendo ci_init');
+        wsSend({ type: 'ci_init' });
+        return;
+      }
 
       if(msg.type === 'ci_init'){
         ciRequests = msg.requests || [];
@@ -697,8 +706,7 @@ function exportarExcel(){
 
   const csvContent = [headers, ...rows]
     .map(row => row.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(','))
-    .join('
-');
+    .join('\n');
 
   const blob = new Blob(['﻿'+csvContent], {type:'text/csv;charset=utf-8;'});
   const url  = URL.createObjectURL(blob);
