@@ -1600,12 +1600,12 @@ window.addEventListener('DOMContentLoaded', async ()=>{
       const s = JSON.parse(saved);
       if(s && s.user){
         // Verificar que el usuario sigue siendo válido
-        const isSup = typeof iaState!=='undefined' && iaState && iaState.supervisors &&
-          iaState.supervisors.find(sv => sv.name === s.user || sv.id === s.user);
         const isUsuario = typeof USUARIOS!=='undefined' && USUARIOS[s.user];
+        const isSup = !isUsuario && typeof iaState!=='undefined' && iaState && iaState.supervisors &&
+          iaState.supervisors.find(sv => sv.name === s.user || sv.id === s.user);
         if(isSup || isUsuario || s.user === 'Modulos'){
           // Restaurar sesión sin pedir contraseña
-          if(isSup){
+          if(isSup && !isUsuario){
             const sv = iaState.supervisors.find(sv => sv.name === s.user || sv.id === s.user);
             iaCurrentUser = sv ? sv.id : s.user;
             currentUser = s.user;
