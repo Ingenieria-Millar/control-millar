@@ -1838,8 +1838,8 @@ function onImpProd(){
     _id: Date.now()+'-'+Math.random().toString(36).slice(2),
     n: Date.now(),
     module: id,
-    ref: id,
-    op: 'Producción',
+    ref: '',
+    op: '',
     tipo: 'Solicitud Producción',
     qty: '1',
     fecha: now.toLocaleDateString('es-CO'),
@@ -2424,6 +2424,15 @@ function openAcumuladoModal(){
   MODULES.forEach(id=>{const o=document.createElement('option');o.value=id;o.textContent=id;fMod.appendChild(o);});
   fMod.value=prev;
   document.getElementById('acum-f-estado').value='';
+  // Poner fecha de hoy por defecto
+  const todayISO=new Date().toISOString().split('T')[0];
+  const dDesde=document.getElementById('acum-f-desde');
+  const dHasta=document.getElementById('acum-f-hasta');
+  if(dDesde&&!dDesde.value) dDesde.value=todayISO;
+  if(dHasta&&!dHasta.value) dHasta.value=todayISO;
+  window._acumDateActive=true;
+  const btn=document.getElementById('acum-btn-date');
+  if(btn){btn.style.background='#eff6ff';btn.style.borderColor='#2563eb';}
   document.getElementById('acum-fecha').textContent='Sesión actual — '+new Date().toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   document.getElementById('modal-acumulado').classList.remove('hidden');
   renderAcumulado();
@@ -2502,18 +2511,41 @@ function renderAcumulado(){
 
   if(filtMod) rows=rows.filter(r=>r.id===filtMod);
   if(filtTipo) rows=rows.filter(r=>r.tipo===filtTipo);
-  rows.sort((a,b)=>acumSortDesc?(b.ms-a.ms):(a.ms-b.ms));
+  // Filtro de fecha activo
+  if(window._acumDateActive&&(desde||hasta)){
+    rows=rows.filter(r=>{
+      if(!r.fecha||r.fecha==='Hoy') return !desde&&!hasta ? true : (desde===new Date().toISOString().split('T')[0]);
+      const f=r.fechaISO||r.fecha;
+      if(desde&&f<desde) return false;
+      if(hasta&&f>hasta) return false;
+      return true;
+    });
+  }
+
+  // Agrupar por módulo + tipo sumando tiempos
+  const grouped={};
+  rows.forEach(({id,tipo,ms,minutos})=>{
+    const key=id+'|'+tipo;
+    if(!grouped[key]) grouped[key]={id,tipo,ms:0};
+    grouped[key].ms+=ms||(minutos*60000);
+  });
+  let groupedRows=Object.values(grouped).map(g=>({
+    id:g.id, tipo:g.tipo, ms:g.ms,
+    minutos:parseFloat((g.ms/60000).toFixed(2))
+  }));
+  groupedRows.sort((a,b)=>b.ms-a.ms);
 
   const tbody=document.getElementById('acum-tbody');tbody.innerHTML='';
-  rows.forEach(({id,tipo,minutos,fecha})=>{
+  groupedRows.forEach(({id,tipo,minutos})=>{
     const color=TIPO_COLORS[tipo]||'#64748b';
     const icon=TIPO_ICONS[tipo]||'';
     const label=TIPO_LABELS[tipo]||tipo;
+    const tiempoStr=minutos+' min';
     const tr=document.createElement('tr');
-    tr.innerHTML=`<td class="acum-mod" style="font-weight:700;">${id}</td><td><span style="color:${color};font-weight:700;">${icon} ${label}</span></td><td style="font-family:monospace;font-weight:700;color:#0f172a;">${minutos}</td>`;
+    tr.innerHTML=`<td class="acum-mod" style="font-weight:700;">${id}</td><td><span style="color:${color};font-weight:700;">${icon} ${label}</span></td><td style="font-family:monospace;font-weight:700;color:#0f172a;">${tiempoStr}</td>`;
     tbody.appendChild(tr);
   });
-  document.getElementById('acum-count').textContent=`${rows.length} registros`;
+  document.getElementById('acum-count').textContent=`${groupedRows.length} módulos`;
 }
 function closeAcumuladoModal(){} // legacy — pantalla manejada por closeAcumuladoScreen
 
@@ -6393,7 +6425,17 @@ function cfgSavePerfilModal(){
     </div>
 
     <!-- Talla (solo si aplica) -->
-    <div id="si-talla-wrap" style="display:none;margin-bottom:22px;">
+    <!-- Tipo de elástico (solo si aplica) -->
+    <div id="si-elastico-wrap" style="display:none;margin-bottom:14px;">
+      <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:6px;">4. TIPO DE ELÁSTICO</div>
+      <select id="si-elastico-sub" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;background:#f8fafc;outline:none;"><option value="">— Seleccionar tipo —</option></select>
+    </div>
+    <!-- Cantidad en metros (solo para elástico) -->
+    <div id="si-metros-wrap" style="display:none;margin-bottom:14px;">
+      <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:6px;">5. CANTIDAD <span style="color:#ef4444;font-size:10px">(METROS)</span></div>
+      <input id="si-metros" type="number" min="0.1" step="0.1" placeholder="0.0" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;background:#f8fafc;outline:none;">
+    </div>
+        <div id="si-talla-wrap" style="display:block;margin-bottom:14px;">
       <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:6px;">5. TALLA</div>
       <input id="si-talla" type="text" placeholder="Ej: S, M, L, XL" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;background:#f8fafc;outline:none;">
     </div>
@@ -6414,7 +6456,6 @@ function siOpen(){
   document.getElementById('si-op').value  = '';
   document.getElementById('si-qty').value  = '';
   document.getElementById('si-talla').value = '';
-  document.getElementById('si-talla-wrap').style.display = 'none';
   document.getElementById('si-error').style.display = 'none';
   // Mostrar módulo actual
   const modLabel = selectedMod || currentUser || '';
@@ -6428,8 +6469,9 @@ function siOpen(){
     .then(data=>{
       tipoSel.innerHTML = '<option value="">— Seleccionar —</option>';
       if(data.tipoInsumoList){
-        data.tipoInsumoList.forEach(t=>{ const o=document.createElement('option'); o.value=t.name; o.textContent=t.name; tipoSel.appendChild(o); });
+        data.tipoInsumoList.forEach(t=>{ const o=document.createElement('option'); o.value=t.name; o.dataset.flow=t.flow||'qty_only'; o.textContent=t.name; tipoSel.appendChild(o); });
       }
+      window._siElasticoList = data.elasticoList||[];
     })
     .catch(()=>{ tipoSel.innerHTML = '<option value="">— Error al cargar —</option>'; });
 
@@ -6495,10 +6537,19 @@ function ciConfirmarRecepcion(reqId, accepted){
   }
 }
 function siOnTipoChange(){
-  // Mostrar talla solo si el tipo tiene 'talla' en el flow o en el nombre
-  const tipo = document.getElementById('si-tipo').value.toLowerCase();
-  const necesitaTalla = tipo.includes('talla') || tipo.includes('marquilla') || tipo.includes('transfer') || tipo.includes('prelavado');
-  document.getElementById('si-talla-wrap').style.display = necesitaTalla ? 'block' : 'none';
+  const sel = document.getElementById('si-tipo');
+  const flow = sel.options[sel.selectedIndex]?.dataset?.flow || '';
+  // Talla siempre visible
+  document.getElementById('si-talla-wrap').style.display    = 'block';
+  document.getElementById('si-elastico-wrap').style.display = 'none';
+  document.getElementById('si-metros-wrap').style.display   = 'none';
+  if(flow === 'elastico'){
+    const sub = document.getElementById('si-elastico-sub');
+    sub.innerHTML = '<option value="">— Seleccionar tipo —</option>';
+    (window._siElasticoList||[]).forEach(e=>{ const o=document.createElement('option'); o.value=e; o.textContent=e; sub.appendChild(o); });
+    document.getElementById('si-elastico-wrap').style.display = 'block';
+    document.getElementById('si-metros-wrap').style.display   = 'block';
+  }
 }
 function siClose(){
   document.getElementById('si-overlay').style.display = 'none';
@@ -6507,11 +6558,24 @@ function siClose(){
 function siEnviar(){
   const ref   = document.getElementById('si-ref').value.trim();
   const op    = document.getElementById('si-op').value.trim();
-  const tipo  = document.getElementById('si-tipo').value.trim();
-  const qty   = document.getElementById('si-qty').value.trim();
-  const talla = document.getElementById('si-talla').value.trim();
+  const tipoSel = document.getElementById('si-tipo');
+  const tipo  = tipoSel.value.trim();
+  const flow  = tipoSel.options[tipoSel.selectedIndex]?.dataset?.flow || '';
   const quien = selectedMod || currentUser || '';
   const errEl = document.getElementById('si-error');
+
+  let qty = '', talla = '';
+  if(flow === 'elastico'){
+    const sub = document.getElementById('si-elastico-sub').value;
+    const metros = document.getElementById('si-metros').value.trim();
+    if(!sub){ errEl.textContent='Selecciona el tipo de elástico'; errEl.style.display='block'; return; }
+    if(!metros){ errEl.textContent='Ingresa la cantidad en metros'; errEl.style.display='block'; return; }
+    talla = sub;
+    qty   = metros + ' mts';
+  } else {
+    qty   = document.getElementById('si-qty').value.trim();
+    talla = document.getElementById('si-talla').value.trim();
+  }
 
   if(!ref || !op || !tipo || !qty){
     errEl.textContent = 'Por favor completa todos los campos';
@@ -6529,7 +6593,7 @@ function siEnviar(){
     module:     modulo,
     ref,
     op,
-    tipo,
+    tipo:       flow==='elastico' ? tipo+' · '+talla : tipo,
     qty:        qty,
     talla:      talla,
     fecha:      now.toLocaleDateString('es-CO'),
