@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Tablero CI — Faltante de Insumos</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -345,7 +345,6 @@ input,select,textarea{ font-size:16px !important; }
         <div class="ci-conn-dot" id="ci-conn-dot"></div>
         <span id="ci-user-lbl"></span>
       </div>
-      <button class="hd-back-btn" onclick="abrirConfig()" title="Configuración" style="padding:6px 10px;">⚙️</button>
       <button class="hd-back-btn" onclick="volverInicio()">← Volver</button>
     </div>
   </header>
@@ -378,6 +377,7 @@ input,select,textarea{ font-size:16px !important; }
       </div>
     </div>
     <button class="hd-back-btn" onclick="exportarExcel()" style="background:#f0fdf4;border-color:#86efac;color:#15803d;">📥 Excel</button>
+    <button class="hd-back-btn" onclick="abrirConfig()" title="Configuración" style="padding:6px 10px;">⚙️</button>
   </div>
 
   <!-- CARDS -->
@@ -614,42 +614,59 @@ function setDot(ok){
   d.className = 'ci-conn-dot' + (ok ? ' ok' : ' err');
 }
 
-// ── Exportar Excel real con SheetJS (.xlsx) ──
+// ── Exportar Excel .xlsx con SheetJS ──
 function exportarExcel(){
-  if(typeof XLSX === 'undefined'){ showToast('⚠️ SheetJS no disponible'); return; }
   const desde = document.getElementById('ci-fecha-desde').value;
   const hasta  = document.getElementById('ci-fecha-hasta').value;
   let data = ciRequests.slice();
   data = filtrarPorFecha(data);
   const statusLabel = s => s==='done'?'Entregado':s==='cumplido'?'Listo':s==='alert'?'Pendiente':s||'';
-  const rows = data.map(r => ({
-    'Módulo':       r.module||'',
-    'Tipo':         r.categoria||'Falta de Insumo',
-    'Referencia':   r.ref||'',
-    'OP / OC':      r.op||'',
-    'Insumo':       (r.tipo||'').replace(/\s*·\s*.+$/,''),
-    'Cantidad':     r.qty||'',
-    'Talla':        r.talla||'',
-    'Fecha':        r.fecha||'',
-    'Hora Inicio':  r.hora||'',
-    'Hora Fin':     r.resolvedAt||'',
-    'T. Espera (min)': r.waitTime!=null ? Math.round(r.waitTime/60) : '',
-    'Estado':       statusLabel(r.status),
-    'Obs.':         r.obs||''
-  }));
 
-  const ws = XLSX.utils.json_to_sheet(rows);
-  // Ancho de columnas
-  ws['!cols'] = [
-    {wch:10},{wch:22},{wch:14},{wch:14},{wch:20},{wch:10},
-    {wch:8},{wch:14},{wch:14},{wch:14},{wch:14},{wch:12},{wch:20}
-  ];
-  const wb = XLSX.utils.book_new();
-  const sheetName = desde===hasta ? (desde||fechaLocal()) : (desde||'')+'_'+(hasta||'');
-  XLSX.utils.book_append_sheet(wb, ws, 'CI');
-  const fname = 'CI_'+(sheetName||fechaLocal()).replace(/\//g,'-')+'.xlsx';
-  XLSX.writeFile(wb, fname);
-  showToast('📥 Descargado: '+fname);
+  if(typeof XLSX !== 'undefined'){
+    // SheetJS disponible — generar .xlsx real
+    const rows = data.map(r => ({
+      'Módulo':         r.module||'',
+      'Tipo':           r.categoria||'Falta de Insumo',
+      'Referencia':     r.ref||'',
+      'OP / OC':        r.op||'',
+      'Insumo':         (r.tipo||'').replace(/\s*·\s*.+$/,''),
+      'Cantidad':       r.qty||'',
+      'Talla':          r.talla||'',
+      'Fecha':          r.fecha||'',
+      'Hora Inicio':    r.hora||'',
+      'Hora Fin':       r.resolvedAt||'',
+      'T. Espera (min)':r.waitTime!=null ? Math.round(r.waitTime/60) : '',
+      'Estado':         statusLabel(r.status),
+      'Obs.':           r.obs||''
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = [{wch:10},{wch:22},{wch:14},{wch:14},{wch:20},
+                   {wch:10},{wch:8},{wch:14},{wch:14},{wch:14},{wch:14},{wch:12},{wch:20}];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'CI');
+    const label = desde===hasta ? (desde||fechaLocal()) : (desde||'')+'_'+(hasta||'');
+    const fname = 'CI_'+label.replace(/\//g,'-')+'.xlsx';
+    XLSX.writeFile(wb, fname);
+    showToast('📥 Descargado: '+fname);
+  } else {
+    // Fallback: CSV con BOM para que Excel lo abra bien
+    const headers = ['Módulo','Tipo','Referencia','OP/OC','Insumo','Cantidad','Talla','Fecha','Hora Inicio','Hora Fin','T.Espera(min)','Estado','Obs.'];
+    const rows = data.map(r => [
+      r.module||'', r.categoria||'Falta de Insumo', r.ref||'', r.op||'',
+      (r.tipo||'').replace(/\s*·\s*.+$/,''), r.qty||'', r.talla||'',
+      r.fecha||'', r.hora||'', r.resolvedAt||'',
+      r.waitTime!=null?Math.round(r.waitTime/60):'', statusLabel(r.status), r.obs||''
+    ]);
+    const csv = [headers,...rows].map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\r\n');
+    const blob = new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    const label = desde===hasta?(desde||fechaLocal()):(desde||'')+'_'+(hasta||'');
+    a.href=url; a.download='CI_'+label.replace(/\//g,'-')+'.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('📥 Descargado (CSV)');
+  }
 }
 
 // ── Fecha helpers ──
@@ -678,8 +695,11 @@ function parseFechaReq(req){
 
 function initFechas(){
   const hoy = fechaLocal();
-  document.getElementById('ci-fecha-desde').value = hoy;
-  document.getElementById('ci-fecha-hasta').value = hoy;
+  // Siempre inicializar con el día actual si no hay valor
+  const desde = document.getElementById('ci-fecha-desde');
+  const hasta  = document.getElementById('ci-fecha-hasta');
+  if(!desde.value) desde.value = hoy;
+  if(!hasta.value)  hasta.value  = hoy;
   actualizarBtnFechaLbl();
 }
 
@@ -695,10 +715,11 @@ function aplicarFecha(){
 }
 
 function limpiarFecha(){
-  document.getElementById('ci-fecha-desde').value = '';
-  document.getElementById('ci-fecha-hasta').value = '';
+  const hoy = fechaLocal();
+  document.getElementById('ci-fecha-desde').value = hoy;
+  document.getElementById('ci-fecha-hasta').value = hoy;
   document.getElementById('fecha-panel').style.display = 'none';
-  document.getElementById('btn-fecha-lbl').textContent = 'Fecha';
+  actualizarBtnFechaLbl();
   renderCards();
 }
 
@@ -712,8 +733,9 @@ function actualizarBtnFechaLbl(){
 }
 
 function filtrarPorFecha(list){
-  const desde = document.getElementById('ci-fecha-desde').value;
-  const hasta = document.getElementById('ci-fecha-hasta').value;
+  const hoy   = fechaLocal();
+  const desde = document.getElementById('ci-fecha-desde').value || hoy;
+  const hasta = document.getElementById('ci-fecha-hasta').value || hoy;
   if(!desde && !hasta) return list;
   return list.filter(r => {
     const f = parseFechaReq(r);
@@ -724,48 +746,6 @@ function filtrarPorFecha(list){
   });
 }
 
-// ── Exportar Excel ──
-function exportarExcel(){
-  const desde = document.getElementById('ci-fecha-desde').value;
-  const hasta = document.getElementById('ci-fecha-hasta').value;
-  let data = ciRequests.slice();
-  data = filtrarPorFecha(data);
-  if(_filterMod) data = data.filter(r => r.module === _filterMod);
-
-  // Construir CSV
-  const headers = ['Módulo','Tipo','Referencia','OP/OC','Insumo','Cantidad','Talla','Fecha','Hora Inicio','Hora Fin','T.Espera (min)','Estado','Obs.'];
-  const rows = data.map(r => [
-    r.module||'',
-    r.categoria||'Falta de Insumo',
-    r.ref||'',
-    r.op||'',
-    r.tipo||'',
-    r.qty||'',
-    r.talla||'',
-    r.fecha||'',
-    r.hora||'',
-    r.resolvedAt||'',
-    r.waitTime!=null ? Math.round(r.waitTime/60) : '',
-    r.status==='done'?'Entregado':r.status==='cumplido'?'Listo':r.status==='alert'?'Pendiente':r.status||'',
-    r.obs||''
-  ]);
-
-  const csvContent = [headers, ...rows]
-    .map(row => row.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(','))
-    .join('\n');
-
-  const blob = new Blob(['﻿'+csvContent], {type:'text/csv;charset=utf-8;'});
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  const label = desde === hasta ? desde : `${desde}_${hasta}`;
-  a.href = url;
-  a.download = `CI_${label||fechaLocal()}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  showToast('📥 Exportado: CI_' + (label||fechaLocal()) + '.csv');
-}
 
 // ── Arrancar ──
 function arrancar(){
