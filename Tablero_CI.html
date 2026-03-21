@@ -160,8 +160,8 @@ input,select,textarea{ font-size:16px !important; }
   width:42%;background:#fafbfc;
 }
 .ci-card-table td:last-child{
-  font-family:'Barlow Condensed',sans-serif;font-size:15px;
-  font-weight:700;color:var(--text);letter-spacing:.3px;
+  font-family:'Barlow Condensed',sans-serif;font-size:16px;
+  font-weight:700;color:var(--text);letter-spacing:.5px;
 }
 
 /* Footer acciones */
@@ -293,22 +293,7 @@ input,select,textarea{ font-size:16px !important; }
   animation:slup .2s ease;display:none;
 }
 
-/* ── HISTORIAL SCREEN ── */
-#ci-hist-screen{
-  display:none;position:fixed;inset:0;z-index:700;
-  background:var(--bg);overflow-y:auto;
-}
-.hist-table{ width:100%;border-collapse:collapse;font-size:13px; }
-.hist-table th{
-  background:#f1f5f9;font-family:'Barlow Condensed',sans-serif;
-  font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;
-  padding:10px 14px;text-align:left;color:var(--muted);
-  position:sticky;top:0;z-index:2;
-}
-.hist-table td{ padding:10px 14px;border-bottom:1px solid var(--border); }
-.hist-table tr:last-child td{ border-bottom:none; }
-.hist-table tr:hover td{ background:#f8fafc; }
-
+/* ── RESPONSIVE ── */
 @media(max-width:600px){
   .ci-card-field{ min-width:calc(50% - 4px); }
   .ci-tb-right .ci-btn span{ display:none; }
@@ -364,7 +349,6 @@ input,select,textarea{ font-size:16px !important; }
         <div class="ci-conn-dot" id="ci-conn-dot"></div>
         <span id="ci-user-lbl"></span>
       </div>
-      <button class="hd-back-btn" onclick="abrirHistorial()">📋 Historial</button>
       <button class="hd-back-btn" onclick="abrirConfig()">⚙️ Config</button>
       <button class="hd-back-btn" onclick="volverInicio()">← Volver</button>
     </div>
@@ -478,10 +462,7 @@ input,select,textarea{ font-size:16px !important; }
   </div>
 </div>
 
-<!-- HISTORIAL SCREEN -->
-<div id="ci-hist-screen">
-  <div class="cfg-topbar">
-    <div class="cfg-title">📋 Historial de Solicitudes</div>
+<!-- Historial eliminado -->
     <button class="ci-btn" onclick="cerrarHistorial()">← Volver</button>
   </div>
   <div style="padding:16px clamp(12px,2.5vw,24px);">
@@ -631,6 +612,29 @@ function setDot(ok){
   const d = document.getElementById('ci-conn-dot');
   if(!d) return;
   d.className = 'ci-conn-dot' + (ok ? ' ok' : ' err');
+}
+
+// ── Exportar Excel (tabla HTML → .xls) ──
+function exportarExcel(){
+  const desde = document.getElementById('ci-fecha-desde').value;
+  const hasta = document.getElementById('ci-fecha-hasta').value;
+  let data = ciRequests.slice();
+  data = filtrarPorFecha(data);
+  if(_filterMod) data = data.filter(r => r.module === _filterMod);
+  const label = desde === hasta ? desde : desde + ' al ' + hasta;
+  const statusLabel = s => s==='done'?'Entregado':s==='cumplido'?'Listo':s==='alert'?'Pendiente':s||'';
+  const rows = data.map(r =>
+    '<tr><td><b>'+(r.module||'—')+'</b></td><td>'+(r.categoria||'Falta de Insumo')+'</td><td>'+(r.ref||'—')+'</td><td>'+(r.op||'—')+'</td><td>'+((r.tipo||'—').replace(/\s*·\s*.+$/,''))+'</td><td>'+(r.qty||'—')+'</td><td>'+(r.talla||'—')+'</td><td>'+(r.fecha||'—')+'</td><td>'+(r.hora||'—')+'</td><td>'+(r.resolvedAt||'—')+'</td><td>'+(r.waitTime!=null?Math.round(r.waitTime/60)+' min':'—')+'</td><td>'+statusLabel(r.status)+'</td><td>'+(r.obs||'—')+'</td></tr>'
+  ).join('');
+  const html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><style>body{font-family:Calibri,Arial,sans-serif;font-size:11pt;}h2{font-size:14pt;color:#1e3a8a;}p{font-size:10pt;color:#64748b;}table{border-collapse:collapse;width:100%;}th{background:#1e3a8a;color:#fff;padding:8px 12px;font-size:10pt;text-align:left;}td{padding:7px 12px;border-bottom:1px solid #e2e8f0;font-size:10pt;}tr:nth-child(even) td{background:#f8fafc;}</style></head><body><h2>Tablero CI — Faltante de Insumos</h2><p>Período: '+label+' | Total: '+data.length+' registros</p><table><thead><tr><th>Módulo</th><th>Tipo</th><th>Referencia</th><th>OP/OC</th><th>Insumo</th><th>Cantidad</th><th>Talla</th><th>Fecha</th><th>Hora Inicio</th><th>Hora Fin</th><th>T.Espera</th><th>Estado</th><th>Obs.</th></tr></thead><tbody>'+rows+'</tbody></table></body></html>';
+  const blob = new Blob([html], {type:'application/vnd.ms-excel;charset=utf-8;'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const fname = 'CI_'+(desde||fechaLocal()).replace(/\//g,'-')+(desde!==hasta?'_'+(hasta||'').replace(/\//g,'-'):'')+'.xls';
+  a.href=url; a.download=fname;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('📥 Descargado: '+fname);
 }
 
 // ── Fecha helpers ──
@@ -1091,36 +1095,7 @@ function cfgGuardar(){
   showToast('✅ Configuración guardada');
 }
 
-// ── Historial ──
-function abrirHistorial(){
-  const tbody = document.getElementById('hist-tbody');
-  tbody.innerHTML = '';
-  const done = ciRequests.filter(r => r.status === 'done' || r.status === 'cumplido');
-  if(done.length === 0){
-    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:24px;color:#94a3b8;">Sin historial aún</td></tr>';
-  } else {
-    done.forEach(r => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td><b>${r.module||'—'}</b></td>
-        <td>${r.tipo||'—'}</td>
-        <td>${r.ref||'—'}</td>
-        <td>${r.op||'—'}</td>
-        <td>${r.qty||'—'}</td>
-        <td>${r.talla||'—'}</td>
-        <td style="white-space:nowrap;">${r.datetime||r.hora||'—'}</td>
-        <td>${r.status==='done'?'✅ Entregado':'⏳ En proceso'}</td>
-        <td>${r.waitTime != null ? Math.round(r.waitTime/60) : '—'}</td>
-        <td>${r.obs||'—'}</td>
-      `;
-      tbody.appendChild(tr);
-    });
-  }
-  document.getElementById('ci-hist-screen').style.display = 'block';
-}
-function cerrarHistorial(){
-  document.getElementById('ci-hist-screen').style.display = 'none';
-}
+// Historial eliminado
 
 // ── Toast ──
 let _toastTimer;
@@ -1146,7 +1121,6 @@ document.addEventListener('keydown', e => {
   if(e.key === 'Escape'){
     cerrarModalDel();
     cerrarConfig();
-    cerrarHistorial();
   }
 });
 
@@ -1154,19 +1128,25 @@ document.addEventListener('keydown', e => {
 function playAlertSound(){
   try{
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    // Dos tonos cortos tipo "ding ding"
-    [0, 0.25].forEach(offset => {
+    const now = ctx.currentTime;
+    // 3 dings con decaimiento largo — duración total ~5s
+    const tones = [
+      { freq: 1046, start: 0,    dur: 2.5 },  // Do5
+      { freq:  880, start: 0.6,  dur: 2.2 },  // La4
+      { freq: 1318, start: 1.2,  dur: 2.0 },  // Mi5
+    ];
+    tones.forEach(({ freq, start, dur }) => {
       const osc  = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(880, ctx.currentTime + offset);
-      osc.frequency.setValueAtTime(1100, ctx.currentTime + offset + 0.1);
-      gain.gain.setValueAtTime(0.4, ctx.currentTime + offset);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.35);
-      osc.start(ctx.currentTime + offset);
-      osc.stop(ctx.currentTime + offset + 0.35);
+      osc.frequency.setValueAtTime(freq, now + start);
+      gain.gain.setValueAtTime(0, now + start);
+      gain.gain.linearRampToValueAtTime(0.45, now + start + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + start + dur);
+      osc.start(now + start);
+      osc.stop(now + start + dur);
     });
   } catch(e){ console.warn('Audio no disponible'); }
 }
