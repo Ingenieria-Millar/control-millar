@@ -161,9 +161,26 @@ const floorPersisted = readJSON(FILES.floor_state, floorDefault);
 const states  = floorPersisted.states  || { ...floorDefault.states  };
 const lastMec = floorPersisted.lastMec || { ...floorDefault.lastMec };
 
+function getAllActiveModules() {
+  const extra    = modulesConfig.extra    || [];
+  const renamed  = modulesConfig.renamed  || {};
+  const disabled = modulesConfig.disabled || [];
+  const all = [...MODULES, ...extra];
+  return all
+    .filter(id => !disabled.includes(id))
+    .map(id => renamed[id] || id);
+}
+
 MODULES.forEach(id => {
   if (!states[id])  states[id]  = 'green';
   if (!lastMec[id]) lastMec[id] = '';
+});
+
+// Inicializar estados para módulos extra ya configurados
+(modulesConfig.extra || []).forEach(id => {
+  const renamed = (modulesConfig.renamed || {})[id] || id;
+  if (!states[renamed])  states[renamed]  = 'green';
+  if (!lastMec[renamed]) lastMec[renamed] = '';
 });
 
 function saveFloorState() {
@@ -727,8 +744,11 @@ wss.on('connection', (ws, req) => {
     try {
       // ── Control de Piso ─────────────────────────────────────────
       if (msg.type === 'change') {
-        if (!msg.id || states[msg.id] === undefined) {
-          console.warn('WS change: módulo desconocido:', msg.id); return;
+        if (!msg.id) { console.warn('WS change: sin id'); return; }
+        // Aceptar módulos extra aunque no estén en states aún
+        if (states[msg.id] === undefined) {
+          states[msg.id]  = 'green';
+          lastMec[msg.id] = '';
         }
         states[msg.id] = msg.state || 'green';
         if (msg.state === 'red') lastMec[msg.id] = '';
@@ -739,6 +759,14 @@ wss.on('connection', (ws, req) => {
 
       // ── Config Módulos ──────────────────────────────────────────
       else if (msg.type === 'modules_config') {
+        // Inicializar states para módulos extra nuevos
+        const _newExtra = (msg.extra || []);
+        const _newRenamed = msg.renamed || {};
+        _newExtra.forEach(id => {
+          const rn = _newRenamed[id] || id;
+          if (states[rn] === undefined)  { states[rn]  = 'green'; }
+          if (lastMec[rn] === undefined) { lastMec[rn] = ''; }
+        });
         modulesConfig = {
           disabled: Array.isArray(msg.disabled) ? msg.disabled : [],
           extra:    Array.isArray(msg.extra)    ? msg.extra    : [],
