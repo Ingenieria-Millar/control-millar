@@ -301,9 +301,26 @@ app.get('/alistamiento', (req, res) =>
 
 const CI_PATH = path.join(__dirname, 'Tablero_CI.html');
 app.get('/ci', (req, res) => {
+  console.log('[CI] Solicitado /ci — buscando en:', CI_PATH);
+  console.log('[CI] Existe:', fs.existsSync(CI_PATH));
+  // Listar archivos HTML en __dirname para debug
+  try {
+    const files = fs.readdirSync(__dirname).filter(f => f.endsWith('.html'));
+    console.log('[CI] Archivos HTML en __dirname:', files);
+  } catch(e) { console.log('[CI] Error listando:', e.message); }
+  
   if (!fs.existsSync(CI_PATH)) {
-    console.error('Tablero_CI.html no encontrado en:', CI_PATH);
-    return res.status(404).send('Tablero CI no encontrado. CI_PATH: ' + CI_PATH);
+    // Intentar variantes del nombre
+    const variants = ['tablero_ci.html','tablero-ci.html','TableroCI.html','tableroCI.html'];
+    for (const v of variants) {
+      const vpath = path.join(__dirname, v);
+      if (fs.existsSync(vpath)) {
+        console.log('[CI] Encontrado variante:', v);
+        return res.sendFile(vpath);
+      }
+    }
+    console.error('[CI] Tablero_CI.html NO encontrado en:', CI_PATH);
+    return res.status(404).send('<h1>Tablero CI no encontrado</h1><p>CI_PATH: ' + CI_PATH + '</p><p>Archivos HTML disponibles: ' + fs.readdirSync(__dirname).filter(f=>f.endsWith('.html')).join(', ') + '</p>');
   }
   res.sendFile(CI_PATH);
 });
