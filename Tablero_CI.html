@@ -101,24 +101,27 @@ input,select,textarea{ font-size:16px !important; }
 /* ── MAIN GRID ── */
 #ci-main{
   padding:16px clamp(12px,2.5vw,24px);
-  display:flex;flex-direction:column;gap:14px;
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(320px,1fr));
+  gap:16px;
+  align-items:start;
 }
 
 /* ── CARD ── */
 .ci-card{
-  background:#fff;border-radius:14px;
+  background:#fff;border-radius:16px;
   border:1.5px solid var(--border);
-  box-shadow:0 1px 4px rgba(0,0,0,.04);
+  box-shadow:0 2px 8px rgba(0,0,0,.06);
   overflow:hidden;
   animation:slup .2s ease;
-  transition:box-shadow .2s,border-color .2s;
+  transition:box-shadow .2s,transform .2s;
 }
-.ci-card:hover{ box-shadow:0 4px 16px rgba(0,0,0,.08); }
+.ci-card:hover{ box-shadow:0 6px 20px rgba(0,0,0,.1); transform:translateY(-2px); }
 @keyframes slup{ from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;} }
 
-.ci-card.status-alert{ border-left:4px solid var(--danger); }
-.ci-card.status-cumplido{ border-left:4px solid var(--warn); }
-.ci-card.status-done{ border-left:4px solid var(--ok); opacity:.75; }
+.ci-card.status-alert{ border-top:4px solid var(--danger); }
+.ci-card.status-cumplido{ border-top:4px solid var(--warn); }
+.ci-card.status-done{ border-top:4px solid var(--ok); opacity:.8; }
 
 .ci-card-hdr{
   display:flex;align-items:center;gap:10px;padding:14px 16px 10px;
@@ -150,10 +153,13 @@ input,select,textarea{ font-size:16px !important; }
 .ci-card-timer.danger{ background:#fef2f2;color:#b91c1c;animation:blink 1s ease-in-out infinite; }
 @keyframes blink{ 0%,100%{opacity:1;}50%{opacity:.5;} }
 
-.ci-card-body{ display:flex;flex-wrap:wrap;gap:8px;padding:10px 16px 12px; }
+.ci-card-body{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:8px;padding:10px 16px 12px;
+}
 .ci-card-field{
   display:flex;flex-direction:column;gap:2px;
-  background:#f8fafc;border-radius:8px;padding:7px 12px;min-width:100px;flex:1;
+  background:#f8fafc;border-radius:8px;padding:7px 12px;
 }
 .ci-card-field-lbl{
   font-size:9px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);
