@@ -860,9 +860,13 @@ body { overflow-x: hidden; max-width: 100vw; }
 </div>
 
 <div id="filter-hint" style="display:none;"></div>
-<div id="nav-single">
+<div id="nav-single" style="display:flex;align-items:center;justify-content:flex-end;gap:8px;">
   <button class="btn-bar" onclick="cambiarModulo()">📱 Cambiar Módulo</button>
-  <button class="btn-bar blue" onclick="atrasDesdeModulo()">⬅ Atrás</button>
+  <div class="hd-user-badge" id="nav-single-badge" style="display:none;">
+    <span class="hd-user-dot"></span>
+    <span id="nav-single-user"></span>
+  </div>
+  <button class="hd-back-btn" onclick="atrasDesdeModulo()">← Volver</button>
 </div>
 
 
@@ -1600,14 +1604,21 @@ window.addEventListener('DOMContentLoaded', async ()=>{
       const s = JSON.parse(saved);
       if(s && s.user){
         // Verificar que el usuario sigue siendo válido
-        const isUsuario = typeof USUARIOS!=='undefined' && USUARIOS[s.user];
-        const isSup = !isUsuario && typeof iaState!=='undefined' && iaState && iaState.supervisors &&
-          iaState.supervisors.find(sv => sv.name === s.user || sv.id === s.user);
-        if(isSup || isUsuario || s.user === 'Modulos'){
-          // Restaurar sesión sin pedir contraseña
-          if(isSup && !isUsuario){
-            const sv = iaState.supervisors.find(sv => sv.name === s.user || sv.id === s.user);
-            iaCurrentUser = sv ? sv.id : s.user;
+        // Si la sesión tiene perms guardados, aplicarlos antes de verificar
+        if(s.perms && s.perms.length && typeof USUARIOS!=='undefined'){
+          if(!USUARIOS[s.user]) USUARIOS[s.user] = {pass:'', perms:[]};
+          // Solo aplicar si el usuario no tiene perms ya (aún no llegaron del servidor)
+          if(!USUARIOS[s.user].perms || USUARIOS[s.user].perms.length === 0){
+            USUARIOS[s.user].perms = s.perms;
+          }
+        }
+        const isUsuario = typeof USUARIOS!=='undefined' && USUARIOS[s.user] && (USUARIOS[s.user].perms||[]).length > 0;
+        const isSup = !isUsuario && s.rol === 'supervisora';
+        const isValid = isUsuario || isSup || s.user === 'Modulos';
+        if(isValid){
+          if(isSup){
+            const sv = iaState?.supervisors?.find(sv => sv.name === s.user || sv.id === s.user);
+            if(sv) iaCurrentUser = sv.id;
             currentUser = s.user;
             currentUserRol = 'supervisora';
           } else {
@@ -1668,7 +1679,7 @@ function submitLogin(){
   document.getElementById('login-screen').classList.add('hidden');
   document.getElementById('login-pass').value='';
   document.getElementById('login-error').textContent='';
-  try{ localStorage.setItem('cm_session', JSON.stringify({user: usuario, pass: pass, rol:''})); }catch(e){}
+  try{ localStorage.setItem('cm_session', JSON.stringify({user: usuario, pass: pass, rol:'', perms: USUARIOS[usuario]?.perms||[]})); }catch(e){}
   mostrarAreaScreen();
 }
 
@@ -2130,6 +2141,12 @@ function setView(v){
   if(sv) sv.classList.toggle('active', v==='single');
   document.getElementById('stats-bar').style.display   = v==='grid'   ? 'flex' : 'none';
   document.getElementById('nav-single').style.display  = v==='single' ? 'flex' : 'none';
+  if(v==='single'){
+    const _nsBadge=document.getElementById('nav-single-badge');
+    const _nsUser=document.getElementById('nav-single-user');
+    if(_nsUser) _nsUser.textContent=currentUser||'';
+    if(_nsBadge) _nsBadge.style.display=(currentUser&&currentUser!=='Modulos')?'flex':'none';
+  }
   if(v==='grid'){
     const eb=document.getElementById('btn-excel-bar'); if(eb) eb.style.display=hasPerm('excel')?'':'none';
     const fb=document.getElementById('btn-fix-mec');   if(fb) fb.style.display=hasPerm('fix')  ?'':'none';
