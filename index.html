@@ -1605,7 +1605,13 @@ window.addEventListener('DOMContentLoaded', async ()=>{
       if(s && s.user){
         // Verificar que el usuario sigue siendo válido
         // Si la sesión tiene perms guardados, aplicarlos antes de verificar
-        // Los perms siempre vienen del servidor (applyConfig ya los cargó)
+        if(s.perms && s.perms.length && typeof USUARIOS!=='undefined'){
+          if(!USUARIOS[s.user]) USUARIOS[s.user] = {pass:'', perms:[]};
+          // Solo aplicar si el usuario no tiene perms ya (aún no llegaron del servidor)
+          if(!USUARIOS[s.user].perms || USUARIOS[s.user].perms.length === 0){
+            USUARIOS[s.user].perms = s.perms;
+          }
+        }
         const isUsuario = typeof USUARIOS!=='undefined' && USUARIOS[s.user] && (USUARIOS[s.user].perms||[]).length > 0;
         const isSup = !isUsuario && s.rol === 'supervisora';
         const isValid = isUsuario || isSup || s.user === 'Modulos';
@@ -1673,7 +1679,7 @@ function submitLogin(){
   document.getElementById('login-screen').classList.add('hidden');
   document.getElementById('login-pass').value='';
   document.getElementById('login-error').textContent='';
-  try{ localStorage.setItem('cm_session', JSON.stringify({user: usuario, pass: pass, rol:''})); }catch(e){}
+  try{ localStorage.setItem('cm_session', JSON.stringify({user: usuario, pass: pass, rol:'', perms: USUARIOS[usuario]?.perms||[]})); }catch(e){}
   mostrarAreaScreen();
 }
 
@@ -1705,25 +1711,24 @@ function mostrarAreaScreen(){
   let idx=0;
 
   // ── DIAGNÓSTICO TEMPORAL ──
-  if(currentUser==='Televisor'){
-    const perms = (USUARIOS[currentUser]?.perms||[]).join(', ')||'NINGUNO';
-    alert('TELEVISOR PERMS:\n' + perms + '\n\narea_ci: ' + hasPerm('area_ci') + '\narea_ingreso: ' + hasPerm('area_ingreso'));
-  }
+  console.log('[AREA] currentUser:', currentUser, '| currentUserRol:', currentUserRol);
+  console.log('[AREA] USUARIOS[user]:', JSON.stringify(USUARIOS[currentUser]));
+  console.log('[AREA] hasPerm area_ci:', hasPerm('area_ci'), '| area_ingreso:', hasPerm('area_ingreso'), '| area_produccion:', hasPerm('area_produccion'), '| modulos:', hasPerm('modulos'));
 
   // PRODUCCION
   if(hasPerm('area_ingreso')||hasPerm('area_produccion')){
     let desc, accion;
-    // Perfiles de planta (Televisor, Mecanicos) nunca van a Control de Ingresos
-    const _esPlanta = (currentUser==='Televisor'||currentUser==='Mecanicos');
+    // Si tiene permisos de planta (ci, mecanicos, tablero) nunca va a Control de Ingresos
+    const _tienePermisosPlanta = hasPerm('area_ci')||hasPerm('area_mecanicos')||hasPerm('tablero');
     if(currentUser==='Programador'){
       desc='Control de ingresos · Acceso módulos';
       accion=()=>mostrarSubMenuProduccion();
-    } else if(hasPerm('modulos')&&!hasPerm('area_asistencia')||_esPlanta){
-      // Perfil con Acceso Login Módulos pero sin Control de Asistencia, o perfil de planta
+    } else if(_tienePermisosPlanta || (hasPerm('modulos')&&!hasPerm('area_asistencia'))){
+      // Perfiles con acceso a planta o módulos sin asistencia → login módulos
       desc='Acceso módulos';
       accion=()=>{ document.getElementById('area-screen').classList.add('hidden'); mostrarLoginModulos(); };
     } else {
-      // Administrador, Supervisoras con area_ingreso
+      // Solo supervisoras puras con area_ingreso → Control de Ingresos
       desc='Control de ingreso y asistencia';
       accion=()=>{ window.location.href='/ingresos?user='+encodeURIComponent(currentUser); };
     }
@@ -1763,7 +1768,7 @@ function mostrarAreaScreen(){
 
   // CI — abre submenú con Tablero CI e Inventario de Hilos
   if(hasPerm('area_ci')){
-    const c=makeCard('🏢','CI','Tablero Faltante de Insumos','ac-purple',()=>window.location.href='/ci?perfil='+(currentUser||'Admin'));
+    const c=makeCard('🏢','CI','Tablero Faltante de Insumos','ac-purple',()=>{ alert('CI CLICK OK → /ci?perfil='+currentUser); window.location.href='/ci?perfil='+(currentUser||'Admin'); });
     c.style.animationDelay=(idx*0.07)+'s'; idx++;
     btns.appendChild(c);
   }
