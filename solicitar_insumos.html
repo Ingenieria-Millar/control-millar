@@ -210,19 +210,28 @@ header::after{
       <div class="form-card">
         <div class="form-title">📦 Nueva Solicitud de Insumo</div>
 
+        <div class="field">
+          <label>1. Tipo de Solicitud</label>
+          <select id="si-categoria">
+            <option value="Falta de Insumo">Falta de Insumo</option>
+            <option value="Solicitud de Producción">Solicitud de Producción</option>
+            <option value="Montaje">Montaje</option>
+          </select>
+        </div>
+
         <div class="field-row">
           <div class="field">
-            <label>1. Referencia</label>
+            <label>2. Referencia</label>
             <input type="text" id="si-ref" placeholder="Ej: REF-001">
           </div>
           <div class="field">
-            <label>2. OP / OC</label>
+            <label>3. OP / OC</label>
             <input type="text" id="si-op" placeholder="Ej: OP-2024-001">
           </div>
         </div>
 
         <div class="field">
-          <label>3. Tipo de Insumo</label>
+          <label>4. Tipo de Insumo</label>
           <select id="si-tipo" onchange="siOnTipoChange()">
             <option value="">— Seleccionar —</option>
           </select>
@@ -230,11 +239,11 @@ header::after{
 
         <div class="field-row">
           <div class="field">
-            <label>4. Cantidad</label>
+            <label>5. Cantidad</label>
             <input type="number" id="si-qty" min="1" placeholder="Ej: 10">
           </div>
           <div class="field" id="si-talla-wrap">
-            <label>5. Talla</label>
+            <label>6. Talla</label>
             <input type="text" id="si-talla" placeholder="Ej: S, M, L">
           </div>
         </div>
@@ -365,6 +374,7 @@ function siOnTipoChange(){
 
 // ── Enviar solicitud ──
 function siEnviar(){
+  const categoria = document.getElementById('si-categoria').value;
   const ref   = document.getElementById('si-ref').value.trim();
   const op    = document.getElementById('si-op').value.trim();
   const tipoSel = document.getElementById('si-tipo');
@@ -392,6 +402,7 @@ function siEnviar(){
     fecha:      now.toLocaleDateString('es-CO'),
     hora:       now.toLocaleTimeString('es-CO'),
     datetime:   now.toLocaleDateString('es-CO')+' '+now.toLocaleTimeString('es-CO'),
+    categoria,
     status:     'alert',
     waitTime:   null,
     resolvedAt: null,
