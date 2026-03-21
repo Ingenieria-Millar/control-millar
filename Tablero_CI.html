@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Tablero CI — Faltante de Insumos</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -86,11 +87,6 @@ input,select,textarea{ font-size:16px !important; }
 .ci-stat .ci-badge{
   background:rgba(0,0,0,.1);border-radius:10px;
   padding:1px 7px;font-size:12px;
-}
-#ci-filter-mod{
-  padding:5px 10px;border:1.5px solid var(--border);border-radius:20px;
-  font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;
-  color:var(--text);background:#f8fafc;outline:none;cursor:pointer;
 }
 .ci-stat-spacer{ flex:1; }
 
@@ -349,7 +345,7 @@ input,select,textarea{ font-size:16px !important; }
         <div class="ci-conn-dot" id="ci-conn-dot"></div>
         <span id="ci-user-lbl"></span>
       </div>
-      <button class="hd-back-btn" onclick="abrirConfig()">⚙️ Config</button>
+      <button class="hd-back-btn" onclick="abrirConfig()" title="Configuración" style="padding:6px 10px;">⚙️</button>
       <button class="hd-back-btn" onclick="volverInicio()">← Volver</button>
     </div>
   </header>
@@ -365,18 +361,23 @@ input,select,textarea{ font-size:16px !important; }
     <div class="ci-stat done" id="sf-done" onclick="setFilter('done')">
       ✅ Entregados <span class="ci-badge" id="cnt-done">0</span>
     </div>
-    <select id="ci-filter-mod" onchange="renderCards()">
-      <option value="">Todos los módulos</option>
-    </select>
     <div class="ci-stat-spacer"></div>
-    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-      <input type="date" id="ci-fecha-desde" onchange="renderCards()"
-        style="padding:5px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:var(--text);background:#f8fafc;outline:none;cursor:pointer;">
-      <span style="font-size:12px;color:var(--muted);font-weight:700;">→</span>
-      <input type="date" id="ci-fecha-hasta" onchange="renderCards()"
-        style="padding:5px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:var(--text);background:#f8fafc;outline:none;cursor:pointer;">
-      <button class="hd-back-btn" onclick="exportarExcel()" style="background:#f0fdf4;border-color:#86efac;color:#15803d;">📥 Excel</button>
+    <div style="position:relative;" id="fecha-wrap">
+      <button class="hd-back-btn" onclick="toggleFechaPanel()" id="btn-fecha" style="display:flex;align-items:center;gap:6px;">
+        📅 <span id="btn-fecha-lbl">Fecha</span>
+      </button>
+      <div id="fecha-panel" style="display:none;position:absolute;top:110%;right:0;z-index:300;background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:240px;">
+        <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Desde</div>
+        <input type="date" id="ci-fecha-desde" style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;margin-bottom:10px;outline:none;">
+        <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Hasta</div>
+        <input type="date" id="ci-fecha-hasta" style="width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;margin-bottom:14px;outline:none;">
+        <div style="display:flex;gap:8px;">
+          <button onclick="aplicarFecha()" style="flex:1;padding:8px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:.5px;cursor:pointer;">Filtrar</button>
+          <button onclick="limpiarFecha()" style="flex:1;padding:8px;border-radius:8px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">Limpiar</button>
+        </div>
+      </div>
     </div>
+    <button class="hd-back-btn" onclick="exportarExcel()" style="background:#f0fdf4;border-color:#86efac;color:#15803d;">📥 Excel</button>
   </div>
 
   <!-- CARDS -->
@@ -517,7 +518,7 @@ let wsReady      = false;
 let reconnectDelay = 1000;
 let reconnectTimer = null;
 let _filterStatus  = 'all';
-let _filterMod     = '';
+let _filterMod = '';
 let _timerInterval = null;
 let _pendingDelId  = null;
 
@@ -589,8 +590,7 @@ function connectWS(){
         if(msg.elasticoList)   ciConfig.elasticoList   = msg.elasticoList;
         if(msg.moduleList)     ciConfig.moduleList     = msg.moduleList;
         if(msg.obsList)        ciConfig.obsList        = msg.obsList;
-        renderModFilter();
-      }
+            }
 
     } catch(err){ dbg('Error parseando: ' + err.message); }
   };
@@ -614,26 +614,41 @@ function setDot(ok){
   d.className = 'ci-conn-dot' + (ok ? ' ok' : ' err');
 }
 
-// ── Exportar Excel (tabla HTML → .xls) ──
+// ── Exportar Excel real con SheetJS (.xlsx) ──
 function exportarExcel(){
+  if(typeof XLSX === 'undefined'){ showToast('⚠️ SheetJS no disponible'); return; }
   const desde = document.getElementById('ci-fecha-desde').value;
-  const hasta = document.getElementById('ci-fecha-hasta').value;
+  const hasta  = document.getElementById('ci-fecha-hasta').value;
   let data = ciRequests.slice();
   data = filtrarPorFecha(data);
-  if(_filterMod) data = data.filter(r => r.module === _filterMod);
-  const label = desde === hasta ? desde : desde + ' al ' + hasta;
   const statusLabel = s => s==='done'?'Entregado':s==='cumplido'?'Listo':s==='alert'?'Pendiente':s||'';
-  const rows = data.map(r =>
-    '<tr><td><b>'+(r.module||'—')+'</b></td><td>'+(r.categoria||'Falta de Insumo')+'</td><td>'+(r.ref||'—')+'</td><td>'+(r.op||'—')+'</td><td>'+((r.tipo||'—').replace(/\s*·\s*.+$/,''))+'</td><td>'+(r.qty||'—')+'</td><td>'+(r.talla||'—')+'</td><td>'+(r.fecha||'—')+'</td><td>'+(r.hora||'—')+'</td><td>'+(r.resolvedAt||'—')+'</td><td>'+(r.waitTime!=null?Math.round(r.waitTime/60)+' min':'—')+'</td><td>'+statusLabel(r.status)+'</td><td>'+(r.obs||'—')+'</td></tr>'
-  ).join('');
-  const html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><style>body{font-family:Calibri,Arial,sans-serif;font-size:11pt;}h2{font-size:14pt;color:#1e3a8a;}p{font-size:10pt;color:#64748b;}table{border-collapse:collapse;width:100%;}th{background:#1e3a8a;color:#fff;padding:8px 12px;font-size:10pt;text-align:left;}td{padding:7px 12px;border-bottom:1px solid #e2e8f0;font-size:10pt;}tr:nth-child(even) td{background:#f8fafc;}</style></head><body><h2>Tablero CI — Faltante de Insumos</h2><p>Período: '+label+' | Total: '+data.length+' registros</p><table><thead><tr><th>Módulo</th><th>Tipo</th><th>Referencia</th><th>OP/OC</th><th>Insumo</th><th>Cantidad</th><th>Talla</th><th>Fecha</th><th>Hora Inicio</th><th>Hora Fin</th><th>T.Espera</th><th>Estado</th><th>Obs.</th></tr></thead><tbody>'+rows+'</tbody></table></body></html>';
-  const blob = new Blob([html], {type:'application/vnd.ms-excel;charset=utf-8;'});
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  const fname = 'CI_'+(desde||fechaLocal()).replace(/\//g,'-')+(desde!==hasta?'_'+(hasta||'').replace(/\//g,'-'):'')+'.xls';
-  a.href=url; a.download=fname;
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  const rows = data.map(r => ({
+    'Módulo':       r.module||'',
+    'Tipo':         r.categoria||'Falta de Insumo',
+    'Referencia':   r.ref||'',
+    'OP / OC':      r.op||'',
+    'Insumo':       (r.tipo||'').replace(/\s*·\s*.+$/,''),
+    'Cantidad':     r.qty||'',
+    'Talla':        r.talla||'',
+    'Fecha':        r.fecha||'',
+    'Hora Inicio':  r.hora||'',
+    'Hora Fin':     r.resolvedAt||'',
+    'T. Espera (min)': r.waitTime!=null ? Math.round(r.waitTime/60) : '',
+    'Estado':       statusLabel(r.status),
+    'Obs.':         r.obs||''
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  // Ancho de columnas
+  ws['!cols'] = [
+    {wch:10},{wch:22},{wch:14},{wch:14},{wch:20},{wch:10},
+    {wch:8},{wch:14},{wch:14},{wch:14},{wch:14},{wch:12},{wch:20}
+  ];
+  const wb = XLSX.utils.book_new();
+  const sheetName = desde===hasta ? (desde||fechaLocal()) : (desde||'')+'_'+(hasta||'');
+  XLSX.utils.book_append_sheet(wb, ws, 'CI');
+  const fname = 'CI_'+(sheetName||fechaLocal()).replace(/\//g,'-')+'.xlsx';
+  XLSX.writeFile(wb, fname);
   showToast('📥 Descargado: '+fname);
 }
 
@@ -663,10 +678,37 @@ function parseFechaReq(req){
 
 function initFechas(){
   const hoy = fechaLocal();
-  const desde = document.getElementById('ci-fecha-desde');
-  const hasta = document.getElementById('ci-fecha-hasta');
-  if(!desde.value) desde.value = hoy;
-  if(!hasta.value) hasta.value = hoy;
+  document.getElementById('ci-fecha-desde').value = hoy;
+  document.getElementById('ci-fecha-hasta').value = hoy;
+  actualizarBtnFechaLbl();
+}
+
+function toggleFechaPanel(){
+  const panel = document.getElementById('fecha-panel');
+  panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+}
+
+function aplicarFecha(){
+  document.getElementById('fecha-panel').style.display = 'none';
+  actualizarBtnFechaLbl();
+  renderCards();
+}
+
+function limpiarFecha(){
+  document.getElementById('ci-fecha-desde').value = '';
+  document.getElementById('ci-fecha-hasta').value = '';
+  document.getElementById('fecha-panel').style.display = 'none';
+  document.getElementById('btn-fecha-lbl').textContent = 'Fecha';
+  renderCards();
+}
+
+function actualizarBtnFechaLbl(){
+  const desde = document.getElementById('ci-fecha-desde').value;
+  const hasta = document.getElementById('ci-fecha-hasta').value;
+  const lbl   = document.getElementById('btn-fecha-lbl');
+  if(!desde && !hasta){ lbl.textContent = 'Fecha'; return; }
+  if(desde === hasta) lbl.textContent = desde;
+  else lbl.textContent = (desde||'…') + ' → ' + (hasta||'…');
 }
 
 function filtrarPorFecha(list){
@@ -731,24 +773,10 @@ function arrancar(){
   document.getElementById('ci-loader').style.display = 'none';
   document.getElementById('ci-app').style.display    = 'block';
   initFechas();
-  renderModFilter();
   renderCards();
   startTimers();
 }
 
-// ── Render filtro módulos ──
-function renderModFilter(){
-  const sel = document.getElementById('ci-filter-mod');
-  const prev = sel.value;
-  const mods = [...new Set(ciRequests.map(r => r.module).filter(Boolean))].sort();
-  sel.innerHTML = '<option value="">Todos los módulos</option>';
-  mods.forEach(m => {
-    const o = document.createElement('option');
-    o.value = m; o.textContent = m;
-    if(m === prev) o.selected = true;
-    sel.appendChild(o);
-  });
-}
 
 // ── Formato tiempo ──
 function fmtElapsed(ms){
@@ -769,7 +797,7 @@ function timerClass(ms){
 
 // ── Render principal ──
 function renderCards(){
-  _filterMod = document.getElementById('ci-filter-mod').value;
+  _filterMod = '';
   const main = document.getElementById('ci-main');
   main.innerHTML = '';
 
@@ -961,6 +989,11 @@ function guardarObsDirecta(id, obs){
 
 // Cerrar menú al hacer click afuera
 document.addEventListener('click', e => {
+  // Cerrar panel de fecha al click afuera
+  if(!e.target.closest('#fecha-wrap')){
+    const fp = document.getElementById('fecha-panel');
+    if(fp) fp.style.display = 'none';
+  }
   if(_obsMenuOpen && !e.target.closest('[id^="obs-wrap-"]')){
     const menu = document.getElementById('obs-menu-'+_obsMenuOpen);
     if(menu) menu.style.display = 'none';
@@ -1012,8 +1045,7 @@ function confirmarDel(){
       wsSend({ type: 'ci_delete_request', reqId: id });
       cerrarModalDel();
       renderCards();
-      renderModFilter();
-      showToast('🗑 Solicitud eliminada');
+          showToast('🗑 Solicitud eliminada');
     })
     .catch(()=>{
       if(errEl){errEl.textContent='Error al verificar. Intenta de nuevo.';errEl.style.display='block';}
@@ -1091,7 +1123,6 @@ function cfgGuardar(){
     obsList:        ciConfig.obsList
   });
   cerrarConfig();
-  renderModFilter();
   showToast('✅ Configuración guardada');
 }
 
