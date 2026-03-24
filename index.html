@@ -854,7 +854,6 @@ body { overflow-x: hidden; max-width: 100vw; }
   <div class="view-toggle" style="margin-left:auto;">
     <button class="btn-bar green"  id="btn-excel-bar" style="display:none;" onclick="openExcelModal()">📥 Excel</button>
     <button class="btn-bar yellow" id="btn-fix-mec"   style="display:none;" onclick="openFixMecModal()">🔧 Corregir</button>
-    <button class="btn-bar purple" onclick="openAcumuladoScreen()">📊 Acumulado</button>
 
   </div>
 </div>
@@ -1122,7 +1121,7 @@ body { overflow-x: hidden; max-width: 100vw; }
       <button class="mec-btn" onclick="onImpMec()" style="border-left:4px solid #dc2626;">🔴 Fallo Mecánico</button>
       <button class="mec-btn" onclick="onImpRef()" style="border-left:4px solid #1d4ed8;">🔵 Cambio de Referencia</button>
       <button class="mec-btn" onclick="onImpIns()" style="border-left:4px solid #ea580c;">🟠 Falta de Insumos</button>
-      <button class="mec-btn" onclick="onImpProd()" style="border-left:4px solid #7c3aed;">🟣 Solicitar Producción</button>
+
     </div>
     <button onclick="cancelImproductivo()" style="margin-top:6px;background:none;border:none;color:#94a3b8;font-size:13px;cursor:pointer;font-family:Nunito,sans-serif;">✕ Cancelar</button>
   </div>
@@ -1385,6 +1384,21 @@ function connectWS(){
           showCiCumplidoModal(req);
         } else if(req && req.module){
           showToastSimple('📦 ' + req.module + ' — Insumo listo para confirmar');
+        }
+      } else if(msg.type==='ci_update_request'){
+        // Sincronizar cache local
+        const req = msg.request;
+        if(req){
+          if(!window._ciRequests) window._ciRequests=[];
+          const idx = window._ciRequests.findIndex(r=>r._id===req._id);
+          if(idx>-1) window._ciRequests[idx]=req; else window._ciRequests.unshift(req);
+          // Si el módulo aceptó (done) → pasar de naranja a verde
+          if(req.status==='done' && req.module){
+            const modId = req.module;
+            if(states[modId]==='orange'){
+              commitChange(modId,'green',null);
+            }
+          }
         }
       } else if(msg.type==='ia_add_record'){
         if(!iaRecords) iaRecords=[];
@@ -1741,7 +1755,7 @@ function mostrarAreaScreen(){
   if(hasPerm('area_mecanicos')||hasPerm('area_montajes')){
     const soloMontajes = hasPerm('area_montajes')&&!hasPerm('area_mecanicos');
     const tieneAmbos   = hasPerm('area_mecanicos')&&hasPerm('area_montajes');
-    const nombreTablero = (currentUser==='Mecanicos'||currentUser==='Televisor') ? 'Tablero Planta' : 'Tablero General';
+    const nombreTablero = (currentUser==='Mecanicos'||currentUser==='Televisor') ? 'Tablero Mecanicos' : 'Tablero General';
     let desc = soloMontajes ? 'Montajes' : tieneAmbos ? nombreTablero+' · Montajes' : nombreTablero;
     const c=makeCard('🔧','Mecánicos',desc,'ac-red',()=>{
       if(soloMontajes||tieneAmbos){
@@ -1856,7 +1870,7 @@ function mostrarSubMenuMecanicos(){
   }
   const soloMontajes = hasPerm('area_montajes')&&!hasPerm('area_mecanicos');
   if(!soloMontajes){
-    const c1=makeCard('🏭',(currentUser==='Mecanicos'||currentUser==='Televisor')?'Tablero Planta':'Tablero General','Vista general · '+MODULES.length+' módulos','ac-red',()=>{
+    const c1=makeCard('🏭',(currentUser==='Mecanicos'||currentUser==='Televisor')?'Tablero Mecanicos':'Tablero General','Vista general · '+MODULES.length+' módulos','ac-red',()=>{
       document.getElementById('area-screen').classList.add('hidden');
       entrarTablero();
     });
@@ -2059,7 +2073,7 @@ function ocultarTodo(){
 }
 // ── Entrar al tablero general (activa modo blanco en header) ─────────
 function entrarTablero(){
-  const nombre = (currentUser==='Mecanicos'||currentUser==='Televisor') ? 'Tablero Planta' : 'Tablero General';
+  const nombre = (currentUser==='Mecanicos'||currentUser==='Televisor') ? 'Tablero Mecanicos' : 'Tablero General';
   const h1 = document.getElementById('main-header-title');
   if(h1){
     const partes = nombre.split(' ');
@@ -6566,7 +6580,24 @@ function siOpen(){
 }
 
 // ── Modal confirmación CI Cumplido ───────────────────────────────
+function playCiAlertSound(){
+  try{
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const beeps = [{f:880,t:0},{f:1100,t:0.18},{f:880,t:0.36}];
+    beeps.forEach(({f,t})=>{
+      const o=ctx.createOscillator(), g=ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value=f; o.type='sine';
+      g.gain.setValueAtTime(0,ctx.currentTime+t);
+      g.gain.linearRampToValueAtTime(0.5,ctx.currentTime+t+0.04);
+      g.gain.linearRampToValueAtTime(0,ctx.currentTime+t+0.14);
+      o.start(ctx.currentTime+t); o.stop(ctx.currentTime+t+0.15);
+    });
+  }catch(e){}
+}
+
 function showCiCumplidoModal(req){
+  playCiAlertSound();
   // Crear overlay de confirmación
   let ov = document.getElementById('ci-confirm-overlay');
   if(!ov){
