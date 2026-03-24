@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Alistamientos — Confecciones Millar</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Nunito:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -20,17 +21,17 @@ body{background:var(--bg);font-family:'Nunito',sans-serif;color:var(--text);min-
 body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(203,213,225,.4) 1px,transparent 1px),linear-gradient(90deg,rgba(203,213,225,.4) 1px,transparent 1px);background-size:28px 28px;pointer-events:none;z-index:0;}
 
 /* ── HEADER ── */
-header{position:sticky;top:0;z-index:60;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(12px,2.5vw,24px);min-height:64px;background:#fff;border-bottom:1px solid #e2e8f0;box-shadow:0 1px 6px rgba(0,0,0,.07);}
+header{position:relative;z-index:10;display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:linear-gradient(135deg,#020d22 0%,#04163d 50%,#0a2570 100%);box-shadow:0 2px 12px rgba(2,13,34,.3);}
 header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);}
 .hd-left{display:flex;align-items:center;gap:12px;}
 .hd-logo{width:36px;height:36px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 0 0 2px rgba(255,255,255,.2);}
 h1{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;letter-spacing:4px;text-transform:uppercase;color:#fff;padding:16px 0;}
 .hd-right{display:flex;align-items:center;gap:10px;}
-.btn-volver{padding:6px 14px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#1e3a8a;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;}
-.btn-volver:hover{background:#f1f5f9;border-color:#93c5fd;}
+.btn-volver{padding:7px 16px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:rgba(255,255,255,.75);font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;letter-spacing:.5px;cursor:pointer;transition:all .2s;}
+.btn-volver:hover{background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.35);}
 
 /* ── NAV TABS ── */
-.nav-bar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 clamp(12px,2.5vw,24px);background:#fff;border-bottom:1px solid var(--border);box-shadow:0 1px 6px rgba(0,0,0,.07);min-height:64px;flex-wrap:nowrap;overflow-x:auto;}.nav-bar::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);}
+.nav-bar{position:relative;z-index:9;display:flex;align-items:center;gap:4px;padding:0 24px;background:#fff;border-bottom:1px solid var(--border);box-shadow:0 1px 4px rgba(0,0,0,.05);overflow-x:auto;}
 .nav-tab{padding:14px 18px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .2s;letter-spacing:.3px;}
 .nav-tab:hover{color:var(--text);}
 .nav-tab.active{color:var(--blue);border-bottom-color:var(--blue);}
@@ -191,121 +192,27 @@ tr:hover td{background:#f8fafc;}
   main{padding:16px;}
   .section-header{flex-direction:column;align-items:flex-start;}
 }
-
-/* ════════════════════════════════════════════════════════════
-   RESPONSIVE alistamientos.html
-   ════════════════════════════════════════════════════════════ */
-html { font-size: 16px; }
-body { overflow-x: hidden; max-width: 100vw; }
-
-/* Nav bar scroll en móvil */
-.nav-bar { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; padding: 0 clamp(8px,2vw,24px); }
-.nav-tab { padding: clamp(10px,1.5vw,14px) clamp(10px,1.5vw,18px); font-size: clamp(11px,1.3vw,13px); white-space: nowrap; }
-
-/* Dashboard panels */
-.dash-panels { grid-template-columns: repeat(auto-fill, minmax(min(260px,100%), 1fr)); gap: clamp(10px,2vw,20px); }
-
-/* Tabla scroll horizontal */
-.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-
-/* Botones */
-.btn { padding: clamp(6px,1vw,8px) clamp(12px,1.5vw,18px); font-size: clamp(12px,1.3vw,14px); }
-.btn-volver { padding: clamp(5px,.8vw,7px) clamp(10px,1.2vw,16px); font-size: clamp(11px,1.1vw,12px); }
-
-/* Modal responsive */
-.modal { width: min(640px, 96vw) !important; max-height: 92vh; overflow-y: auto; }
-
-/* Header */
-.nav-hdr { padding: 0 clamp(10px,2.5vw,28px); min-height: clamp(52px,7vh,64px); }
-
-/* ── MOBILE (<600px) ── */
-@media (max-width: 599px) {
-  .dash-panels { grid-template-columns: 1fr; }
-  input, select, textarea { font-size: 16px !important; }
-  .form-grid { grid-template-columns: 1fr !important; }
-  .btn { width: 100%; justify-content: center; }
-}
-
-/* ── TABLET (600–1023px) ── */
-@media (min-width: 600px) and (max-width: 1023px) {
-  .dash-panels { grid-template-columns: repeat(2, 1fr); }
-  .form-grid { grid-template-columns: repeat(2, 1fr) !important; }
-}
-
-/* ── TV (>1600px) ── */
-@media (min-width: 1600px) {
-  html { font-size: 18px; }
-  .dash-panels { grid-template-columns: repeat(3, 1fr); }
-  .modal { width: min(780px, 96vw) !important; }
-}
-@media (min-width: 2000px) {
-  html { font-size: 20px; }
-}
-
-/* ── TOPBAR UNIFICADO — igual al Tablero CI ── */
-.ia-header, .nav-bar, nav.nav-bar {
-  position: sticky; top: 0; z-index: 50; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0 clamp(12px,2.5vw,24px); gap: 8px; min-height: 64px;
-  background: #fff;
-  border-bottom: 1px solid #e2e8f0;
-  box-shadow: 0 1px 6px rgba(0,0,0,.07);
-  position: relative;
-  flex-wrap: nowrap;
-}
-/* Raya degradada ABAJO */
-.ia-header::after, .nav-bar::after {
-  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 3px;
-  background: linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);
-  top: auto;
-}
-/* Badge usuario — igual al CI */
-.ia-sup-badge, .hd-user-badge {
-  display: flex; align-items: center; gap: 7px;
-  padding: 6px 14px; border-radius: 8px;
-  background: #fff; border: 1.5px solid #e2e8f0;
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 14px; font-weight: 700;
-  color: #475569; letter-spacing: 1.5px; text-transform: uppercase;
-}
-/* Dot verde */
-.ia-sup-dot, .hd-user-dot {
-  width: 9px; height: 9px; border-radius: 50%;
-  background: #22c55e; box-shadow: 0 0 6px rgba(34,197,94,.7);
-  flex-shrink: 0;
-}
-/* Botón volver */
-.ia-header .btn-volver, .nav-bar .btn-volver, .hd-back-btn {
-  padding: 6px 14px; border-radius: 8px;
-  border: 1.5px solid #e2e8f0; background: #fff;
-  color: #1e3a8a; font-family: 'Nunito', sans-serif;
-  font-size: 12px; font-weight: 700; cursor: pointer;
-  transition: all .2s; white-space: nowrap;
-}
-.ia-header .btn-volver:hover, .hd-back-btn:hover {
-  background: #f1f5f9; border-color: #93c5fd;
-}
 </style>
 </head>
 <body>
 
 <!-- HEADER -->
+<header>
+  <div class="hd-left">
+    <div class="hd-logo"><img src="data:image/png;base64,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" style="width:100%;height:100%;object-fit:contain;padding:3px;border-radius:50%;"></div>
+    <h1 id="page-title">Alistamiento</h1>
+  </div>
+  <div class="hd-right">
+    <button class="btn-volver" onclick="abrirModalConfig()" style="background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2);">⚙️ Configuración</button>
+    <button class="btn-volver" id="btn-volver" onclick="volverSeleccion()">← Volver</button>
+  </div>
+</header>
+
 <!-- NAV TABS -->
 <nav class="nav-bar">
-  <div style="display:flex;align-items:center;gap:12px;flex-shrink:0;">
-    <div style="width:36px;height:36px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;box-shadow:0 0 0 2px #e2e8f0,0 2px 8px rgba(0,0,0,.08);">
-      <span style="font-size:18px;">⚙️</span>
-    </div>
-    <div style="font-family:'Barlow Condensed',sans-serif;font-size:clamp(14px,2.2vw,22px);font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0f172a;line-height:1.1;">
-      ALISTAMIENTO <span style="color:#2563eb;">& MANTENIMIENTO</span>
-    </div>
-  </div>
-  <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-    <div class="nav-tab active" id="tab-dashboard"      onclick="switchSection('dashboard')">📊 Dashboard</div>
-    <div class="nav-tab"        id="tab-alistamiento"   onclick="switchSection('alistamiento')">⚙️ Alistamiento</div>
-    <div class="nav-tab mant"   id="tab-mantenimiento"  onclick="switchSection('mantenimiento')">🔧 Mantenimiento</div>
-    <button class="btn-volver" onclick="history.back()">← VOLVER</button>
-  </div>
+  <div class="nav-tab active" id="tab-dashboard"      onclick="switchSection('dashboard')">📊 Dashboard</div>
+  <div class="nav-tab"        id="tab-alistamiento"   onclick="switchSection('alistamiento')">⚙️ Alistamiento</div>
+  <div class="nav-tab mant"   id="tab-mantenimiento"  onclick="switchSection('mantenimiento')">🔧 Mantenimiento</div>
 </nav>
 
 <!-- MAIN -->
@@ -362,7 +269,7 @@ body { overflow-x: hidden; max-width: 100vw; }
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Módulo</th><th>Referencia</th><th>Máquina</th><th>Serial</th><th>Mecánico</th><th>Supervisor</th><th>Costura</th><th>Fecha</th><th>Hora</th><th>Estado</th><th>Fotos</th><th></th></tr></thead>
+            <thead><tr><th>Módulo</th><th>Referencia</th><th>Máquina</th><th>Serial</th><th>Mecánico</th><th>Supervisor</th><th>Guía</th><th>Costura</th><th>Fecha</th><th>Hora</th><th>Estado</th><th>Fotos</th><th></th></tr></thead>
             <tbody id="alistBody"></tbody>
           </table>
         </div>
@@ -393,7 +300,7 @@ body { overflow-x: hidden; max-width: 100vw; }
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Módulo</th><th>Tipo</th><th>Máquina</th><th>Serial</th><th>Mecánico</th><th>Repuestos</th><th>Fecha</th><th>Hora</th><th>Fotos</th><th></th></tr></thead>
+          <thead><tr><th>Módulo</th><th>Tipo</th><th>Máquina</th><th>Serial</th><th>Mecánico</th><th>Operaria</th><th>Guía</th><th>Repuestos</th><th>Fecha</th><th>Hora</th><th>Fotos</th><th></th></tr></thead>
           <tbody id="mantBody"></tbody>
         </table>
       </div>
@@ -438,23 +345,48 @@ body { overflow-x: hidden; max-width: 100vw; }
           </div>
           <div class="form-group">
             <label class="form-label">Serial <span class="required">*</span></label>
-            <input type="text" class="form-input" name="serial" required placeholder="Número de serial" autocomplete="off">
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input type="text" class="form-input" name="serial" id="alistSerial" required placeholder="Número de serial" autocomplete="off" style="flex:1">
+              <button type="button" class="btn btn-secondary" style="padding:8px 12px;white-space:nowrap;font-size:13px;" onclick="abrirQR('alist')" title="Escanear QR">📷 QR</button>
+            </div>
           </div>
           <div class="form-group">
             <label class="form-label">Tipo de Aguja</label>
-            <input type="text" class="form-input" name="tipoAguja" placeholder="Ej: DBx1, HAx1...">
+            <select class="form-select" name="tipoAguja" id="selectTipoAguja" onchange="toggleOtraAguja(this)">
+              <option value="">Seleccionar...</option>
+              <option>B27</option>
+              <option>B63</option>
+              <option>B64</option>
+              <option>UY 128</option>
+              <option>UY 113</option>
+              <option>UY 118</option>
+              <option>135 X 5</option>
+              <option>16 X 257</option>
+              <option value="__otra__">✏️ Otra (digitar)</option>
+            </select>
+            <input type="text" class="form-input" id="inputOtraAguja" name="tipoAgujaOtra" placeholder="Escribe el tipo de aguja..." style="display:none;margin-top:8px;" autocomplete="off">
           </div>
           <div class="form-group">
             <label class="form-label">Calibre de Aguja</label>
             <select class="form-select" name="calibreAguja">
               <option value="">Seleccionar...</option>
-              <option>9</option><option>10</option><option>11</option><option>12</option>
-              <option>14</option><option>16</option><option>18</option><option>19</option><option>21</option>
+              <option>50</option><option>55</option><option>60</option><option>65</option>
+              <option>70</option><option>75</option><option>80</option><option>85</option><option>90</option>
             </select>
           </div>
           <div class="form-group">
             <label class="form-label">Puntadas por Pulgada (PPP)</label>
-            <input type="number" class="form-input" name="ppp" min="1" max="30" placeholder="Ej: 12">
+            <select class="form-select" name="ppp">
+              <option value="">Seleccionar...</option>
+              <option>9</option><option>10</option><option>11</option><option>12</option><option>13</option>
+              <option>14</option><option>15</option><option>16</option><option>17</option><option>18</option>
+              <option>19</option><option>20</option>
+            </select>
+          </div>
+          <div class="form-group span2">
+            <label class="form-label">Número de Guía</label>
+            <input type="text" class="form-input" name="numeroGuia" id="alistGuiaInput" placeholder="Digita código o N/A..." autocomplete="off">
+            <div id="alistGuiaDesc" style="display:none;margin-top:6px;padding:8px 12px;background:rgba(37,99,235,.05);border:1.5px solid rgba(37,99,235,.15);border-radius:8px;font-size:12px;color:#1d4ed8;"></div>
           </div>
           <hr class="form-divider">
           <div class="form-section-title">✅ Verificación</div>
@@ -528,9 +460,13 @@ body { overflow-x: hidden; max-width: 100vw; }
             </div>
             <input type="hidden" name="tipoMantenimiento" id="hiddenTipoMant" required>
           </div>
-          <div class="form-group span2">
+          <div class="form-group">
             <label class="form-label">Mecánico Responsable <span class="required">*</span></label>
             <select class="form-select" name="mecanico" required id="mantMecanico"><option value="">Seleccionar mecánico...</option></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Operaria</label>
+            <input type="text" class="form-input" name="operaria" placeholder="Nombre de la operaria..." autocomplete="off">
           </div>
           <div class="form-group span2">
             <label class="form-label">Tipo de Máquina <span class="required">*</span></label>
@@ -539,7 +475,15 @@ body { overflow-x: hidden; max-width: 100vw; }
           </div>
           <div class="form-group">
             <label class="form-label">Serial <span class="required">*</span></label>
-            <input type="text" class="form-input" name="serial" required placeholder="Número de serial">
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input type="text" class="form-input" name="serial" id="mantSerial" required placeholder="Número de serial" style="flex:1">
+              <button type="button" class="btn btn-secondary" style="padding:8px 12px;white-space:nowrap;font-size:13px;" onclick="abrirQR('mant')" title="Escanear QR">📷 QR</button>
+            </div>
+          </div>
+          <div class="form-group span2">
+            <label class="form-label">Número de Guía</label>
+            <input type="text" class="form-input" name="numeroGuia" id="mantGuiaInput" placeholder="Digita código o N/A..." autocomplete="off">
+            <div id="mantGuiaDesc" style="display:none;margin-top:6px;padding:8px 12px;background:rgba(13,148,136,.05);border:1.5px solid rgba(13,148,136,.15);border-radius:8px;font-size:12px;color:#0f766e;"></div>
           </div>
           <div class="form-group">
             <label class="form-label">Repuestos Utilizados</label>
@@ -568,6 +512,93 @@ body { overflow-x: hidden; max-width: 100vw; }
   </div>
 </div>
 
+<!-- MODAL CONFIGURACIÓN -->
+<div class="modal-overlay" id="modalConfig">
+  <div class="modal" style="max-width:700px;">
+    <div class="modal-header">
+      <div class="modal-title">⚙️ Configuración</div>
+      <button class="modal-close" onclick="cerrarModal('modalConfig')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:20px 24px;">
+
+      <!-- TABS INTERNOS -->
+      <div style="display:flex;gap:8px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:12px;">
+        <button class="inner-tab active" id="cfgTabAlist" onclick="switchCfgTab('alist')">⚙️ Alistamiento</button>
+      </div>
+
+      <!-- PANEL ALISTAMIENTO -->
+      <div id="cfgPanelAlist">
+
+        <!-- TIPO DE AGUJA -->
+        <div style="margin-bottom:24px;">
+          <div class="form-section-title" style="margin-bottom:12px;">🪡 Tipos de Aguja</div>
+          <div id="cfgAgujaList" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;"></div>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <input type="text" class="form-input" id="cfgAgujaInput" placeholder="Ej: B27, UY 128..." style="flex:1;" onkeydown="if(event.key==='Enter'){event.preventDefault();agregarCfgItem('aguja');}">
+            <button class="btn btn-primary" style="padding:8px 16px;" onclick="agregarCfgItem('aguja')">+ Agregar</button>
+          </div>
+        </div>
+
+        <!-- CALIBRE DE AGUJA -->
+        <div style="margin-bottom:24px;">
+          <div class="form-section-title" style="margin-bottom:12px;">🔢 Calibres de Aguja</div>
+          <div id="cfgCalibreList" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;"></div>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <input type="text" class="form-input" id="cfgCalibreInput" placeholder="Ej: 70, 80..." style="flex:1;" onkeydown="if(event.key==='Enter'){event.preventDefault();agregarCfgItem('calibre');}">
+            <button class="btn btn-primary" style="padding:8px 16px;" onclick="agregarCfgItem('calibre')">+ Agregar</button>
+          </div>
+        </div>
+
+        <!-- PPP -->
+        <div style="margin-bottom:8px;">
+          <div class="form-section-title" style="margin-bottom:12px;">📏 Puntadas por Pulgada (PPP)</div>
+          <div id="cfgPppList" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;"></div>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <input type="text" class="form-input" id="cfgPppInput" placeholder="Ej: 12, 14..." style="flex:1;" onkeydown="if(event.key==='Enter'){event.preventDefault();agregarCfgItem('ppp');}">
+            <button class="btn btn-primary" style="padding:8px 16px;" onclick="agregarCfgItem('ppp')">+ Agregar</button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="cerrarModal('modalConfig')">Cerrar</button>
+      <button class="btn btn-primary" onclick="guardarConfig()">💾 Guardar Cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL QR SCANNER -->
+<div class="modal-overlay" id="modalQR">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <div class="modal-title">📷 Escanear QR de Máquina</div>
+      <button class="modal-close" onclick="cerrarQR()">✕</button>
+    </div>
+    <div class="modal-body" style="padding:16px;">
+      <div id="qr-reader" style="width:100%;border-radius:10px;overflow:hidden;background:#000;min-height:240px;display:flex;align-items:center;justify-content:center;">
+        <div id="qr-placeholder" style="color:#fff;text-align:center;padding:32px;">
+          <div style="font-size:40px;margin-bottom:8px;">📷</div>
+          <div style="font-size:13px;opacity:.7;">Iniciando cámara...</div>
+        </div>
+        <video id="qr-video" style="width:100%;display:none;" playsinline></video>
+      </div>
+      <canvas id="qr-canvas" style="display:none;"></canvas>
+      <div id="qr-result-box" style="display:none;margin-top:14px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:14px;">
+        <div style="font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#166534;margin-bottom:8px;">✅ Máquina detectada</div>
+        <div id="qr-info" style="font-size:13px;line-height:1.8;color:#0f172a;"></div>
+      </div>
+      <div id="qr-error" style="display:none;margin-top:14px;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;padding:12px;font-size:13px;color:#dc2626;"></div>
+      <p style="font-size:11px;color:#64748b;margin-top:12px;text-align:center;">Apunta la cámara al código QR pegado en la máquina.<br>El QR debe contener: <code style="background:#f1f5f9;padding:1px 5px;border-radius:4px;">#|Nombre|Serial|F.Compra</code></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="cerrarQR()">Cancelar</button>
+      <button class="btn btn-primary" id="btnUsarQR" style="display:none;" onclick="usarDatosQR()">✅ Usar estos datos</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast-container" id="toastContainer"></div>
 
 <script>
@@ -586,12 +617,12 @@ async function init() {
   const seccion = params.get('seccion');
 
   if (seccion === 'alistamiento') {
-    document.getElementById('page-title').innerHTML = 'ALISTAMIENTO <span style="color:#2563eb;">&amp; MANTENIMIENTO</span>';
+    document.getElementById('page-title').textContent = 'Alistamiento';
     document.getElementById('tab-mantenimiento').style.display = 'none';
     document.getElementById('panel-mant').style.display = 'none';
     document.getElementById('dash-panels').style.gridTemplateColumns = '1fr';
   } else if (seccion === 'mantenimiento') {
-    document.getElementById('page-title').innerHTML = 'ALISTAMIENTO <span style="color:#2563eb;">&amp; MANTENIMIENTO</span>';
+    document.getElementById('page-title').textContent = 'Mantenimiento';
     document.getElementById('tab-alistamiento').style.display = 'none';
     document.getElementById('panel-alist').style.display = 'none';
     document.getElementById('dash-panels').style.gridTemplateColumns = '1fr';
@@ -600,15 +631,20 @@ async function init() {
   startClock();
   await loadConfig();
   populateForms();
+  aplicarConfigAFormularios();
   await Promise.all([loadAlistamientos(), loadMantenimientos(), loadAlertas()]);
   renderDashboard();
   setInterval(loadAlertas, 30000);
+
+  // Inicializar autocomplete de guías
+  initGuiaAutocomplete('alistGuiaInput', 'alistGuiaDesc');
+  initGuiaAutocomplete('mantGuiaInput',  'mantGuiaDesc');
 
   // Abrir la sección correspondiente
   if (seccion === 'alistamiento') {
     switchSection('alistamiento');
   } else if (seccion === 'mantenimiento') {
-    document.getElementById('page-title').innerHTML = 'ALISTAMIENTO <span style="color:#2563eb;">&amp; MANTENIMIENTO</span>';
+    document.getElementById('page-title').textContent = 'Mantenimiento';
     document.getElementById('tab-alistamiento').style.display = 'none';
     switchSection('mantenimiento');
   }
@@ -871,10 +907,10 @@ function renderAlistamientos(data) {
       <td><code style="font-size:11px;background:var(--bg3);padding:2px 6px;border-radius:4px">${r.serial||'-'}</code></td>
       <td>${r.mecanico||'-'}</td>
       <td>${r.supervisor||'-'}</td>
+      <td><span style="font-size:11px;font-weight:700;color:var(--blue)">${r.numeroGuia||'—'}</span></td>
       <td>${estadoBadge(r.pruebaCostura)}</td>
       <td>${r.fecha||'-'}</td>
       <td>${r.hora||'-'}</td>
-      <td>${estadoBadge(r.pruebaCostura)}</td>
       <td>${fotosThumb(r.fotos)}</td>
       <td><button class="btn btn-danger" style="padding:4px 10px;font-size:11px" onclick="eliminar('alistamientos','${r.id}')">🗑️</button></td>
     </tr>`).join('');
@@ -911,6 +947,8 @@ function renderMantenimientos(data) {
       <td>${r.tipoMaquina||'-'}</td>
       <td><code style="font-size:11px;background:var(--bg3);padding:2px 6px;border-radius:4px">${r.serial||'-'}</code></td>
       <td>${r.mecanico||'-'}</td>
+      <td>${r.operaria||'-'}</td>
+      <td><span style="font-size:11px;font-weight:700;color:var(--teal)">${r.numeroGuia||'—'}</span></td>
       <td>${r.repuestos||'-'}</td>
       <td>${r.fecha||'-'}</td>
       <td>${r.hora||'-'}</td>
@@ -921,9 +959,18 @@ function renderMantenimientos(data) {
 
 function fotosThumb(fotos) {
   if (!fotos || !fotos.length) return '<span style="color:var(--text3);font-size:12px">—</span>';
-  return `<div class="fotos-thumb">${fotos.slice(0,3).map(f =>
-    `<img src="${f}" onclick="window.open('${f}','_blank')" title="Ver foto">`
-  ).join('')}</div>`;
+  return `<div class="fotos-thumb">${fotos.slice(0,3).map(f => {
+    // Construir URL absoluta correcta evitando duplicar el prefijo /alistamiento
+    let url = f;
+    if (url && !url.startsWith('http') && !url.startsWith('/')) {
+      url = '/' + url;
+    }
+    // Si el path ya incluye /alistamiento/uploads, usar directo; si no, agregar base
+    if (!url.startsWith('/alistamiento/') && !url.startsWith('http')) {
+      url = '/alistamiento' + url;
+    }
+    return `<img src="${url}" onclick="window.open('${url}','_blank')" title="Ver foto">`;
+  }).join('')}</div>`;
 }
 
 // ===== FILTROS =====
@@ -958,6 +1005,14 @@ async function guardarAlistamiento(e) {
   e.preventDefault();
   const form = document.getElementById('formAlistamiento');
   const formData = new FormData(form);
+  // Resolver tipo de aguja: si eligió "Otra", usar el valor digitado
+  const selectAguja = document.getElementById('selectTipoAguja');
+  const inputOtra = document.getElementById('inputOtraAguja');
+  if (selectAguja && selectAguja.value === '__otra__') {
+    formData.set('tipoAguja', inputOtra.value.trim());
+  } else if (selectAguja) {
+    formData.set('tipoAguja', selectAguja.value);
+  }
   // Validar hidden fields
   if (!formData.get('supervisor')) { showToast('Selecciona una supervisora','error'); return; }
   if (!formData.get('tipoMaquina')) { showToast('Selecciona el tipo de máquina','error'); return; }
@@ -1029,7 +1084,8 @@ async function eliminar(tipo, id) {
 
 // ===== EXPORTAR =====
 function exportar(tipo) {
-  window.location.href = `${API}/api/exportar/${tipo}`;
+  const baseUrl = window.location.origin + '/alistamiento';
+  window.location.href = `${API}/api/exportar/${tipo}?baseUrl=${encodeURIComponent(baseUrl)}`;
   showToast('📥 Descargando Excel...','success');
 }
 
@@ -1145,6 +1201,346 @@ function showToast(msg, type='success') {
   toast.innerHTML = `${type==='success'?'✅':'❌'} ${msg}`;
   container.appendChild(toast);
   setTimeout(() => toast.remove(), 4000);
+}
+
+// ===== CONFIGURACIÓN LOCAL =====
+const CFG_KEY = 'millar_alist_config';
+
+const DEFAULT_CFG = {
+  agujas:    ['B27','B63','B64','UY 128','UY 113','UY 118','135 X 5','16 X 257'],
+  calibres:  ['50','55','60','65','70','75','80','85','90'],
+  ppps:      ['9','10','11','12','13','14','15','16','17','18','19','20'],
+  mecanicos_extra: []
+};
+
+function getCfgLocal() {
+  try { return Object.assign({}, DEFAULT_CFG, JSON.parse(localStorage.getItem(CFG_KEY) || '{}')); }
+  catch(e) { return {...DEFAULT_CFG}; }
+}
+
+function saveCfgLocal(cfg) {
+  localStorage.setItem(CFG_KEY, JSON.stringify(cfg));
+}
+
+function abrirModalConfig() {
+  const cfg = getCfgLocal();
+  renderCfgList('cfgAgujaList',    cfg.agujas,   'aguja');
+  renderCfgList('cfgCalibreList',  cfg.calibres, 'calibre');
+  renderCfgList('cfgPppList',      cfg.ppps,     'ppp');
+  switchCfgTab('alist');
+  document.getElementById('modalConfig').classList.add('open');
+}
+
+function switchCfgTab(tab) {
+  document.getElementById('cfgPanelAlist').style.display = '';
+  document.getElementById('cfgTabAlist').classList.add('active');
+}
+
+function renderCfgList(containerId, items, tipo) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = (items || []).map((item, i) => `
+    <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;background:rgba(37,99,235,.08);border:1.5px solid rgba(37,99,235,.2);font-size:12px;font-weight:700;color:#1d4ed8;">
+      ${item}
+      <button onclick="eliminarCfgItem('${tipo}',${i})" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:14px;line-height:1;padding:0 2px;" title="Quitar">✕</button>
+    </span>`).join('');
+}
+
+function agregarCfgItem(tipo) {
+  const inputId = { aguja:'cfgAgujaInput', calibre:'cfgCalibreInput', ppp:'cfgPppInput' }[tipo];
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  const val = input.value.trim();
+  if (!val) return;
+  const cfg = getCfgLocal();
+  const key = { aguja:'agujas', calibre:'calibres', ppp:'ppps' }[tipo];
+  if (!cfg[key].includes(val)) {
+    cfg[key].push(val);
+    saveCfgLocal(cfg);
+    const listId = { aguja:'cfgAgujaList', calibre:'cfgCalibreList', ppp:'cfgPppList' }[tipo];
+    renderCfgList(listId, cfg[key], tipo);
+  }
+  input.value = '';
+  input.focus();
+}
+
+function eliminarCfgItem(tipo, index) {
+  const cfg = getCfgLocal();
+  const key = { aguja:'agujas', calibre:'calibres', ppp:'ppps' }[tipo];
+  cfg[key].splice(index, 1);
+  saveCfgLocal(cfg);
+  const listId = { aguja:'cfgAgujaList', calibre:'cfgCalibreList', ppp:'cfgPppList' }[tipo];
+  renderCfgList(listId, cfg[key], tipo);
+}
+
+function guardarConfig() {
+  aplicarConfigAFormularios();
+  cerrarModal('modalConfig');
+  showToast('✅ Configuración guardada', 'success');
+}
+
+function aplicarConfigAFormularios() {
+  const cfg = getCfgLocal();
+
+  // Tipo de Aguja
+  const selectAguja = document.getElementById('selectTipoAguja');
+  if (selectAguja) {
+    const current = selectAguja.value;
+    selectAguja.innerHTML = '<option value="">Seleccionar...</option>' +
+      cfg.agujas.map(a => `<option value="${a}">${a}</option>`).join('') +
+      '<option value="__otra__">✏️ Otra (digitar)</option>';
+    selectAguja.value = cfg.agujas.includes(current) ? current : '';
+  }
+
+  // Calibre de Aguja
+  const selectCalibre = document.querySelector('select[name="calibreAguja"]');
+  if (selectCalibre) {
+    const cur = selectCalibre.value;
+    selectCalibre.innerHTML = '<option value="">Seleccionar...</option>' +
+      cfg.calibres.map(c => `<option>${c}</option>`).join('');
+    selectCalibre.value = cfg.calibres.includes(cur) ? cur : '';
+  }
+
+  // PPP
+  const selectPpp = document.querySelector('select[name="ppp"]');
+  if (selectPpp) {
+    const cur = selectPpp.value;
+    selectPpp.innerHTML = '<option value="">Seleccionar...</option>' +
+      cfg.ppps.map(p => `<option>${p}</option>`).join('');
+    selectPpp.value = cfg.ppps.includes(cur) ? cur : '';
+  }
+}
+
+// ===== TIPO AGUJA "OTRA" =====
+function toggleOtraAguja(sel) {
+  const input = document.getElementById('inputOtraAguja');
+  if (sel.value === '__otra__') {
+    input.style.display = 'block';
+    input.focus();
+  } else {
+    input.style.display = 'none';
+    input.value = '';
+  }
+}
+
+// ===== QR SCANNER =====
+let qrStream = null;
+let qrTarget = null; // 'alist' o 'mant'
+let qrDatosLeidos = null;
+let qrScanInterval = null;
+
+function abrirQR(target) {
+  qrTarget = target;
+  qrDatosLeidos = null;
+  document.getElementById('qr-result-box').style.display = 'none';
+  document.getElementById('qr-error').style.display = 'none';
+  document.getElementById('btnUsarQR').style.display = 'none';
+  document.getElementById('qr-placeholder').style.display = 'flex';
+  document.getElementById('qr-placeholder').style.flexDirection = 'column';
+  document.getElementById('qr-placeholder').style.alignItems = 'center';
+  document.getElementById('qr-video').style.display = 'none';
+  document.getElementById('modalQR').classList.add('open');
+  iniciarCamaraQR();
+}
+
+async function iniciarCamaraQR() {
+  try {
+    qrStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
+    });
+    const video = document.getElementById('qr-video');
+    video.srcObject = qrStream;
+    await video.play();
+    document.getElementById('qr-placeholder').style.display = 'none';
+    video.style.display = 'block';
+    // Escanear cada 400ms usando BarcodeDetector (si disponible) o fallback
+    qrScanInterval = setInterval(() => escanearFrameQR(video), 400);
+  } catch(err) {
+    document.getElementById('qr-placeholder').innerHTML = '<div style="color:#fca5a5;font-size:13px;padding:24px;">⚠️ No se pudo acceder a la cámara.<br><small>Verifica los permisos del navegador.</small></div>';
+  }
+}
+
+async function escanearFrameQR(video) {
+  if (!video || video.readyState < 2) return;
+  try {
+    if ('BarcodeDetector' in window) {
+      const detector = new BarcodeDetector({ formats: ['qr_code'] });
+      const codes = await detector.detect(video);
+      if (codes.length > 0) {
+        procesarQR(codes[0].rawValue);
+      }
+    } else {
+      // Fallback: dibujar en canvas y usar jsQR si está disponible
+      const canvas = document.getElementById('qr-canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0);
+      if (window.jsQR) {
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height);
+        if (code) procesarQR(code.data);
+      }
+    }
+  } catch(e) {}
+}
+
+function procesarQR(texto) {
+  if (qrDatosLeidos) return; // Ya procesado
+  // Formato esperado: #|Nombre|Serial|F.Compra  (separado por | o ,)
+  const sep = texto.includes('|') ? '|' : ',';
+  const partes = texto.split(sep).map(p => p.trim());
+  if (partes.length < 3) {
+    mostrarErrorQR('QR no reconocido. Formato esperado: #|Nombre|Serial|F.Compra');
+    return;
+  }
+  qrDatosLeidos = {
+    numero:    partes[0] || '',
+    nombre:    partes[1] || '',
+    serial:    partes[2] || '',
+    fCompra:   partes[3] || ''
+  };
+  // Mostrar resultado
+  document.getElementById('qr-info').innerHTML = `
+    <b>#:</b> ${qrDatosLeidos.numero}<br>
+    <b>Nombre:</b> ${qrDatosLeidos.nombre}<br>
+    <b>Serial:</b> ${qrDatosLeidos.serial}<br>
+    <b>F. Compra:</b> ${qrDatosLeidos.fCompra || '—'}
+  `;
+  document.getElementById('qr-result-box').style.display = 'block';
+  document.getElementById('btnUsarQR').style.display = 'inline-flex';
+  // Detener escaneo
+  clearInterval(qrScanInterval);
+  showToast('✅ Código QR leído correctamente', 'success');
+}
+
+function mostrarErrorQR(msg) {
+  const el = document.getElementById('qr-error');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function usarDatosQR() {
+  if (!qrDatosLeidos) return;
+  if (qrTarget === 'alist') {
+    const serialInput = document.getElementById('alistSerial');
+    if (serialInput) serialInput.value = qrDatosLeidos.serial;
+    // Si el tipo de máquina coincide con alguna opción, seleccionarla
+    autoSelectMaquina(qrDatosLeidos.nombre, 'maquina', 'hiddenMaquina', 'radioMaquinas');
+  } else if (qrTarget === 'mant') {
+    const serialInput = document.getElementById('mantSerial');
+    if (serialInput) serialInput.value = qrDatosLeidos.serial;
+    autoSelectMaquina(qrDatosLeidos.nombre, 'maquinaMant', 'hiddenMaquinaMant', 'radioMaquinasMant');
+  }
+  cerrarQR();
+  showToast('✅ Datos de la máquina cargados', 'success');
+}
+
+function autoSelectMaquina(nombre, group, hiddenId, radioGroupId) {
+  if (!nombre) return;
+  const btns = document.querySelectorAll(`#${radioGroupId} .radio-btn`);
+  btns.forEach(btn => {
+    if (btn.dataset.value && nombre.toLowerCase().includes(btn.dataset.value.toLowerCase())) {
+      selectRadio(btn, group, hiddenId);
+    }
+  });
+}
+
+function cerrarQR() {
+  clearInterval(qrScanInterval);
+  if (qrStream) {
+    qrStream.getTracks().forEach(t => t.stop());
+    qrStream = null;
+  }
+  const video = document.getElementById('qr-video');
+  video.srcObject = null;
+  video.style.display = 'none';
+  document.getElementById('modalQR').classList.remove('open');
+  qrDatosLeidos = null;
+}
+
+// ===== INVENTARIO DE GUÍAS =====
+// TODO: Reemplazar este array con fetch al API del programador
+// Estructura esperada: { fecha, mes, tipoMaquina, tipoGuia, anchoEntrada, doblez, consecutivo, codigo, responsable, observaciones }
+let inventarioGuias = [
+  // Ejemplo: { fecha:'2/03/2026', mes:'MARZO', tipoMaquina:'RECUBRIDORA', tipoGuia:'RS', anchoEntrada:'3 CM', doblez:'SENCILLO', consecutivo:10, codigo:'RS-3-S-10', responsable:'LINA RAMIREZ', observaciones:'' }
+];
+
+// Cuando el programador conecte el API, descomentar y ajustar:
+// async function loadGuias() {
+//   try {
+//     const r = await fetch(`${API}/api/guias`);
+//     inventarioGuias = await r.json();
+//   } catch(e) { inventarioGuias = []; }
+// }
+
+function initGuiaAutocomplete(inputId, descId) {
+  const input = document.getElementById(inputId);
+  const desc  = document.getElementById(descId);
+  if (!input || !desc) return;
+
+  // Crear dropdown
+  let dropdown = document.getElementById(inputId + '_drop');
+  if (!dropdown) {
+    dropdown = document.createElement('div');
+    dropdown.id = inputId + '_drop';
+    dropdown.style.cssText = 'position:absolute;z-index:9999;background:#fff;border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(15,23,42,.12);max-height:220px;overflow-y:auto;width:100%;display:none;';
+    input.parentNode.style.position = 'relative';
+    input.parentNode.appendChild(dropdown);
+  }
+
+  input.addEventListener('input', () => {
+    const q = input.value.trim().toLowerCase();
+    desc.textContent = '';
+    desc.style.display = 'none';
+    if (!q) { dropdown.style.display = 'none'; return; }
+
+    // Siempre incluir N/A
+    const naMatch = 'n/a'.includes(q);
+    const matches = inventarioGuias.filter(g =>
+      g.codigo?.toLowerCase().includes(q) ||
+      g.tipoGuia?.toLowerCase().includes(q) ||
+      g.tipoMaquina?.toLowerCase().includes(q)
+    ).slice(0, 10);
+
+    if (!matches.length && !naMatch) { dropdown.style.display = 'none'; return; }
+
+    dropdown.innerHTML = '';
+
+    if (naMatch || !q) {
+      const naItem = document.createElement('div');
+      naItem.textContent = 'N/A — Sin guía';
+      naItem.style.cssText = 'padding:10px 14px;cursor:pointer;font-size:13px;color:#64748b;font-style:italic;border-bottom:1px solid #f1f5f9;';
+      naItem.onmousedown = () => {
+        input.value = 'N/A';
+        desc.textContent = 'Sin guía asignada';
+        desc.style.display = 'block';
+        dropdown.style.display = 'none';
+      };
+      naItem.onmouseover = () => naItem.style.background = '#f8fafc';
+      naItem.onmouseout  = () => naItem.style.background = '';
+      dropdown.appendChild(naItem);
+    }
+
+    matches.forEach(g => {
+      const item = document.createElement('div');
+      item.style.cssText = 'padding:10px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid #f1f5f9;';
+      item.innerHTML = `<strong style="color:var(--blue)">${g.codigo}</strong> <span style="color:#64748b;font-size:11px;">— ${g.tipoMaquina} | ${g.tipoGuia} | ${g.anchoEntrada} | ${g.doblez}</span>`;
+      item.onmousedown = () => {
+        input.value = g.codigo;
+        desc.innerHTML = `<span style="color:#0f172a">📋 ${g.tipoMaquina}</span> &nbsp;·&nbsp; Tipo: <b>${g.tipoGuia}</b> &nbsp;·&nbsp; Ancho: <b>${g.anchoEntrada}</b> &nbsp;·&nbsp; Doblez: <b>${g.doblez}</b>${g.responsable ? ' &nbsp;·&nbsp; Resp: <b>'+g.responsable+'</b>' : ''}`;
+        desc.style.display = 'block';
+        dropdown.style.display = 'none';
+      };
+      item.onmouseover = () => item.style.background = '#f8fafc';
+      item.onmouseout  = () => item.style.background = '';
+      dropdown.appendChild(item);
+    });
+
+    dropdown.style.display = 'block';
+  });
+
+  input.addEventListener('blur', () => setTimeout(() => { dropdown.style.display = 'none'; }, 150));
+  input.addEventListener('focus', () => { if (input.value.trim()) input.dispatchEvent(new Event('input')); });
 }
 
 // ===== START =====
