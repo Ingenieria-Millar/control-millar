@@ -417,11 +417,6 @@ input,select,textarea{ font-size:16px !important; }
       <div class="cfg-chips" id="cfg-tipos-chips"></div>
       <div class="cfg-add-row">
         <input class="cfg-add-input" id="cfg-tipo-input" type="text" placeholder="Nuevo tipo (ej: Cierres)">
-        <select class="cfg-flow-sel" id="cfg-tipo-flow">
-          <option value="qty_only">Solo cantidad</option>
-          <option value="qty_talla">Cantidad + Talla</option>
-          <option value="elastico">Elástico</option>
-        </select>
         <button class="cfg-add-btn" onclick="cfgAddTipo()">+ Agregar</button>
       </div>
     </div>
@@ -1026,9 +1021,8 @@ function cfgDelObs(i){ ciConfig.obsList.splice(i,1); renderCfgChips(); }
 
 function cfgAddTipo(){
   const v = document.getElementById('cfg-tipo-input').value.trim();
-  const f = document.getElementById('cfg-tipo-flow').value;
   if(!v) return;
-  ciConfig.tipoInsumoList.push({ name: v, flow: f });
+  ciConfig.tipoInsumoList.push({ name: v, flow: 'qty_talla' });
   document.getElementById('cfg-tipo-input').value = '';
   renderCfgChips();
 }
@@ -1042,15 +1036,15 @@ function cfgAddObs(){
 
 // ── Sonidos de alerta ──
 const CI_SOUNDS = [
-  { id: 'ding3',    label: '🔔 Ding triple (por defecto)', desc: 'Tres tonos suaves descendentes' },
-  { id: 'beep',     label: '📟 Beep electrónico',          desc: 'Tres beeps cortos y rápidos' },
-  { id: 'chime',    label: '🎵 Campana larga',             desc: 'Un tono largo y claro' },
-  { id: 'urgent',   label: '🚨 Urgente',                   desc: 'Pitidos rápidos de alerta' },
-  { id: 'soft',     label: '🎶 Suave',                     desc: 'Tonos suaves y agradables' },
+  { id: 'sirena1',  label: '🚨 Sirena clásica',            desc: 'Sube y baja como sirena de emergencia — 5s' },
+  { id: 'sirena2',  label: '🔴 Sirena rápida',             desc: 'Pulsos cortos alternados de sirena — 5s' },
+  { id: 'alarma',   label: '⚠️ Alarma industrial',         desc: 'Tono de alarma de fábrica pulsante — 5s' },
+  { id: 'klaxon',   label: '📢 Klaxon',                    desc: 'Bocina de alerta repetida — 5s' },
+  { id: 'ding3',    label: '🔔 Ding triple',               desc: 'Tres tonos suaves (menos intenso) — 5s' },
   { id: 'none',     label: '🔇 Sin sonido',                desc: 'No reproducir ningún sonido' },
 ];
 
-let _selectedSound = localStorage.getItem('ci_sound') || 'ding3';
+let _selectedSound = localStorage.getItem('ci_sound') || 'sirena1';
 
 function renderSoundOptions(){
   const container = document.getElementById('cfg-sound-options');
@@ -1083,57 +1077,96 @@ function _playSoundById(id){
   try{
     const ctx = new (window.AudioContext||window.webkitAudioContext)();
     const now = ctx.currentTime;
-    if(id === 'ding3'){
-      [{freq:1046,start:0,dur:2.5},{freq:880,start:0.6,dur:2.2},{freq:1318,start:1.2,dur:2.0}]
-      .forEach(({freq,start,dur})=>{
+    const dur = 5.0; // todos duran 5 segundos
+
+    if(id === 'sirena1'){
+      // Sirena clásica: oscila lentamente entre tono bajo y alto, 5 ciclos en 5s
+      const cycles = 5;
+      for(let i = 0; i < cycles; i++){
+        const t = now + i * (dur / cycles);
+        const half = (dur / cycles) / 2;
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.type = 'sawtooth';
+        // Subir de 400Hz a 900Hz en la primera mitad
+        o.frequency.setValueAtTime(400, t);
+        o.frequency.linearRampToValueAtTime(900, t + half);
+        // Bajar de 900Hz a 400Hz en la segunda mitad
+        o.frequency.linearRampToValueAtTime(400, t + half * 2);
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(0.5, t + 0.05);
+        g.gain.setValueAtTime(0.5, t + half * 2 - 0.05);
+        g.gain.linearRampToValueAtTime(0, t + half * 2);
+        o.start(t); o.stop(t + half * 2);
+      }
+    } else if(id === 'sirena2'){
+      // Sirena rápida: pulsos cortos alternando dos frecuencias — 10 pulsos en 5s
+      const pulsos = 10;
+      const pDur = dur / pulsos;
+      for(let i = 0; i < pulsos; i++){
+        const t = now + i * pDur;
+        const freq = i % 2 === 0 ? 960 : 640;
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.type = 'square';
+        o.frequency.value = freq;
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(0.45, t + 0.03);
+        g.gain.setValueAtTime(0.45, t + pDur - 0.06);
+        g.gain.linearRampToValueAtTime(0, t + pDur - 0.01);
+        o.start(t); o.stop(t + pDur);
+      }
+    } else if(id === 'alarma'){
+      // Alarma industrial: tono fuerte pulsante con distorsión — 8 pulsos en 5s
+      const pulsos = 8;
+      const pDur = dur / pulsos;
+      for(let i = 0; i < pulsos; i++){
+        const t = now + i * pDur;
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.type = 'sawtooth';
+        o.frequency.setValueAtTime(520, t);
+        o.frequency.linearRampToValueAtTime(560, t + pDur * 0.6);
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(0.6, t + 0.02);
+        g.gain.setValueAtTime(0.6, t + pDur * 0.65);
+        g.gain.linearRampToValueAtTime(0, t + pDur * 0.75);
+        o.start(t); o.stop(t + pDur);
+      }
+    } else if(id === 'klaxon'){
+      // Klaxon/bocina: tono grave de bocina repetido — 5 bocinazos en 5s
+      const bocinazos = 5;
+      const bDur = dur / bocinazos;
+      for(let i = 0; i < bocinazos; i++){
+        const t = now + i * bDur;
+        // Dos osciladores para el efecto bocina
+        [280, 350].forEach(freq => {
+          const o = ctx.createOscillator();
+          const g = ctx.createGain();
+          o.connect(g); g.connect(ctx.destination);
+          o.type = 'sawtooth';
+          o.frequency.value = freq;
+          g.gain.setValueAtTime(0, t);
+          g.gain.linearRampToValueAtTime(0.3, t + 0.04);
+          g.gain.setValueAtTime(0.3, t + bDur * 0.7);
+          g.gain.linearRampToValueAtTime(0, t + bDur * 0.82);
+          o.start(t); o.stop(t + bDur);
+        });
+      }
+    } else if(id === 'ding3'){
+      // Ding triple ampliado a 5s: 3 dings bien espaciados
+      [{freq:1046,start:0,dur:2.0},{freq:880,start:1.5,dur:2.0},{freq:1318,start:3.0,dur:2.0}]
+      .forEach(({freq,start,d})=>{
         const o=ctx.createOscillator(),g=ctx.createGain();
         o.connect(g);g.connect(ctx.destination);
         o.type='sine';o.frequency.setValueAtTime(freq,now+start);
         g.gain.setValueAtTime(0,now+start);
         g.gain.linearRampToValueAtTime(0.45,now+start+0.015);
-        g.gain.exponentialRampToValueAtTime(0.001,now+start+dur);
-        o.start(now+start);o.stop(now+start+dur);
-      });
-    } else if(id === 'beep'){
-      [{f:1000,t:0},{f:1000,t:0.2},{f:1200,t:0.4}]
-      .forEach(({f,t})=>{
-        const o=ctx.createOscillator(),g=ctx.createGain();
-        o.connect(g);g.connect(ctx.destination);
-        o.type='square';o.frequency.value=f;
-        g.gain.setValueAtTime(0,now+t);
-        g.gain.linearRampToValueAtTime(0.3,now+t+0.02);
-        g.gain.linearRampToValueAtTime(0,now+t+0.1);
-        o.start(now+t);o.stop(now+t+0.12);
-      });
-    } else if(id === 'chime'){
-      const o=ctx.createOscillator(),g=ctx.createGain();
-      o.connect(g);g.connect(ctx.destination);
-      o.type='sine';o.frequency.setValueAtTime(880,now);
-      o.frequency.exponentialRampToValueAtTime(660,now+1.5);
-      g.gain.setValueAtTime(0,now);
-      g.gain.linearRampToValueAtTime(0.5,now+0.02);
-      g.gain.exponentialRampToValueAtTime(0.001,now+2.5);
-      o.start(now);o.stop(now+2.6);
-    } else if(id === 'urgent'){
-      for(let i=0;i<5;i++){
-        const o=ctx.createOscillator(),g=ctx.createGain();
-        o.connect(g);g.connect(ctx.destination);
-        o.type='sawtooth';o.frequency.value=i%2===0?880:660;
-        g.gain.setValueAtTime(0,now+i*0.15);
-        g.gain.linearRampToValueAtTime(0.35,now+i*0.15+0.02);
-        g.gain.linearRampToValueAtTime(0,now+i*0.15+0.12);
-        o.start(now+i*0.15);o.stop(now+i*0.15+0.13);
-      }
-    } else if(id === 'soft'){
-      [{freq:523,start:0,dur:1.2},{freq:659,start:0.35,dur:1.0},{freq:784,start:0.7,dur:1.5}]
-      .forEach(({freq,start,dur})=>{
-        const o=ctx.createOscillator(),g=ctx.createGain();
-        o.connect(g);g.connect(ctx.destination);
-        o.type='sine';o.frequency.setValueAtTime(freq,now+start);
-        g.gain.setValueAtTime(0,now+start);
-        g.gain.linearRampToValueAtTime(0.3,now+start+0.06);
-        g.gain.exponentialRampToValueAtTime(0.001,now+start+dur);
-        o.start(now+start);o.stop(now+start+dur);
+        g.gain.exponentialRampToValueAtTime(0.001,now+start+2.0);
+        o.start(now+start);o.stop(now+start+2.0);
       });
     }
   } catch(e){ console.warn('Audio no disponible'); }
@@ -1183,7 +1216,7 @@ document.addEventListener('keydown', e => {
 
 // ── Sonido de alerta — usa la preferencia guardada ──
 function playAlertSound(){
-  const id = localStorage.getItem('ci_sound') || 'ding3';
+  const id = localStorage.getItem('ci_sound') || 'sirena1';
   _playSoundById(id);
 }
 
