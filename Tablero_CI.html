@@ -426,7 +426,6 @@ input,select,textarea{ font-size:16px !important; }
       </div>
     </div>
 
-
     <!-- Observaciones predefinidas -->
     <div class="cfg-section">
       <div class="cfg-sec-title">📝 Observaciones rápidas</div>
@@ -435,6 +434,13 @@ input,select,textarea{ font-size:16px !important; }
         <input class="cfg-add-input" id="cfg-obs-input" type="text" placeholder="Nueva observación">
         <button class="cfg-add-btn" onclick="cfgAddObs()">+ Agregar</button>
       </div>
+    </div>
+
+    <!-- Sonido de alerta -->
+    <div class="cfg-section">
+      <div class="cfg-sec-title">🔔 Sonido de Alerta</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">Selecciona el sonido que suena al llegar una nueva solicitud.</p>
+      <div id="cfg-sound-options" style="display:flex;flex-direction:column;gap:8px;"></div>
     </div>
 
     <button class="ci-modal-btn primary" style="width:100%;padding:14px;" onclick="cfgGuardar()">
@@ -790,7 +796,7 @@ function buildCard(req){
   // Calcular hora inicio y fin
   const horaInicio = req.hora || (req.alertStart ? new Date(req.alertStart).toLocaleTimeString('es-CO') : '—');
   const horaFin    = req.resolvedAt || '—';
-  const tEspera    = req.waitTime != null ? Math.round(req.waitTime/60) + ' min' : (isDone ? '—' : '');
+  const tEspera    = req.waitTime != null ? Math.round(req.waitTime/60000) + ' min' : (isDone ? '—' : '');
 
   // Tipo de solicitud (categoría) vs insumo específico
   const categoria  = req.categoria || 'Falta de Insumo';
@@ -991,6 +997,7 @@ function confirmarDel(){
 // ── Config ──
 function abrirConfig(){
   renderCfgChips();
+  renderSoundOptions();
   document.getElementById('ci-config-screen').style.display = 'block';
 }
 function cerrarConfig(){
@@ -999,13 +1006,12 @@ function cerrarConfig(){
 
 function renderCfgChips(){
   renderChipList('cfg-tipos-chips', ciConfig.tipoInsumoList.map(t=>t.name), cfgDelTipo);
-  renderChipList('cfg-elasticos-chips', ciConfig.elasticoList, cfgDelElastico);
-  renderChipList('cfg-modulos-chips', ciConfig.moduleList, cfgDelModulo);
   renderChipList('cfg-obs-chips', ciConfig.obsList, cfgDelObs);
 }
 
 function renderChipList(containerId, items, delFn){
   const c = document.getElementById(containerId);
+  if(!c) return;
   c.innerHTML = '';
   items.forEach((item, i) => {
     const chip = document.createElement('div');
@@ -1016,8 +1022,6 @@ function renderChipList(containerId, items, delFn){
 }
 
 function cfgDelTipo(i){ ciConfig.tipoInsumoList.splice(i,1); renderCfgChips(); }
-function cfgDelElastico(i){ ciConfig.elasticoList.splice(i,1); renderCfgChips(); }
-function cfgDelModulo(i){ ciConfig.moduleList.splice(i,1); renderCfgChips(); }
 function cfgDelObs(i){ ciConfig.obsList.splice(i,1); renderCfgChips(); }
 
 function cfgAddTipo(){
@@ -1028,20 +1032,6 @@ function cfgAddTipo(){
   document.getElementById('cfg-tipo-input').value = '';
   renderCfgChips();
 }
-function cfgAddElastico(){
-  const v = document.getElementById('cfg-elastico-input').value.trim();
-  if(!v) return;
-  ciConfig.elasticoList.push(v);
-  document.getElementById('cfg-elastico-input').value = '';
-  renderCfgChips();
-}
-function cfgAddModulo(){
-  const v = document.getElementById('cfg-modulo-input').value.trim();
-  if(!v) return;
-  ciConfig.moduleList.push(v);
-  document.getElementById('cfg-modulo-input').value = '';
-  renderCfgChips();
-}
 function cfgAddObs(){
   const v = document.getElementById('cfg-obs-input').value.trim();
   if(!v) return;
@@ -1050,7 +1040,107 @@ function cfgAddObs(){
   renderCfgChips();
 }
 
+// ── Sonidos de alerta ──
+const CI_SOUNDS = [
+  { id: 'ding3',    label: '🔔 Ding triple (por defecto)', desc: 'Tres tonos suaves descendentes' },
+  { id: 'beep',     label: '📟 Beep electrónico',          desc: 'Tres beeps cortos y rápidos' },
+  { id: 'chime',    label: '🎵 Campana larga',             desc: 'Un tono largo y claro' },
+  { id: 'urgent',   label: '🚨 Urgente',                   desc: 'Pitidos rápidos de alerta' },
+  { id: 'soft',     label: '🎶 Suave',                     desc: 'Tonos suaves y agradables' },
+  { id: 'none',     label: '🔇 Sin sonido',                desc: 'No reproducir ningún sonido' },
+];
+
+let _selectedSound = localStorage.getItem('ci_sound') || 'ding3';
+
+function renderSoundOptions(){
+  const container = document.getElementById('cfg-sound-options');
+  if(!container) return;
+  container.innerHTML = '';
+  CI_SOUNDS.forEach(s => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;border:1.5px solid var(--border);background:#fafbfc;cursor:pointer;transition:all .15s;';
+    const isSelected = _selectedSound === s.id;
+    if(isSelected) row.style.cssText += 'border-color:var(--accent);background:#eff6ff;';
+    row.innerHTML = `
+      <div style="width:18px;height:18px;border-radius:50%;border:2px solid ${isSelected?'var(--accent)':'var(--border)'};background:${isSelected?'var(--accent)':'#fff'};flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+        ${isSelected?'<div style="width:7px;height:7px;border-radius:50%;background:#fff;"></div>':''}
+      </div>
+      <div style="flex:1;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:.5px;color:var(--text);">${s.label}</div>
+        <div style="font-size:11px;color:var(--muted);">${s.desc}</div>
+      </div>
+      <button onclick="event.stopPropagation();previewSound('${s.id}')" style="padding:5px 10px;border-radius:6px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;font-family:'Barlow Condensed',sans-serif;letter-spacing:.5px;">▶ Probar</button>
+    `;
+    row.onclick = () => { _selectedSound = s.id; localStorage.setItem('ci_sound',''); renderSoundOptions(); };
+    container.appendChild(row);
+  });
+}
+
+function previewSound(id){ _playSoundById(id); }
+
+function _playSoundById(id){
+  if(id === 'none') return;
+  try{
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const now = ctx.currentTime;
+    if(id === 'ding3'){
+      [{freq:1046,start:0,dur:2.5},{freq:880,start:0.6,dur:2.2},{freq:1318,start:1.2,dur:2.0}]
+      .forEach(({freq,start,dur})=>{
+        const o=ctx.createOscillator(),g=ctx.createGain();
+        o.connect(g);g.connect(ctx.destination);
+        o.type='sine';o.frequency.setValueAtTime(freq,now+start);
+        g.gain.setValueAtTime(0,now+start);
+        g.gain.linearRampToValueAtTime(0.45,now+start+0.015);
+        g.gain.exponentialRampToValueAtTime(0.001,now+start+dur);
+        o.start(now+start);o.stop(now+start+dur);
+      });
+    } else if(id === 'beep'){
+      [{f:1000,t:0},{f:1000,t:0.2},{f:1200,t:0.4}]
+      .forEach(({f,t})=>{
+        const o=ctx.createOscillator(),g=ctx.createGain();
+        o.connect(g);g.connect(ctx.destination);
+        o.type='square';o.frequency.value=f;
+        g.gain.setValueAtTime(0,now+t);
+        g.gain.linearRampToValueAtTime(0.3,now+t+0.02);
+        g.gain.linearRampToValueAtTime(0,now+t+0.1);
+        o.start(now+t);o.stop(now+t+0.12);
+      });
+    } else if(id === 'chime'){
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.type='sine';o.frequency.setValueAtTime(880,now);
+      o.frequency.exponentialRampToValueAtTime(660,now+1.5);
+      g.gain.setValueAtTime(0,now);
+      g.gain.linearRampToValueAtTime(0.5,now+0.02);
+      g.gain.exponentialRampToValueAtTime(0.001,now+2.5);
+      o.start(now);o.stop(now+2.6);
+    } else if(id === 'urgent'){
+      for(let i=0;i<5;i++){
+        const o=ctx.createOscillator(),g=ctx.createGain();
+        o.connect(g);g.connect(ctx.destination);
+        o.type='sawtooth';o.frequency.value=i%2===0?880:660;
+        g.gain.setValueAtTime(0,now+i*0.15);
+        g.gain.linearRampToValueAtTime(0.35,now+i*0.15+0.02);
+        g.gain.linearRampToValueAtTime(0,now+i*0.15+0.12);
+        o.start(now+i*0.15);o.stop(now+i*0.15+0.13);
+      }
+    } else if(id === 'soft'){
+      [{freq:523,start:0,dur:1.2},{freq:659,start:0.35,dur:1.0},{freq:784,start:0.7,dur:1.5}]
+      .forEach(({freq,start,dur})=>{
+        const o=ctx.createOscillator(),g=ctx.createGain();
+        o.connect(g);g.connect(ctx.destination);
+        o.type='sine';o.frequency.setValueAtTime(freq,now+start);
+        g.gain.setValueAtTime(0,now+start);
+        g.gain.linearRampToValueAtTime(0.3,now+start+0.06);
+        g.gain.exponentialRampToValueAtTime(0.001,now+start+dur);
+        o.start(now+start);o.stop(now+start+dur);
+      });
+    }
+  } catch(e){ console.warn('Audio no disponible'); }
+}
+
 function cfgGuardar(){
+  localStorage.setItem('ci_sound', _selectedSound);
   wsSend({
     type:           'ci_config_sync',
     tipoInsumoList: ciConfig.tipoInsumoList,
@@ -1091,31 +1181,10 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// ── Sonido de alerta ──
+// ── Sonido de alerta — usa la preferencia guardada ──
 function playAlertSound(){
-  try{
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const now = ctx.currentTime;
-    // 3 dings con decaimiento largo — duración total ~5s
-    const tones = [
-      { freq: 1046, start: 0,    dur: 2.5 },  // Do5
-      { freq:  880, start: 0.6,  dur: 2.2 },  // La4
-      { freq: 1318, start: 1.2,  dur: 2.0 },  // Mi5
-    ];
-    tones.forEach(({ freq, start, dur }) => {
-      const osc  = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, now + start);
-      gain.gain.setValueAtTime(0, now + start);
-      gain.gain.linearRampToValueAtTime(0.45, now + start + 0.015);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + start + dur);
-      osc.start(now + start);
-      osc.stop(now + start + dur);
-    });
-  } catch(e){ console.warn('Audio no disponible'); }
+  const id = localStorage.getItem('ci_sound') || 'ding3';
+  _playSoundById(id);
 }
 
 // ── Poblar user label en header ──
