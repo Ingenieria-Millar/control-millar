@@ -426,25 +426,6 @@ input,select,textarea{ font-size:16px !important; }
       </div>
     </div>
 
-    <!-- Lista de elásticos -->
-    <div class="cfg-section">
-      <div class="cfg-sec-title">🧵 Tipos de Elástico</div>
-      <div class="cfg-chips" id="cfg-elasticos-chips"></div>
-      <div class="cfg-add-row">
-        <input class="cfg-add-input" id="cfg-elastico-input" type="text" placeholder="Nuevo elástico (ej: Tobillo)">
-        <button class="cfg-add-btn" onclick="cfgAddElastico()">+ Agregar</button>
-      </div>
-    </div>
-
-    <!-- Módulos -->
-    <div class="cfg-section">
-      <div class="cfg-sec-title">🏭 Módulos activos</div>
-      <div class="cfg-chips" id="cfg-modulos-chips"></div>
-      <div class="cfg-add-row">
-        <input class="cfg-add-input" id="cfg-modulo-input" type="text" placeholder="Nuevo módulo (ej: M28)">
-        <button class="cfg-add-btn" onclick="cfgAddModulo()">+ Agregar</button>
-      </div>
-    </div>
 
     <!-- Observaciones predefinidas -->
     <div class="cfg-section">
@@ -463,33 +444,7 @@ input,select,textarea{ font-size:16px !important; }
   </div>
 </div>
 
-<!-- Historial eliminado -->
-    <button class="ci-btn" onclick="cerrarHistorial()">← Volver</button>
-  </div>
-  <div style="padding:16px clamp(12px,2.5vw,24px);">
-    <div style="background:#fff;border-radius:14px;border:1.5px solid var(--border);overflow:hidden;">
-      <div style="overflow-x:auto;">
-        <table class="hist-table">
-          <thead>
-            <tr>
-              <th>Módulo</th>
-              <th>Tipo</th>
-              <th>Ref.</th>
-              <th>OP</th>
-              <th>Cantidad</th>
-              <th>Talla</th>
-              <th>Fecha/Hora</th>
-              <th>Estado</th>
-              <th>Tiempo (min)</th>
-              <th>Obs.</th>
-            </tr>
-          </thead>
-          <tbody id="hist-tbody"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-</div>
+
 
 <!-- TOAST -->
 <div id="ci-toast"></div>
@@ -865,7 +820,8 @@ function buildCard(req){
           <button class="ci-action-btn obs" onclick="toggleObsMenu('${req._id}')">📝 Obs.</button>
           <div id="obs-menu-${req._id}" style="display:none;position:absolute;bottom:110%;left:0;z-index:200;background:#fff;border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:180px;padding:6px 0;"></div>
         </div>
-        <button class="ci-action-btn cumplir" onclick="marcarCumplido('${req._id}')">✅ Cumplido</button>
+        <button class="ci-action-btn cumplir" onclick="marcarCumplido('${req._id}')"
+          ${!req.obs ? 'disabled title="Agrega una observación antes de marcar cumplido" style="opacity:0.45;cursor:not-allowed;"' : ''}>✅ Cumplido</button>
         <button class="ci-action-btn del" onclick="abrirDel('${req._id}')">🗑</button>
       ` : `
         <button class="ci-action-btn del" onclick="abrirDel('${req._id}')">🗑 Eliminar</button>
