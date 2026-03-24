@@ -1380,7 +1380,8 @@ function connectWS(){
         if(!window._ciRequests) window._ciRequests=[];
         const idx = window._ciRequests.findIndex(r=>r._id===req._id);
         if(idx>-1) window._ciRequests[idx]=req; else window._ciRequests.unshift(req);
-        if(req && req.module === selectedMod && currentView==='single'){
+        if(req && req.module === selectedMod){
+          // Mostrar modal sin importar si está en grid o single view
           showCiCumplidoModal(req);
         } else if(req && req.module){
           showToastSimple('📦 ' + req.module + ' — Insumo listo para confirmar');
@@ -6603,11 +6604,13 @@ function showCiCumplidoModal(req){
   if(!ov){
     ov = document.createElement('div');
     ov.id = 'ci-confirm-overlay';
-    ov.style.cssText = 'position:fixed;inset:0;z-index:9100;background:rgba(15,23,42,.6);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:16px;';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:9100;background:rgba(15,23,42,.7);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:16px;';
+    // Bloquear clicks fuera del modal (no cerrar al hacer tap afuera)
+    ov.addEventListener('click', function(e){ e.stopPropagation(); });
     document.body.appendChild(ov);
   }
   ov.innerHTML = `
-    <div style="background:#fff;border-radius:18px;padding:32px 28px 24px;width:100%;max-width:380px;box-shadow:0 24px 60px rgba(15,23,42,.25);animation:slup .22s ease;text-align:center;">
+    <div style="background:#fff;border-radius:18px;padding:32px 28px 24px;width:100%;max-width:380px;box-shadow:0 24px 60px rgba(15,23,42,.25);animation:slup .22s ease;text-align:center;" onclick="event.stopPropagation()">
       <div style="font-size:48px;margin-bottom:12px;">📦</div>
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;letter-spacing:2px;color:#1e3a8a;margin-bottom:8px;">¡INSUMO LISTO!</div>
       <div style="font-size:14px;color:#64748b;margin-bottom:20px;">El CI confirma que tu insumo fue entregado.<br>¿Confirmas que lo recibiste?</div>
@@ -6632,17 +6635,20 @@ function ciConfirmarRecepcion(reqId, accepted){
   if(ov) ov.style.display = 'none';
   if(!typeof wsSend==='function') return;
   if(accepted){
-    // Buscar la solicitud en _ciRequests si existe
     const existing = (window._ciRequests||[]).find(r=>r._id===reqId);
     const req = Object.assign({}, existing||{_id:reqId}, {
       status: 'done',
       resolvedAt: new Date().toLocaleTimeString('es-CO'),
-      waitTime: existing ? Math.floor((Date.now()-(existing.alertStart||Date.now()))/1000) : 0
+      waitTime: existing ? Math.floor((Date.now()-(existing.alertStart||Date.now()))) : 0
     });
     if(typeof wsSend==='function') wsSend({type:'ci_update_request', request: req});
+    // Cambiar estado del módulo de naranja a verde inmediatamente
+    const modId = existing ? existing.module : (selectedMod||null);
+    if(modId && typeof commitChange==='function'){
+      commitChange(modId, 'green', null);
+    }
     showToastSimple('✅ Insumo confirmado como recibido');
   } else {
-    // No recibido — vuelve a alerta, tiempo sigue contando
     const existing = (window._ciRequests||[]).find(r=>r._id===reqId);
     const req = Object.assign({}, existing||{_id:reqId}, {
       status: 'alert',
