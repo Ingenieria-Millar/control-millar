@@ -805,35 +805,29 @@ function buildCard(req){
 
   const div = document.createElement('div');
   div.className = `ci-card status-${req.status || 'alert'}`;
-  div.dataset.id         = req._id;
+  div.dataset.id        = req._id;
   div.dataset.alertStart = req.alertStart || '';
-  div.dataset.isDone     = isDone ? '1' : '0';
+  div.dataset.isDone    = isDone ? '1' : '0';
 
   const badgeLabel = isDone ? 'Entregado ✅' : isCump ? 'Listo ✓' : 'Pendiente 🔴';
 
-  // ── Hora inicio: sin segundos ──
-  // fmtHoraFromMs usa {hour, minute} → nunca incluye segundos
+  // Hora inicio: primero intentar alertStart (más preciso), luego req.hora
   const horaInicio = req.alertStart
     ? fmtHoraFromMs(req.alertStart)
-    : fmtHora(req.hora);          // fmtHora ya elimina ":ss" del string
+    : fmtHora(req.hora);
 
-  // ── Hora fin: sin segundos ──
+  // Hora fin: sin segundos
   const horaFin = req.resolvedAt ? fmtHora(req.resolvedAt) : '—';
 
-  // ── T. Espera inicial en minutos decimales ──
-  // Para tarjetas activas el setInterval lo actualiza cada segundo.
-  // Para tarjetas done se usa el waitTime guardado (fijo).
+  // T. Espera: para done usar waitTime guardado; para activas, se actualiza en vivo
   const tEsperaInicial = isDone
     ? (req.waitTime != null ? calcTEsperaDecimal(req.waitTime) : '—')
-    : (req.alertStart      ? calcTEsperaDecimal(Date.now() - req.alertStart) : '—');
+    : (req.alertStart ? calcTEsperaDecimal(Date.now() - req.alertStart) : '—');
 
-  // ── Campos de texto ──
-  const insumo    = (req.tipo || '').replace(/\s*·\s*.+$/, '') || '—';
-  const categoria = req.categoria || '—';
-  const talla     = req.talla     || '—';
-  const ref       = req.ref       || '—';
-  const op        = req.op        || '—';
-  const qty       = req.qty       || '—';
+  // Insumo: quitar " · talla"
+  const insumo    = (req.tipo || '—').replace(/\s*·\s*.+$/, '');
+  const categoria = req.categoria || 'Falta de Insumo';
+  const talla     = req.talla || '—';
 
   div.innerHTML = `
     <div class="ci-card-hdr">
@@ -841,15 +835,15 @@ function buildCard(req){
       <span class="ci-card-badge ${req.status || 'alert'}">${badgeLabel}</span>
     </div>
     <table class="ci-card-table">
-      <tr><td>Tipo</td>        <td>${categoria}</td></tr>
-      <tr><td>Referencia</td>  <td>${ref}</td></tr>
-      <tr><td>OP / OC</td>     <td>${op}</td></tr>
-      <tr><td>Insumo</td>      <td>${insumo}</td></tr>
-      <tr><td>Cantidad</td>    <td>${qty}</td></tr>
-      <tr><td>Talla</td>       <td>${talla}</td></tr>
-      <tr><td>Hora Inicio</td> <td>${horaInicio}</td></tr>
-      <tr><td>Hora Fin</td>    <td>${horaFin}</td></tr>
-      <tr><td>T. Espera</td>   <td class="ci-tespera-val">${tEsperaInicial}</td></tr>
+      <tr><td>Tipo</td><td>${categoria}</td></tr>
+      <tr><td>Referencia</td><td>${req.ref || '—'}</td></tr>
+      <tr><td>OP / OC</td><td>${req.op || '—'}</td></tr>
+      <tr><td>Insumo</td><td>${insumo}</td></tr>
+      <tr><td>Cantidad</td><td>${req.qty || '—'}</td></tr>
+      <tr><td>Talla</td><td>${talla}</td></tr>
+      <tr><td>Hora Inicio</td><td>${horaInicio}</td></tr>
+      <tr><td>Hora Fin</td><td>${horaFin}</td></tr>
+      <tr><td>T. Espera</td><td class="ci-tespera-val">${tEsperaInicial}</td></tr>
       ${req.obs ? `<tr><td>Obs.</td><td style="font-style:italic;color:var(--muted);">${req.obs}</td></tr>` : ''}
     </table>
     <div class="ci-card-footer">
@@ -869,25 +863,20 @@ function buildCard(req){
   return div;
 }
 
-// ── Timer en vivo ──
-// Actualiza el campo T. ESPERA de cada tarjeta activa cada 1 segundo.
-// calcTEsperaDecimal(ms) = (ms / 60000).toFixed(2)
-//   → 45 000 ms  = 0.75 min
-//   → 90 000 ms  = 1.50 min
-// Solo se actualizan las tarjetas con dataset.isDone !== '1',
-// evitando trabajo innecesario sobre tarjetas ya cerradas.
+// ── Timer en vivo — actualiza T. Espera en decimal de minutos cada 5s ──
 function startTimers(){
   if(_timerInterval) clearInterval(_timerInterval);
   _timerInterval = setInterval(() => {
     const now = Date.now();
-    document.querySelectorAll('.ci-card[data-is-done="0"]').forEach(card => {
+    document.querySelectorAll('.ci-card').forEach(card => {
+      if(card.dataset.isDone === '1') return; // done no cambia
       const alertStart = parseInt(card.dataset.alertStart);
       if(!alertStart) return;
       const el = card.querySelector('.ci-tespera-val');
       if(!el) return;
       el.textContent = calcTEsperaDecimal(now - alertStart);
     });
-  }, 1000); // cada 1 segundo — contador en vivo
+  }, 5000); // cada 5 segundos — liviano y preciso
 }
 
 
