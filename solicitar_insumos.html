@@ -68,36 +68,61 @@ header::after{
   text-align:center;padding:48px 20px;color:var(--muted);
   font-family:'Barlow Condensed',sans-serif;font-size:16px;letter-spacing:2px;
 }
+/* ── CARD estilo Tablero CI ── */
 .req-card{
-  background:#fff;border-radius:12px;border:1.5px solid var(--border);
-  padding:16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.04);
+  background:#fff;border-radius:14px;
+  border:1.5px solid var(--border);
+  box-shadow:0 2px 8px rgba(0,0,0,.06);
+  overflow:hidden;margin-bottom:14px;
   animation:slup .2s ease;
+  transition:box-shadow .2s,transform .2s;
 }
-.req-card.alert{ border-left:4px solid var(--danger); }
-.req-card.cumplido{ border-left:4px solid var(--warn); }
-.req-card.done{ border-left:4px solid var(--ok); opacity:.8; }
-@keyframes slup{ from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;} }
-.req-hdr{ display:flex;align-items:center;gap:10px;margin-bottom:10px; }
+.req-card:hover{ box-shadow:0 6px 20px rgba(0,0,0,.1);transform:translateY(-2px); }
+@keyframes slup{ from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;} }
+.req-card.alert{ border-top:4px solid var(--danger); }
+.req-card.cumplido{ border-top:4px solid var(--warn); }
+.req-card.done{ border-top:4px solid var(--ok);opacity:.85; }
+/* Cabecera */
+.req-hdr{
+  display:flex;align-items:center;gap:10px;
+  padding:14px 16px 10px;border-bottom:1px solid #f1f5f9;
+}
 .req-tipo{
-  font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;
-  letter-spacing:1px;color:var(--accent2);flex:1;
+  font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;
+  letter-spacing:3px;color:var(--accent2);flex:1;
 }
 .req-badge{
-  padding:3px 10px;border-radius:20px;
-  font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;
+  padding:3px 10px;border-radius:20px;margin-left:auto;
+  font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;
+  letter-spacing:1px;text-transform:uppercase;
 }
 .req-badge.alert{ background:#fef2f2;color:#b91c1c; }
 .req-badge.cumplido{ background:#fffbeb;color:#92400e; }
 .req-badge.done{ background:#f0fdf4;color:#15803d; }
-.req-fields{ display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px; }
-.req-field{
-  background:#f8fafc;border-radius:8px;padding:6px 12px;flex:1;min-width:100px;
+/* Tabla de ficha estilo CI */
+.req-table{
+  width:100%;border-collapse:collapse;
+  font-family:'IBM Plex Sans',sans-serif;font-size:13px;
 }
-.req-field-lbl{ font-size:9px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted); }
-.req-field-val{
-  font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;color:var(--text);
+.req-table tr{ border-bottom:1px solid #f1f5f9; }
+.req-table tr:last-child{ border-bottom:none; }
+.req-table td{ padding:7px 16px; }
+.req-table td:first-child{
+  font-size:10px;font-weight:800;letter-spacing:1.2px;
+  text-transform:uppercase;color:var(--muted);
+  width:42%;background:#fafbfc;
 }
-.req-footer{ font-size:11px;color:var(--muted);font-weight:600; }
+.req-table td:last-child{
+  font-family:'Barlow Condensed',sans-serif;font-size:16px;
+  font-weight:700;color:var(--text);letter-spacing:.5px;
+}
+/* Footer */
+.req-footer{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 16px 12px;flex-wrap:wrap;
+  border-top:1px solid #f1f5f9;
+  font-size:11px;color:var(--muted);font-weight:600;
+}
 
 /* ── BOTÓN FLOTANTE ── */
 #fab{
@@ -174,21 +199,29 @@ header::after{
   font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;
   letter-spacing:2px;text-transform:uppercase;color:var(--accent2);margin-bottom:6px;
 }
-.login-sub{ font-size:13px;color:var(--muted);margin-bottom:24px; }
-.mec-list{ display:flex;flex-direction:column;gap:10px;margin-bottom:20px; }
-.mec-btn{
-  padding:13px 16px;border-radius:12px;border:1.5px solid var(--border);
-  background:#f8fafc;font-family:'Barlow Condensed',sans-serif;
-  font-size:16px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
-  color:var(--text);cursor:pointer;transition:all .18s;text-align:left;
-  display:flex;align-items:center;gap:10px;
+.login-sub{ font-size:13px;color:var(--muted);margin-bottom:28px; }
+/* ── Dropdown selector ── */
+.mec-select-wrap{ position:relative;margin-bottom:16px; }
+.mec-select-wrap select{
+  width:100%;padding:14px 44px 14px 16px;border:2px solid var(--border);border-radius:12px;
+  font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;letter-spacing:1px;
+  color:var(--text);background:#f8fafc;cursor:pointer;
+  appearance:none;-webkit-appearance:none;outline:none;transition:border-color .2s,box-shadow .2s;
 }
-.mec-btn:hover{ background:#eff6ff;border-color:#93c5fd;color:var(--accent); }
-.mec-btn .mec-avatar{
-  width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#1e3a8a,#2563eb);
-  color:#fff;display:flex;align-items:center;justify-content:center;
-  font-size:14px;font-weight:800;flex-shrink:0;
+.mec-select-wrap select:focus{ border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.12); }
+.mec-select-wrap::after{
+  content:'▾';position:absolute;right:16px;top:50%;transform:translateY(-50%);
+  font-size:16px;color:var(--muted);pointer-events:none;
 }
+.mec-select-wrap select option{ font-size:15px; }
+.login-confirm-btn{
+  width:100%;padding:14px;border-radius:12px;border:none;cursor:pointer;
+  background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;
+  font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;
+  letter-spacing:2px;transition:filter .2s,opacity .2s;
+}
+.login-confirm-btn:hover:not(:disabled){ filter:brightness(1.1); }
+.login-confirm-btn:disabled{ opacity:.45;cursor:not-allowed; }
 
 /* ── LOADER ── */
 #si-loader{
@@ -224,7 +257,15 @@ header::after{
     <div class="login-icon">🔧</div>
     <div class="login-title">¿Quién eres?</div>
     <div class="login-sub">Selecciona tu nombre para continuar</div>
-    <div class="mec-list" id="mec-list"></div>
+    <div class="mec-select-wrap">
+      <select id="mec-select" onchange="document.getElementById('mec-confirm-btn').disabled=!this.value;">
+        <option value="">— Selecciona tu nombre —</option>
+      </select>
+    </div>
+    <div id="mec-select-error" style="display:none;color:var(--danger);font-size:12px;font-weight:700;margin-bottom:10px;text-align:center;"></div>
+    <button id="mec-confirm-btn" class="login-confirm-btn" disabled onclick="confirmarMecanico()">
+      ✔ CONTINUAR
+    </button>
   </div>
 </div>
 
@@ -333,27 +374,31 @@ async function mostrarLoginMecanico(){
   try{
     const res = await fetch('/api/mecanicos');
     const mecanicos = await res.json();
-    const list = document.getElementById('mec-list');
-    list.innerHTML = '';
+    const sel = document.getElementById('mec-select');
+    sel.innerHTML = '<option value="">— Selecciona tu nombre —</option>';
 
     if(!mecanicos || mecanicos.length === 0){
-      list.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;">No hay mecánicos registrados</div>';
+      document.getElementById('mec-select-error').style.display = 'block';
+      document.getElementById('mec-select-error').textContent = 'No hay mecánicos registrados.';
       return;
     }
 
     mecanicos.forEach(m => {
-      const btn = document.createElement('button');
-      btn.className = 'mec-btn';
-      const inicial = (m.name||'?')[0].toUpperCase();
-      btn.innerHTML = `<div class="mec-avatar">${inicial}</div><span>${m.name}</span>`;
-      btn.onclick = () => seleccionarMecanico(m.name);
-      list.appendChild(btn);
+      const opt = document.createElement('option');
+      opt.value = m.name;
+      opt.textContent = m.name;
+      sel.appendChild(opt);
     });
   } catch(e){
-    // Si falla el fetch, dejar ingresar manualmente
-    document.getElementById('mec-list').innerHTML =
-      '<div style="color:var(--danger);font-size:13px;text-align:center;">Error al cargar mecánicos.<br>Recarga la página.</div>';
+    document.getElementById('mec-select-error').style.display = 'block';
+    document.getElementById('mec-select-error').textContent = 'Error al cargar mecánicos. Recarga la página.';
   }
+}
+
+function confirmarMecanico(){
+  const nombre = document.getElementById('mec-select').value;
+  if(!nombre) return;
+  seleccionarMecanico(nombre);
 }
 
 function seleccionarMecanico(nombre){
@@ -525,18 +570,19 @@ function renderHistorial(){
         <div class="req-tipo">${r.tipo||'—'}</div>
         <span class="req-badge ${r.status||'alert'}">${badgeLabel}</span>
       </div>
-      <div class="req-fields">
-        <div class="req-field"><div class="req-field-lbl">Ref.</div><div class="req-field-val">${r.ref||'—'}</div></div>
-        <div class="req-field"><div class="req-field-lbl">OP / OC</div><div class="req-field-val">${r.op||'—'}</div></div>
-        <div class="req-field"><div class="req-field-lbl">Cantidad</div><div class="req-field-val">${r.qty||'—'}</div></div>
-        ${r.talla?`<div class="req-field"><div class="req-field-lbl">Talla</div><div class="req-field-val">${r.talla}</div></div>`:''}
+      <table class="req-table">
+        <tr><td>Referencia</td><td>${r.ref||'—'}</td></tr>
+        <tr><td>OP / OC</td>   <td>${r.op||'—'}</td></tr>
+        <tr><td>Cantidad</td>  <td>${r.qty||'—'}</td></tr>
+        <tr><td>Talla</td>     <td>${r.talla||'—'}</td></tr>
+        ${r.obs?`<tr><td>Observación</td><td>${r.obs}</td></tr>`:''}
+      </table>
+      <div class="req-footer">
+        <span>🕐 ${r.datetime||r.hora||'—'}</span>
+        ${isCump?`<button onclick="confirmarRecibo('${r._id}')" style="margin-left:auto;padding:7px 18px;border-radius:8px;border:none;cursor:pointer;background:linear-gradient(135deg,#15803d,#22c55e);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;">✅ CONFIRMAR RECIBO</button>`:''}
       </div>
-      <div class="req-footer">🕐 ${r.datetime||r.hora||'—'}${r.obs?'  📝 '+r.obs:''}</div>
-      ${isCump?`<div style="margin-top:12px;">
-        <button onclick="confirmarRecibo('${r._id}')" style="width:100%;padding:12px;border-radius:10px;border:none;cursor:pointer;background:linear-gradient(135deg,#15803d,#22c55e);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;">✅ CONFIRMAR RECIBO</button>
-      </div>`:''}
     `;
-    list.appendChild(card);
+        list.appendChild(card);
   });
 }
 
