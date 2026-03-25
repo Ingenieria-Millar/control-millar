@@ -135,12 +135,7 @@ body.vista-edit #vista-edit-banner{display:flex;}
 .module.orange .mod-label{color:#9a3412;background:rgba(249,115,22,0.15);}
 .module.blue .mod-timer{color:#1e40af;background:rgba(37,99,235,0.12);}
 .module.orange .mod-timer{color:#9a3412;background:rgba(249,115,22,0.12);}
-.module.blue .mod-id{color:#1e40af;}.module.orange .mod-id{color:#9a3412;}.module.purple .mod-id{color:#5b21b6;}
-.module.purple{background:#f5f3ff;border-color:#a78bfa;box-shadow:0 2px 16px rgba(124,58,237,0.18);}
-.module.purple::before{background:#7c3aed;}
-.module.purple .light{background:radial-gradient(circle at 35% 35%,#c4b5fd,#6d28d9);box-shadow:0 0 16px rgba(124,58,237,0.7),0 0 32px rgba(124,58,237,0.3);animation:none;}
-.module.purple .mod-label{color:#5b21b6;background:rgba(124,58,237,0.15);}
-.module.purple .mod-timer{color:#5b21b6;background:rgba(124,58,237,0.12);}
+.module.blue .mod-id{color:#1e40af;}.module.orange .mod-id{color:#9a3412;}
 .mod-id{font-family:'Courier New',monospace;font-size:12px;font-weight:700;letter-spacing:2px;color:#475569;align-self:flex-start;}
 .light{width:50px;height:50px;border-radius:50%;transition:background 0.4s,box-shadow 0.4s;position:relative;}
 .light::after{content:'';position:absolute;top:8px;left:11px;width:14px;height:8px;border-radius:50%;background:rgba(255,255,255,0.22);transform:rotate(-30deg);}
@@ -168,9 +163,6 @@ body.vista-edit #vista-edit-banner{display:flex;}
 .big-wrap.yellow{background:#fef9c3;border-color:#fbbf24;}
 .big-wrap.blue{background:#dbeafe;border-color:#60a5fa;}
 .big-wrap.orange{background:#ffedd5;border-color:#fb923c;}
-.big-wrap.purple{background:#f5f3ff;border-color:#a78bfa;box-shadow:0 8px 50px rgba(124,58,237,0.15);}
-.big-wrap.purple .big-status,.big-wrap.purple .big-id,.big-wrap.purple .big-timer{color:#5b21b6;}
-.big-wrap.purple .big-light{background:radial-gradient(circle at 35% 35%,#c4b5fd,#6d28d9);box-shadow:0 0 55px rgba(124,58,237,0.8),0 0 110px rgba(124,58,237,0.4);}
 .big-wrap.blue .big-status,.big-wrap.blue .big-id,.big-wrap.blue .big-timer{color:#1e40af;}
 .big-wrap.orange .big-status,.big-wrap.orange .big-id,.big-wrap.orange .big-timer{color:#9a3412;}
 .big-wrap:active{transform:scale(0.97);}
@@ -1129,6 +1121,7 @@ body { overflow-x: hidden; max-width: 100vw; }
       <button class="mec-btn" onclick="onImpMec()" style="border-left:4px solid #dc2626;">🔴 Fallo Mecánico</button>
       <button class="mec-btn" onclick="onImpRef()" style="border-left:4px solid #1d4ed8;">🔵 Cambio de Referencia</button>
       <button class="mec-btn" onclick="onImpIns()" style="border-left:4px solid #ea580c;">🟠 Falta de Insumos</button>
+      <button class="mec-btn" onclick="onImpProd()" style="border-left:4px solid #16a34a;">🟢 Solicitud de Producción</button>
 
     </div>
     <button onclick="cancelImproductivo()" style="margin-top:6px;background:none;border:none;color:#94a3b8;font-size:13px;cursor:pointer;font-family:Nunito,sans-serif;">✕ Cancelar</button>
@@ -1258,26 +1251,20 @@ body { overflow-x: hidden; max-width: 100vw; }
 <!-- ══════════════════════════════════════════════════════════════ -->
 <script>
 const MODULES=['M01','M02','M03','M04','M05','M06','M07','M08','M09','M10','M11','M12','M13','M14','M15','M16','M17','M18','M19','M20','M21','M22','M23','M24','M25','M26','M27'];
-const LABELS={green:'Operativo',yellow:'Atendiendo',red:'Alerta',blue:'Cambio Ref.',orange:'En Espera',purple:'Prod. Solicitada'};
+const LABELS={green:'Operativo',yellow:'Atendiendo',red:'Alerta',blue:'Cambio Ref.',orange:'En Espera'};
 const NEXT={green:'red',red:'yellow',yellow:'green'};  // used only for mec flow
 const MECANICOS=[];
 
 // ── Perfiles del sistema con sus permisos base ──────────────────────
 const USUARIOS={
-  'Programador':   {pass:'1',    perms:['area_ingreso','area_produccion','area_mecanicos','tablero','modulos','excel','fix','area_calidad','area_ci','area_empaque','area_corte','area_sst','area_montajes']},
-  'Administrador': {pass:'1',    perms:['area_ingreso','area_produccion','area_mecanicos','tablero','modulos','excel','area_calidad','area_ci','area_empaque','area_corte','area_sst','area_montajes']},
-  'Modulos':       {pass:'',     perms:['area_produccion','modulos']},
-  'Mecanicos':     {pass:'1',    perms:['area_mecanicos','area_montajes','tablero']},
-  'Supervisoras':  {pass:'1',    perms:['area_ingreso','area_asistencia']},
-  'Televisor':     {pass:'1',    perms:['area_mecanicos','tablero']},
+  'Programador':  {pass:'1',perms:['area_ingreso','area_produccion','area_mecanicos','tablero','modulos','excel','fix','area_calidad','area_ci','area_empaque','area_corte','area_sst','area_montajes']},
 };
 
 const states={}, timers={}, lastMec={}, acumRed={}, acumYellow={}, acumBlue={}, acumOrange={};
-MODULES.forEach(id=>{ states[id]='green'; timers[id]=Date.now(); lastMec[id]=''; acumRed[id]=0; acumYellow[id]=0; acumBlue[id]=0; acumOrange[id]=0; acumPurple[id]=0; });
+MODULES.forEach(id=>{ states[id]='green'; timers[id]=Date.now(); lastMec[id]=''; acumRed[id]=0; acumYellow[id]=0; acumBlue[id]=0; acumOrange[id]=0; });
 
 // ── Variables de estado global del tablero ─────────────────────────
 let selectedMod=null, activeFilters=new Set(), currentView=null, pendingTransicion=null, currentUser=null;
-let acumPurple={};
 // Módulos ocultos por el usuario (persiste en localStorage)
 const hiddenMods=new Set(); localStorage.removeItem('hiddenMods'); // visibilidad siempre completa
 // ── Helpers de permisos ─────────────────────────────────────────────
@@ -1409,7 +1396,7 @@ function connectWS(){
           // Si el módulo aceptó (done) → pasar de naranja a verde
           if(req.status==='done' && req.module){
             const modId = req.module;
-            if(states[modId]==='orange' || states[modId]==='purple'){
+            if(states[modId]==='orange'){
               commitChange(modId,'green',null);
             }
           }
@@ -1550,7 +1537,6 @@ function playAlertSound(){
 // ── INIT ──────────────────────────────────────────────────────────
 function populateLoginSelect(){
   const sel = document.getElementById('login-user');
-  if(!sel) return;
   const prev = sel.value;
   sel.innerHTML = '<option value="">— Selecciona un perfil —</option>';
 
@@ -1949,6 +1935,7 @@ function onImpProd(){
   const id=pendingMod;
   cancelImproductivo();
   if(!id)return;
+  // Enviar alerta directo al CI sin formulario — módulo sigue OPERATIVO (verde)
   const now=new Date();
   const newReq={
     _id: Date.now()+'-'+Math.random().toString(36).slice(2),
@@ -1968,10 +1955,9 @@ function onImpProd(){
     esMecanico: false
   };
   if(typeof wsSend==='function') wsSend({type:'ci_new_request', request:newReq});
-  // Cambiar módulo a morado (Prod. Solicitada) — inicia timer
-  if(typeof commitChange==='function') commitChange(id,'purple',null);
+  // Toast de confirmación
   const toast=document.createElement('div');
-  toast.textContent='🟣 Solicitud de producción enviada al CI';
+  toast.textContent='✅ Solicitud de producción enviada al CI';
   toast.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:12px 24px;border-radius:12px;font-family:Nunito,sans-serif;font-size:14px;font-weight:700;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.2);';
   document.body.appendChild(toast);
   setTimeout(()=>toast.remove(),2800);
@@ -2103,7 +2089,7 @@ function entrarTablero(){
   activeFilters.clear();
   const todosEl = document.getElementById('stat-todos');
   if(todosEl) todosEl.classList.add('active-filter-todos');
-  ['green','yellow','red','blue','orange','purple'].forEach(c=>{
+  ['green','yellow','red','blue','orange'].forEach(c=>{
     const el = document.getElementById('stat-'+c);
     if(el) el.classList.remove('active-filter');
   });
@@ -2197,16 +2183,7 @@ function setView(v){
 let pendingMod=null;
 function applyChange(id){
   const prev=states[id];
-  // Bloquear cambio de estado mientras haya solicitud pendiente en CI
-  if(prev==='orange'){
-    showToastSimple('⏳ Debes confirmar el insumo antes de cambiar estado');
-    return;
-  }
-  if(prev==='purple'){
-    showToastSimple('🟣 Esperando confirmación del CI (Solicitud de Producción)');
-    return;
-  }
-  if(prev==='blue'){commitChange(id,'green',null);return;}
+  if(prev==='blue'||prev==='orange'){commitChange(id,'green',null);return;}
   if(prev==='red'){
     pendingTransicion={id,estado:'yellow'};
     openMecanicoModal('¿Quién llegó a atender?','Mecánico que atendió el llamado');return;
@@ -2290,7 +2267,6 @@ function commitChange(id,s,mecanico,limite){
   if(prev==='yellow') acumYellow[id]+=dur;
   if(prev==='blue')   acumBlue[id]  +=dur;
   if(prev==='orange') acumOrange[id]+=dur;
-  if(prev==='purple') acumPurple[id]+=dur;
   if(prev==='blue'&&cambioTimers[id]){clearTimeout(cambioTimers[id]);delete cambioTimers[id];delete cambioLimites[id];}
   logChange(id,prev,s,dur,mecanico);
   states[id]=s;timers[id]=ahora;
@@ -2321,7 +2297,7 @@ function toggleFilter(color){
     }
   }
   // Actualizar visual de cada botón
-  ['green','yellow','red','blue','orange','purple'].forEach(c=>{
+  ['green','yellow','red','blue','orange'].forEach(c=>{
     const el=document.getElementById('stat-'+c);
     if(!el)return;
     el.classList.toggle('active-filter',activeFilters.has(c));
@@ -2529,30 +2505,13 @@ function renderBig(){
   if(!selectedMod)return;
   const sRaw=states[selectedMod];
   const s=(currentUser==='Televisor'||currentUser==='Mecanicos')&&sRaw==='orange'?'green':sRaw;
-  const tt=(s==='red'||s==='yellow'||s==='blue'||s==='orange'||s==='purple')?'⏱ '+formatTime(Date.now()-timers[selectedMod]):'';
-
-  // Mensaje de bloqueo según estado
-  let tapHint='Toca para cambiar estado';
-  let blockedOverlay='';
-  if(s==='orange'){
-    tapHint='⏳ Esperando confirmación de insumo';
-    blockedOverlay=`<div style="position:absolute;inset:0;border-radius:20px;background:rgba(249,115,22,0.08);display:flex;align-items:flex-end;justify-content:center;padding-bottom:14px;pointer-events:none;">
-      <span style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#9a3412;background:rgba(249,115,22,0.15);padding:4px 12px;border-radius:20px;">🔒 Bloqueado hasta confirmar recibo</span>
-    </div>`;
-  } else if(s==='purple'){
-    tapHint='🟣 Esperando respuesta del CI';
-    blockedOverlay=`<div style="position:absolute;inset:0;border-radius:20px;background:rgba(124,58,237,0.06);display:flex;align-items:flex-end;justify-content:center;padding-bottom:14px;pointer-events:none;">
-      <span style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#5b21b6;background:rgba(124,58,237,0.15);padding:4px 12px;border-radius:20px;">🔒 Bloqueado hasta confirmar en CI</span>
-    </div>`;
-  }
-
+  const tt=(s==='red'||s==='yellow'||s==='blue'||s==='orange')?'⏱ '+formatTime(Date.now()-timers[selectedMod]):'';
   document.getElementById('big-container').innerHTML=`
-    <div class="big-wrap ${s}" id="big-mod" style="position:relative;">
+    <div class="big-wrap ${s}" id="big-mod">
       <span class="big-id">${selectedMod}</span><div class="big-light"></div>
-      <span class="big-status">${LABELS[s]||s}</span>
+      <span class="big-status">${LABELS[s]}</span>
       <span class="big-timer" id="big-timer">${tt}</span>
-      <span class="tap-hint">${tapHint}</span>
-      ${blockedOverlay}
+      <span class="tap-hint">Toca para cambiar estado</span>
     </div>`;
   document.getElementById('big-mod').addEventListener('click',e=>{addRipple(document.getElementById('big-mod'),e);applyChange(selectedMod);});
 }
@@ -6543,43 +6502,56 @@ function cfgSavePerfilModal(){
 <!--  MODAL SOLICITAR INSUMOS                                       -->
 <!-- ══════════════════════════════════════════════════════════════ -->
 <div id="si-overlay" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:16px;">
-  <div style="background:#fff;border-radius:18px;padding:32px 28px 24px;width:100%;max-width:420px;box-shadow:0 24px 60px rgba(15,23,42,.18);animation:slup .22s ease;position:relative;">
+  <div style="background:#fff;border-radius:18px;padding:32px 28px 24px;width:100%;max-width:460px;max-height:92vh;overflow-y:auto;box-shadow:0 24px 60px rgba(15,23,42,.18);animation:slup .22s ease;position:relative;">
     <button onclick="siClose()" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:20px;color:#94a3b8;cursor:pointer;line-height:1;">✕</button>
     <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#1e3a8a;margin-bottom:4px;">Solicitar Insumo</div>
     <div id="si-modulo-lbl" style="font-size:12px;color:#64748b;margin-bottom:20px;"></div>
 
-    <!-- Referencia -->
+    <!-- TIPO (fijo, no editable) -->
     <div style="margin-bottom:14px;">
-      <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:6px;">1. REFERENCIA</div>
+      <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:6px;">TIPO</div>
+      <input type="text" value="Falta de Insumos" readonly style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#64748b;background:#f1f5f9;outline:none;cursor:default;">
+    </div>
+
+    <!-- Referencia (obligatorio) -->
+    <div style="margin-bottom:14px;">
+      <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:6px;">1. REFERENCIA <span style="color:#ef4444;">*</span></div>
       <input id="si-ref" type="text" placeholder="Ej: REF-001" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;background:#f8fafc;outline:none;">
     </div>
 
-    <!-- OP / OC -->
+    <!-- OP / OC (opcional) -->
     <div style="margin-bottom:14px;">
       <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:6px;">2. OP / OC</div>
       <input id="si-op" type="text" placeholder="Ej: OP-2024-001" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;background:#f8fafc;outline:none;">
     </div>
 
-    <!-- Tipo de insumo -->
-    <div style="margin-bottom:14px;">
-      <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:6px;">3. TIPO DE INSUMO</div>
-      <select id="si-tipo" onchange="siOnTipoChange()" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;background:#f8fafc;outline:none;">
-        <option value="">— Seleccionar —</option>
-      </select>
-    </div>
+    <!-- ── LISTA DE INSUMOS (punto 5: multi-insumo) ── -->
+    <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:8px;">3. INSUMOS <span style="color:#ef4444;">*</span></div>
 
-    <!-- Cantidad -->
-    <div style="margin-bottom:14px;">
-      <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:6px;">4. CANTIDAD</div>
-      <input id="si-qty" type="number" min="1" placeholder="Ej: 10" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;background:#f8fafc;outline:none;">
-    </div>
+    <!-- Insumos ya agregados -->
+    <div id="si-insumos-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"></div>
 
-    <!-- Talla (solo si aplica) -->
-    <!-- Tipo de elástico (solo si aplica) -->
-
-        <div id="si-talla-wrap" style="display:block;margin-bottom:14px;">
-      <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:6px;">5. TALLA</div>
-      <input id="si-talla" type="text" placeholder="Ej: S, M, L, XL" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;background:#f8fafc;outline:none;">
+    <!-- Fila para agregar nuevo insumo -->
+    <div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:12px;margin-bottom:10px;">
+      <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:8px;">
+        <div>
+          <div style="font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#94a3b8;margin-bottom:4px;">TIPO DE INSUMO</div>
+          <select id="si-tipo" onchange="siOnTipoChange()" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:'Nunito',sans-serif;font-size:13px;color:#0f172a;background:#fff;outline:none;">
+            <option value="">— Seleccionar —</option>
+          </select>
+        </div>
+        <div>
+          <div style="font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#94a3b8;margin-bottom:4px;">CANT.</div>
+          <input id="si-qty" type="number" min="1" placeholder="Ej: 10" style="width:72px;padding:9px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:'Nunito',sans-serif;font-size:13px;color:#0f172a;background:#fff;outline:none;">
+        </div>
+      </div>
+      <div id="si-talla-wrap" style="display:block;margin-bottom:8px;">
+        <div style="font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#94a3b8;margin-bottom:4px;">TALLA</div>
+        <input id="si-talla" type="text" placeholder="Ej: S, M, L, XL" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:'Nunito',sans-serif;font-size:13px;color:#0f172a;background:#fff;outline:none;">
+      </div>
+      <button onclick="siAgregarInsumo()" style="width:100%;padding:9px;border-radius:8px;border:1.5px dashed #93c5fd;background:#eff6ff;color:#1d4ed8;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all .2s;">
+        ＋ AGREGAR INSUMO A LA LISTA
+      </button>
     </div>
 
     <div id="si-error" style="color:#ef4444;font-size:12px;font-weight:700;margin-bottom:10px;display:none;text-align:center;"></div>
@@ -6695,47 +6667,113 @@ function ciConfirmarRecepcion(reqId, accepted){
     showToastSimple('⚠ No recibido — solicitud reactivada en el CI');
   }
 }
+// ── Lista temporal de insumos en el modal (punto 5) ──
+window._siInsumosTemp = [];
+
 function siOnTipoChange(){
-  // Talla siempre visible
   const tw = document.getElementById('si-talla-wrap');
   if(tw) tw.style.display = 'block';
 }
+
+function siAgregarInsumo(){
+  const tipoSel = document.getElementById('si-tipo');
+  const tipo    = tipoSel.value.trim();
+  const flow    = tipoSel.options[tipoSel.selectedIndex]?.dataset?.flow || '';
+  const qty     = document.getElementById('si-qty').value.trim();
+  const talla   = document.getElementById('si-talla').value.trim();
+  const errEl   = document.getElementById('si-error');
+
+  if(!tipo){ errEl.textContent='Selecciona el tipo de insumo'; errEl.style.display='block'; return; }
+  if(!qty){  errEl.textContent='Ingresa la cantidad';          errEl.style.display='block'; return; }
+  errEl.style.display = 'none';
+
+  const tipoFinal = flow==='elastico' ? tipo+' · '+talla : tipo;
+  window._siInsumosTemp.push({ tipo: tipoFinal, qty, talla: talla||'' });
+
+  // Limpiar fila de entrada
+  tipoSel.value = '';
+  document.getElementById('si-qty').value   = '';
+  document.getElementById('si-talla').value = '';
+
+  siRenderInsumosList();
+}
+
+function siRenderInsumosList(){
+  const list = document.getElementById('si-insumos-list');
+  if(!list) return;
+  list.innerHTML = '';
+  window._siInsumosTemp.forEach((ins, i) => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:8px;padding:8px 12px;font-family:Nunito,sans-serif;font-size:13px;';
+    row.innerHTML = `
+      <span style="flex:1;font-weight:700;color:#0f172a;">${ins.tipo}</span>
+      <span style="color:#15803d;font-weight:700;background:#dcfce7;padding:2px 8px;border-radius:6px;">×${ins.qty}</span>
+      ${ins.talla ? `<span style="color:#64748b;font-size:11px;">${ins.talla}</span>` : ''}
+      <button onclick="siQuitarInsumo(${i})" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:15px;line-height:1;padding:0 2px;" title="Quitar">✕</button>
+    `;
+    list.appendChild(row);
+  });
+}
+
+function siQuitarInsumo(i){
+  window._siInsumosTemp.splice(i,1);
+  siRenderInsumosList();
+}
+
 function siClose(){
   document.getElementById('si-overlay').style.display = 'none';
+  window._siInsumosTemp = [];
+  siRenderInsumosList();
 }
 
 function siEnviar(){
   const ref   = document.getElementById('si-ref').value.trim();
   const op    = document.getElementById('si-op').value.trim();
-  const tipoSel = document.getElementById('si-tipo');
-  const tipo  = tipoSel.value.trim();
-  const flow  = tipoSel.options[tipoSel.selectedIndex]?.dataset?.flow || '';
   const quien = selectedMod || currentUser || '';
   const errEl = document.getElementById('si-error');
 
-  let qty = '', talla = '';
-  qty   = document.getElementById('si-qty').value.trim();
-  talla = document.getElementById('si-talla').value.trim();
+  // Intentar agregar insumo pendiente en la fila de entrada si está incompleto pero tiene tipo+qty
+  const tipoSel   = document.getElementById('si-tipo');
+  const tipoVal   = tipoSel.value.trim();
+  const qtyVal    = document.getElementById('si-qty').value.trim();
+  const tallaVal  = document.getElementById('si-talla').value.trim();
+  const flowVal   = tipoSel.options[tipoSel.selectedIndex]?.dataset?.flow || '';
+  if(tipoVal && qtyVal){
+    const tf = flowVal==='elastico' ? tipoVal+' · '+tallaVal : tipoVal;
+    window._siInsumosTemp.push({ tipo: tf, qty: qtyVal, talla: tallaVal||'' });
+    tipoSel.value=''; document.getElementById('si-qty').value=''; document.getElementById('si-talla').value='';
+    siRenderInsumosList();
+  }
 
-  if(!ref || !op || !tipo || !qty){
-    errEl.textContent = 'Por favor completa todos los campos';
-    errEl.style.display = 'block';
-    return;
+  // Validación: solo Referencia y al menos 1 insumo son obligatorios
+  if(!ref){
+    errEl.textContent = 'La Referencia es obligatoria';
+    errEl.style.display = 'block'; return;
+  }
+  if(window._siInsumosTemp.length === 0){
+    errEl.textContent = 'Agrega al menos un insumo a la lista';
+    errEl.style.display = 'block'; return;
   }
   errEl.style.display = 'none';
 
   const modulo = quien;
   const now    = new Date();
 
+  // Primer insumo como campos principales (compatibilidad con tarjeta CI)
+  const primerIns = window._siInsumosTemp[0];
+
   const newReq = {
     _id:        Date.now() + '-' + Math.random().toString(36).slice(2),
     n:          Date.now(),
     module:     modulo,
+    categoria:  'Falta de Insumos',
     ref,
     op,
-    tipo:       flow==='elastico' ? tipo+' · '+talla : tipo,
-    qty:        qty,
-    talla:      talla,
+    tipo:       primerIns.tipo,
+    qty:        primerIns.qty,
+    talla:      primerIns.talla,
+    // Lista completa de insumos (para multi-insumo)
+    insumos:    window._siInsumosTemp.slice(),
     fecha:      now.toLocaleDateString('es-CO'),
     hora:       now.toLocaleTimeString('es-CO'),
     datetime:   now.toLocaleDateString('es-CO') + ' ' + now.toLocaleTimeString('es-CO'),
@@ -6748,16 +6786,16 @@ function siEnviar(){
 
   if(typeof wsSend==='function') wsSend({ type:'ci_new_request', request:newReq });
 
-  // Cambiar el módulo a estado Espera CI (orange)
+  // Cambiar módulo a estado Espera CI (naranja)
   if(modulo && typeof commitChange==='function' && typeof states!=='undefined' && states[modulo]!==undefined){
     commitChange(modulo, 'orange', null);
   }
 
   siClose();
 
-  // Feedback visual
   const toast = document.createElement('div');
-  toast.textContent = '✅ Solicitud enviada';
+  const n = window._siInsumosTemp.length || newReq.insumos.length;
+  toast.textContent = `✅ Solicitud enviada (${newReq.insumos.length} insumo${newReq.insumos.length>1?'s':''})`;
   toast.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:12px 24px;border-radius:12px;font-family:Nunito,sans-serif;font-size:14px;font-weight:700;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.2);animation:slup .2s ease;';
   document.body.appendChild(toast);
   setTimeout(()=>toast.remove(), 2800);
