@@ -811,33 +811,55 @@ function buildCard(req){
 
   const badgeLabel = isDone ? 'Entregado ✅' : isCump ? 'Listo ✓' : 'Pendiente 🔴';
 
-  // ── Hora inicio: sin segundos ──
-  // fmtHoraFromMs usa {hour, minute} → nunca incluye segundos
-  const horaInicio = req.alertStart
-    ? fmtHoraFromMs(req.alertStart)
-    : fmtHora(req.hora);          // fmtHora ya elimina ":ss" del string
-
-  // ── Hora fin: sin segundos ──
-  const horaFin = req.resolvedAt ? fmtHora(req.resolvedAt) : '—';
+  // ── Horas sin segundos ──
+  const horaInicio = req.alertStart ? fmtHoraFromMs(req.alertStart) : fmtHora(req.hora);
+  const horaFin    = req.resolvedAt ? fmtHora(req.resolvedAt) : '';
 
   // ── T. Espera inicial en minutos decimales ──
-  // Para tarjetas activas el setInterval lo actualiza cada segundo.
-  // Para tarjetas done se usa el waitTime guardado (fijo).
   const tEsperaInicial = isDone
-    ? (req.waitTime != null ? calcTEsperaDecimal(req.waitTime) : '—')
-    : (req.alertStart      ? calcTEsperaDecimal(Date.now() - req.alertStart) : '—');
+    ? (req.waitTime != null ? calcTEsperaDecimal(req.waitTime) : '')
+    : (req.alertStart ? calcTEsperaDecimal(Date.now() - req.alertStart) : '');
 
-  // ── Campos de texto ──
-  const insumo    = (req.tipo || '').replace(/\s*·\s*.+$/, '') || '—';
-  const categoria = req.categoria || '—';
-  const talla     = req.talla     || '—';
-  const ref       = req.ref       || '—';
-  const op        = req.op        || '—';
-  const qty       = req.qty       || '—';
+  // ── Campos vacíos si no hay datos — sin guión (punto 2) ──
+  const insumo    = (req.tipo || '').replace(/\s*·\s*.+$/, '');
+  const categoria = req.categoria || '';
+  const talla     = req.talla     || '';
+  const ref       = req.ref       || '';
+  const op        = req.op        || '';
+  const qty       = req.qty       || '';
+
+  // ── Multi-insumo: filas adicionales si hay lista (punto 5) ──
+  let extraInsumos = '';
+  if(req.insumos && req.insumos.length > 1){
+    extraInsumos = req.insumos.slice(1).map(ins => `
+      <tr style="background:#f0fdf4;">
+        <td style="font-size:9px;color:#94a3b8;padding-left:24px;">↳ insumo</td>
+        <td style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;color:#15803d;">
+          ${ins.tipo || ''}
+          ${ins.qty  ? `<span style="margin-left:8px;background:#dcfce7;color:#15803d;padding:1px 6px;border-radius:4px;font-size:11px;">×${ins.qty}</span>` : ''}
+          ${ins.talla ? `<span style="margin-left:4px;color:#64748b;font-size:11px;">${ins.talla}</span>` : ''}
+        </td>
+      </tr>`).join('');
+  }
+
+  // ── Celda de dropdown observación inline (punto 3) ──
+  const obsDropdownCell = !isDone ? `
+    <td style="padding:4px 8px 4px 0;">
+      <div style="position:relative;" id="obs-wrap-${req._id}">
+        <button onclick="toggleObsMenu('${req._id}')"
+          style="display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:7px;border:1.5px solid var(--border);background:#f8fafc;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;font-size:12px;color:var(--muted);white-space:nowrap;max-width:160px;overflow:hidden;transition:background .15s;"
+          onmouseenter="this.style.background='#f1f5f9'" onmouseleave="this.style.background='#f8fafc'">
+          ${req.obs
+            ? `<span style="font-weight:700;color:var(--text);max-width:110px;overflow:hidden;text-overflow:ellipsis;display:inline-block;">${req.obs}</span>&nbsp;▾`
+            : `<span style="color:#94a3b8;">— seleccionar ▾</span>`}
+        </button>
+        <div id="obs-menu-${req._id}" style="display:none;position:absolute;top:110%;right:0;z-index:200;background:#fff;border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:180px;padding:6px 0;"></div>
+      </div>
+    </td>` : `<td></td>`;
 
   div.innerHTML = `
     <div class="ci-card-hdr">
-      <div class="ci-card-mod">${req.module || '—'}</div>
+      <div class="ci-card-mod">${req.module || ''}</div>
       <span class="ci-card-badge ${req.status || 'alert'}">${badgeLabel}</span>
     </div>
     <table class="ci-card-table">
@@ -845,49 +867,43 @@ function buildCard(req){
       <tr><td>Referencia</td>  <td>${ref}</td></tr>
       <tr><td>OP / OC</td>     <td>${op}</td></tr>
       <tr><td>Insumo</td>      <td>${insumo}</td></tr>
+      ${extraInsumos}
       <tr><td>Cantidad</td>    <td>${qty}</td></tr>
       <tr><td>Talla</td>       <td>${talla}</td></tr>
       <tr><td>Hora Inicio</td> <td>${horaInicio}</td></tr>
       <tr><td>Hora Fin</td>    <td>${horaFin}</td></tr>
       <tr><td>T. Espera</td>   <td class="ci-tespera-val">${tEsperaInicial}</td></tr>
-      ${req.obs ? `<tr><td>Obs.</td><td style="font-style:italic;color:var(--muted);">${req.obs}</td></tr>` : ''}
+      <tr><td>Observación</td> ${obsDropdownCell}</tr>
     </table>
-    <div class="ci-card-footer">
+    <div class="ci-card-footer" style="display:flex;align-items:center;gap:8px;padding:10px 16px 12px;border-top:1px solid #f1f5f9;">
       ${!isDone ? `
-        <div style="position:relative;display:inline-block;" id="obs-wrap-${req._id}">
-          <button class="ci-action-btn obs" onclick="toggleObsMenu('${req._id}')">📝 Obs.</button>
-          <div id="obs-menu-${req._id}" style="display:none;position:absolute;bottom:110%;left:0;z-index:200;background:#fff;border:1.5px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:180px;padding:6px 0;"></div>
-        </div>
-        <button class="ci-action-btn cumplir" onclick="marcarCumplido('${req._id}')"
-          ${!req.obs ? 'disabled title="Agrega una observación antes de marcar cumplido" style="opacity:0.45;cursor:not-allowed;"' : ''}>✅ Cumplido</button>
+        <button class="ci-action-btn cumplir" style="flex:1;" onclick="marcarCumplido('${req._id}')"
+          ${!req.obs ? 'disabled title="Selecciona una observación antes de marcar cumplido" style="flex:1;opacity:0.45;cursor:not-allowed;"' : ''}>
+          ✅ Cumplido
+        </button>
         <button class="ci-action-btn del" onclick="abrirDel('${req._id}')">🗑</button>
       ` : `
-        <button class="ci-action-btn del" onclick="abrirDel('${req._id}')">🗑 Eliminar</button>
+        <button class="ci-action-btn del" style="width:100%;" onclick="abrirDel('${req._id}')">🗑 Eliminar</button>
       `}
     </div>
   `;
   return div;
 }
 
-// ── Timer en vivo ──
-// Actualiza el campo T. ESPERA de cada tarjeta activa cada 1 segundo.
-// calcTEsperaDecimal(ms) = (ms / 60000).toFixed(2)
-//   → 45 000 ms  = 0.75 min
-//   → 90 000 ms  = 1.50 min
-// Solo se actualizan las tarjetas con dataset.isDone !== '1',
-// evitando trabajo innecesario sobre tarjetas ya cerradas.
+// ── Timer en vivo — actualiza T. Espera en decimal de minutos cada 5s ──
 function startTimers(){
   if(_timerInterval) clearInterval(_timerInterval);
   _timerInterval = setInterval(() => {
     const now = Date.now();
-    document.querySelectorAll('.ci-card[data-is-done="0"]').forEach(card => {
+    document.querySelectorAll('.ci-card').forEach(card => {
+      if(card.dataset.isDone === '1') return; // done no cambia
       const alertStart = parseInt(card.dataset.alertStart);
       if(!alertStart) return;
       const el = card.querySelector('.ci-tespera-val');
       if(!el) return;
       el.textContent = calcTEsperaDecimal(now - alertStart);
     });
-  }, 1000); // cada 1 segundo — contador en vivo
+  }, 5000); // cada 5 segundos — liviano y preciso
 }
 
 
