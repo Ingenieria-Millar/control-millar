@@ -1264,7 +1264,12 @@ const MECANICOS=[];
 
 // ── Perfiles del sistema con sus permisos base ──────────────────────
 const USUARIOS={
-  'Programador':  {pass:'1',perms:['area_ingreso','area_produccion','area_mecanicos','tablero','modulos','excel','fix','area_calidad','area_ci','area_empaque','area_corte','area_sst','area_montajes']},
+  'Programador':   {pass:'1',    perms:['area_ingreso','area_produccion','area_mecanicos','tablero','modulos','excel','fix','area_calidad','area_ci','area_empaque','area_corte','area_sst','area_montajes']},
+  'Administrador': {pass:'1',    perms:['area_ingreso','area_produccion','area_mecanicos','tablero','modulos','excel','area_calidad','area_ci','area_empaque','area_corte','area_sst','area_montajes']},
+  'Modulos':       {pass:'',     perms:['area_produccion','modulos']},
+  'Mecanicos':     {pass:'1',    perms:['area_mecanicos','area_montajes','tablero']},
+  'Supervisoras':  {pass:'1',    perms:['area_ingreso','area_asistencia']},
+  'Televisor':     {pass:'1',    perms:['area_mecanicos','tablero']},
 };
 
 const states={}, timers={}, lastMec={}, acumRed={}, acumYellow={}, acumBlue={}, acumOrange={};
@@ -1545,6 +1550,7 @@ function playAlertSound(){
 // ── INIT ──────────────────────────────────────────────────────────
 function populateLoginSelect(){
   const sel = document.getElementById('login-user');
+  if(!sel) return;
   const prev = sel.value;
   sel.innerHTML = '<option value="">— Selecciona un perfil —</option>';
 
