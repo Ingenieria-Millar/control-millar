@@ -612,6 +612,12 @@ app.get('/api/ci-config', (req, res) => {
   res.json(ciConfig);
 });
 
+// Lista de mecánicos (supervisores activos, sin programador)
+app.get('/api/mecanicos', (req, res) => {
+  const sups = (iaState.supervisors || []).filter(s => s.id !== 'programador' && !s.disabled);
+  res.json(sups.map(s => ({ id: s.id, name: s.name })));
+});
+
 // Novedades
 app.get('/api/novedades',  (req, res) => res.json(readJSON(FILES.novedades, [])));
 app.post('/api/novedades', (req, res) => {
