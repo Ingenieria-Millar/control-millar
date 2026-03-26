@@ -325,8 +325,13 @@ header::after{
     </div>
 
     <div class="field">
-      <label>3. Insumos *</label>
-      <div style="border:1.5px solid var(--border);border-radius:10px;padding:14px;background:#f8fafc;">
+      <label>3. Insumos * <span style="color:var(--muted);font-size:9px;font-weight:600;letter-spacing:.5px;text-transform:none;">(agrega uno o más)</span></label>
+
+      <!-- Lista de insumos agregados -->
+      <div id="modal-insumos-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
+
+      <!-- Fila para agregar insumo -->
+      <div style="border:1.5px solid var(--border);border-radius:10px;padding:12px;background:#f8fafc;">
         <div class="field-row">
           <div class="field" style="margin-bottom:8px;">
             <label>Tipo de Insumo</label>
@@ -334,15 +339,18 @@ header::after{
               <option value="">— Seleccionar —</option>
             </select>
           </div>
-          <div class="field" style="margin-bottom:8px;max-width:90px;">
+          <div class="field" style="margin-bottom:8px;max-width:80px;">
             <label>Cant.</label>
-            <input type="number" id="modal-qty" min="1" placeholder="Ej: 10">
+            <input type="number" id="modal-qty" min="1" placeholder="10">
           </div>
         </div>
-        <div class="field" id="modal-talla-wrap" style="margin-bottom:0;">
+        <div class="field" id="modal-talla-wrap" style="margin-bottom:8px;">
           <label>Talla</label>
           <input type="text" id="modal-talla" placeholder="Ej: S, M, L, XL">
         </div>
+        <button type="button" onclick="modalAgregarInsumo()" style="width:100%;padding:8px;border-radius:8px;border:1.5px dashed #93c5fd;background:#eff6ff;color:#1d4ed8;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:.8px;cursor:pointer;transition:all .2s;">
+          ＋ AGREGAR A LA LISTA
+        </button>
       </div>
     </div>
 
@@ -482,8 +490,10 @@ function arrancar(){
 }
 
 // ── Modal nueva solicitud ──
+window._modalInsumosTemp = [];
+
 function abrirModal(){
-  // Limpiar campos
+  window._modalInsumosTemp = [];
   document.getElementById('modal-ref').value='';
   document.getElementById('modal-op').value='';
   document.getElementById('modal-qty').value='';
@@ -492,7 +502,51 @@ function abrirModal(){
   document.getElementById('modal-error').style.display='none';
   document.getElementById('modal-error').textContent='';
   document.getElementById('modal-mec-name').textContent = currentUser;
+  modalRenderInsumosList();
   document.getElementById('modal-overlay').classList.add('open');
+}
+
+function modalRenderInsumosList(){
+  const list = document.getElementById('modal-insumos-list');
+  if(!list) return;
+  list.innerHTML = '';
+  window._modalInsumosTemp.forEach((ins, i) => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:8px;padding:7px 12px;font-family:Nunito,sans-serif;font-size:13px;';
+    row.innerHTML = `
+      <span style="flex:1;font-weight:700;color:#0f172a;">${ins.tipo}</span>
+      <span style="color:#15803d;font-weight:700;background:#dcfce7;padding:2px 7px;border-radius:6px;font-size:12px;">×${ins.qty}</span>
+      ${ins.talla ? `<span style="color:#64748b;font-size:11px;">${ins.talla}</span>` : ''}
+      <button onclick="modalQuitarInsumo(${i})" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:14px;line-height:1;padding:0 2px;">✕</button>
+    `;
+    list.appendChild(row);
+  });
+}
+
+function modalQuitarInsumo(i){
+  window._modalInsumosTemp.splice(i,1);
+  modalRenderInsumosList();
+}
+
+function modalAgregarInsumo(){
+  const tipoSel = document.getElementById('modal-insumo-tipo');
+  const tipo = tipoSel.value.trim();
+  const flow = tipoSel.options[tipoSel.selectedIndex]?.dataset?.flow || '';
+  const qty  = document.getElementById('modal-qty').value.trim();
+  const talla = document.getElementById('modal-talla').value.trim();
+  const errEl = document.getElementById('modal-error');
+
+  if(!tipo){ errEl.textContent='Selecciona el tipo de insumo'; errEl.style.display='block'; return; }
+  if(!qty){  errEl.textContent='Ingresa la cantidad';          errEl.style.display='block'; return; }
+  errEl.style.display='none';
+
+  const tipoFinal = flow==='elastico' ? tipo+' · '+talla : tipo;
+  window._modalInsumosTemp.push({ tipo: tipoFinal, qty, talla: talla||'' });
+
+  tipoSel.value='';
+  document.getElementById('modal-qty').value='';
+  document.getElementById('modal-talla').value='';
+  modalRenderInsumosList();
 }
 
 function cerrarModal(){
@@ -508,30 +562,46 @@ function modalOnTipoChange(){
 }
 
 function modalEnviar(){
-  const ref     = document.getElementById('modal-ref').value.trim();
-  const op      = document.getElementById('modal-op').value.trim();
-  const tipoSel = document.getElementById('modal-insumo-tipo');
-  const tipo    = tipoSel.value.trim();
-  const flow    = tipoSel.options[tipoSel.selectedIndex]?.dataset?.flow || '';
-  const qty     = document.getElementById('modal-qty').value.trim();
-  const talla   = document.getElementById('modal-talla').value.trim();
-  const errEl   = document.getElementById('modal-error');
+  const ref   = document.getElementById('modal-ref').value.trim();
+  const op    = document.getElementById('modal-op').value.trim();
+  const errEl = document.getElementById('modal-error');
 
-  if(!ref||!tipo||!qty){
-    errEl.textContent='Por favor completa los campos requeridos (Referencia, Insumo, Cantidad)';
-    errEl.style.display='block';
-    return;
+  // Auto-agregar insumo pendiente en la fila si tiene tipo+qty
+  const tipoSel = document.getElementById('modal-insumo-tipo');
+  const tipoVal = tipoSel.value.trim();
+  const qtyVal  = document.getElementById('modal-qty').value.trim();
+  const tallaVal = document.getElementById('modal-talla').value.trim();
+  const flowVal = tipoSel.options[tipoSel.selectedIndex]?.dataset?.flow || '';
+  if(tipoVal && qtyVal){
+    const tf = flowVal==='elastico' ? tipoVal+' · '+tallaVal : tipoVal;
+    window._modalInsumosTemp.push({ tipo:tf, qty:qtyVal, talla:tallaVal||'' });
+    tipoSel.value='';
+    document.getElementById('modal-qty').value='';
+    document.getElementById('modal-talla').value='';
+    modalRenderInsumosList();
+  }
+
+  if(!ref){
+    errEl.textContent='La Referencia es obligatoria';
+    errEl.style.display='block'; return;
+  }
+  if(window._modalInsumosTemp.length === 0){
+    errEl.textContent='Agrega al menos un insumo a la lista';
+    errEl.style.display='block'; return;
   }
   errEl.style.display='none';
 
+  const primerIns = window._modalInsumosTemp[0];
   const now=new Date();
   const newReq={
     _id:        Date.now()+'-'+Math.random().toString(36).slice(2),
     n:          Date.now(),
     module:     currentUser,
     ref, op,
-    tipo:       flow==='elastico' ? tipo+' · '+talla : tipo,
-    qty, talla,
+    tipo:       primerIns.tipo,
+    qty:        primerIns.qty,
+    talla:      primerIns.talla,
+    insumos:    window._modalInsumosTemp.slice(),
     fecha:      now.toLocaleDateString('es-CO'),
     hora:       now.toLocaleTimeString('es-CO'),
     datetime:   now.toLocaleDateString('es-CO')+' '+now.toLocaleTimeString('es-CO'),
@@ -545,9 +615,11 @@ function modalEnviar(){
 
   wsSend({ type:'ci_new_request', request:newReq });
   ciRequests.unshift(newReq);
+  window._modalInsumosTemp = [];
   cerrarModal();
   renderHistorial();
-  showToast('✅ Solicitud enviada al CI');
+  const n = newReq.insumos.length;
+  showToast('✅ Solicitud enviada (' + n + ' insumo' + (n>1?'s':'') + ')');
 }
 
 // ── Historial ──
