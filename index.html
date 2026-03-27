@@ -779,13 +779,17 @@ body { overflow-x: hidden; max-width: 100vw; }
   position:fixed;inset:0;z-index:600;display:none;
   background:rgba(15,23,42,.45);backdrop-filter:blur(3px);
   align-items:center;justify-content:center;
+  padding:16px;
 }
 #mod-eye-overlay.open{display:flex;}
 #mod-eye-panel{
   position:relative;top:auto;right:auto;z-index:601;
   background:#fff;border:1.5px solid #e2e8f0;border-radius:16px;
   box-shadow:0 16px 48px rgba(15,23,42,.22);
-  padding:20px 20px 16px;width:320px;max-height:80vh;overflow-y:auto;
+  padding:20px 20px 16px;
+  width:min(460px, calc(100vw - 32px));
+  max-height:min(80vh, calc(100vh - 32px));
+  overflow-y:auto;
 }
 #mod-eye-panel .ep-title{
   font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;
@@ -793,10 +797,10 @@ body { overflow-x: hidden; max-width: 100vw; }
   display:flex;align-items:center;justify-content:space-between;
 }
 #mod-eye-panel .ep-grid{
-  display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:10px;
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(68px,1fr));gap:5px;margin-bottom:10px;
 }
 #mod-eye-panel .ep-chip{
-  padding:5px 4px;border-radius:6px;border:1.5px solid #e2e8f0;
+  padding:6px 4px;border-radius:6px;border:1.5px solid #e2e8f0;
   font-family:'Courier New',monospace;font-size:11px;font-weight:700;
   letter-spacing:.5px;cursor:pointer;text-align:center;
   background:#f8fafc;color:#475569;transition:all .15s;
@@ -1469,19 +1473,6 @@ function connectWS(){
               commitChange(modId,'green',null);
             }
           }
-        }
-      } else if(msg.type==='ci_delete_request'){
-        // CI eliminó una solicitud — auto-desbloquear el módulo si estaba naranja/morado
-        if(msg.reqId && window._ciRequests){
-          const deleted = window._ciRequests.find(r=>r._id===msg.reqId);
-          if(deleted && deleted.module){
-            const modId = deleted.module;
-            if(states[modId]==='orange'||states[modId]==='purple'){
-              commitChange(modId,'green',null);
-              showToastSimple('🔓 '+modId+' desbloqueado — solicitud eliminada por CI');
-            }
-          }
-          window._ciRequests = window._ciRequests.filter(r=>r._id!==msg.reqId);
         }
       } else if(msg.type==='ia_add_record'){
         if(!iaRecords) iaRecords=[];
@@ -2308,14 +2299,13 @@ let pendingMod=null;
 function applyChange(id){
   const prev=states[id];
   if(prev==='orange'){
-    // Mostrar modal de desbloqueo con contraseña admin
-    abrirModalDesbloqueo(id);
+    if(typeof showToastSimple==='function') showToastSimple('⏳ Debes confirmar el insumo antes de cambiar estado');
     return;
   }
   if(prev==='purple'){
     // Solo bloquear/informar si NO es el tablero de mecánicos
     if(currentUser!=='Mecanicos'&&currentUser!=='Televisor'){
-      abrirModalDesbloqueo(id);
+      if(typeof showToastSimple==='function') showToastSimple('🟣 Esperando respuesta del CI — Solicitud de Producción');
     }
     return;
   }
@@ -2457,7 +2447,7 @@ function applyGridFilter(){
     const div=document.getElementById('mod-'+id);
     if(!div) return;
     const s=states[id]||'green';
-    const sVis=(esPlanta&&(s==='orange'||s==='purple'))?'green':s;
+    const sVis=(esPlanta&&s==='orange')?'green':s;
     const filtrado=activeFilters.size>0&&!activeFilters.has(sVis);
     div.classList.toggle('hidden-filter', filtrado);
     if(!filtrado) anyVisible=true;
@@ -2498,7 +2488,7 @@ function renderGrid(){
     const div=document.getElementById('mod-'+id);
     if(!div) return;
     const s=states[id]||'green';
-    const sVis=(esPlanta&&(s==='orange'||s==='purple'))?'green':s;
+    const sVis=(esPlanta&&s==='orange')?'green':s;
     const mecHtml=(sVis==='yellow'||sVis==='red')&&lastMec[id]?`<span class="mod-mec">🔧 ${lastMec[id]}</span>`:`<span class="mod-mec"></span>`;
     div.className=`module ${canClick?'clickable':'readonly'} ${sVis}`;
     div.innerHTML=`<span class="mod-id">${id}</span><div class="light"></div><span class="mod-label">${LABELS[sVis]}</span><span class="mod-timer" id="timer-${id}"></span>${mecHtml}`;
@@ -2641,7 +2631,7 @@ setInterval(()=>{
 function renderBig(){
   if(!selectedMod)return;
   const sRaw=states[selectedMod];
-  const s=(currentUser==='Televisor'||currentUser==='Mecanicos')&&(sRaw==='orange'||sRaw==='purple')?'green':sRaw;
+  const s=(currentUser==='Televisor'||currentUser==='Mecanicos')&&sRaw==='orange'?'green':sRaw;
   const tt=(s==='red'||s==='yellow'||s==='blue'||s==='orange'||s==='purple')?'⏱ '+formatTime(Date.now()-timers[selectedMod]):'';
   let tapHint='Toca para cambiar estado';
   let lockBadge='';
@@ -3836,7 +3826,7 @@ function togglePerm(user, perm, enabled){
 // ── UTILS ─────────────────────────────────────────────────────────
 function showToast(id,state){
   const esPlanta=(currentUser==='Mecanicos'||currentUser==='Televisor');
-  if(esPlanta&&(state==='orange'||state==='purple')) return;
+  if(esPlanta&&state==='orange') return;
   const msgs={red:`🔴 ${id} — Solicita mecánico`,yellow:`🟡 ${id} — Mecánico en camino`,green:`🟢 ${id} — Resuelto`};
   const t=document.createElement('div');t.className=`toast ${state}`;t.textContent=msgs[state];document.getElementById('toasts').appendChild(t);setTimeout(()=>t.remove(),3200);
 }
@@ -6831,68 +6821,6 @@ function siOpen(){
 }
 
 // ── Modal confirmación CI Cumplido ───────────────────────────────
-// ── MODAL DESBLOQUEO CON CONTRASEÑA ADMIN ─────────────────────────
-let _pendingUnlockId = null;
-function abrirModalDesbloqueo(id){
-  _pendingUnlockId = id;
-  let ov = document.getElementById('unlock-modal-overlay');
-  if(!ov){
-    ov = document.createElement('div');
-    ov.id = 'unlock-modal-overlay';
-    ov.style.cssText='position:fixed;inset:0;z-index:9200;background:rgba(15,23,42,.6);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:16px;';
-    ov.innerHTML=`
-      <div style="background:#fff;border-radius:18px;padding:28px 24px 22px;width:100%;max-width:380px;box-shadow:0 24px 60px rgba(15,23,42,.25);animation:slup .2s ease;">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#1e3a8a;margin-bottom:4px;">🔒 Desbloquear Módulo</div>
-        <div style="font-size:12px;color:#64748b;margin-bottom:18px;">Ingresa la contraseña de administrador para desbloquear <strong id="unlock-mod-id"></strong></div>
-        <input type="password" id="unlock-pass-input" placeholder="Contraseña admin"
-          style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;outline:none;margin-bottom:8px;"
-          onkeydown="if(event.key==='Enter') confirmarDesbloqueo()">
-        <div id="unlock-err" style="display:none;color:#ef4444;font-size:12px;font-weight:700;margin-bottom:10px;"></div>
-        <div style="display:flex;gap:10px;margin-top:8px;">
-          <button onclick="cerrarModalDesbloqueo()" style="flex:1;padding:12px;border-radius:10px;border:1.5px solid #e2e8f0;background:#f1f5f9;color:#64748b;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;cursor:pointer;">Cancelar</button>
-          <button onclick="confirmarDesbloqueo()" style="flex:1;padding:12px;border-radius:10px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;cursor:pointer;">Desbloquear</button>
-        </div>
-      </div>`;
-    document.body.appendChild(ov);
-  }
-  document.getElementById('unlock-mod-id').textContent = id;
-  const inp = document.getElementById('unlock-pass-input');
-  if(inp) inp.value='';
-  const err = document.getElementById('unlock-err');
-  if(err) err.style.display='none';
-  ov.style.display='flex';
-  setTimeout(()=>{ if(inp) inp.focus(); }, 100);
-}
-function cerrarModalDesbloqueo(){
-  const ov = document.getElementById('unlock-modal-overlay');
-  if(ov) ov.style.display='none';
-  _pendingUnlockId = null;
-}
-function confirmarDesbloqueo(){
-  const id  = _pendingUnlockId;
-  if(!id) return;
-  const pass = (document.getElementById('unlock-pass-input')?.value||'').trim();
-  const err  = document.getElementById('unlock-err');
-  if(!pass){ if(err){err.textContent='Ingresa la contraseña de administrador';err.style.display='block';} return; }
-  fetch('/api/app-config')
-    .then(r=>r.json())
-    .then(cfg=>{
-      const usuarios = cfg._usuarios_extra||[];
-      const valid = usuarios.some(u=>u.pass===pass&&(u.perms||[]).includes('fix')) || pass==='1';
-      if(!valid){
-        if(err){err.textContent='Contraseña incorrecta';err.style.display='block';}
-        return;
-      }
-      cerrarModalDesbloqueo();
-      // Desbloquear: volver a verde
-      commitChange(id,'green',null);
-      showToastSimple('🔓 Módulo '+id+' desbloqueado por administrador');
-    })
-    .catch(()=>{
-      if(err){err.textContent='Error al verificar. Intenta de nuevo.';err.style.display='block';}
-    });
-}
-
 function playCiAlertSound(){
   try{
     const ctx = new (window.AudioContext||window.webkitAudioContext)();
