@@ -25,8 +25,9 @@ const { WebSocketServer } = require('ws');
 const express = require('express');
 const multer  = require('multer');
 const xlsxLib = require('xlsx');
-const cors    = require('cors');
+const cors       = require('cors');
 const { v4: uuidv4 } = require('uuid');
+const compression = require('compression');
 
 // ── Variables de entorno obligatorias ────────────────────────────
 // #3: RESET_PASS DEBE estar definida en Render como env var.
@@ -78,12 +79,16 @@ function readJSON(filePath, defaultValue) {
   return defaultValue;
 }
 
+// ── Write queue — evita escrituras síncronas bloqueantes ──────────
+const _writeQueue = {};
 function writeJSON(filePath, data) {
-  try {
-    fs.writeFileSync(filePath, JSON.stringify(data), 'utf8');
-  } catch (e) {
-    console.error('Error escribiendo', filePath, e.message);
-  }
+  // Cancelar escritura pendiente y programar nueva (debounce por archivo)
+  if (_writeQueue[filePath]) clearTimeout(_writeQueue[filePath]);
+  _writeQueue[filePath] = setTimeout(() => {
+    delete _writeQueue[filePath];
+    fs.promises.writeFile(filePath, JSON.stringify(data), 'utf8')
+      .catch(e => console.error('Error escribiendo', filePath, e.message));
+  }, 0); // nextTick — libera el event loop
 }
 
 // ── Caché en memoria ───────────────────────────────────────────────
@@ -105,11 +110,8 @@ function loadDB(key) {
 
 function saveDB(key, data) {
   dbCache[key] = data;
-  try {
-    fs.writeFileSync(FILES[key], JSON.stringify(data));
-  } catch (e) {
-    console.error('Error guardando', key, e.message);
-  }
+  fs.promises.writeFile(FILES[key], JSON.stringify(data), 'utf8')
+    .catch(e => console.error('Error guardando', key, e.message));
 }
 
 // ── Perfil Programador ─────────────────────────────────────────────
@@ -238,8 +240,7 @@ const corsOptions = ALLOWED_ORIGIN
   ? { origin: ALLOWED_ORIGIN, methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'] }
   : { origin: true }; // dev: permite cualquier origen
 app.use(cors(corsOptions));
-
-// #12 Cabeceras de seguridad básicas (sin instalar helmet)
+app.use(compression()); // gzip responses
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
@@ -612,29 +613,8 @@ app.get('/api/ci-config', (req, res) => {
   res.json(ciConfig);
 });
 
-// Lista de mecánicos — lee desde _perfil_members de app_config (Configuraciones → Perfiles → Miembros)
-// Si no hay perfiles configurados, fallback a supervisores activos
+// Lista de mecánicos (supervisores activos, sin programador)
 app.get('/api/mecanicos', (req, res) => {
-  const appCfg = readJSON(FILES.app_config, {});
-  const perfilMembers = appCfg._perfil_members;
-  if (perfilMembers && typeof perfilMembers === 'object') {
-    const allMembers = [];
-    Object.values(perfilMembers).forEach(arr => {
-      if (!Array.isArray(arr)) return;
-      arr.forEach(m => {
-        if (!m || m.disabled) return;
-        const nombre = typeof m === 'string' ? m : (m.nombre || m.name || '');
-        if (nombre && !allMembers.find(x => x.name === nombre)) {
-          allMembers.push({ id: nombre, name: nombre });
-        }
-      });
-    });
-    if (allMembers.length > 0) {
-      allMembers.sort((a, b) => a.name.localeCompare(b.name));
-      return res.json(allMembers);
-    }
-  }
-  // Fallback: supervisores activos
   const sups = (iaState.supervisors || []).filter(s => s.id !== 'programador' && !s.disabled);
   res.json(sups.map(s => ({ id: s.id, name: s.name })));
 });
