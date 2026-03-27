@@ -857,11 +857,23 @@ function buildCard(req){
   }
 
   // Obs no obligatoria para Solicitud de Producción
-  const cumplirDisabled = !isDone && !isProd && !req.obs;
-  const cumplirTitle    = cumplirDisabled ? 'Agrega una observación antes de marcar cumplido' : '';
+  const cumplirDisabled = false;
+  const cumplirTitle    = '';
 
-  // Observación — solo lectura
-  const obsCell = `<td style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:500;color:${req.obs ? '#111827' : '#9ca3af'};">${req.obs || '—'}</td>`;
+  // Dropdown observación inline
+  const obsCell = !isDone ? `
+    <td style="padding:4px 14px 4px 0;">
+      <div style="position:relative;" id="obs-wrap-${req._id}">
+        <button onclick="toggleObsMenu('${req._id}')"
+          style="padding:4px 10px;border-radius:3px;border:1px solid #d1d5db;background:#fff;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;font-size:11px;color:#374151;white-space:nowrap;display:flex;align-items:center;gap:4px;transition:background .12s;"
+          onmouseenter="this.style.background='#f3f4f6'" onmouseleave="this.style.background='#fff'">
+          ${req.obs
+            ? `<span style="max-width:110px;overflow:hidden;text-overflow:ellipsis;display:inline-block;font-weight:600;color:#111827;">${req.obs}</span>&nbsp;▾`
+            : `<span style="color:#9ca3af;">Seleccionar ▾</span>`}
+        </button>
+        <div id="obs-menu-${req._id}" style="display:none;position:absolute;top:110%;right:0;z-index:200;background:#fff;border:1px solid #d1d5db;border-radius:4px;box-shadow:0 4px 16px rgba(0,0,0,.1);min-width:170px;padding:4px 0;"></div>
+      </div>
+    </td>` : `<td></td>`;
 
   div.innerHTML = `
     <div class="ci-card-hdr">
