@@ -926,8 +926,8 @@ body { overflow-x: hidden; max-width: 100vw; }
   </div>
   <div class="view-toggle" style="margin-left:auto;">
     <button class="btn-bar green"  id="btn-excel-bar" style="display:none;" onclick="openExcelModal()">📥 Excel</button>
+    <button class="btn-bar" id="btn-historico-bar" style="display:none;background:#ede9fe;color:#5b21b6;border-color:#c4b5fd;" onclick="abrirHistorico()">📊 Histórico</button>
     <button class="btn-bar yellow" id="btn-fix-mec"   style="display:none;" onclick="openFixMecModal()">🔧 Corregir</button>
-
   </div>
 </div>
 
@@ -1560,25 +1560,7 @@ async function loadHistorialFromServer(){
   try{ const r=await fetch('/api/historial'); _historialCache=await r.json(); }
   catch(e){ console.error('loadHistorial:',e); _historialCache=[]; }
 }
-function logChange(modulo,prev,next,durMs,mecanico){
-  // Solo loguear si hubo tiempo real en el estado anterior
-  if(!prev||prev==='green'||durMs<1000) return;
-  const h=loadHistory();
-  const now=new Date();
-  h.push({
-    fecha:now.toLocaleDateString('es-CO'),
-    fechaISO:now.toISOString().split('T')[0],
-    hora:now.toLocaleTimeString('es-CO'),
-    modulo,
-    tipo:prev,
-    estadoAnterior:prev,
-    estadoNuevo:next,
-    durMinutos:parseFloat((durMs/60000).toFixed(2)),
-    mecanico:mecanico||''
-  });
-  if(h.length>10000) h.splice(0,h.length-10000);
-  saveHistory(h);
-}
+function logChange(modulo,prev,next,durMs,mecanico,limite){\n  // Solo loguear si hubo tiempo real en el estado anterior\n  if(!prev||prev==='green'||durMs<1000) return;\n  const h=loadHistory();\n  const now=new Date();\n  // Para estado blue: detectar si fue 30 o 60 min según el limite guardado\n  let tipoLabel = prev;\n  if(prev==='blue' && limite){\n    const minutos = Math.round((limite - (Date.now() - durMs)) / 60000);\n    if(minutos <= 35) tipoLabel = 'blue30';\n    else tipoLabel = 'blue60';\n  }\n  h.push({\n    fecha:now.toLocaleDateString('es-CO'),\n    fechaISO:now.toISOString().split('T')[0],\n    hora:now.toLocaleTimeString('es-CO'),\n    modulo,\n    tipo:tipoLabel,\n    estadoAnterior:prev,\n    estadoNuevo:next,\n    durMinutos:parseFloat((durMs/60000).toFixed(2)),\n    mecanico:mecanico||''\n  });\n  if(h.length>10000) h.splice(0,h.length-10000);\n  saveHistory(h);\n}
 
 // ── SONIDO ALERTA (SIRENA AMBULANCIA) ────────────────────────────
 let audioCtx=null;
@@ -2287,6 +2269,7 @@ function setView(v){
   }
   if(v==='grid'){
     const eb=document.getElementById('btn-excel-bar'); if(eb) eb.style.display=hasPerm('excel')?'':'none';
+    const hb=document.getElementById('btn-historico-bar'); if(hb) hb.style.display=hasPerm('excel')?'':'none';
     const fb=document.getElementById('btn-fix-mec');   if(fb) fb.style.display=hasPerm('fix')  ?'':'none';
     const cb=document.getElementById('btn-cambiar-user'); if(cb) cb.style.display=isProg()?'':'none';
     renderGrid();
@@ -2395,7 +2378,7 @@ function commitChange(id,s,mecanico,limite){
   if(prev==='orange') acumOrange[id]+=dur;
   if(prev==='purple') acumPurple[id]+=dur;
   if(prev==='blue'&&cambioTimers[id]){clearTimeout(cambioTimers[id]);delete cambioTimers[id];delete cambioLimites[id];}
-  logChange(id,prev,s,dur,mecanico);
+  logChange(id,prev,s,dur,mecanico,cambioLimites[id]||null);
   states[id]=s;timers[id]=ahora;
   if(mecanico) lastMec[id]=mecanico;
   if(s==='red') lastMec[id]=''; // Resetear mecánico al volver a alerta
@@ -7027,5 +7010,336 @@ function siEnviar(){
   setTimeout(()=>toast.remove(), 2800);
 }
 </script>
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!--  PANTALLA HISTÓRICO                                            -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div id="historico-screen" style="display:none;position:fixed;inset:0;z-index:8000;background:#f1f5f9;overflow-y:auto;">
+  <style>
+    #historico-screen .hst-topbar{
+      position:sticky;top:0;z-index:10;background:#fff;
+      border-bottom:1px solid #e2e8f0;padding:0 clamp(12px,2.5vw,24px);
+      min-height:60px;display:flex;align-items:center;justify-content:space-between;gap:12px;
+      box-shadow:0 1px 6px rgba(0,0,0,.07);
+    }
+    #historico-screen .hst-topbar::after{
+      content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
+      background:linear-gradient(90deg,#1e3a8a,#2563eb,#7c3aed);
+    }
+    #historico-screen .hst-title{
+      font-family:'Barlow Condensed',sans-serif;font-size:clamp(16px,2.5vw,22px);
+      font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0f172a;
+    }
+    #historico-screen .hst-title span{color:#7c3aed;}
+    #historico-screen .hst-filters{
+      display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+      padding:12px clamp(12px,2.5vw,24px);background:#fff;
+      border-bottom:1px solid #e2e8f0;
+    }
+    #historico-screen .hst-filter-label{
+      font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;
+      color:#64748b;
+    }
+    #historico-screen .hst-input{
+      padding:7px 12px;border:1.5px solid #e2e8f0;border-radius:8px;
+      font-family:'Nunito',sans-serif;font-size:13px;color:#0f172a;
+      background:#f8fafc;outline:none;
+    }
+    #historico-screen .hst-input:focus{border-color:#7c3aed;}
+    #historico-screen .hst-btn{
+      padding:7px 16px;border-radius:8px;border:1.5px solid #e2e8f0;
+      background:#fff;color:#1e3a8a;font-family:'Barlow Condensed',sans-serif;
+      font-size:13px;font-weight:700;letter-spacing:.5px;cursor:pointer;transition:all .2s;
+    }
+    #historico-screen .hst-btn:hover{background:#f1f5f9;}
+    #historico-screen .hst-btn.primary{background:#7c3aed;color:#fff;border-color:#7c3aed;}
+    #historico-screen .hst-btn.primary:hover{filter:brightness(1.1);}
+    #historico-screen .hst-body{padding:16px clamp(12px,2.5vw,24px);}
+    #historico-screen .hst-table-wrap{
+      background:#fff;border-radius:12px;border:1.5px solid #e2e8f0;
+      box-shadow:0 1px 4px rgba(0,0,0,.04);overflow:hidden;
+    }
+    #historico-screen table{width:100%;border-collapse:collapse;}
+    #historico-screen thead tr{background:#f8fafc;border-bottom:2px solid #e2e8f0;}
+    #historico-screen th{
+      padding:10px 14px;text-align:left;
+      font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:800;
+      letter-spacing:1.2px;text-transform:uppercase;color:#64748b;white-space:nowrap;
+    }
+    #historico-screen tbody tr{border-bottom:1px solid #f1f5f9;transition:background .12s;}
+    #historico-screen tbody tr:last-child{border-bottom:none;}
+    #historico-screen tbody tr:hover{background:#faf5ff;}
+    #historico-screen td{
+      padding:9px 14px;font-family:'Nunito',sans-serif;font-size:13px;color:#0f172a;
+    }
+    #historico-screen .hst-mod-badge{
+      display:inline-block;padding:2px 8px;border-radius:4px;
+      font-family:'Courier New',monospace;font-size:12px;font-weight:700;
+      background:#f1f5f9;color:#1e3a8a;border:1px solid #e2e8f0;
+    }
+    #historico-screen .hst-tipo-badge{
+      display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;
+      font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:.5px;
+    }
+    #historico-screen .hst-tiempo{
+      font-family:'Courier New',monospace;font-size:13px;font-weight:700;color:#1e3a8a;
+    }
+    #historico-screen .hst-empty{
+      text-align:center;padding:60px 20px;color:#94a3b8;
+      font-family:'Barlow Condensed',sans-serif;font-size:16px;letter-spacing:2px;
+    }
+    #historico-screen .hst-summary{
+      display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;
+    }
+    #historico-screen .hst-summary-card{
+      background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;
+      padding:10px 16px;display:flex;flex-direction:column;gap:2px;min-width:140px;
+    }
+    #historico-screen .hst-summary-card .sc-label{
+      font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#94a3b8;
+    }
+    #historico-screen .hst-summary-card .sc-val{
+      font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;
+    }
+  </style>
+
+  <!-- Topbar -->
+  <div class="hst-topbar">
+    <div class="hst-title">📊 HISTÓ<span>RICO</span></div>
+    <button class="hst-btn" onclick="cerrarHistorico()">← Volver</button>
+  </div>
+
+  <!-- Filtros -->
+  <div class="hst-filters">
+    <span class="hst-filter-label">Desde</span>
+    <input type="date" id="hst-desde" class="hst-input" onchange="renderHistorico()">
+    <span class="hst-filter-label">Hasta</span>
+    <input type="date" id="hst-hasta" class="hst-input" onchange="renderHistorico()">
+    <span class="hst-filter-label">Módulo</span>
+    <select id="hst-modulo" class="hst-input" onchange="renderHistorico()">
+      <option value="">Todos</option>
+    </select>
+    <span class="hst-filter-label">Tipo</span>
+    <select id="hst-tipo" class="hst-input" onchange="renderHistorico()">
+      <option value="">Todos</option>
+      <option value="red">Alerta</option>
+      <option value="yellow">Atendiendo</option>
+      <option value="orange">Espera CI</option>
+      <option value="blue30">Cambio 30 min</option>
+      <option value="blue60">Cambio 60 min</option>
+      <option value="blue">Cambio (sin límite)</option>
+    </select>
+    <button class="hst-btn" onclick="limpiarFiltrosHistorico()">Limpiar</button>
+    <button class="hst-btn primary" onclick="exportarHistoricoExcel()">📥 Excel</button>
+  </div>
+
+  <!-- Body -->
+  <div class="hst-body">
+    <div class="hst-summary" id="hst-summary"></div>
+    <div class="hst-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Módulo</th>
+            <th>Tipo de Improductivo</th>
+            <th>Tiempo Total Acumulado</th>
+            <th>Registros</th>
+          </tr>
+        </thead>
+        <tbody id="hst-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+//  HISTÓRICO — Pantalla de tiempos acumulados por módulo y tipo
+// ══════════════════════════════════════════════════════════════════
+
+const HST_TIPOS = {
+  red:    { label:'Alerta',           color:'#fef2f2', text:'#991b1b', border:'#fca5a5', icon:'🔴' },
+  yellow: { label:'Atendiendo',       color:'#fefce8', text:'#854d0e', border:'#fde047', icon:'🟡' },
+  orange: { label:'Espera CI',         color:'#fff7ed', text:'#9a3412', border:'#fdba74', icon:'🟠' },
+  blue30: { label:'Cambio 30 min',    color:'#eff6ff', text:'#1e40af', border:'#93c5fd', icon:'🔵' },
+  blue60: { label:'Cambio 60 min',    color:'#dbeafe', text:'#1e3a8a', border:'#60a5fa', icon:'🔷' },
+  blue:   { label:'Cambio (s/límite)',color:'#eff6ff', text:'#1e40af', border:'#93c5fd', icon:'🔵' },
+};
+
+function fmtMinutos(min){
+  if(min < 1) return Math.round(min*60)+'s';
+  if(min < 60) return min.toFixed(1)+' min';
+  const h = Math.floor(min/60);
+  const m = Math.round(min%60);
+  return h+'h '+(m>0?m+'m':'');
+}
+
+async function abrirHistorico(){
+  document.getElementById('historico-screen').style.display = 'block';
+  // Inicializar fechas con hoy
+  const hoy = new Date().toISOString().split('T')[0];
+  const desde = document.getElementById('hst-desde');
+  const hasta  = document.getElementById('hst-hasta');
+  if(!desde.value) desde.value = hoy;
+  if(!hasta.value)  hasta.value  = hoy;
+  // Cargar historial del servidor
+  await loadHistorialFromServer();
+  // Poblar select de módulos
+  poblarModulosHistorico();
+  renderHistorico();
+}
+
+function cerrarHistorico(){
+  document.getElementById('historico-screen').style.display = 'none';
+}
+
+function poblarModulosHistorico(){
+  const sel = document.getElementById('hst-modulo');
+  const current = sel.value;
+  sel.innerHTML = '<option value="">Todos</option>';
+  const hist = loadHistory();
+  const mods = [...new Set(hist.map(r=>r.modulo).filter(Boolean))].sort();
+  // También incluir módulos actuales
+  const allMods = [...new Set([...MODULES,...mods])].sort();
+  allMods.forEach(m=>{
+    const o = document.createElement('option');
+    o.value = m; o.textContent = m;
+    sel.appendChild(o);
+  });
+  sel.value = current;
+}
+
+function limpiarFiltrosHistorico(){
+  const hoy = new Date().toISOString().split('T')[0];
+  document.getElementById('hst-desde').value = hoy;
+  document.getElementById('hst-hasta').value = hoy;
+  document.getElementById('hst-modulo').value = '';
+  document.getElementById('hst-tipo').value = '';
+  renderHistorico();
+}
+
+function renderHistorico(){
+  const desde  = document.getElementById('hst-desde').value;
+  const hasta   = document.getElementById('hst-hasta').value;
+  const filtMod = document.getElementById('hst-modulo').value;
+  const filtTipo= document.getElementById('hst-tipo').value;
+  const tbody   = document.getElementById('hst-tbody');
+  const summary = document.getElementById('hst-summary');
+
+  const hist = loadHistory();
+  let rows = [];
+
+  // Del historial persistido
+  hist.forEach(r=>{
+    if(!r.tipo || r.tipo==='green') return;
+    if(desde && r.fechaISO && r.fechaISO < desde) return;
+    if(hasta  && r.fechaISO && r.fechaISO > hasta) return;
+    rows.push({ mod:r.modulo, tipo:r.tipo, min:r.durMinutos||0 });
+  });
+
+  // De la sesión actual en memoria
+  const now = Date.now();
+  MODULES.forEach(id=>{
+    const s = states[id];
+    const cur = now - timers[id];
+    const sess = {
+      red:    acumRed[id]   + (s==='red'    ? cur : 0),
+      yellow: acumYellow[id]+ (s==='yellow' ? cur : 0),
+      orange: acumOrange[id]+ (s==='orange' ? cur : 0),
+      blue:   acumBlue[id]  + (s==='blue'   ? cur : 0),
+    };
+    Object.entries(sess).forEach(([tipo,ms])=>{
+      if(ms < 1000) return;
+      // Si hay hoy en el filtro o no hay filtro de fecha, incluir sesión
+      const hoy = new Date().toISOString().split('T')[0];
+      if(desde && hoy < desde) return;
+      if(hasta  && hoy > hasta) return;
+      rows.push({ mod:id, tipo, min: parseFloat((ms/60000).toFixed(2)) });
+    });
+  });
+
+  // Aplicar filtros
+  if(filtMod)  rows = rows.filter(r=>r.mod===filtMod);
+  if(filtTipo) rows = rows.filter(r=>r.tipo===filtTipo);
+
+  // Agrupar por módulo + tipo
+  const grouped = {};
+  rows.forEach(({mod,tipo,min})=>{
+    const key = mod+'|'+tipo;
+    if(!grouped[key]) grouped[key] = { mod, tipo, min:0, count:0 };
+    grouped[key].min   += min;
+    grouped[key].count += 1;
+  });
+
+  const groupedRows = Object.values(grouped).sort((a,b)=>{
+    if(a.mod < b.mod) return -1;
+    if(a.mod > b.mod) return 1;
+    return b.min - a.min;
+  });
+
+  // Summary cards
+  const totalMin  = groupedRows.reduce((s,r)=>s+r.min, 0);
+  const totalMods = new Set(groupedRows.map(r=>r.mod)).size;
+  summary.innerHTML = `
+    <div class="hst-summary-card">
+      <div class="sc-label">Total Improductivo</div>
+      <div class="sc-val" style="color:#7c3aed;">${fmtMinutos(totalMin)}</div>
+    </div>
+    <div class="hst-summary-card">
+      <div class="sc-label">Módulos afectados</div>
+      <div class="sc-val" style="color:#1e3a8a;">${totalMods}</div>
+    </div>
+    <div class="hst-summary-card">
+      <div class="sc-label">Registros</div>
+      <div class="sc-val" style="color:#0f172a;">${groupedRows.length}</div>
+    </div>`;
+
+  // Tabla
+  if(groupedRows.length === 0){
+    tbody.innerHTML = `<tr><td colspan="4" class="hst-empty">📊 No hay datos para el período seleccionado</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = groupedRows.map(r=>{
+    const t = HST_TIPOS[r.tipo] || { label:r.tipo, color:'#f8fafc', text:'#0f172a', border:'#e2e8f0', icon:'⚪' };
+    return `<tr>
+      <td><span class="hst-mod-badge">${r.mod||'—'}</span></td>
+      <td><span class="hst-tipo-badge" style="background:${t.color};color:${t.text};border:1px solid ${t.border};">${t.icon} ${t.label}</span></td>
+      <td><span class="hst-tiempo">${fmtMinutos(r.min)}</span></td>
+      <td style="color:#94a3b8;font-size:12px;">${r.count}</td>
+    </tr>`;
+  }).join('');
+}
+
+function exportarHistoricoExcel(){
+  if(typeof XLSX === 'undefined'){ alert('Librería Excel no disponible'); return; }
+  const desde  = document.getElementById('hst-desde').value;
+  const hasta   = document.getElementById('hst-hasta').value;
+  const hist   = loadHistory();
+  const rows   = [];
+
+  hist.forEach(r=>{
+    if(!r.tipo || r.tipo==='green') return;
+    if(desde && r.fechaISO && r.fechaISO < desde) return;
+    if(hasta  && r.fechaISO && r.fechaISO > hasta) return;
+    const t = HST_TIPOS[r.tipo] || { label: r.tipo };
+    rows.push({
+      'Fecha':         r.fecha||'',
+      'Módulo':        r.modulo||'',
+      'Tipo':          t.label,
+      'Duración (min)':r.durMinutos||0,
+      'Mecánico':      r.mecanico||'',
+    });
+  });
+
+  if(rows.length === 0){ alert('No hay datos para exportar'); return; }
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [{wch:12},{wch:10},{wch:20},{wch:16},{wch:20}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Histórico');
+  const label = (desde||'')+(desde!==hasta?'_'+(hasta||''):'');
+  XLSX.writeFile(wb, 'Historico_'+(label||'completo')+'.xlsx');
+}
+</script>
+
 </body>
 </html>
