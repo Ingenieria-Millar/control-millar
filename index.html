@@ -776,16 +776,20 @@ body { overflow-x: hidden; max-width: 100vw; }
 
 /* ── PANEL FILTRO MÓDULOS (ojo) ── */
 #mod-eye-overlay{
-  position:fixed;inset:0;z-index:600;display:none;
-  background:rgba(15,23,42,.45);backdrop-filter:blur(3px);
+  position:fixed;top:0;left:0;width:100%;height:100%;z-index:9800;display:none;
+  background:rgba(15,23,42,.55);backdrop-filter:blur(3px);
   align-items:center;justify-content:center;
+  padding:20px;box-sizing:border-box;
 }
 #mod-eye-overlay.open{display:flex;}
 #mod-eye-panel{
-  position:relative;top:auto;right:auto;z-index:601;
+  position:relative;margin:auto;z-index:9801;
   background:#fff;border:1.5px solid #e2e8f0;border-radius:16px;
-  box-shadow:0 16px 48px rgba(15,23,42,.22);
-  padding:20px 20px 16px;width:320px;max-height:80vh;overflow-y:auto;
+  box-shadow:0 16px 48px rgba(15,23,42,.3);
+  padding:20px 20px 16px;
+  width:min(480px, calc(100vw - 40px));
+  max-height:min(80vh, calc(100vh - 40px));
+  overflow-y:auto;
 }
 #mod-eye-panel .ep-title{
   font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;
@@ -793,11 +797,11 @@ body { overflow-x: hidden; max-width: 100vw; }
   display:flex;align-items:center;justify-content:space-between;
 }
 #mod-eye-panel .ep-grid{
-  display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:10px;
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:6px;margin-bottom:10px;
 }
 #mod-eye-panel .ep-chip{
-  padding:5px 4px;border-radius:6px;border:1.5px solid #e2e8f0;
-  font-family:'Courier New',monospace;font-size:11px;font-weight:700;
+  padding:7px 4px;border-radius:6px;border:1.5px solid #e2e8f0;
+  font-family:'Courier New',monospace;font-size:12px;font-weight:700;
   letter-spacing:.5px;cursor:pointer;text-align:center;
   background:#f8fafc;color:#475569;transition:all .15s;
   user-select:none;
@@ -810,8 +814,8 @@ body { overflow-x: hidden; max-width: 100vw; }
   display:flex;gap:8px;padding-top:8px;border-top:1px solid #f1f5f9;
 }
 #mod-eye-panel .ep-btn{
-  flex:1;padding:7px;border-radius:7px;border:1.5px solid #e2e8f0;
-  font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;
+  flex:1;padding:9px;border-radius:7px;border:1.5px solid #e2e8f0;
+  font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;
   letter-spacing:.5px;cursor:pointer;background:#f8fafc;color:#475569;
   transition:all .15s;
 }
@@ -2443,7 +2447,7 @@ function applyGridFilter(){
     const div=document.getElementById('mod-'+id);
     if(!div) return;
     const s=states[id]||'green';
-    const sVis=(esPlanta&&s==='orange')?'green':s;
+    const sVis=(esPlanta&&(s==='orange'||s==='purple'))?'green':s;
     const filtrado=activeFilters.size>0&&!activeFilters.has(sVis);
     div.classList.toggle('hidden-filter', filtrado);
     if(!filtrado) anyVisible=true;
@@ -2484,7 +2488,7 @@ function renderGrid(){
     const div=document.getElementById('mod-'+id);
     if(!div) return;
     const s=states[id]||'green';
-    const sVis=(esPlanta&&s==='orange')?'green':s;
+    const sVis=(esPlanta&&(s==='orange'||s==='purple'))?'green':s;
     const mecHtml=(sVis==='yellow'||sVis==='red')&&lastMec[id]?`<span class="mod-mec">🔧 ${lastMec[id]}</span>`:`<span class="mod-mec"></span>`;
     div.className=`module ${canClick?'clickable':'readonly'} ${sVis}`;
     div.innerHTML=`<span class="mod-id">${id}</span><div class="light"></div><span class="mod-label">${LABELS[sVis]}</span><span class="mod-timer" id="timer-${id}"></span>${mecHtml}`;
@@ -2604,7 +2608,7 @@ setInterval(()=>{
     const el=document.getElementById("timer-"+id);
     if(!el)return;
     const s=states[id];
-    if(esPlanta&&s==='orange'){el.textContent=formatTime(Date.now()-timers[id]);return;}
+    if(esPlanta&&(s==='orange'||s==='purple')){el.textContent='';return;}
     if(s==="blue"&&cambioLimites[id]){
       const rem=cambioLimites[id]-now;
       if(rem<=0){delete cambioLimites[id];commitChange(id,"green",null);}
@@ -2627,7 +2631,7 @@ setInterval(()=>{
 function renderBig(){
   if(!selectedMod)return;
   const sRaw=states[selectedMod];
-  const s=(currentUser==='Televisor'||currentUser==='Mecanicos')&&sRaw==='orange'?'green':sRaw;
+  const s=(currentUser==='Televisor'||currentUser==='Mecanicos')&&(sRaw==='orange'||sRaw==='purple')?'green':sRaw;
   const tt=(s==='red'||s==='yellow'||s==='blue'||s==='orange'||s==='purple')?'⏱ '+formatTime(Date.now()-timers[selectedMod]):'';
   let tapHint='Toca para cambiar estado';
   let lockBadge='';
@@ -3822,7 +3826,7 @@ function togglePerm(user, perm, enabled){
 // ── UTILS ─────────────────────────────────────────────────────────
 function showToast(id,state){
   const esPlanta=(currentUser==='Mecanicos'||currentUser==='Televisor');
-  if(esPlanta&&state==='orange') return;
+  if(esPlanta&&(state==='orange'||state==='purple')) return;
   const msgs={red:`🔴 ${id} — Solicita mecánico`,yellow:`🟡 ${id} — Mecánico en camino`,green:`🟢 ${id} — Resuelto`};
   const t=document.createElement('div');t.className=`toast ${state}`;t.textContent=msgs[state];document.getElementById('toasts').appendChild(t);setTimeout(()=>t.remove(),3200);
 }
@@ -6706,20 +6710,6 @@ function cfgSavePerfilModal(){
       </button>
     </div>
 
-    <!-- 4. Observación -->
-    <div style="margin-bottom:14px;">
-      <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:6px;">4. OBSERVACIÓN</div>
-      <div style="position:relative;" id="si-obs-wrap">
-        <button type="button" onclick="siToggleObsMenu()"
-          style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;background:#f8fafc;outline:none;text-align:left;cursor:pointer;display:flex;align-items:center;justify-content:space-between;"
-          id="si-obs-btn">
-          <span id="si-obs-label" style="color:#94a3b8;">— Seleccionar —</span>
-          <span style="color:#94a3b8;">▾</span>
-        </button>
-        <div id="si-obs-menu" style="display:none;position:absolute;bottom:110%;left:0;right:0;z-index:200;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.1);padding:4px 0;max-height:180px;overflow-y:auto;"></div>
-      </div>
-    </div>
-
     <div id="si-error" style="color:#ef4444;font-size:12px;font-weight:700;margin-bottom:10px;display:none;text-align:center;"></div>
 
     <button onclick="siEnviar()" style="width:100%;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .2s;">
@@ -6822,14 +6812,8 @@ function siOpen(){
         data.tipoInsumoList.forEach(t=>{ const o=document.createElement('option'); o.value=t.name; o.dataset.flow=t.flow||'qty_only'; o.textContent=t.name; tipoSel.appendChild(o); });
       }
       window._siElasticoList = data.elasticoList||[];
-      window._siObsList = data.obsList && data.obsList.length ? data.obsList : ['Pérdida','Faltante','Defectos'];
     })
     .catch(()=>{ tipoSel.innerHTML = '<option value="">— Error al cargar —</option>'; });
-
-  // Resetear observación
-  window._siObsSelected = '';
-  const obsLbl = document.getElementById('si-obs-label');
-  if(obsLbl){ obsLbl.textContent='— Seleccionar —'; obsLbl.style.color='#94a3b8'; }
 
   // Mostrar
   const ov = document.getElementById('si-overlay');
@@ -6968,56 +6952,6 @@ function siClose(){
   siRenderInsumosList();
 }
 
-// ── Obs dropdown — modal módulos ─────────────────────────────────
-window._siObsList = [];
-window._siObsSelected = '';
-function siToggleObsMenu(){
-  const menu = document.getElementById('si-obs-menu');
-  if(!menu) return;
-  const isOpen = menu.style.display === 'block';
-  menu.style.display = isOpen ? 'none' : 'block';
-  if(!isOpen) siRenderObsMenu(menu);
-}
-function siRenderObsMenu(menu){
-  menu.innerHTML = '';
-  const opts = window._siObsList && window._siObsList.length ? window._siObsList : ['Pérdida','Faltante','Defectos'];
-  opts.forEach(obs => {
-    const item = document.createElement('div');
-    item.style.cssText = 'padding:10px 16px;cursor:pointer;font-family:Nunito,sans-serif;font-size:13px;color:#0f172a;transition:background .15s;';
-    if(window._siObsSelected === obs) item.style.fontWeight = '700';
-    item.textContent = obs;
-    item.onmouseenter = ()=>item.style.background='#f1f5f9';
-    item.onmouseleave = ()=>item.style.background='';
-    item.onclick = ()=>siSeleccionarObs(obs);
-    menu.appendChild(item);
-  });
-  if(window._siObsSelected){
-    const sep = document.createElement('div');
-    sep.style.cssText = 'height:1px;background:#e2e8f0;margin:4px 0;';
-    menu.appendChild(sep);
-    const clear = document.createElement('div');
-    clear.style.cssText = 'padding:10px 16px;cursor:pointer;font-family:Nunito,sans-serif;font-size:13px;color:#94a3b8;transition:background .15s;';
-    clear.textContent = '✕ Sin observación';
-    clear.onmouseenter = ()=>clear.style.background='#f1f5f9';
-    clear.onmouseleave = ()=>clear.style.background='';
-    clear.onclick = ()=>siSeleccionarObs('');
-    menu.appendChild(clear);
-  }
-}
-function siSeleccionarObs(obs){
-  window._siObsSelected = obs;
-  const menu = document.getElementById('si-obs-menu');
-  if(menu) menu.style.display = 'none';
-  const lbl = document.getElementById('si-obs-label');
-  if(lbl){ lbl.textContent = obs||'— Seleccionar —'; lbl.style.color = obs ? '#0f172a' : '#94a3b8'; }
-}
-document.addEventListener('click', e=>{
-  if(!e.target.closest('#si-obs-wrap')){
-    const m = document.getElementById('si-obs-menu');
-    if(m) m.style.display = 'none';
-  }
-});
-
 function siEnviar(){
   const ref   = document.getElementById('si-ref').value.trim();
   const op    = document.getElementById('si-op').value.trim();
@@ -7072,7 +7006,7 @@ function siEnviar(){
     status:     'alert',
     waitTime:   null,
     resolvedAt: null,
-    obs:        window._siObsSelected || '',
+    obs:        '',
     alertStart: now.getTime()
   };
 
