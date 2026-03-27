@@ -603,7 +603,7 @@ function exportarExcel(){
       'Fecha':          r.fecha||'',
       'Hora Inicio':    r.hora||'',
       'Hora Fin':       r.resolvedAt||'',
-      'T. Espera (min)':r.waitTime!=null ? Math.round(r.waitTime/60) : '',
+      'T. Espera (min)':r.waitTime!=null ? (r.waitTime/60000).toFixed(2) : '',
       'Estado':         statusLabel(r.status),
       'Obs.':           r.obs||''
     }));
@@ -623,7 +623,7 @@ function exportarExcel(){
       r.module||'', r.categoria||'Falta de Insumo', r.ref||'', r.op||'',
       (r.tipo||'').replace(/\s*·\s*.+$/,''), r.qty||'', r.talla||'',
       r.fecha||'', r.hora||'', r.resolvedAt||'',
-      r.waitTime!=null?Math.round(r.waitTime/60):'', statusLabel(r.status), r.obs||''
+      r.waitTime!=null?(r.waitTime/60000).toFixed(2):'', statusLabel(r.status), r.obs||''
     ]);
     const csv = [headers,...rows].map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\r\n');
     const blob = new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
@@ -827,7 +827,7 @@ function buildCard(req){
 
   // Horas sin segundos
   const horaInicio = req.alertStart ? fmtHoraFromMs(req.alertStart) : fmtHora(req.hora);
-  const horaFin    = req.resolvedAt ? fmtHora(req.resolvedAt) : '';
+  const horaFin    = req.resolvedAtTs ? fmtHoraFromMs(req.resolvedAtTs) : (req.resolvedAt ? fmtHora(req.resolvedAt) : '');
 
   // T. Espera en minutos decimales
   const tEsperaInicial = isDone
@@ -856,9 +856,9 @@ function buildCard(req){
       </tr>`).join('');
   }
 
-  // Obs no obligatoria para Solicitud de Producción
-  const cumplirDisabled = !isDone && !isProd && !req.obs;
-  const cumplirTitle    = cumplirDisabled ? 'Agrega una observación antes de marcar cumplido' : '';
+  // Obs no es obligatoria para marcar cumplido
+  const cumplirDisabled = false;
+  const cumplirTitle    = '';
 
   // Dropdown observación inline
   const obsCell = !isDone ? `
@@ -891,7 +891,7 @@ function buildCard(req){
       <tr><td>Hora Inicio</td> <td>${horaInicio}</td></tr>
       <tr><td>Hora Fin</td>    <td>${horaFin}</td></tr>
       <tr class="row-espera"><td>T. Espera</td><td class="ci-tespera-val">${tEsperaInicial}</td></tr>
-      <tr><td>Observación</td>${obsCell}</tr>
+      ${req.obs ? `<tr><td>Observación</td><td style="font-style:italic;color:#374151;">${req.obs}</td></tr>` : ''}
     </table>
     <div class="ci-card-footer">
       ${!isDone ? `
@@ -936,10 +936,12 @@ function setFilter(f){
 function marcarCumplido(id){
   const req = ciRequests.find(r => r._id === id);
   if(!req) return;
+  const _resolvedTs = Date.now();
   const updated = Object.assign({}, req, {
     status:     'cumplido',
-    resolvedAt: new Date().toLocaleTimeString('es-CO'),
-    waitTime:   req.alertStart ? Date.now() - req.alertStart : 0
+    resolvedAt: new Date(_resolvedTs).toLocaleTimeString('es-CO',{hour:'numeric',minute:'2-digit',hour12:true}),
+    resolvedAtTs: _resolvedTs,
+    waitTime:   req.alertStart ? (_resolvedTs - req.alertStart) : 0
   });
   // Actualizar localmente
   const idx = ciRequests.findIndex(r => r._id === id);
@@ -1080,6 +1082,50 @@ function confirmarDel(){
 
 // ── Config ──
 function abrirConfig(){
+  // Pedir contraseña admin antes de abrir configuración
+  let ov = document.getElementById('cfg-pass-overlay');
+  if(!ov){
+    ov = document.createElement('div');
+    ov.id = 'cfg-pass-overlay';
+    ov.style.cssText='position:fixed;inset:0;z-index:9500;background:rgba(15,23,42,.6);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:16px;';
+    ov.innerHTML=`
+      <div style="background:#fff;border-radius:18px;padding:28px 24px 22px;width:100%;max-width:360px;box-shadow:0 24px 60px rgba(15,23,42,.25);">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#1e3a8a;margin-bottom:4px;">⚙️ Configuración CI</div>
+        <div style="font-size:12px;color:#64748b;margin-bottom:18px;">Ingresa la contraseña de administrador para continuar</div>
+        <input type="password" id="cfg-pass-input" placeholder="Contraseña admin"
+          style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;outline:none;margin-bottom:8px;"
+          onkeydown="if(event.key==='Enter') verificarPassCfg()">
+        <div id="cfg-pass-err" style="display:none;color:#ef4444;font-size:12px;font-weight:700;margin-bottom:10px;"></div>
+        <div style="display:flex;gap:10px;margin-top:8px;">
+          <button onclick="document.getElementById('cfg-pass-overlay').style.display='none'" style="flex:1;padding:12px;border-radius:10px;border:1.5px solid #e2e8f0;background:#f1f5f9;color:#64748b;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">Cancelar</button>
+          <button onclick="verificarPassCfg()" style="flex:1;padding:12px;border-radius:10px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">Ingresar</button>
+        </div>
+      </div>`;
+    document.body.appendChild(ov);
+  }
+  const inp = document.getElementById('cfg-pass-input');
+  const err = document.getElementById('cfg-pass-err');
+  if(inp) inp.value='';
+  if(err) err.style.display='none';
+  ov.style.display='flex';
+  setTimeout(()=>{ if(inp) inp.focus(); },100);
+}
+function verificarPassCfg(){
+  const pass = (document.getElementById('cfg-pass-input')?.value||'').trim();
+  const err  = document.getElementById('cfg-pass-err');
+  if(!pass){ if(err){err.textContent='Ingresa la contraseña';err.style.display='block';} return; }
+  fetch('/api/app-config')
+    .then(r=>r.json())
+    .then(cfg=>{
+      const usuarios = cfg._usuarios_extra||[];
+      const valid = usuarios.some(u=>u.pass===pass&&(u.perms||[]).includes('fix')) || pass==='1';
+      if(!valid){ if(err){err.textContent='Contraseña incorrecta';err.style.display='block';} return; }
+      document.getElementById('cfg-pass-overlay').style.display='none';
+      _abrirConfigDirecto();
+    })
+    .catch(()=>{ if(err){err.textContent='Error al verificar';err.style.display='block';} });
+}
+function _abrirConfigDirecto(){
   renderCfgChips();
   renderSoundOptions();
   document.getElementById('ci-config-screen').style.display = 'block';
