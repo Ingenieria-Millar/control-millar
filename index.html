@@ -1560,7 +1560,32 @@ async function loadHistorialFromServer(){
   try{ const r=await fetch('/api/historial'); _historialCache=await r.json(); }
   catch(e){ console.error('loadHistorial:',e); _historialCache=[]; }
 }
-function logChange(modulo,prev,next,durMs,mecanico,limite){\n  // Solo loguear si hubo tiempo real en el estado anterior\n  if(!prev||prev==='green'||durMs<1000) return;\n  const h=loadHistory();\n  const now=new Date();\n  // Para estado blue: detectar si fue 30 o 60 min según el limite guardado\n  let tipoLabel = prev;\n  if(prev==='blue' && limite){\n    const minutos = Math.round((limite - (Date.now() - durMs)) / 60000);\n    if(minutos <= 35) tipoLabel = 'blue30';\n    else tipoLabel = 'blue60';\n  }\n  h.push({\n    fecha:now.toLocaleDateString('es-CO'),\n    fechaISO:now.toISOString().split('T')[0],\n    hora:now.toLocaleTimeString('es-CO'),\n    modulo,\n    tipo:tipoLabel,\n    estadoAnterior:prev,\n    estadoNuevo:next,\n    durMinutos:parseFloat((durMs/60000).toFixed(2)),\n    mecanico:mecanico||''\n  });\n  if(h.length>10000) h.splice(0,h.length-10000);\n  saveHistory(h);\n}
+function logChange(modulo,prev,next,durMs,mecanico,limite){
+  // Solo loguear si hubo tiempo real en el estado anterior
+  if(!prev||prev==='green'||durMs<1000) return;
+  const h=loadHistory();
+  const now=new Date();
+  // Para estado blue: detectar si fue 30 o 60 min según el limite guardado
+  let tipoLabel = prev;
+  if(prev==='blue' && limite){
+    const minutos = Math.round((limite - (Date.now() - durMs)) / 60000);
+    if(minutos <= 35) tipoLabel = 'blue30';
+    else tipoLabel = 'blue60';
+  }
+  h.push({
+    fecha:now.toLocaleDateString('es-CO'),
+    fechaISO:now.toISOString().split('T')[0],
+    hora:now.toLocaleTimeString('es-CO'),
+    modulo,
+    tipo:tipoLabel,
+    estadoAnterior:prev,
+    estadoNuevo:next,
+    durMinutos:parseFloat((durMs/60000).toFixed(2)),
+    mecanico:mecanico||''
+  });
+  if(h.length>10000) h.splice(0,h.length-10000);
+  saveHistory(h);
+}
 
 // ── SONIDO ALERTA (SIRENA AMBULANCIA) ────────────────────────────
 let audioCtx=null;
