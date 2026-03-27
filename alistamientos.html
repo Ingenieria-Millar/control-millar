@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Alistamientos — Confecciones Millar</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Nunito:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Nunito:wght@300;400;500;600;700;800&display=swap&font-display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#f1f5f9;--panel:#ffffff;--border:#e2e8f0;
@@ -75,7 +75,7 @@ main{position:relative;z-index:1;padding:24px;max-width:1280px;margin:0 auto;}
 
 /* ── TABLE ── */
 .table-wrap{overflow-x:auto;}
-table{width:100%;border-collapse:collapse;font-size:13px;}
+table{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed;}
 thead tr{background:#f8fafc;}
 th{padding:10px 14px;text-align:left;font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;}
 td{padding:11px 14px;border-bottom:1px solid #f1f5f9;color:var(--text);vertical-align:middle;}
@@ -263,7 +263,7 @@ tr:hover td{background:#f8fafc;}
     <div id="alist-registros">
       <div class="table-panel">
         <div class="toolbar">
-          <input class="search-input" placeholder="🔍 Buscar por módulo, máquina, mecánico..." id="alistSearch" oninput="filtrarAlistamientos()">
+          <input class="search-input" placeholder="🔍 Buscar por módulo, máquina, mecánico..." id="alistSearch" oninput="debounce(filtrarAlistamientos,300)()">
           <select class="filter-select" id="alistFilterSup" onchange="filtrarAlistamientos()"><option value="">Todas las supervisoras</option></select>
           <input type="date" class="filter-select" id="alistFilterFecha" onchange="filtrarAlistamientos()">
         </div>
@@ -291,7 +291,7 @@ tr:hover td{background:#f8fafc;}
     </div>
     <div class="table-panel">
       <div class="toolbar">
-        <input class="search-input" placeholder="🔍 Buscar por módulo, máquina, mecánico..." id="mantSearch" oninput="filtrarMantenimientos()">
+        <input class="search-input" placeholder="🔍 Buscar por módulo, máquina, mecánico..." id="mantSearch" oninput="debounce(filtrarMantenimientos,300)()">
         <select class="filter-select" id="mantFilterTipo" onchange="filtrarMantenimientos()">
           <option value="">Todos los tipos</option>
           <option>Preventivo</option><option>Correctivo</option><option>Mantenimiento de Fugas</option>
@@ -602,6 +602,8 @@ tr:hover td{background:#f8fafc;}
 <div class="toast-container" id="toastContainer"></div>
 
 <script>
+// ── Utilidad debounce ─────────────────────────────────────────────
+function debounce(fn, ms){ let t; return function(...a){ clearTimeout(t); t=setTimeout(()=>fn.apply(this,a), ms); }; }
 const API = '/alistamiento';
 
 // ===== DATOS GLOBALES =====
