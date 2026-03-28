@@ -603,7 +603,7 @@ function exportarExcel(){
       'Fecha':          r.fecha||'',
       'Hora Inicio':    r.hora||'',
       'Hora Fin':       r.resolvedAt||'',
-      'T. Espera (min)':r.waitTime!=null ? Math.round(r.waitTime/60) : '',
+      'T. Espera (min)':r.waitTime!=null ? ((r.waitTime < 3600 && r.waitTime > 0) ? (r.waitTime/60).toFixed(2) : (r.waitTime/60000).toFixed(2)) : '',
       'Estado':         statusLabel(r.status),
       'Obs.':           r.obs||''
     }));
@@ -623,7 +623,7 @@ function exportarExcel(){
       r.module||'', r.categoria||'Falta de Insumo', r.ref||'', r.op||'',
       (r.tipo||'').replace(/\s*·\s*.+$/,''), r.qty||'', r.talla||'',
       r.fecha||'', r.hora||'', r.resolvedAt||'',
-      r.waitTime!=null?Math.round(r.waitTime/60):'', statusLabel(r.status), r.obs||''
+      r.waitTime!=null?((r.waitTime < 3600 && r.waitTime > 0)?(r.waitTime/60).toFixed(2):(r.waitTime/60000).toFixed(2)):'', statusLabel(r.status), r.obs||''
     ]);
     const csv = [headers,...rows].map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\r\n');
     const blob = new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
@@ -806,8 +806,10 @@ function fmtHoraFromMs(ts){
 
 // ── T. Espera en decimal de minutos ──
 function calcTEsperaDecimal(ms){
-  // ms → minutos decimales, 2 decimales
-  const min = ms / 60000;
+  // Detectar si el valor viene en segundos (legado) o en ms
+  // Si es menor a 3600 y la solicitud duró más de 1 minuto, probablemente está en segundos
+  const val = (ms < 3600 && ms > 0) ? ms * 1000 : ms;
+  const min = val / 60000;
   return min.toFixed(2);
 }
 
@@ -1070,9 +1072,49 @@ function confirmarDel(){
 
 // ── Config ──
 function abrirConfig(){
-  renderCfgChips();
-  renderSoundOptions();
-  document.getElementById('ci-config-screen').style.display = 'block';
+  let ov = document.getElementById('cfg-pass-overlay');
+  if(!ov){
+    ov = document.createElement('div');
+    ov.id = 'cfg-pass-overlay';
+    ov.style.cssText='position:fixed;inset:0;z-index:9500;background:rgba(15,23,42,.6);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:16px;';
+    ov.innerHTML=`
+      <div style="background:#fff;border-radius:18px;padding:28px 24px 22px;width:100%;max-width:360px;box-shadow:0 24px 60px rgba(15,23,42,.25);">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#1e3a8a;margin-bottom:4px;">⚙️ Configuración CI</div>
+        <div style="font-size:12px;color:#64748b;margin-bottom:18px;">Ingresa la contraseña de administrador</div>
+        <input type="password" id="cfg-pass-input" placeholder="Contraseña"
+          style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;outline:none;margin-bottom:8px;"
+          onkeydown="if(event.key==='Enter') verificarPassCfg()">
+        <div id="cfg-pass-err" style="display:none;color:#ef4444;font-size:12px;font-weight:700;margin-bottom:10px;"></div>
+        <div style="display:flex;gap:10px;margin-top:8px;">
+          <button onclick="document.getElementById('cfg-pass-overlay').style.display='none'" style="flex:1;padding:12px;border-radius:10px;border:1.5px solid #e2e8f0;background:#f1f5f9;color:#64748b;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">Cancelar</button>
+          <button onclick="verificarPassCfg()" style="flex:1;padding:12px;border-radius:10px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">Ingresar</button>
+        </div>
+      </div>`;
+    document.body.appendChild(ov);
+  }
+  const inp = document.getElementById('cfg-pass-input');
+  const err = document.getElementById('cfg-pass-err');
+  if(inp) inp.value='';
+  if(err) err.style.display='none';
+  ov.style.display='flex';
+  setTimeout(()=>{ if(inp) inp.focus(); },100);
+}
+function verificarPassCfg(){
+  const pass = (document.getElementById('cfg-pass-input')?.value||'').trim();
+  const err  = document.getElementById('cfg-pass-err');
+  if(!pass){ if(err){err.textContent='Ingresa la contraseña';err.style.display='block';} return; }
+  fetch('/api/app-config')
+    .then(r=>r.json())
+    .then(cfg=>{
+      const usuarios = cfg._usuarios_extra||[];
+      const valid = usuarios.some(u=>u.pass===pass&&(u.perms||[]).includes('fix')) || pass==='1';
+      if(!valid){ if(err){err.textContent='Contraseña incorrecta';err.style.display='block';} return; }
+      document.getElementById('cfg-pass-overlay').style.display='none';
+      renderCfgChips();
+      renderSoundOptions();
+      document.getElementById('ci-config-screen').style.display = 'block';
+    })
+    .catch(()=>{ if(err){err.textContent='Error al verificar';err.style.display='block';} });
 }
 function cerrarConfig(){
   document.getElementById('ci-config-screen').style.display = 'none';
