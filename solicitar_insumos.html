@@ -315,13 +315,6 @@ header::after{
     </div>
 
     <div class="field">
-      <label>Módulo *</label>
-      <select id="modal-modulo">
-        <option value="">— Seleccionar módulo —</option>
-      </select>
-    </div>
-
-    <div class="field">
       <label>1. Referencia *</label>
       <input type="text" id="modal-ref" placeholder="Ej: REF-001">
     </div>
@@ -493,16 +486,6 @@ function arrancar(){
     o.value=t.name; o.dataset.flow=t.flow||'qty_only'; o.textContent=t.name;
     sel.appendChild(o);
   });
-  // Llenar select de módulos
-  const modSel=document.getElementById('modal-modulo');
-  if(modSel){
-    modSel.innerHTML='<option value="">— Seleccionar módulo —</option>';
-    (ciConfig.moduleList||[]).forEach(m=>{
-      const o=document.createElement('option');
-      o.value=m; o.textContent=m;
-      modSel.appendChild(o);
-    });
-  }
   renderHistorial();
 }
 
@@ -516,8 +499,6 @@ function abrirModal(){
   document.getElementById('modal-qty').value='';
   document.getElementById('modal-talla').value='';
   document.getElementById('modal-insumo-tipo').value='';
-  const modSel=document.getElementById('modal-modulo');
-  if(modSel) modSel.value='';
   document.getElementById('modal-error').style.display='none';
   document.getElementById('modal-error').textContent='';
   document.getElementById('modal-mec-name').textContent = currentUser;
@@ -581,10 +562,9 @@ function modalOnTipoChange(){
 }
 
 function modalEnviar(){
-  const ref    = document.getElementById('modal-ref').value.trim();
-  const op     = document.getElementById('modal-op').value.trim();
-  const modulo = (document.getElementById('modal-modulo')?.value||'').trim();
-  const errEl  = document.getElementById('modal-error');
+  const ref   = document.getElementById('modal-ref').value.trim();
+  const op    = document.getElementById('modal-op').value.trim();
+  const errEl = document.getElementById('modal-error');
 
   // Auto-agregar insumo pendiente en la fila si tiene tipo+qty
   const tipoSel = document.getElementById('modal-insumo-tipo');
@@ -601,10 +581,6 @@ function modalEnviar(){
     modalRenderInsumosList();
   }
 
-  if(!modulo){
-    errEl.textContent='Selecciona el módulo';
-    errEl.style.display='block'; return;
-  }
   if(!ref){
     errEl.textContent='La Referencia es obligatoria';
     errEl.style.display='block'; return;
@@ -620,7 +596,7 @@ function modalEnviar(){
   const newReq={
     _id:        Date.now()+'-'+Math.random().toString(36).slice(2),
     n:          Date.now(),
-    module:     modulo,
+    module:     currentUser,
     ref, op,
     tipo:       primerIns.tipo,
     qty:        primerIns.qty,
@@ -688,7 +664,7 @@ function confirmarRecibo(reqId){
   const updated=Object.assign({},req,{
     status:'done',
     resolvedAt:new Date().toLocaleTimeString('es-CO'),
-    waitTime:req.alertStart?Math.floor((Date.now()-req.alertStart)/1000):0
+    waitTime:req.alertStart?(Date.now()-req.alertStart):0
   });
   const idx=ciRequests.findIndex(r=>r._id===reqId);
   if(idx>-1) ciRequests[idx]=updated;
