@@ -1837,17 +1837,21 @@ function mostrarAreaScreen(){
   if(hasPerm('area_mecanicos')||hasPerm('area_montajes')){
     const soloMontajes = hasPerm('area_montajes')&&!hasPerm('area_mecanicos');
     const tieneAmbos   = hasPerm('area_mecanicos')&&hasPerm('area_montajes');
-    const nombreTablero = (currentUser==='Mecanicos'||currentUser==='Televisor') ? 'Tablero Mecanicos' : 'Tablero General';
-    let desc = soloMontajes ? 'Montajes' : tieneAmbos ? nombreTablero+' · Montajes' : nombreTablero+' · Insumos';
+    const esTelevisor  = (currentUser==='Televisor');
+    const nombreTablero = (currentUser==='Mecanicos'||esTelevisor) ? 'Tablero Mecanicos' : 'Tablero General';
+    let desc = soloMontajes ? 'Montajes' : tieneAmbos ? nombreTablero+' · Montajes' : nombreTablero;
     const c=makeCard('🔧','Mecánicos',desc,'ac-red',()=>{
-      // Siempre mostrar submenú cuando tiene area_mecanicos para que Solicitar Insumos sea accesible
-      if(hasPerm('area_mecanicos')||soloMontajes||tieneAmbos){
-        mostrarSubMenuMecanicos();
-      } else {
+      if(esTelevisor){
+        // Televisor va directo al tablero sin submenú
         checkMemberSelectionNeeded(currentUser, (member)=>{
           document.getElementById('area-screen').classList.add('hidden');
           entrarTablero();
         });
+      } else if(soloMontajes||tieneAmbos||hasPerm('area_montajes')){
+        mostrarSubMenuMecanicos();
+      } else {
+        // Solo area_mecanicos sin montajes — mostrar submenú para acceder a Solicitar Insumos
+        mostrarSubMenuMecanicos();
       }
     });
     c.style.animationDelay=(idx*0.07)+'s'; idx++;
@@ -1967,16 +1971,20 @@ function mostrarSubMenuMecanicos(){
     c1.style.animationDelay='0.05s';
     btns.appendChild(c1);
   }
-  // Montajes: abre sub-selección Alistamiento / Mantenimiento
-  const c2=makeCard('🔩','Montajes','Alistamiento & Mantenimiento','ac-blue',()=>{ mostrarSubMenuMontajes(); },false);
-  c2.style.animationDelay='0.12s';
-  btns.appendChild(c2);
-  // Solicitar Insumos
-  const c3=makeCard('📦','Solicitar Insumos','Reportar faltante de insumos','ac-teal',()=>{
-    window.location.href='/solicitar-insumos?perfil='+(currentUser||'Mecanicos');
-  },false);
-  c3.style.animationDelay='0.18s';
-  btns.appendChild(c3);
+  // Montajes: solo si tiene permiso
+  if(hasPerm('area_montajes')){
+    const c2=makeCard('🔩','Montajes','Alistamiento & Mantenimiento','ac-blue',()=>{ mostrarSubMenuMontajes(); },false);
+    c2.style.animationDelay='0.12s';
+    btns.appendChild(c2);
+  }
+  // Solicitar Insumos: no para Televisor
+  if(currentUser!=='Televisor'){
+    const c3=makeCard('📦','Solicitar Insumos','Reportar faltante de insumos','ac-teal',()=>{
+      window.location.href='/solicitar-insumos?perfil='+(currentUser||'Mecanicos');
+    },false);
+    c3.style.animationDelay='0.18s';
+    btns.appendChild(c3);
+  }
 
   const back=document.createElement('button');
   back.className='sp-left-logout-btn';
