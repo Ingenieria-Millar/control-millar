@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Solicitar Insumos</title>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Nunito:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -62,6 +63,30 @@ header::after{
 
 /* ── MAIN ── */
 #si-main{ padding:20px clamp(12px,2.5vw,24px);max-width:700px;margin:0 auto;padding-bottom:90px; }
+
+/* ── FILTRO FECHAS ── */
+.si-filter-bar{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:10px clamp(12px,2.5vw,24px);
+  background:#fff;border-bottom:1px solid var(--border);
+}
+.si-filter-bar label{
+  font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);
+}
+.si-filter-bar input[type="date"]{
+  padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;
+  font-family:'Nunito',sans-serif;font-size:13px;color:var(--text);
+  background:#f8fafc;outline:none;
+}
+.si-filter-bar input[type="date"]:focus{ border-color:var(--accent); }
+.si-fbtn{
+  padding:7px 14px;border-radius:8px;border:1.5px solid var(--border);
+  background:#fff;color:var(--accent2);font-family:'Barlow Condensed',sans-serif;
+  font-size:13px;font-weight:700;letter-spacing:.5px;cursor:pointer;transition:all .2s;
+}
+.si-fbtn:hover{ background:#f1f5f9; }
+.si-fbtn.excel{ background:#f0fdf4;border-color:#86efac;color:#15803d; }
+.si-fbtn.excel:hover{ background:#dcfce7; }
 
 /* ── HISTORIAL ── */
 .hist-empty{
@@ -291,6 +316,17 @@ header::after{
     </div>
   </header>
 
+  <!-- BARRA FILTRO FECHAS -->
+  <div class="si-filter-bar">
+    <label>Desde</label>
+    <input type="date" id="si-fecha-desde">
+    <label>Hasta</label>
+    <input type="date" id="si-fecha-hasta">
+    <button class="si-fbtn" onclick="aplicarFiltroFecha()">Filtrar</button>
+    <button class="si-fbtn" onclick="limpiarFiltroFecha()">Limpiar</button>
+    <button class="si-fbtn excel" onclick="exportarExcelSI()">📥 Excel</button>
+  </div>
+
   <!-- HISTORIAL (vista principal) -->
   <div id="si-main">
     <div id="hist-list"></div>
@@ -478,6 +514,7 @@ function connectWS(){
 }
 
 function arrancar(){
+  initFechasSI();
   // Llenar select de tipos de insumo en modal
   const sel=document.getElementById('modal-insumo-tipo');
   sel.innerHTML='<option value="">— Seleccionar —</option>';
@@ -623,9 +660,80 @@ function modalEnviar(){
 }
 
 // ── Historial ──
+function parseFechaSI(r){
+  // Retorna YYYY-MM-DD desde req.alertStart o req.fecha (d/m/yyyy)
+  if(r.alertStart) return new Date(r.alertStart).toISOString().split('T')[0];
+  if(r.fecha){
+    const p = r.fecha.split('/');
+    if(p.length===3) return `${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
+  }
+  return null;
+}
+
+function aplicarFiltroFecha(){ renderHistorial(); }
+
+function limpiarFiltroFecha(){
+  document.getElementById('si-fecha-desde').value='';
+  document.getElementById('si-fecha-hasta').value='';
+  renderHistorial();
+}
+
+function initFechasSI(){
+  const hoy = new Date().toISOString().split('T')[0];
+  const d = document.getElementById('si-fecha-desde');
+  const h = document.getElementById('si-fecha-hasta');
+  if(d && !d.value) d.value = hoy;
+  if(h && !h.value) h.value = hoy;
+}
+
+function exportarExcelSI(){
+  if(typeof XLSX === 'undefined'){ alert('Librería Excel no disponible'); return; }
+  const desde = document.getElementById('si-fecha-desde').value;
+  const hasta  = document.getElementById('si-fecha-hasta').value;
+  const mias = ciRequests.filter(r=>{
+    if(r.module !== currentUser) return false;
+    const f = parseFechaSI(r);
+    if(desde && f && f < desde) return false;
+    if(hasta  && f && f > hasta) return false;
+    return true;
+  });
+  if(!mias.length){ alert('No hay solicitudes para exportar'); return; }
+  const statusLabel = s => s==='done'?'Entregado':s==='cumplido'?'Listo':s==='alert'?'Pendiente':s||'';
+  const rows = mias.map(r=>({
+    'Módulo':     r.module||'',
+    'Tipo':       r.tipo||'',
+    'Referencia': r.ref||'',
+    'OP / OC':    r.op||'',
+    'Cantidad':   r.qty||'',
+    'Talla':      r.talla||'',
+    'Observación':r.obs||'',
+    'Fecha':      r.fecha||'',
+    'Hora':       r.hora||'',
+    'Estado':     statusLabel(r.status),
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols']=[{wch:10},{wch:20},{wch:14},{wch:14},{wch:10},{wch:8},{wch:20},{wch:14},{wch:14},{wch:12}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Solicitudes');
+  const label = (desde||'')+(desde!==hasta?'_'+(hasta||''):'');
+  XLSX.writeFile(wb, 'Solicitudes_'+(label||'todas')+'.xlsx');
+}
+
 function renderHistorial(){
   const list=document.getElementById('hist-list');
-  const mias=ciRequests.filter(r=>r.module===currentUser);
+  const desde = document.getElementById('si-fecha-desde')?.value||'';
+  const hasta  = document.getElementById('si-fecha-hasta')?.value||'';
+  const mias=ciRequests.filter(r=>{
+    if(r.module!==currentUser) return false;
+    if(desde||hasta){
+      const f = parseFechaSI(r);
+      if(f){
+        if(desde && f < desde) return false;
+        if(hasta  && f > hasta) return false;
+      }
+    }
+    return true;
+  });
   if(mias.length===0){
     list.innerHTML='<div class="hist-empty">📦<br>No tienes solicitudes aún</div>';
     return;
