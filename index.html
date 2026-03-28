@@ -1838,9 +1838,10 @@ function mostrarAreaScreen(){
     const soloMontajes = hasPerm('area_montajes')&&!hasPerm('area_mecanicos');
     const tieneAmbos   = hasPerm('area_mecanicos')&&hasPerm('area_montajes');
     const nombreTablero = (currentUser==='Mecanicos'||currentUser==='Televisor') ? 'Tablero Mecanicos' : 'Tablero General';
-    let desc = soloMontajes ? 'Montajes' : tieneAmbos ? nombreTablero+' · Montajes' : nombreTablero;
+    let desc = soloMontajes ? 'Montajes' : tieneAmbos ? nombreTablero+' · Montajes' : nombreTablero+' · Insumos';
     const c=makeCard('🔧','Mecánicos',desc,'ac-red',()=>{
-      if(soloMontajes||tieneAmbos){
+      // Siempre mostrar submenú cuando tiene area_mecanicos para que Solicitar Insumos sea accesible
+      if(hasPerm('area_mecanicos')||soloMontajes||tieneAmbos){
         mostrarSubMenuMecanicos();
       } else {
         checkMemberSelectionNeeded(currentUser, (member)=>{
