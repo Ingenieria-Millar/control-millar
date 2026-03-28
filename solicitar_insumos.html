@@ -64,29 +64,42 @@ header::after{
 /* ── MAIN ── */
 #si-main{ padding:20px clamp(12px,2.5vw,24px);max-width:700px;margin:0 auto;padding-bottom:90px; }
 
-/* ── FILTRO FECHAS ── */
+/* ── FILTRO FECHAS (dropdown estilo Tablero CI) ── */
 .si-filter-bar{
   display:flex;align-items:center;gap:8px;flex-wrap:wrap;
   padding:10px clamp(12px,2.5vw,24px);
   background:#fff;border-bottom:1px solid var(--border);
 }
-.si-filter-bar label{
-  font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);
-}
-.si-filter-bar input[type="date"]{
-  padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;
-  font-family:'Nunito',sans-serif;font-size:13px;color:var(--text);
-  background:#f8fafc;outline:none;
-}
-.si-filter-bar input[type="date"]:focus{ border-color:var(--accent); }
 .si-fbtn{
-  padding:7px 14px;border-radius:8px;border:1.5px solid var(--border);
+  padding:6px 14px;border-radius:8px;border:1.5px solid var(--border);
   background:#fff;color:var(--accent2);font-family:'Barlow Condensed',sans-serif;
   font-size:13px;font-weight:700;letter-spacing:.5px;cursor:pointer;transition:all .2s;
+  display:flex;align-items:center;gap:6px;
 }
-.si-fbtn:hover{ background:#f1f5f9; }
+.si-fbtn:hover{ background:#f1f5f9;border-color:#93c5fd; }
 .si-fbtn.excel{ background:#f0fdf4;border-color:#86efac;color:#15803d; }
 .si-fbtn.excel:hover{ background:#dcfce7; }
+#si-fecha-panel{
+  display:none;position:absolute;top:110%;right:0;z-index:300;
+  background:#fff;border:1.5px solid var(--border);border-radius:12px;
+  padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:240px;
+}
+#si-fecha-panel .fp-label{
+  font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--muted);margin-bottom:8px;
+}
+#si-fecha-panel input[type="date"]{
+  width:100%;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;
+  font-family:'Nunito',sans-serif;font-size:13px;margin-bottom:10px;outline:none;
+}
+#si-fecha-panel input[type="date"]:focus{ border-color:var(--accent); }
+.fp-actions{ display:flex;gap:8px; }
+.fp-actions button{
+  flex:1;padding:8px;border-radius:8px;border:none;cursor:pointer;
+  font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:.5px;
+}
+.fp-actions .fp-filtrar{ background:#2563eb;color:#fff; }
+.fp-actions .fp-limpiar{ border:1.5px solid var(--border);background:#fff;color:var(--muted); }
 
 /* ── HISTORIAL ── */
 .hist-empty{
@@ -318,12 +331,21 @@ header::after{
 
   <!-- BARRA FILTRO FECHAS -->
   <div class="si-filter-bar">
-    <label>Desde</label>
-    <input type="date" id="si-fecha-desde">
-    <label>Hasta</label>
-    <input type="date" id="si-fecha-hasta">
-    <button class="si-fbtn" onclick="aplicarFiltroFecha()">Filtrar</button>
-    <button class="si-fbtn" onclick="limpiarFiltroFecha()">Limpiar</button>
+    <div style="position:relative;" id="si-fecha-wrap">
+      <button class="si-fbtn" onclick="toggleFechaPanel()" id="si-btn-fecha">
+        📅 <span id="si-fecha-lbl">Fecha</span>
+      </button>
+      <div id="si-fecha-panel">
+        <div class="fp-label">Desde</div>
+        <input type="date" id="si-fecha-desde">
+        <div class="fp-label">Hasta</div>
+        <input type="date" id="si-fecha-hasta">
+        <div class="fp-actions">
+          <button class="fp-filtrar" onclick="aplicarFiltroFecha()">Filtrar</button>
+          <button class="fp-limpiar" onclick="limpiarFiltroFecha()">Limpiar</button>
+        </div>
+      </div>
+    </div>
     <button class="si-fbtn excel" onclick="exportarExcelSI()">📥 Excel</button>
   </div>
 
@@ -670,11 +692,32 @@ function parseFechaSI(r){
   return null;
 }
 
-function aplicarFiltroFecha(){ renderHistorial(); }
+function toggleFechaPanel(){
+  const panel = document.getElementById('si-fecha-panel');
+  panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+}
+
+function actualizarBtnFecha(){
+  const desde = document.getElementById('si-fecha-desde').value;
+  const hasta  = document.getElementById('si-fecha-hasta').value;
+  const lbl   = document.getElementById('si-fecha-lbl');
+  if(!desde && !hasta){ lbl.textContent='Fecha'; return; }
+  if(desde === hasta) lbl.textContent = desde;
+  else lbl.textContent = (desde||'…')+' → '+(hasta||'…');
+}
+
+function aplicarFiltroFecha(){
+  document.getElementById('si-fecha-panel').style.display='none';
+  actualizarBtnFecha();
+  renderHistorial();
+}
 
 function limpiarFiltroFecha(){
+  const hoy = new Date().toISOString().split('T')[0];
   document.getElementById('si-fecha-desde').value='';
   document.getElementById('si-fecha-hasta').value='';
+  document.getElementById('si-fecha-panel').style.display='none';
+  document.getElementById('si-fecha-lbl').textContent='Fecha';
   renderHistorial();
 }
 
@@ -791,6 +834,13 @@ function showToast(msg){
 }
 
 // ── Volver ──
+document.addEventListener('click', e=>{
+  if(!e.target.closest('#si-fecha-wrap')){
+    const p = document.getElementById('si-fecha-panel');
+    if(p) p.style.display='none';
+  }
+});
+
 function volverInicio(){
   if(document.referrer && document.referrer!==window.location.href) window.history.back();
   else window.location.href='/';
