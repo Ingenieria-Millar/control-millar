@@ -927,7 +927,9 @@ function marcarCumplido(id){
   const updated = Object.assign({}, req, {
     status:     'cumplido',
     resolvedAt: new Date().toLocaleTimeString('es-CO'),
-    waitTime:   req.alertStart ? Date.now() - req.alertStart : 0
+    // NO calcular waitTime aquí — se calcula cuando el módulo confirma recepción
+    // para medir el tiempo total desde alertStart hasta confirmación del módulo
+    waitTime:   null
   });
   // Actualizar localmente
   const idx = ciRequests.findIndex(r => r._id === id);
