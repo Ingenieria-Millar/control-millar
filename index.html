@@ -1582,7 +1582,7 @@ function logChange(modulo,prev,next,durMs,mecanico,limite){
     estadoNuevo:next,
     durMinutos:parseFloat((durMs/60000).toFixed(2)),
     mecanico:mecanico||'',
-    empleada:(prev==='red'||next==='red') ? (mecanico||'') : ''
+    empleada:(prev==='red'&&window._lastEmpleada&&window._lastEmpleada[modulo])?window._lastEmpleada[modulo]:''
   });
   if(h.length>10000) h.splice(0,h.length-10000);
   saveHistory(h);
@@ -2339,20 +2339,13 @@ function cancelImproductivo(){
   el.classList.add('hidden');el.style.display='none';pendingMod=null;
 }
 function onImpMec(){
-  const id=pendingMod;
+  const id = pendingMod;
   cancelImproductivo();
   if(!id) return;
-  // Filtrar empleados del módulo actual
-  const emps = (iaState&&iaState.employees||[]).filter(e=>
-    !e.disabled && (e.module===id||e.modulo===id)
-  );
-  if(!emps.length){
-    // Sin empleados configurados para este módulo — registrar fallo directo
-    commitChange(id,'red',null);
-    return;
-  }
-  // Mostrar modal de selección de empleado
-  abrirModalEmpleadoFallo(id, emps);
+  const iaS = typeof iaState!=='undefined'&&iaState ? iaState : {employees:[]};
+  const empsDelMod = (iaS.employees||[]).filter(e=>!e.disabled&&(e.module===id||e.modulo===id));
+  if(empsDelMod.length === 0){ commitChange(id,'red',null); return; }
+  abrirModalEmpleadaMec(id, empsDelMod);
 }
 function onImpRef(){
   const id=pendingMod;
@@ -2422,7 +2415,7 @@ function commitChange(id,s,mecanico,limite){
   logChange(id,prev,s,dur,mecanico,cambioLimites[id]||null);
   states[id]=s;timers[id]=ahora;
   if(mecanico) lastMec[id]=mecanico;
-  if(s==='red' && !mecanico) lastMec[id]=''; // Solo resetear si no viene con empleada
+  if(s==='red') lastMec[id]=''; // Resetear mecánico al volver a alerta
   const _esPlantaSnd=(currentUser==='Televisor'||currentUser==='Mecanicos');
   if(s!=='green'&&s!=='yellow'&&!(_esPlantaSnd&&s==='orange')&&!(_esPlantaSnd&&s==='purple')&&_esPlantaSnd){
     playAlertSound();
@@ -2514,8 +2507,9 @@ function renderGrid(){
     const s=states[id]||'green';
     const sVis=(esPlanta&&(s==='orange'||s==='purple'))?'green':s;
     const mecHtml=(sVis==='yellow'||sVis==='red')&&lastMec[id]?`<span class="mod-mec">🔧 ${lastMec[id]}</span>`:`<span class="mod-mec"></span>`;
+    const empHtml=(sVis==='red')&&window._lastEmpleada&&window._lastEmpleada[id]?`<span class="mod-mec" style="color:#7f1d1d;">👤 ${window._lastEmpleada[id]}</span>`:``;
     div.className=`module ${canClick?'clickable':'readonly'} ${sVis}`;
-    div.innerHTML=`<span class="mod-id">${id}</span><div class="light"></div><span class="mod-label">${LABELS[sVis]}</span><span class="mod-timer" id="timer-${id}"></span>${mecHtml}`;
+    div.innerHTML=`<span class="mod-id">${id}</span><div class="light"></div><span class="mod-label">${LABELS[sVis]}</span><span class="mod-timer" id="timer-${id}"></span>${mecHtml}${empHtml}`;
     const filtrado=activeFilters.size>0&&!activeFilters.has(sVis);
     div.classList.toggle('hidden-filter', filtrado);
     if(!filtrado) anyVisible=true;
@@ -2872,7 +2866,7 @@ function downloadExcel(){
   const rows=filteredHistory();
   if(!rows.length){document.getElementById('excel-info').innerHTML='<span style="color:var(--red)">No hay registros en ese rango</span>';return;}
   const data=rows.map(r=>({'Fecha':r.fecha,'Módulo':r.modulo,'Transición':`${LABELS[r.estadoAnterior]} → ${LABELS[r.estadoNuevo]}`,'Duración (minutos)':r.durMinutos,'Mecánico':r.mecanico||'','Empleada':r.empleada||''}));
-  const ws2=XLSX.utils.json_to_sheet(data);ws2['!cols']=[{wch:12},{wch:8},{wch:28},{wch:20},{wch:22},{wch:25}];
+  const ws2=XLSX.utils.json_to_sheet(data);ws2['!cols']=[{wch:12},{wch:8},{wch:28},{wch:20},{wch:22},{wch:22}];
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws2,'Historial');
   const desde=document.getElementById('date-from').value.replace(/-/g,''),hasta=document.getElementById('date-to').value.replace(/-/g,'');
   XLSX.writeFile(wb,`mecanicos_millar_${desde}_${hasta}.xlsx`);
@@ -7463,59 +7457,60 @@ function exportarHistoricoExcel(){
 }
 </script>
 
-<!-- ── Modal selección empleado en fallo mecánico ── -->
-<div id="modal-empleado-fallo" class="modal-overlay hidden" style="display:none;z-index:9500;">
-  <div class="modal-box" style="max-width:380px;padding:28px 24px 22px;text-align:left;">
-    <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#1e3a8a;margin-bottom:4px;">🔴 Fallo Mecánico</div>
-    <div id="emp-fallo-sub" style="font-size:12px;color:#64748b;margin-bottom:18px;"></div>
-    <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:8px;">Empleada en el módulo</div>
-    <select id="emp-fallo-select" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;background:#f8fafc;outline:none;margin-bottom:18px;">
-      <option value="">— Seleccionar empleada —</option>
+<!-- ── Modal selección empleada — Fallo Mecánico ── -->
+<div id="modal-empleada-mec" class="modal-overlay hidden" style="display:none;z-index:9100;">
+  <div class="modal-box" style="max-width:380px;gap:14px;">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#dc2626;">🔴 Fallo Mecánico</div>
+    <div id="modal-emp-mec-sub" style="font-size:13px;color:#64748b;margin-top:-8px;"></div>
+    <div style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#64748b;margin-bottom:4px;">Empleada en el módulo</div>
+    <select id="modal-emp-mec-sel" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;background:#f8fafc;outline:none;">
+      <option value="">— Seleccionar (opcional) —</option>
     </select>
-    <div style="display:flex;gap:10px;">
-      <button onclick="cerrarModalEmpleadoFallo()" style="flex:1;padding:12px;border-radius:10px;border:1.5px solid #e2e8f0;background:#f1f5f9;color:#64748b;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;cursor:pointer;">Cancelar</button>
-      <button onclick="confirmarEmpleadoFallo()" style="flex:1;padding:12px;border-radius:10px;border:none;background:linear-gradient(135deg,#991b1b,#ef4444);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;cursor:pointer;">Registrar Fallo</button>
+    <div style="display:flex;gap:10px;margin-top:4px;">
+      <button onclick="cerrarModalEmpleadaMec()" style="flex:1;padding:11px;border-radius:10px;border:1.5px solid #e2e8f0;background:#f1f5f9;color:#64748b;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">Cancelar</button>
+      <button onclick="confirmarFalloMec()" style="flex:1;padding:11px;border-radius:10px;border:none;background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">Confirmar Fallo</button>
     </div>
   </div>
 </div>
 
 <script>
-// ── Modal empleado en fallo mecánico ─────────────────────────────
-let _pendingFalloMod = null;
+window._lastEmpleada = {};
+let _pendingFalloModId = null;
 
-function abrirModalEmpleadoFallo(id, emps){
-  _pendingFalloMod = id;
-  const sub = document.getElementById('emp-fallo-sub');
-  if(sub) sub.textContent = 'Módulo: ' + id;
-  const sel = document.getElementById('emp-fallo-select');
-  sel.innerHTML = '<option value="">— Seleccionar empleada —</option>';
-  emps.forEach(e=>{
-    const o = document.createElement('option');
-    o.value = e.name||e.nombre||'';
-    o.textContent = (e.name||e.nombre||'') + (e.cedula ? ' — ' + e.cedula : '');
-    sel.appendChild(o);
-  });
-  const modal = document.getElementById('modal-empleado-fallo');
-  modal.classList.remove('hidden');
-  modal.style.display = 'flex';
+function abrirModalEmpleadaMec(modId, emps){
+  _pendingFalloModId = modId;
+  const sub = document.getElementById('modal-emp-mec-sub');
+  if(sub) sub.textContent = 'Módulo: ' + modId;
+  const sel = document.getElementById('modal-emp-mec-sel');
+  if(sel){
+    sel.innerHTML = '<option value="">— Seleccionar (opcional) —</option>';
+    emps.forEach(e=>{
+      const o = document.createElement('option');
+      o.value = e.name||e.nombre||'';
+      o.textContent = (e.name||e.nombre||'') + (e.cedula?' — '+e.cedula:'');
+      sel.appendChild(o);
+    });
+    sel.value = '';
+  }
+  const modal = document.getElementById('modal-empleada-mec');
+  if(modal){ modal.classList.remove('hidden'); modal.style.display='flex'; }
 }
 
-function cerrarModalEmpleadoFallo(){
-  const modal = document.getElementById('modal-empleado-fallo');
-  modal.classList.add('hidden');
-  modal.style.display = 'none';
-  _pendingFalloMod = null;
+function cerrarModalEmpleadaMec(){
+  const modal = document.getElementById('modal-empleada-mec');
+  if(modal){ modal.classList.add('hidden'); modal.style.display='none'; }
+  _pendingFalloModId = null;
 }
 
-function confirmarEmpleadoFallo(){
-  const id  = _pendingFalloMod;
+function confirmarFalloMec(){
+  const id = _pendingFalloModId;
   if(!id) return;
-  const sel = document.getElementById('emp-fallo-select');
-  const empleada = sel.value || '';
-  cerrarModalEmpleadoFallo();
-  // Guardar empleada en lastMec para que se vea en el tablero
-  if(empleada) lastMec[id] = empleada;
-  commitChange(id, 'red', empleada||null);
+  const sel = document.getElementById('modal-emp-mec-sel');
+  const empleada = sel ? sel.value : '';
+  if(!window._lastEmpleada) window._lastEmpleada = {};
+  window._lastEmpleada[id] = empleada;
+  cerrarModalEmpleadaMec();
+  commitChange(id,'red',null);
 }
 </script>
 
