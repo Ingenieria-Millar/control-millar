@@ -6718,20 +6718,6 @@ function cfgSavePerfilModal(){
       </button>
     </div>
 
-    <!-- 4. Observación -->
-    <div style="margin-bottom:14px;">
-      <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:6px;">4. OBSERVACIÓN <span style="color:#ef4444;">*</span></div>
-      <div style="position:relative;" id="si-obs-wrap">
-        <button type="button" onclick="siToggleObsMenu()"
-          style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;background:#f8fafc;outline:none;text-align:left;cursor:pointer;display:flex;align-items:center;justify-content:space-between;"
-          id="si-obs-btn">
-          <span id="si-obs-label" style="color:#94a3b8;">— Seleccionar —</span>
-          <span style="color:#94a3b8;">▾</span>
-        </button>
-        <div id="si-obs-menu" style="display:none;position:absolute;bottom:110%;left:0;right:0;z-index:200;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.1);padding:4px 0;max-height:180px;overflow-y:auto;"></div>
-      </div>
-    </div>
-
     <div id="si-error" style="color:#ef4444;font-size:12px;font-weight:700;margin-bottom:10px;display:none;text-align:center;"></div>
 
     <button onclick="siEnviar()" style="width:100%;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .2s;">
@@ -6834,16 +6820,8 @@ function siOpen(){
         data.tipoInsumoList.forEach(t=>{ const o=document.createElement('option'); o.value=t.name; o.dataset.flow=t.flow||'qty_only'; o.textContent=t.name; tipoSel.appendChild(o); });
       }
       window._siElasticoList = data.elasticoList||[];
-      window._siObsList = data.obsList && data.obsList.length ? data.obsList : ['Pérdida','Faltante','Defectos'];
     })
     .catch(()=>{ tipoSel.innerHTML = '<option value="">— Error al cargar —</option>'; });
-
-  // Resetear observación
-  window._siObsSelected = '';
-  const obsLbl = document.getElementById('si-obs-label');
-  if(obsLbl){ obsLbl.textContent='— Seleccionar —'; obsLbl.style.color='#94a3b8'; }
-  const obsMenu = document.getElementById('si-obs-menu');
-  if(obsMenu) obsMenu.style.display='none';
 
   // Mostrar
   const ov = document.getElementById('si-overlay');
@@ -6908,7 +6886,7 @@ function ciConfirmarRecepcion(reqId, accepted){
     const req = Object.assign({}, existing||{_id:reqId}, {
       status: 'done',
       resolvedAt: new Date().toLocaleTimeString('es-CO'),
-      waitTime: existing ? Math.floor((Date.now()-(existing.alertStart||Date.now()))/1000) : 0
+      waitTime: existing && existing.alertStart ? (Date.now() - existing.alertStart) : 0
     });
     if(typeof wsSend==='function') wsSend({type:'ci_update_request', request: req});
     showToastSimple('✅ Insumo confirmado como recibido');
@@ -6982,58 +6960,6 @@ function siClose(){
   siRenderInsumosList();
 }
 
-// ── Obs dropdown — modal módulos ─────────────────────────────────
-window._siObsList = [];
-window._siObsSelected = '';
-function siToggleObsMenu(){
-  const menu = document.getElementById('si-obs-menu');
-  if(!menu) return;
-  const isOpen = menu.style.display === 'block';
-  menu.style.display = isOpen ? 'none' : 'block';
-  if(!isOpen) siRenderObsMenu(menu);
-}
-function siRenderObsMenu(menu){
-  menu.innerHTML = '';
-  const opts = window._siObsList && window._siObsList.length ? window._siObsList : ['Pérdida','Faltante','Defectos'];
-  opts.forEach(obs => {
-    const item = document.createElement('div');
-    item.style.cssText = 'padding:10px 16px;cursor:pointer;font-family:Nunito,sans-serif;font-size:13px;color:#0f172a;transition:background .15s;';
-    if(window._siObsSelected === obs) item.style.fontWeight = '700';
-    item.textContent = obs;
-    item.onmouseenter = ()=>item.style.background='#f1f5f9';
-    item.onmouseleave = ()=>item.style.background='';
-    item.onclick = ()=>siSeleccionarObs(obs);
-    menu.appendChild(item);
-  });
-  if(window._siObsSelected){
-    const sep = document.createElement('div');
-    sep.style.cssText = 'height:1px;background:#e2e8f0;margin:4px 0;';
-    menu.appendChild(sep);
-    const clear = document.createElement('div');
-    clear.style.cssText = 'padding:10px 16px;cursor:pointer;font-family:Nunito,sans-serif;font-size:13px;color:#94a3b8;transition:background .15s;';
-    clear.textContent = '✕ Sin observación';
-    clear.onmouseenter = ()=>clear.style.background='#f1f5f9';
-    clear.onmouseleave = ()=>clear.style.background='';
-    clear.onclick = ()=>siSeleccionarObs('');
-    menu.appendChild(clear);
-  }
-}
-function siSeleccionarObs(obs){
-  window._siObsSelected = obs;
-  const menu = document.getElementById('si-obs-menu');
-  if(menu) menu.style.display = 'none';
-  const lbl = document.getElementById('si-obs-label');
-  if(lbl){ lbl.textContent = obs||'— Seleccionar —'; lbl.style.color = obs ? '#0f172a' : '#94a3b8'; }
-  const btn = document.getElementById('si-obs-btn');
-  if(btn) btn.style.borderColor = '#e2e8f0';
-}
-document.addEventListener('click', e=>{
-  if(!e.target.closest('#si-obs-wrap')){
-    const m = document.getElementById('si-obs-menu');
-    if(m) m.style.display = 'none';
-  }
-});
-
 function siEnviar(){
   const ref   = document.getElementById('si-ref').value.trim();
   const op    = document.getElementById('si-op').value.trim();
@@ -7062,13 +6988,6 @@ function siEnviar(){
     errEl.textContent = 'Agrega al menos un insumo a la lista';
     errEl.style.display = 'block'; return;
   }
-  if(!window._siObsSelected){
-    errEl.textContent = 'La Observación es obligatoria';
-    errEl.style.display = 'block';
-    const btn = document.getElementById('si-obs-btn');
-    if(btn) btn.style.borderColor = '#ef4444';
-    return;
-  }
   errEl.style.display = 'none';
 
   const modulo = quien;
@@ -7095,7 +7014,7 @@ function siEnviar(){
     status:     'alert',
     waitTime:   null,
     resolvedAt: null,
-    obs:        window._siObsSelected || '',
+    obs:        '',
     alertStart: now.getTime()
   };
 
