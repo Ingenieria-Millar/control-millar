@@ -1438,6 +1438,10 @@ function connectWS(){
         else if(s!=='blue'){ delete cambioLimites[id]; }
         if(s==='red') lastMec[id]='';
         else if(msg.mecanico) lastMec[id]=msg.mecanico;
+        // Sincronizar empleada en todos los dispositivos
+        if(!window._lastEmpleada) window._lastEmpleada={};
+        if(s==='red' && msg.empleada) window._lastEmpleada[id]=msg.empleada;
+        else if(s!=='red') window._lastEmpleada[id]='';
         const esPlantaSnd=(currentUser==='Televisor'||currentUser==='Mecanicos');
         if(s!=='green'&&s!=='yellow'&&!(esPlantaSnd&&s==='orange')&&!(esPlantaSnd&&s==='purple')&&esPlantaSnd){
           playAlertSound();
@@ -2438,8 +2442,10 @@ function commitChange(id,s,mecanico,limite){
   if(s!=='green'&&s!=='yellow'&&!(_esPlantaSnd&&s==='orange')&&!(_esPlantaSnd&&s==='purple')&&_esPlantaSnd){
     playAlertSound();
   }
+  // Incluir empleada si aplica (fallo mecánico)
+  const empleada = (s==='red' && window._lastEmpleada && window._lastEmpleada[id]) ? window._lastEmpleada[id] : '';
   // Enviar cambio al servidor para sincronizar otros dispositivos
-  wsSend({type:'change', id, state:s, mecanico:mecanico||'', limite:limite||null});
+  wsSend({type:'change', id, state:s, mecanico:mecanico||'', limite:limite||null, empleada});
   updateStats();if(selectedMod===id)renderBig();showToast(id,s);renderGrid();
 }
 
@@ -7505,7 +7511,7 @@ function abrirModalEmpleadaMec(modId, emps){
     emps.forEach(e=>{
       const o = document.createElement('option');
       o.value = e.name||e.nombre||'';
-      o.textContent = (e.name||e.nombre||'') + (e.cedula?' — '+e.cedula:'');
+      o.textContent = e.name||e.nombre||'';
       sel.appendChild(o);
     });
     sel.value = '';
