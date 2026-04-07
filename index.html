@@ -7279,9 +7279,9 @@ function siEnviar(){
         <thead>
           <tr>
             <th>Módulo</th>
+            <th>Nombre Operaria</th>
             <th>Tipo de Improductivo</th>
-            <th>Tiempo Total Acumulado</th>
-            <th>Registros</th>
+            <th>Tiempo (min)</th>
           </tr>
         </thead>
         <tbody id="hst-tbody"></tbody>
@@ -7367,32 +7367,18 @@ function renderHistorico(){
   const hist = loadHistory();
   let rows = [];
 
-  // Del historial persistido
+  // Registros individuales del historial persistido
   hist.forEach(r=>{
     if(!r.tipo || r.tipo==='green') return;
     if(desde && r.fechaISO && r.fechaISO < desde) return;
     if(hasta  && r.fechaISO && r.fechaISO > hasta) return;
-    rows.push({ mod:r.modulo, tipo:r.tipo, min:r.durMinutos||0 });
-  });
-
-  // De la sesión actual en memoria
-  const now = Date.now();
-  MODULES.forEach(id=>{
-    const s = states[id];
-    const cur = now - timers[id];
-    const sess = {
-      red:    acumRed[id]   + (s==='red'    ? cur : 0),
-      yellow: acumYellow[id]+ (s==='yellow' ? cur : 0),
-      orange: acumOrange[id]+ (s==='orange' ? cur : 0),
-      blue:   acumBlue[id]  + (s==='blue'   ? cur : 0),
-    };
-    Object.entries(sess).forEach(([tipo,ms])=>{
-      if(ms < 1000) return;
-      // Si hay hoy en el filtro o no hay filtro de fecha, incluir sesión
-      const hoy = new Date().toISOString().split('T')[0];
-      if(desde && hoy < desde) return;
-      if(hasta  && hoy > hasta) return;
-      rows.push({ mod:id, tipo, min: parseFloat((ms/60000).toFixed(2)) });
+    rows.push({
+      mod:      r.modulo||'—',
+      empleada: r.empleada||'',
+      tipo:     r.tipo,
+      min:      parseFloat((r.durMinutos||0).toFixed(2)),
+      fecha:    r.fechaISO||'',
+      hora:     r.hora||''
     });
   });
 
@@ -7400,24 +7386,15 @@ function renderHistorico(){
   if(filtMod)  rows = rows.filter(r=>r.mod===filtMod);
   if(filtTipo) rows = rows.filter(r=>r.tipo===filtTipo);
 
-  // Agrupar por módulo + tipo
-  const grouped = {};
-  rows.forEach(({mod,tipo,min})=>{
-    const key = mod+'|'+tipo;
-    if(!grouped[key]) grouped[key] = { mod, tipo, min:0, count:0 };
-    grouped[key].min   += min;
-    grouped[key].count += 1;
-  });
-
-  const groupedRows = Object.values(grouped).sort((a,b)=>{
-    if(a.mod < b.mod) return -1;
-    if(a.mod > b.mod) return 1;
-    return b.min - a.min;
+  // Ordenar por fecha/hora descendente (más reciente primero)
+  rows.sort((a,b)=>{
+    if(b.fecha !== a.fecha) return b.fecha.localeCompare(a.fecha);
+    return (b.hora||'').localeCompare(a.hora||'');
   });
 
   // Summary cards
-  const totalMin  = groupedRows.reduce((s,r)=>s+r.min, 0);
-  const totalMods = new Set(groupedRows.map(r=>r.mod)).size;
+  const totalMin  = rows.reduce((s,r)=>s+r.min, 0);
+  const totalMods = new Set(rows.map(r=>r.mod)).size;
   summary.innerHTML = `
     <div class="hst-summary-card">
       <div class="sc-label">Total Improductivo</div>
@@ -7429,22 +7406,22 @@ function renderHistorico(){
     </div>
     <div class="hst-summary-card">
       <div class="sc-label">Registros</div>
-      <div class="sc-val" style="color:#0f172a;">${groupedRows.length}</div>
+      <div class="sc-val" style="color:#0f172a;">${rows.length}</div>
     </div>`;
 
   // Tabla
-  if(groupedRows.length === 0){
+  if(rows.length === 0){
     tbody.innerHTML = `<tr><td colspan="4" class="hst-empty">📊 No hay datos para el período seleccionado</td></tr>`;
     return;
   }
 
-  tbody.innerHTML = groupedRows.map(r=>{
+  tbody.innerHTML = rows.map(r=>{
     const t = HST_TIPOS[r.tipo] || { label:r.tipo, color:'#f8fafc', text:'#0f172a', border:'#e2e8f0', icon:'⚪' };
     return `<tr>
-      <td><span class="hst-mod-badge">${r.mod||'—'}</span></td>
+      <td><span class="hst-mod-badge">${r.mod}</span></td>
+      <td style="font-family:'Nunito',sans-serif;font-size:13px;color:#0f172a;">${r.empleada||'—'}</td>
       <td><span class="hst-tipo-badge" style="background:${t.color};color:${t.text};border:1px solid ${t.border};">${t.icon} ${t.label}</span></td>
-      <td><span class="hst-tiempo">${fmtMinutos(r.min)}</span></td>
-      <td style="color:#94a3b8;font-size:12px;">${r.count}</td>
+      <td><span class="hst-tiempo">${r.min.toFixed(2)}</span></td>
     </tr>`;
   }).join('');
 }
@@ -7453,26 +7430,29 @@ function exportarHistoricoExcel(){
   if(typeof XLSX === 'undefined'){ alert('Librería Excel no disponible'); return; }
   const desde  = document.getElementById('hst-desde').value;
   const hasta   = document.getElementById('hst-hasta').value;
+  const filtMod = document.getElementById('hst-modulo').value;
+  const filtTipo= document.getElementById('hst-tipo').value;
   const hist   = loadHistory();
-  const rows   = [];
+  let rows = [];
 
   hist.forEach(r=>{
     if(!r.tipo || r.tipo==='green') return;
     if(desde && r.fechaISO && r.fechaISO < desde) return;
     if(hasta  && r.fechaISO && r.fechaISO > hasta) return;
+    if(filtMod  && r.modulo !== filtMod) return;
+    if(filtTipo && r.tipo   !== filtTipo) return;
     const t = HST_TIPOS[r.tipo] || { label: r.tipo };
     rows.push({
-      'Fecha':         r.fecha||'',
-      'Módulo':        r.modulo||'',
-      'Tipo':          t.label,
-      'Duración (min)':r.durMinutos||0,
-      'Mecánico':      r.mecanico||'',
+      'Módulo':              r.modulo||'',
+      'Nombre Operaria':     r.empleada||'',
+      'Tipo de Improductivo':t.label,
+      'Tiempo (min)':        parseFloat((r.durMinutos||0).toFixed(2)),
     });
   });
 
   if(rows.length === 0){ alert('No hay datos para exportar'); return; }
   const ws = XLSX.utils.json_to_sheet(rows);
-  ws['!cols'] = [{wch:12},{wch:10},{wch:20},{wch:16},{wch:20}];
+  ws['!cols'] = [{wch:10},{wch:28},{wch:24},{wch:14}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Histórico');
   const label = (desde||'')+(desde!==hasta?'_'+(hasta||''):'');
