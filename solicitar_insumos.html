@@ -80,7 +80,7 @@ header::after{
 .si-fbtn.excel{ background:#f0fdf4;border-color:#86efac;color:#15803d; }
 .si-fbtn.excel:hover{ background:#dcfce7; }
 #si-fecha-panel{
-  display:none;position:absolute;top:110%;right:0;z-index:300;
+  display:none;position:absolute;top:110%;left:0;z-index:300;
   background:#fff;border:1.5px solid var(--border);border-radius:12px;
   padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:240px;
 }
@@ -236,43 +236,89 @@ header::after{
 .btn-primary:hover{ filter:brightness(1.1); }
 
 /* ── PANTALLA LOGIN MECÁNICO ── */
+/* ── LOGIN DOS PANELES (estilo Control de Asistencia) ── */
 #login-screen{
-  position:fixed;inset:0;z-index:9000;background:#f1f5f9;
-  display:flex;align-items:center;justify-content:center;padding:20px;
+  position:fixed;inset:0;z-index:9000;
+  display:flex;align-items:stretch;min-height:100vh;
 }
-.login-card{
-  background:#fff;border-radius:18px;border:1.5px solid var(--border);
-  padding:32px 28px;width:100%;max-width:400px;
-  box-shadow:0 8px 32px rgba(15,23,42,.1);text-align:center;
+.si-login-left{
+  flex:0 0 42%;position:relative;overflow:hidden;
+  background:linear-gradient(155deg,#020d22 0%,#04163d 30%,#071e55 60%,#0a2570 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
 }
-.login-icon{ font-size:44px;margin-bottom:12px; }
-.login-title{
-  font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;
-  letter-spacing:2px;text-transform:uppercase;color:var(--accent2);margin-bottom:6px;
+.si-login-mesh{
+  position:absolute;inset:0;
+  background:radial-gradient(ellipse 65% 55% at 20% 15%,rgba(0,70,220,.28) 0%,transparent 68%),
+    radial-gradient(ellipse 50% 60% at 82% 82%,rgba(0,25,170,.32) 0%,transparent 65%),
+    radial-gradient(ellipse 40% 50% at 60% 40%,rgba(0,110,255,.13) 0%,transparent 58%);
+  animation:siMeshA 16s ease-in-out infinite alternate;
 }
-.login-sub{ font-size:13px;color:var(--muted);margin-bottom:28px; }
-/* ── Dropdown selector ── */
-.mec-select-wrap{ position:relative;margin-bottom:16px; }
-.mec-select-wrap select{
-  width:100%;padding:14px 44px 14px 16px;border:2px solid var(--border);border-radius:12px;
-  font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;letter-spacing:1px;
-  color:var(--text);background:#f8fafc;cursor:pointer;
-  appearance:none;-webkit-appearance:none;outline:none;transition:border-color .2s,box-shadow .2s;
+@keyframes siMeshA{0%{transform:scale(1);}100%{transform:scale(1.04) translate(1%,.5%);}}
+.si-login-dotgrid{
+  position:absolute;inset:0;
+  background-image:radial-gradient(circle,rgba(255,255,255,.07) 1.2px,transparent 1.2px);
+  background-size:38px 38px;
+  mask-image:radial-gradient(ellipse 85% 85% at 50% 50%,black 15%,transparent 80%);
 }
-.mec-select-wrap select:focus{ border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.12); }
-.mec-select-wrap::after{
-  content:'▾';position:absolute;right:16px;top:50%;transform:translateY(-50%);
-  font-size:16px;color:var(--muted);pointer-events:none;
+.si-login-orb1{position:absolute;width:320px;height:320px;border-radius:50%;background:radial-gradient(circle,rgba(20,70,240,.2),transparent 70%);top:-80px;left:-80px;filter:blur(55px);}
+.si-login-orb2{position:absolute;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,rgba(0,40,190,.26),transparent 70%);bottom:-70px;right:-40px;filter:blur(55px);}
+.si-login-logo-zone{
+  position:relative;z-index:5;
+  display:flex;flex-direction:column;align-items:center;
+  animation:siZoneUp .8s cubic-bezier(.22,1,.36,1) both;
 }
-.mec-select-wrap select option{ font-size:15px; }
+@keyframes siZoneUp{from{opacity:0;transform:translateY(24px);}to{opacity:1;transform:none;}}
+.si-login-logo-ring{
+  width:120px;height:120px;border-radius:50%;background:#fff;
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
+  box-shadow:0 0 0 5px rgba(255,255,255,.11),0 0 0 15px rgba(255,255,255,.05),0 28px 80px rgba(0,0,0,.55);
+}
+.si-login-logo-ring img{width:100%;height:100%;object-fit:contain;padding:6px;}
+.si-login-eyebrow{margin-top:18px;font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;letter-spacing:4px;text-transform:uppercase;color:rgba(255,255,255,.4);}
+.si-login-headline{margin-top:4px;font-family:'Barlow Condensed',sans-serif;font-size:38px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#fff;text-align:center;line-height:1;}
+.si-login-headline em{color:#60a5fa;font-style:normal;}
+.si-login-sub{margin-top:10px;font-family:'Nunito',sans-serif;font-size:12px;color:rgba(255,255,255,.4);text-align:center;}
+.si-login-right{
+  flex:1;background:#f1f5f9;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;padding:40px;
+  position:relative;box-shadow:-18px 0 55px rgba(0,0,0,.35);
+}
+.si-login-right::before{
+  content:'';position:absolute;inset:0;
+  background-image:linear-gradient(rgba(203,213,225,.5) 1px,transparent 1px),linear-gradient(90deg,rgba(203,213,225,.5) 1px,transparent 1px);
+  background-size:28px 28px;opacity:.25;pointer-events:none;
+}
+.si-login-right::after{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);}
+.si-login-card{
+  position:relative;z-index:1;width:100%;max-width:380px;
+  background:#fff;border-radius:16px;padding:36px 40px;
+  box-shadow:0 4px 24px rgba(15,23,42,.1),0 1px 4px rgba(15,23,42,.06);
+  border:1px solid #e2e8f0;animation:siSlideUp .4s cubic-bezier(.22,1,.36,1);
+}
+@keyframes siSlideUp{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:none;}}
+.si-card-brand-row{display:flex;align-items:center;gap:8px;margin-bottom:20px;}
+.si-card-brand-pip{width:3px;height:22px;border-radius:2px;background:linear-gradient(180deg,#2563eb,#60a5fa);}
+.si-card-brand-txt{font-family:'Nunito',sans-serif;font-size:10px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:#64748b;}
+.si-card-title{font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:700;letter-spacing:1px;color:#0f172a;line-height:1;margin-bottom:4px;}
+.si-card-sub{font-family:'Nunito',sans-serif;font-size:13px;color:#64748b;margin-bottom:24px;}
+.si-fg{margin-bottom:16px;}
+.si-fg label{display:block;font-family:'Nunito',sans-serif;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#475569;margin-bottom:6px;}
+.si-fg select{width:100%;padding:.85rem 1rem;background:#fff;border:1.5px solid #e2e8f0;border-radius:9px;color:#0f172a;font-family:'Nunito',sans-serif;font-size:.9rem;font-weight:500;outline:none;transition:border-color .2s,box-shadow .2s;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%2394a3b8' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;cursor:pointer;}
+.si-fg select:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.11);}
+.si-login-right-foot{margin-top:20px;font-family:'Nunito',sans-serif;font-size:10px;color:#94a3b8;letter-spacing:.5px;position:relative;z-index:1;}
+/* Botón confirmar */
 .login-confirm-btn{
-  width:100%;padding:14px;border-radius:12px;border:none;cursor:pointer;
+  width:100%;padding:13px;border-radius:9px;border:none;cursor:pointer;
   background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;
   font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;
   letter-spacing:2px;transition:filter .2s,opacity .2s;
 }
 .login-confirm-btn:hover:not(:disabled){ filter:brightness(1.1); }
 .login-confirm-btn:disabled{ opacity:.45;cursor:not-allowed; }
+@media(max-width:640px){
+  #login-screen{flex-direction:column;}
+  .si-login-left{flex:0 0 auto;min-height:200px;width:100%;}
+}
 
 /* ── LOADER ── */
 #si-loader{
@@ -304,19 +350,40 @@ header::after{
 
 <!-- PANTALLA LOGIN MECÁNICO -->
 <div id="login-screen" style="display:none;">
-  <div class="login-card">
-    <div class="login-icon">🔧</div>
-    <div class="login-title">¿Quién eres?</div>
-    <div class="login-sub">Selecciona tu nombre para continuar</div>
-    <div class="mec-select-wrap">
-      <select id="mec-select" onchange="document.getElementById('mec-confirm-btn').disabled=!this.value;">
-        <option value="">— Selecciona tu nombre —</option>
-      </select>
+  <!-- Panel izquierdo -->
+  <div class="si-login-left">
+    <div class="si-login-mesh"></div>
+    <div class="si-login-dotgrid"></div>
+    <div class="si-login-orb1"></div>
+    <div class="si-login-orb2"></div>
+    <div class="si-login-logo-zone">
+      <div class="si-login-logo-ring"><img id="si-login-logo-img" src="" alt="Millar"></div>
+      <div class="si-login-eyebrow">Confecciones Millar</div>
+      <div class="si-login-headline">Solicitar <em>Insumos</em></div>
+      <div class="si-login-sub">Reportar faltante de insumos</div>
     </div>
-    <div id="mec-select-error" style="display:none;color:var(--danger);font-size:12px;font-weight:700;margin-bottom:10px;text-align:center;"></div>
-    <button id="mec-confirm-btn" class="login-confirm-btn" disabled onclick="confirmarMecanico()">
-      ✔ CONTINUAR
-    </button>
+  </div>
+  <!-- Panel derecho -->
+  <div class="si-login-right">
+    <div class="si-login-card">
+      <div class="si-card-brand-row">
+        <div class="si-card-brand-pip"></div>
+        <span class="si-card-brand-txt">Confecciones Millar</span>
+      </div>
+      <div class="si-card-title">¿Quién eres?</div>
+      <div class="si-card-sub">Selecciona tu nombre para continuar</div>
+      <div class="si-fg">
+        <label>Mecánico</label>
+        <select id="mec-select" onchange="document.getElementById('mec-confirm-btn').disabled=!this.value;">
+          <option value="">— Selecciona tu nombre —</option>
+        </select>
+      </div>
+      <div id="mec-select-error" style="display:none;color:#ef4444;font-size:12px;font-weight:700;margin-bottom:10px;"></div>
+      <button id="mec-confirm-btn" class="login-confirm-btn" disabled onclick="confirmarMecanico()">
+        ✔ CONTINUAR
+      </button>
+    </div>
+    <div class="si-login-right-foot">© 2026 Ingeniería Confecciones Millar S.A.S.</div>
   </div>
 </div>
 
@@ -449,6 +516,10 @@ async function mostrarLoginMecanico(){
   document.getElementById('si-loader').style.display = 'none';
   const loginScreen = document.getElementById('login-screen');
   loginScreen.style.display = 'flex';
+  // Copiar logo del header al panel izquierdo del login
+  const hdLogo = document.querySelector('.hd-logo img');
+  const loginLogo = document.getElementById('si-login-logo-img');
+  if(hdLogo && loginLogo) loginLogo.src = hdLogo.src;
 
   try{
     const res = await fetch('/api/mecanicos');
