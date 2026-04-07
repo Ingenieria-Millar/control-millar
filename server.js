@@ -615,6 +615,23 @@ app.get('/api/ci-config', (req, res) => {
 
 // Lista de mecánicos (supervisores activos, sin programador)
 app.get('/api/mecanicos', (req, res) => {
+  // Leer miembros del perfil "Mecanicos" desde app_config._perfil_members
+  const appCfg = readJSON(FILES.app_config, {});
+  const perfilMembers = appCfg._perfil_members;
+  if (perfilMembers && perfilMembers['Mecanicos'] && Array.isArray(perfilMembers['Mecanicos'])) {
+    const members = perfilMembers['Mecanicos']
+      .filter(m => m && !m.disabled)
+      .map(m => {
+        const nombre = typeof m === 'string' ? m : (m.nombre || m.name || '');
+        return { id: nombre, name: nombre };
+      })
+      .filter(m => m.name);
+    if (members.length > 0) {
+      members.sort((a, b) => a.name.localeCompare(b.name));
+      return res.json(members);
+    }
+  }
+  // Fallback: supervisores activos
   const sups = (iaState.supervisors || []).filter(s => s.id !== 'programador' && !s.disabled);
   res.json(sups.map(s => ({ id: s.id, name: s.name })));
 });
