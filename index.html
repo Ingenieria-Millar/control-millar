@@ -1071,8 +1071,11 @@ body { overflow-x: hidden; max-width: 100vw; }
       <div class="sp-greeting">Bienvenido</div>
       <div class="sp-username" id="sp-username-p2">—</div>
       <div class="sp-role-badge" id="sp-role-p2">Usuario</div>
-      <div class="sp-user-btn-row">
-        <button class="sp-user-btn sp-user-btn-logout" onclick="volverLogin()">✕ Salir</button>
+      <div class="sp-user-btn-row" style="flex-direction:column;gap:8px;">
+        <div id="sp-back-wrap" style="display:none;width:100%;">
+          <button class="sp-user-btn" style="width:100%;justify-content:center;" onclick="mostrarAreaScreen()">← Atrás</button>
+        </div>
+        <button class="sp-user-btn sp-user-btn-logout" style="width:100%;justify-content:center;" onclick="volverLogin()">✕ Salir</button>
       </div>
     </div>
     <div class="sp-left-foot" id="sp-clk-p2">--:--:--</div>
@@ -1800,6 +1803,9 @@ function submitLogin(){
 // ── Pantalla de selección de área (menú principal post-login) ────────
 function mostrarAreaScreen(){
   const btns=document.getElementById('area-btns');btns.innerHTML='';
+  // Ocultar botón Atrás en panel izquierdo
+  const backWrap = document.getElementById('sp-back-wrap');
+  if(backWrap) backWrap.style.display='none';
 
   // Actualizar info de usuario en todos los paneles izquierdos
   ['p2','p3','p4'].forEach(id=>{
@@ -2005,10 +2011,13 @@ function mostrarSubMenuMecanicos(){
 
   const back=document.createElement('button');
   back.className='sp-left-logout-btn';
-  back.style.cssText='margin-top:4px;grid-column:1/-1;width:100%;justify-content:center;background:rgba(15,23,42,.06);border-color:#e2e8f0;color:#64748b;';
+  back.style.cssText='display:none;';// oculto en grid
   back.textContent='⬅ Atrás';
   back.onclick=mostrarAreaScreen;
   btns.appendChild(back);
+  // Mostrar botón Atrás en panel izquierdo
+  const backWrap = document.getElementById('sp-back-wrap');
+  if(backWrap) backWrap.style.display='block';
 }
 
 // Sub-menú Montajes: Alistamiento | Mantenimiento
@@ -2034,10 +2043,12 @@ function mostrarSubMenuMontajes(){
 
   const back=document.createElement('button');
   back.className='sp-left-logout-btn';
-  back.style.cssText='margin-top:4px;grid-column:1/-1;width:100%;justify-content:center;background:rgba(15,23,42,.06);border-color:#e2e8f0;color:#64748b;';
+  back.style.cssText='display:none;';
   back.textContent='⬅ Atrás';
   back.onclick=mostrarSubMenuMecanicos;
   btns.appendChild(back);
+  const backWrap = document.getElementById('sp-back-wrap');
+  if(backWrap){ backWrap.style.display='block'; backWrap.querySelector('button').onclick=mostrarSubMenuMecanicos; }
 }
 
 // CI: accesible en /ci (página independiente)
@@ -2137,10 +2148,12 @@ function mostrarSubMenuProduccion(){
   // Botón volver
   const back=document.createElement('button');
   back.className='sp-left-logout-btn';
-  back.style.cssText='margin-top:4px;grid-column:1/-1;width:100%;justify-content:center;background:rgba(15,23,42,.06);border-color:#e2e8f0;color:#64748b;';
+  back.style.cssText='display:none;';
   back.textContent='⬅ Atrás';
   back.onclick=mostrarAreaScreen;
   btns.appendChild(back);
+  const backWrap3 = document.getElementById('sp-back-wrap');
+  if(backWrap3) backWrap3.style.display='block';
 }
 
 // Función para usuario Módulos: muestra login de módulo con listado
