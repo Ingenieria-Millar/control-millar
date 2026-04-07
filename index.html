@@ -1438,7 +1438,7 @@ function connectWS(){
         else if(s!=='blue'){ delete cambioLimites[id]; }
         if(s==='red') lastMec[id]='';
         else if(msg.mecanico) lastMec[id]=msg.mecanico;
-        // Sincronizar empleada en todos los dispositivos
+        // Guardar empleada recibida del servidor
         if(!window._lastEmpleada) window._lastEmpleada={};
         if(s==='red' && msg.empleada) window._lastEmpleada[id]=msg.empleada;
         else if(s!=='red') window._lastEmpleada[id]='';
@@ -2442,10 +2442,9 @@ function commitChange(id,s,mecanico,limite){
   if(s!=='green'&&s!=='yellow'&&!(_esPlantaSnd&&s==='orange')&&!(_esPlantaSnd&&s==='purple')&&_esPlantaSnd){
     playAlertSound();
   }
-  // Incluir empleada si aplica (fallo mecánico)
-  const empleada = (s==='red' && window._lastEmpleada && window._lastEmpleada[id]) ? window._lastEmpleada[id] : '';
   // Enviar cambio al servidor para sincronizar otros dispositivos
-  wsSend({type:'change', id, state:s, mecanico:mecanico||'', limite:limite||null, empleada});
+  const _empladaEnviar = (s==='red' && window._lastEmpleada && window._lastEmpleada[id]) ? window._lastEmpleada[id] : '';
+  wsSend({type:'change', id, state:s, mecanico:mecanico||'', limite:limite||null, empleada:_empladaEnviar});
   updateStats();if(selectedMod===id)renderBig();showToast(id,s);renderGrid();
 }
 
@@ -7511,7 +7510,7 @@ function abrirModalEmpleadaMec(modId, emps){
     emps.forEach(e=>{
       const o = document.createElement('option');
       o.value = e.name||e.nombre||'';
-      o.textContent = e.name||e.nombre||'';
+      o.textContent = (e.name||e.nombre||'') + (e.cedula?' — '+e.cedula:'');
       sel.appendChild(o);
     });
     sel.value = '';
