@@ -1507,8 +1507,8 @@ function connectWS(){
             if(states[modId]==='orange'||states[modId]==='purple'){
               commitChange(modId,'green',null);
             }
-            // También cerrar segundo improductivo si era naranja
-            if(states2[modId]==='orange'){
+            // También cerrar segundo improductivo si era naranja o morado
+            if(states2[modId]==='orange'||states2[modId]==='purple'){
               cerrarImproductivoExtra(modId);
             }
           }
@@ -2152,7 +2152,8 @@ function onImpProd(){
     esMecanico: false
   };
   if(typeof wsSend==='function') wsSend({type:'ci_new_request', request:newReq});
-  if(typeof commitChange==='function') commitChange(id,'purple',null);
+  if(window._extraMod===id){ window._extraMod=null; commitChange2(id,'purple',null); }
+  else if(typeof commitChange==='function') commitChange(id,'purple',null);
   const toast=document.createElement('div');
   toast.textContent='🟣 Solicitud de producción enviada al CI';
   toast.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:12px 24px;border-radius:12px;font-family:Nunito,sans-serif;font-size:14px;font-weight:700;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.2);';
@@ -2406,7 +2407,11 @@ function applyChange(id){
   if(prev==='green'){
     pendingMod=id;
     const el=document.getElementById('modal-improductivo');
-    el.classList.remove('hidden');el.style.display='flex';return;
+    el.classList.remove('hidden');el.style.display='flex';
+    delete el.dataset.extra;
+    // Re-enable all buttons
+    el.querySelectorAll('.mec-btn').forEach(btn=>{btn.disabled=false;btn.style.opacity='1';btn.style.cursor='pointer';});
+    return;
   }
   commitChange(id,'green',null);
 }
@@ -2417,12 +2422,24 @@ function cancelImproductivo(){
   pendingMod=null;
 }
 function abrirModalImproductivoExtra(id){
-  // Abre el modal de improductivo desde cualquier estado activo
   pendingMod=id;
   const el=document.getElementById('modal-improductivo');
   el.classList.remove('hidden');el.style.display='flex';
-  // Mark that this is for the secondary slot
   el.dataset.extra='1';
+  // Deshabilitar el tipo que ya está activo en el estado principal
+  const cur=states[id];
+  const map={'red':'onImpMec','blue':'onImpRef','orange':'onImpIns','purple':'onImpProd'};
+  const btns=el.querySelectorAll('.mec-btn');
+  btns.forEach(btn=>{
+    btn.disabled=false; btn.style.opacity='1'; btn.style.cursor='pointer';
+  });
+  if(map[cur]){
+    btns.forEach(btn=>{
+      if(btn.getAttribute('onclick')===map[cur]+'()'){
+        btn.disabled=true; btn.style.opacity='0.35'; btn.style.cursor='not-allowed';
+      }
+    });
+  }
 }
 
 function commitChange2(id, s, mecanico){
