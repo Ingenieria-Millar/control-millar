@@ -1504,6 +1504,8 @@ function connectWS(){
             const modId = req.module;
             if(states[modId]==='orange'||states[modId]==='purple'){
               commitChange(modId,'green',null);
+            } else if(states2[modId]==='orange'){
+              cerrarImproductivoExtra(modId);
             }
           }
         }
@@ -2533,7 +2535,15 @@ function openMecanicoModal(titulo,subtitulo){
 }
 function selectMecanico(nombre){
   document.getElementById('modal-mecanico').classList.add('hidden');
-  if(pendingTransicion){commitChange(pendingTransicion.id,pendingTransicion.estado,nombre);pendingTransicion=null;}
+  if(pendingTransicion){
+    const {id, estado} = pendingTransicion;
+    commitChange(id, estado, nombre);
+    pendingTransicion=null;
+    // Si el estado extra era rojo y el principal resuelve a verde, cerrar extra también
+    if(estado==='green' && states2[id]==='red'){
+      cerrarImproductivoExtra(id);
+    }
+  }
 }
 function cancelMecanico(){document.getElementById('modal-mecanico').classList.add('hidden');pendingTransicion=null;}
 
@@ -2819,18 +2829,11 @@ function renderBig(){
           <span class="big-status">${LABELS[s2]||s2}</span>
           <span class="big-timer" id="big-timer2">${tt2}</span>
           <span class="tap-hint" style="font-size:10px;">Improductivo adicional</span>
-          <button onclick="cerrarImproductivoExtra('${selectedMod}')" style="margin-top:8px;padding:6px 16px;border-radius:8px;border:1.5px solid rgba(0,0,0,0.2);background:rgba(255,255,255,0.3);color:inherit;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">✕ Cerrar</button>
         </div>`:''}
       </div>
-      ${canAddExtra?`<button onclick="abrirModalImproductivoExtra('${selectedMod}')" style="padding:10px 24px;border-radius:10px;border:1.5px solid #334155;background:#1e293b;color:#f1f5f9;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.2);">+ Agregar Improductivo</button>`:''}
+      ${(s!=='green'&&canAddExtra&&!s2)?`<button onclick="abrirModalImproductivoExtra('${selectedMod}')" style="padding:10px 24px;border-radius:10px;border:1.5px solid #334155;background:#1e293b;color:#f1f5f9;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.2);">+ Agregar Improductivo</button>`:''}
     </div>`;
   document.getElementById('big-mod').addEventListener('click',e=>{addRipple(document.getElementById('big-mod'),e);applyChange(selectedMod);});
-  if(s2 && document.getElementById('big-mod2')){
-    document.getElementById('big-mod2').addEventListener('click',e=>{
-      // tapping second card resolves the extra improductivo
-      cerrarImproductivoExtra(selectedMod);
-    });
-  }
 }
 
 // ── MODAL ACUMULADO ───────────────────────────────────────────────
