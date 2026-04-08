@@ -1351,7 +1351,8 @@ const USUARIOS={
 };
 
 const states={}, timers={}, lastMec={}, acumRed={}, acumYellow={}, acumBlue={}, acumOrange={}, acumPurple={};
-MODULES.forEach(id=>{ states[id]='green'; timers[id]=Date.now(); lastMec[id]=''; acumRed[id]=0; acumYellow[id]=0; acumBlue[id]=0; acumOrange[id]=0; acumPurple[id]=0; });
+const states2={}, timers2={}, lastMec2={};
+MODULES.forEach(id=>{ states[id]='green'; timers[id]=Date.now(); lastMec[id]=''; acumRed[id]=0; acumYellow[id]=0; acumBlue[id]=0; acumOrange[id]=0; acumPurple[id]=0; states2[id]=null; timers2[id]=null; lastMec2[id]=''; });
 
 // ── Variables de estado global del tablero ─────────────────────────
 let selectedMod=null, activeFilters=new Set(), currentView=null, pendingTransicion=null, currentUser=null;
@@ -1464,6 +1465,17 @@ function connectWS(){
           playAlertSound();
         }
         updateStats();
+        if(selectedMod===id) renderBig();
+        renderGrid();
+
+      } else if(msg.type==='change2'){
+        const id=msg.id, s=msg.state;
+        states2[id]=s; timers2[id]=s?Date.now():null;
+        if(msg.mecanico) lastMec2[id]=msg.mecanico; else if(!s) lastMec2[id]='';
+        const esPlantaSnd=(currentUser==='Televisor'||currentUser==='Mecanicos');
+        if(s&&s!=='green'&&!(esPlantaSnd&&s==='orange')&&!(esPlantaSnd&&s==='purple')&&esPlantaSnd){
+          playAlertSound();
+        }
         if(selectedMod===id) renderBig();
         renderGrid();
 
@@ -2056,7 +2068,11 @@ function mostrarSubMenuMontajes(){
 
 // CI: accesible en /ci (página independiente)
 function onImpIns(){
+  const id=pendingMod;
+  const el=document.getElementById('modal-improductivo');
+  const isExtra=el&&el.dataset.extra==='1';
   cancelImproductivo();
+  if(isExtra&&id){ commitChange2(id,'orange',null); return; }
   if(typeof siOpen==='function') siOpen();
 }
 
@@ -2385,12 +2401,56 @@ function applyChange(id){
 }
 function cancelImproductivo(){
   const el=document.getElementById('modal-improductivo');
-  el.classList.add('hidden');el.style.display='none';pendingMod=null;
+  el.classList.add('hidden');el.style.display='none';
+  delete el.dataset.extra;
+  pendingMod=null;
+}
+function abrirModalImproductivoExtra(id){
+  // Abre el modal de improductivo desde cualquier estado activo
+  pendingMod=id;
+  const el=document.getElementById('modal-improductivo');
+  el.classList.remove('hidden');el.style.display='flex';
+  // Mark that this is for the secondary slot
+  el.dataset.extra='1';
+}
+
+function commitChange2(id, s, mecanico){
+  states2[id]=s; timers2[id]=Date.now(); lastMec2[id]=mecanico||'';
+  // Log in history
+  logChange(id, states[id], s, 0, mecanico);
+  // Broadcast to all clients
+  const emp = (window._lastEmpleada&&window._lastEmpleada[id])||'';
+  wsSend({type:'change2', id, state:s, mecanico:mecanico||'', empleada:emp});
+  // Sound
+  const esPlantaSnd=(currentUser==='Televisor'||currentUser==='Mecanicos');
+  if(s!=='green'&&!(esPlantaSnd&&s==='orange')&&!(esPlantaSnd&&s==='purple')&&esPlantaSnd){
+    playAlertSound();
+  }
+  if(selectedMod===id) renderBig();
+  renderGrid();
+}
+
+function cerrarImproductivoExtra(id){
+  // Close secondary state — log the duration
+  if(states2[id] && timers2[id]){
+    const dur = Date.now()-timers2[id];
+    logChange(id, states2[id], 'green', dur, lastMec2[id]||'');
+  }
+  states2[id]=null; timers2[id]=null; lastMec2[id]='';
+  wsSend({type:'change2', id, state:null, mecanico:''});
+  if(selectedMod===id) renderBig();
+  renderGrid();
 }
 function onImpMec(){
   const id = pendingMod;
+  const el = document.getElementById('modal-improductivo');
+  const isExtra = el && el.dataset.extra==='1';
   cancelImproductivo();
   if(!id) return;
+  if(isExtra){
+    commitChange2(id,'red',null);
+    return;
+  }
   const iaS = typeof iaState!=='undefined'&&iaState ? iaState : {employees:[]};
   const empsDelMod = (iaS.employees||[]).filter(e=>!e.disabled&&(e.module===id||e.modulo===id));
   if(empsDelMod.length === 0){ commitChange(id,'red',null); return; }
@@ -2398,8 +2458,11 @@ function onImpMec(){
 }
 function onImpRef(){
   const id=pendingMod;
+  const el=document.getElementById('modal-improductivo');
+  const isExtra=el&&el.dataset.extra==='1';
   cancelImproductivo();
   if(!id)return;
+  if(isExtra){ commitChange2(id,'blue',null); return; }
   openCambioModal(id);
 }
 const cambioTimers={};
@@ -2695,6 +2758,10 @@ setInterval(()=>{
       bt.textContent="⏱ "+formatTime(now-timers[selectedMod]);
     }else bt.textContent="";
   }else if(bt)bt.textContent="";
+  const bt2=document.getElementById("big-timer2");
+  if(bt2&&selectedMod&&states2[selectedMod]&&timers2[selectedMod]){
+    bt2.textContent="⏱ "+formatTime(now-timers2[selectedMod]);
+  }
 },1000);
 function renderBig(){
   if(!selectedMod)return;
@@ -2710,15 +2777,38 @@ function renderBig(){
     tapHint='🟣 Esperando respuesta del CI';
     lockBadge=`<span style="font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#5b21b6;background:rgba(124,58,237,0.15);padding:3px 10px;border-radius:20px;margin-top:-8px;">🔒 Bloqueado hasta confirmar en CI</span>`;
   }
+  const s2 = states2[selectedMod];
+  const tt2 = s2 ? '⏱ '+formatTime(Date.now()-timers2[selectedMod]) : '';
+  const canAddExtra = (s!=='orange'&&s!=='purple');
+  const canCloseExtra = !!s2;
+
   document.getElementById('big-container').innerHTML=`
-    <div class="big-wrap ${s}" id="big-mod">
-      <span class="big-id">${selectedMod}</span><div class="big-light"></div>
-      <span class="big-status">${LABELS[s]||s}</span>
-      <span class="big-timer" id="big-timer">${tt}</span>
-      ${lockBadge}
-      <span class="tap-hint">${tapHint}</span>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:16px;">
+      <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;justify-content:center;">
+        <div class="big-wrap ${s}" id="big-mod">
+          <span class="big-id">${selectedMod}</span><div class="big-light"></div>
+          <span class="big-status">${LABELS[s]||s}</span>
+          <span class="big-timer" id="big-timer">${tt}</span>
+          ${lockBadge}
+          <span class="tap-hint">${tapHint}</span>
+        </div>
+        ${s2?`<div class="big-wrap ${s2}" id="big-mod2" style="position:relative;">
+          <span class="big-id">${selectedMod}</span><div class="big-light"></div>
+          <span class="big-status">${LABELS[s2]||s2}</span>
+          <span class="big-timer" id="big-timer2">${tt2}</span>
+          <span class="tap-hint" style="font-size:10px;">Improductivo adicional</span>
+          <button onclick="cerrarImproductivoExtra('${selectedMod}')" style="margin-top:8px;padding:6px 16px;border-radius:8px;border:1.5px solid rgba(0,0,0,0.2);background:rgba(255,255,255,0.3);color:inherit;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">✕ Cerrar</button>
+        </div>`:''}
+      </div>
+      ${canAddExtra?`<button onclick="abrirModalImproductivoExtra('${selectedMod}')" style="padding:10px 24px;border-radius:10px;border:1.5px solid #334155;background:#1e293b;color:#f1f5f9;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.2);">+ Agregar Improductivo</button>`:''}
     </div>`;
   document.getElementById('big-mod').addEventListener('click',e=>{addRipple(document.getElementById('big-mod'),e);applyChange(selectedMod);});
+  if(s2 && document.getElementById('big-mod2')){
+    document.getElementById('big-mod2').addEventListener('click',e=>{
+      // tapping second card resolves the extra improductivo
+      cerrarImproductivoExtra(selectedMod);
+    });
+  }
 }
 
 // ── MODAL ACUMULADO ───────────────────────────────────────────────
