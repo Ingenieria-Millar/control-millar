@@ -802,6 +802,11 @@ wss.on('connection', (ws, req) => {
         broadcastLocal({ type:'change', id:msg.id, state:msg.state, mecanico:msg.mecanico||'', limite:msg.limite||null, empleada:msg.empleada||'' });
       }
 
+      else if (msg.type === 'change2') {
+        if (!msg.id) return;
+        broadcastLocal({ type:'change2', id:msg.id, state:msg.state||null, mecanico:msg.mecanico||'' });
+      }
+
       // ── Config Módulos ──────────────────────────────────────────
       else if (msg.type === 'modules_config') {
         // Inicializar states para módulos extra nuevos
