@@ -2072,7 +2072,12 @@ function onImpIns(){
   const el=document.getElementById('modal-improductivo');
   const isExtra=el&&el.dataset.extra==='1';
   cancelImproductivo();
-  if(isExtra&&id){ commitChange2(id,'orange',null); return; }
+  if(isExtra&&id){
+    window._extraMod=id;
+    // Flujo completo igual — siOpen abre modal de insumos, notifica CI
+    if(typeof siOpen==='function') siOpen();
+    return;
+  }
   if(typeof siOpen==='function') siOpen();
 }
 
@@ -2448,7 +2453,12 @@ function onImpMec(){
   cancelImproductivo();
   if(!id) return;
   if(isExtra){
-    commitChange2(id,'red',null);
+    // Flujo completo igual al normal — pero al confirmar mecánico usa commitChange2
+    window._extraMod = id;
+    const iaS = typeof iaState!=='undefined'&&iaState ? iaState : {employees:[]};
+    const empsDelMod = (iaS.employees||[]).filter(e=>!e.disabled&&(e.module===id||e.modulo===id));
+    if(empsDelMod.length === 0){ commitChange2(id,'red',null); return; }
+    abrirModalEmpleadaMec(id, empsDelMod);
     return;
   }
   const iaS = typeof iaState!=='undefined'&&iaState ? iaState : {employees:[]};
@@ -2462,7 +2472,15 @@ function onImpRef(){
   const isExtra=el&&el.dataset.extra==='1';
   cancelImproductivo();
   if(!id)return;
-  if(isExtra){ commitChange2(id,'blue',null); return; }
+  if(isExtra){
+    window._extraMod=id;
+    // Abre modal de cambio igual que normal
+    const modal=document.getElementById('modal-cambio-tipo');
+    modal.classList.remove('hidden');
+    modal.dataset.modId=id;
+    modal.dataset.extra='1';
+    return;
+  }
   openCambioModal(id);
 }
 const cambioTimers={};
@@ -2477,8 +2495,12 @@ function closeCambioModal(){
 }
 // ── Iniciar temporizador de cambio de referencia (azul) ──────────────
 function iniciarCambio(minutos){
-  const id=document.getElementById('modal-cambio-tipo').dataset.modId;
+  const modal=document.getElementById('modal-cambio-tipo');
+  const id=modal.dataset.modId;
+  const isExtra=modal.dataset.extra==='1';
+  delete modal.dataset.extra;
   closeCambioModal();
+  if(isExtra){ window._extraMod=null; commitChange2(id,'blue',null); return; }
   const ms=minutos*60*1000;
   cambioLimites[id]=Date.now()+ms;
   commitChange(id,'blue',null,cambioLimites[id]);
@@ -7253,7 +7275,8 @@ function siEnviar(){
 
   // Cambiar módulo a estado Espera CI (naranja)
   if(modulo && typeof commitChange==='function' && typeof states!=='undefined' && states[modulo]!==undefined){
-    commitChange(modulo, 'orange', null);
+    if(window._extraMod===modulo){ window._extraMod=null; commitChange2(modulo,'orange',null); }
+    else commitChange(modulo, 'orange', null);
   }
 
   siClose();
@@ -7630,7 +7653,8 @@ function confirmarFalloMec(){
   if(!window._lastEmpleada) window._lastEmpleada = {};
   window._lastEmpleada[id] = empleada;
   cerrarModalEmpleadaMec();
-  commitChange(id,'red',null);
+  if(window._extraMod===id){ window._extraMod=null; commitChange2(id,'red',null); }
+  else commitChange(id,'red',null);
 }
 </script>
 
