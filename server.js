@@ -293,6 +293,9 @@ app.use('/alistamiento/uploads', express.static(UPLOADS_DIR));
 app.get('/', (req, res) =>
   res.sendFile(path.join(__dirname, 'index.html'))
 );
+app.get('/index.html', (req, res) =>
+  res.redirect('/')
+);
 app.get('/ingresos', (req, res) =>
   res.sendFile(path.join(__dirname, 'ingresos.html'))
 );
