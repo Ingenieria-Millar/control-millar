@@ -518,29 +518,6 @@ function getIngresoHTML(){
   transform:skewX(-18deg);transition:left .5s;
 }
 .ia-btn-primary:hover::after{left:130%;}
-
-/* ── Botón Secundario "Volver" ── */
-.ia-btn-secondary{
-  width:100%;padding:13px;border-radius:9px;border:2px solid #2563eb;
-  background:#fff;
-  color:#2563eb;font-family:'Barlow Condensed',sans-serif;
-  font-size:17px;font-weight:700;letter-spacing:3px;text-transform:uppercase;
-  cursor:pointer;position:relative;overflow:hidden;
-  box-shadow:0 2px 12px rgba(37,99,235,.2);
-  transition:all .22s;margin-top:.6rem;
-}
-.ia-btn-secondary:hover{
-  transform:translateY(-2px);
-  background:#f0f7ff;
-  box-shadow:0 4px 18px rgba(37,99,235,.3);
-}
-.ia-btn-secondary::after{
-  content:'';position:absolute;top:0;left:-110%;width:65%;height:100%;
-  background:linear-gradient(90deg,transparent,rgba(37,99,235,.15),transparent);
-  transform:skewX(-18deg);transition:left .5s;
-}
-.ia-btn-secondary:hover::after{left:130%;}
-
 .ia-err{
   color:#ef4444;font-size:.82rem;text-align:center;margin-top:.8rem;
   display:none;font-family:'Nunito',sans-serif;font-weight:600;
@@ -1584,7 +1561,6 @@ html { overflow-x: hidden; max-width: 100%; }
         <input type="password" id="ia-login-pass" placeholder="••••••••">
       </div>
       <button class="ia-btn-primary" onclick="iaDoLogin()">Ingresar →</button>
-      <button class="ia-btn-secondary" onclick="iaGoBack()">Volver</button>
       <p class="ia-err" id="ia-login-error">⚠ Usuario o contraseña incorrectos</p>
     </div>
     <div class="ia-login-right-foot">© 2026 Ingeniería Confecciones Millar S.A.S.</div>
@@ -1969,10 +1945,6 @@ window.iaDoLogout=function(){
   document.getElementById('ia-login-user').value='';
   document.getElementById('ia-login-pass').value='';
   iaBuildLoginSelect();
-};
-window.iaGoBack=function(){
-  // Redirigir al index para volver al selector de áreas
-  window.location.href='./index.html';
 };
 function iaInitApp(){
   document.getElementById('ia-login').style.display='none';
@@ -2596,12 +2568,31 @@ window.iaRegisterEntry=function(status){
   if(!empName){alert('Por favor selecciona un empleado primero.');return;}
   const area=document.getElementById('ia-emp-area')?.value||'—';
   if(status==='presente'&&(!area||area==='—')){alert('Por favor selecciona un módulo.');return;}
+  
+  // Obtener datos completos del empleado en este momento (copia congelada)
+  const emp=iaState.employees.find(e=>e.name===empName);
+  const empData={
+    empName: empName,
+    empModule: emp?.module||'—', // Copiar módulo del empleado en este momento
+    empSupId: emp?.supId||'',     // Copiar supervisor en este momento
+  };
+  
   let supName;
-  if(iaIsAdmin()){const emp=iaState.employees.find(e=>e.name===empName);supName=emp&&emp.supId?iaGetSup(emp.supId)?.name||'Admin':'Admin';}
+  if(iaIsAdmin()){supName=emp&&emp.supId?iaGetSup(emp.supId)?.name||'Admin':'Admin';}
   else{supName=(typeof currentMember!=='undefined'&&currentMember)?currentMember:(iaGetSup(iaCurrentUser)?.name||'Supervisora');}
+  
   const today=iaTodayStr();
   const regDate=(iaIsAdmin()&&document.getElementById('ia-reg-fecha')?.value)||today;
-  const newRecord={id:iaGenId(),empName,area:status==='falto'?'—':area,status,date:regDate,supervisor:supName};
+  const newRecord={
+    id:iaGenId(),
+    empName:empData.empName,        // Nombre congelado
+    empModule:empData.empModule,    // Módulo congelado
+    empSupId:empData.empSupId,      // SupervisorId congelado
+    area:status==='falto'?'—':area,
+    status,
+    date:regDate,
+    supervisor:supName
+  };
   iaRecords=iaRecords.filter(r=>!(r.empName===empName&&r.date===regDate));
   iaRecords.push(newRecord);
   wsSend({type:'ia_add_record',record:newRecord});
