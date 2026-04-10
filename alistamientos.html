@@ -4,6 +4,45 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Alistamientos — Confecciones Millar</title>
+<!-- Persistencia de Estado -->
+<script>
+window.AppState = {
+  STORAGE_KEY: 'millar_ui_state',
+  save: function(screen, section, data = {}) {
+    try {
+      const state = {screen, section, data, savedAt: new Date().toISOString()};
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(state));
+    } catch(e) {}
+  },
+  load: function() {
+    try {
+      const saved = localStorage.getItem(this.STORAGE_KEY);
+      return saved ? JSON.parse(saved) : null;
+    } catch(e) {
+      return null;
+    }
+  },
+  restore: function() {
+    const state = this.load();
+    if (!state) return null;
+    if (state.screen !== this.detectScreen()) return null;
+    return state;
+  },
+  detectScreen: function() {
+    const path = window.location.pathname;
+    if (path.includes('/ingresos')) return 'ingresos';
+    if (path.includes('/alistamiento')) return 'alistamientos';
+    if (path.includes('/solicitar-insumos')) return 'solicitar_insumos';
+    if (path.includes('/ci')) return 'tablero_ci';
+    return 'index';
+  },
+  clear: function() {
+    try {
+      localStorage.removeItem(this.STORAGE_KEY);
+    } catch(e) {}
+  }
+};
+</script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
