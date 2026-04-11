@@ -5,44 +5,50 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Tablero CI — Faltante de Insumos</title>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-<!-- Persistencia de Estado -->
+<!-- Session & Screen Persistence -->
 <script>
-window.AppState = {
-  STORAGE_KEY: 'millar_ui_state',
-  save: function(screen, section, data = {}) {
+window.SessionPersist = {
+  SCREEN_KEY: 'millar_current_screen',
+  SESSION_KEY: 'millar_user_session',
+  saveScreen: function(screenName) {
     try {
-      const state = {screen, section, data, savedAt: new Date().toISOString()};
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(state));
+      localStorage.setItem(this.SCREEN_KEY, screenName);
     } catch(e) {}
   },
-  load: function() {
+  saveSession: function(userData) {
     try {
-      const saved = localStorage.getItem(this.STORAGE_KEY);
+      const session = {user: userData.user || null, rol: userData.rol || '', timestamp: new Date().getTime()};
+      localStorage.setItem(this.SESSION_KEY, JSON.stringify(session));
+    } catch(e) {}
+  },
+  getScreen: function() {
+    try {
+      return localStorage.getItem(this.SCREEN_KEY);
+    } catch(e) {
+      return null;
+    }
+  },
+  getSession: function() {
+    try {
+      const saved = localStorage.getItem(this.SESSION_KEY);
       return saved ? JSON.parse(saved) : null;
     } catch(e) {
       return null;
     }
   },
-  restore: function() {
-    const state = this.load();
-    if (!state) return null;
-    if (state.screen !== this.detectScreen()) return null;
-    return state;
+  detectCurrentScreen: function() {
+    return 'tablero_ci';
   },
-  detectScreen: function() {
-    const path = window.location.pathname;
-    if (path.includes('/ingresos')) return 'ingresos';
-    if (path.includes('/alistamiento')) return 'alistamientos';
-    if (path.includes('/solicitar-insumos')) return 'solicitar_insumos';
-    if (path.includes('/ci')) return 'tablero_ci';
-    return 'index';
-  },
-  clear: function() {
+  clearSession: function() {
     try {
-      localStorage.removeItem(this.STORAGE_KEY);
+      localStorage.removeItem(this.SESSION_KEY);
+      localStorage.removeItem(this.SCREEN_KEY);
     } catch(e) {}
   }
 };
+window.addEventListener('load', function() {
+  SessionPersist.saveScreen('tablero_ci');
+});
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -1386,14 +1392,6 @@ if(_userLbl) _userLbl.textContent = currentUser.toUpperCase();
 
 // ── Iniciar ──
 connectWS();
-
-// ── Restaurar estado guardado ──
-setTimeout(function(){
-  const savedState = AppState.restore();
-  if(savedState && savedState.section){
-    console.log('[Tablero_CI.html] Restaurando:', savedState.section);
-  }
-}, 500);
 </script>
 </body>
 </html>
