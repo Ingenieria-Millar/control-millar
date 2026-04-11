@@ -27,33 +27,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Control de Piso — Confecciones Millar</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<!-- ── Persistencia de Estado Global ── -->
+<!-- ── Persistencia de Sesión y Pantalla ── -->
 <script>
-window.AppState = {
-  STORAGE_KEY: 'millar_ui_state',
-  save: function(screen, section, data = {}) {
+window.SessionPersist = {
+  SCREEN_KEY: 'millar_current_screen',
+  SESSION_KEY: 'millar_user_session',
+  saveScreen: function(screenName) {
     try {
-      const state = {screen, section, data, savedAt: new Date().toISOString()};
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(state));
-    } catch(e) {
-      console.error('[AppState] Error guardando:', e.message);
-    }
+      localStorage.setItem(this.SCREEN_KEY, screenName);
+    } catch(e) {}
   },
-  load: function() {
+  getScreen: function() {
     try {
-      const saved = localStorage.getItem(this.STORAGE_KEY);
-      return saved ? JSON.parse(saved) : null;
+      return localStorage.getItem(this.SCREEN_KEY);
     } catch(e) {
       return null;
     }
   },
-  restore: function() {
-    const state = this.load();
-    if (!state) return null;
-    if (state.screen !== this.detectScreen()) return null;
-    return state;
-  },
-  detectScreen: function() {
+  detectCurrentScreen: function() {
     const path = window.location.pathname;
     if (path.includes('/ingresos')) return 'ingresos';
     if (path.includes('/alistamiento')) return 'alistamientos';
@@ -61,12 +52,15 @@ window.AppState = {
     if (path.includes('/ci')) return 'tablero_ci';
     return 'index';
   },
-  clear: function() {
+  clearSession: function() {
     try {
-      localStorage.removeItem(this.STORAGE_KEY);
+      localStorage.removeItem(this.SCREEN_KEY);
     } catch(e) {}
   }
 };
+window.addEventListener('load', function() {
+  SessionPersist.saveScreen(SessionPersist.detectCurrentScreen());
+});
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Nunito:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
