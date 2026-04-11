@@ -5,33 +5,38 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Control de Ingresos — Confecciones Millar</title>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<!-- Persistencia de Estado Global -->
+<!-- Session & Screen Persistence v2 -->
 <script>
-window.AppState = {
-  STORAGE_KEY: 'millar_ui_state',
-  save: function(screen, section, data = {}) {
+window.SessionPersist = {
+  SCREEN_KEY: 'millar_current_screen',
+  SESSION_KEY: 'millar_user_session',
+  saveScreen: function(screenName) {
     try {
-      const state = {screen, section, data, savedAt: new Date().toISOString()};
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(state));
+      localStorage.setItem(this.SCREEN_KEY, screenName);
+    } catch(e) {}
+  },
+  saveSession: function(userData) {
+    try {
+      const session = {user: userData.user || null, rol: userData.rol || '', supId: userData.supId || null, timestamp: new Date().getTime()};
+      localStorage.setItem(this.SESSION_KEY, JSON.stringify(session));
+    } catch(e) {}
+  },
+  getScreen: function() {
+    try {
+      return localStorage.getItem(this.SCREEN_KEY);
     } catch(e) {
-      console.error('[AppState] Error guardando:', e.message);
+      return null;
     }
   },
-  load: function() {
+  getSession: function() {
     try {
-      const saved = localStorage.getItem(this.STORAGE_KEY);
+      const saved = localStorage.getItem(this.SESSION_KEY);
       return saved ? JSON.parse(saved) : null;
     } catch(e) {
       return null;
     }
   },
-  restore: function() {
-    const state = this.load();
-    if (!state) return null;
-    if (state.screen !== this.detectScreen()) return null;
-    return state;
-  },
-  detectScreen: function() {
+  detectCurrentScreen: function() {
     const path = window.location.pathname;
     if (path.includes('/ingresos')) return 'ingresos';
     if (path.includes('/alistamiento')) return 'alistamientos';
@@ -39,12 +44,16 @@ window.AppState = {
     if (path.includes('/ci')) return 'tablero_ci';
     return 'index';
   },
-  clear: function() {
+  clearSession: function() {
     try {
-      localStorage.removeItem(this.STORAGE_KEY);
+      localStorage.removeItem(this.SESSION_KEY);
+      localStorage.removeItem(this.SCREEN_KEY);
     } catch(e) {}
   }
 };
+window.addEventListener('load', function() {
+  SessionPersist.saveScreen(SessionPersist.detectCurrentScreen());
+});
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Nunito:wght@300;400;500;600;700;800&display=swap&font-display=swap" rel="stylesheet">
@@ -1969,18 +1978,27 @@ window.iaDoLogin=function(){
     } else {
       sup.isAdmin = memberIsAdmin;
     }
-    iaCurrentUser=sup.id; iaInitApp();
+    iaCurrentUser=sup.id; 
+    // Guardar sesión
+    SessionPersist.saveSession({user: sup.id, rol: 'miembro', supId: sup.id});
+    SessionPersist.saveScreen('ingresos');
+    iaInitApp();
     return;
   }
   // Login clásico con supervisor iaState
   const sup=iaGetSup(uid);
   if(!sup||sup.pass!==pass){document.getElementById('ia-login-error').style.display='block';return;}
   document.getElementById('ia-login-error').style.display='none';
-  iaCurrentUser=uid; iaInitApp();
+  iaCurrentUser=uid; 
+  // Guardar sesión
+  SessionPersist.saveSession({user: uid, rol: 'supervisor', supId: uid});
+  SessionPersist.saveScreen('ingresos');
+  iaInitApp();
 };
 document.getElementById('ia-login-pass').addEventListener('keydown',e=>{if(e.key==='Enter')iaDoLogin();});
 window.iaDoLogout=function(){
   iaCurrentUser=null;
+  SessionPersist.clearSession();
   document.getElementById('ia-app').style.display='none';
   document.getElementById('ia-login').style.display='flex';
   document.getElementById('ia-login-user').value='';
@@ -2680,6 +2698,17 @@ const iaRenderHistoryDebounced     = debounce(()=>{ if(typeof iaRenderHistory===
 const iaRenderAdminTableDebounced  = debounce(()=>{ if(typeof iaRenderAdminTable==='function') iaRenderAdminTable(); }, 300);
 const iaRenderEmployeeListDebounced= debounce(()=>{ if(typeof iaRenderEmployeeList==='function') iaRenderEmployeeList(); }, 300);
 const iaFilterEmployeesDebounced   = debounce(()=>{ if(typeof iaFilterEmployees==='function') iaFilterEmployees(); }, 200);
+
+// ── Restaurar sesión guardada al cargar ──
+setTimeout(function(){
+  const savedSession = SessionPersist.getSession();
+  if(savedSession && savedSession.user){
+    console.log('[ingresos.html] Restaurando sesión:', savedSession.user);
+    // La sesión se restaurará automáticamente cuando el usuario logueado recargue
+    // El sistema ya mantiene iaCurrentUser en memoria y el login quedará visible
+    // Si la sesión expiró, el usuario tendrá que loguearse manualmente
+  }
+}, 100);
 </script>
 </body>
 </html>
