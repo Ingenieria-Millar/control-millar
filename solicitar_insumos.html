@@ -749,7 +749,8 @@ function modalEnviar(){
     waitTime:   null,
     resolvedAt: null,
     obs:        '',
-    alertStart: now.getTime()
+    alertStart: now.getTime(),
+    esMecanico: true
   };
 
   wsSend({ type:'ci_new_request', request:newReq });
@@ -814,7 +815,13 @@ function exportarExcelSI(){
   const desde = document.getElementById('si-fecha-desde').value;
   const hasta  = document.getElementById('si-fecha-hasta').value;
   const mias = ciRequests.filter(r=>{
-    if(currentUser !== 'ADMINISTRADOR' && r.module !== currentUser) return false;
+    // Si es ADMINISTRADOR, solo mostrar solicitudes de mecánicos
+    if(currentUser === 'ADMINISTRADOR'){
+      if(r.esMecanico !== true) return false;
+    } else {
+      // Si NO es ADMINISTRADOR, mostrar solo sus solicitudes
+      if(r.module !== currentUser) return false;
+    }
     const f = parseFechaSI(r);
     if(desde && f && f < desde) return false;
     if(hasta  && f && f > hasta) return false;
@@ -847,7 +854,13 @@ function renderHistorial(){
   const desde = document.getElementById('si-fecha-desde')?.value||'';
   const hasta  = document.getElementById('si-fecha-hasta')?.value||'';
   const mias=ciRequests.filter(r=>{
-    if(currentUser !== 'ADMINISTRADOR' && r.module!==currentUser) return false;
+    // Si es ADMINISTRADOR, solo mostrar solicitudes de mecánicos
+    if(currentUser === 'ADMINISTRADOR'){
+      if(r.esMecanico !== true) return false;
+    } else {
+      // Si NO es ADMINISTRADOR, mostrar solo sus solicitudes
+      if(r.module!==currentUser) return false;
+    }
     if(desde||hasta){
       const f = parseFechaSI(r);
       if(f){
