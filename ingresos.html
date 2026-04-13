@@ -2641,28 +2641,49 @@ const iaFilterEmployeesDebounced   = debounce(()=>{ if(typeof iaFilterEmployees=
 
 // ── Modal de Fechas ──────────────────────────────────────────────────
 window.iaOpenDateModal = function(){
+  console.log('[DEBUG] Abriendo modal de fechas');
   const modal = document.getElementById('ia-date-modal');
-  if(!modal) return;
-  const fromInput = document.getElementById('ia-modal-from');
-  const toInput = document.getElementById('ia-modal-to');
-  const today = iaTodayStr();
-  
-  // Si no hay fechas guardadas, poner hoy
-  if(!document.getElementById('ia-filter-from')?.value && !document.getElementById('ia-filter-to')?.value){
-    fromInput.value = today;
-    toInput.value = today;
-  } else {
-    fromInput.value = document.getElementById('ia-filter-from')?.value || '';
-    toInput.value = document.getElementById('ia-filter-to')?.value || '';
+  console.log('[DEBUG] Modal encontrado:', modal);
+  if(!modal) {
+    console.error('[ERROR] Modal no encontrado');
+    return;
   }
   
-  modal.style.display = 'flex';
-  setTimeout(() => { fromInput.focus(); }, 100);
+  const fromInput = document.getElementById('ia-modal-from');
+  const toInput = document.getElementById('ia-modal-to');
+  const filterFrom = document.getElementById('ia-filter-from');
+  const filterTo = document.getElementById('ia-filter-to');
+  
+  const today = iaTodayStr();
+  console.log('[DEBUG] Hoy:', today);
+  
+  // Si no hay fechas guardadas, poner hoy
+  const fromVal = filterFrom ? filterFrom.value : '';
+  const toVal = filterTo ? filterTo.value : '';
+  
+  if(!fromVal && !toVal){
+    fromInput.value = today;
+    toInput.value = today;
+    console.log('[DEBUG] Sin fechas, usando hoy');
+  } else {
+    fromInput.value = fromVal || '';
+    toInput.value = toVal || '';
+    console.log('[DEBUG] Usando fechas guardadas:', fromVal, toVal);
+  }
+  
+  modal.style.visibility = 'visible';
+  modal.style.opacity = '1';
+  console.log('[DEBUG] Modal abierto');
+  setTimeout(() => { if(fromInput) fromInput.focus(); }, 100);
 };
 
 window.iaCloseDateModal = function(){
   const modal = document.getElementById('ia-date-modal');
-  if(modal) modal.style.display = 'none';
+  if(modal) {
+    modal.style.visibility = 'hidden';
+    modal.style.opacity = '0';
+  }
+};
 };
 
 window.iaApplyDateFilter = function(){
@@ -2715,7 +2736,7 @@ document.addEventListener('DOMContentLoaded', function(){
 </script>
 
 <!-- Modal Filtro de Fechas -->
-<div id="ia-date-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:999;" onclick="if(event.target===this)iaCloseDateModal()">
+<div id="ia-date-modal" style="position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:999;visibility:hidden;opacity:0;transition:opacity .3s,visibility .3s;" onclick="if(event.target===this)iaCloseDateModal()">
   <div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;">
     <div style="background:#fff;border-radius:12px;padding:24px;box-shadow:0 10px 40px rgba(0,0,0,.15);max-width:320px;width:90%;font-family:'Nunito',sans-serif;">
       <h3 style="margin:0 0 18px 0;color:#0f172a;font-size:16px;">Filtrar por Fecha</h3>
