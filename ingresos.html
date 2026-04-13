@@ -526,12 +526,6 @@ function getIngresoHTML(){
   transition:all .22s;margin-top:.5rem;
 }
 .ia-btn-volver:hover{transform:translateY(-2px);background:#f0f5ff;box-shadow:0 4px 18px rgba(37,99,235,.38);}
-.ia-btn-filter-date{
-  padding:8px 12px;background:#2563eb;color:#fff;border:none;border-radius:8px;
-  font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;cursor:pointer;
-  transition:all .2s;box-shadow:0 2px 8px rgba(37,99,235,.3);
-}
-.ia-btn-filter-date:hover{background:#1d4ed8;transform:translateY(-1px);box-shadow:0 4px 12px rgba(37,99,235,.4);}
 .ia-err{
   color:#ef4444;font-size:.82rem;text-align:center;margin-top:.8rem;
   display:none;font-family:'Nunito',sans-serif;font-weight:600;
@@ -1669,11 +1663,11 @@ html { overflow-x: hidden; max-width: 100%; }
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           <button class="ia-btn-filter-date" id="ia-btn-filter-date" onclick="iaOpenDateModal()">📅 Hoy</button>
           <button class="ia-btn-excel" id="ia-btn-export-hist" onclick="iaExportExcel('history')" style="padding:6px 14px;font-size:13px;">📊 Excel</button>
+          <!-- Inputs ocultos para el código existente -->
+          <input type="date" id="ia-filter-from" onchange="iaRenderHistory()" style="display:none;">
+          <input type="date" id="ia-filter-to" onchange="iaRenderHistory()" style="display:none;">
         </div>
       </div>
-      <!-- Inputs ocultos para compatibilidad con código existente -->
-      <input type="date" id="ia-filter-from" style="display:none;">
-      <input type="date" id="ia-filter-to" style="display:none;">
       <div class="ia-table-wrap">
         <table class="ia-table">
           <thead>
@@ -2639,122 +2633,54 @@ const iaRenderAdminTableDebounced  = debounce(()=>{ if(typeof iaRenderAdminTable
 const iaRenderEmployeeListDebounced= debounce(()=>{ if(typeof iaRenderEmployeeList==='function') iaRenderEmployeeList(); }, 300);
 const iaFilterEmployeesDebounced   = debounce(()=>{ if(typeof iaFilterEmployees==='function') iaFilterEmployees(); }, 200);
 
-// ── Modal de Fechas ──────────────────────────────────────────────────
-window.iaOpenDateModal = function(){
-  console.log('[DEBUG] Abriendo modal de fechas');
-  const modal = document.getElementById('ia-date-modal');
-  console.log('[DEBUG] Modal encontrado:', modal);
-  if(!modal) {
-    console.error('[ERROR] Modal no encontrado');
-    return;
-  }
-  
-  const fromInput = document.getElementById('ia-modal-from');
-  const toInput = document.getElementById('ia-modal-to');
-  const filterFrom = document.getElementById('ia-filter-from');
-  const filterTo = document.getElementById('ia-filter-to');
-  
-  const today = iaTodayStr();
-  console.log('[DEBUG] Hoy:', today);
-  
-  // Si no hay fechas guardadas, poner hoy
-  const fromVal = filterFrom ? filterFrom.value : '';
-  const toVal = filterTo ? filterTo.value : '';
-  
-  if(!fromVal && !toVal){
-    fromInput.value = today;
-    toInput.value = today;
-    console.log('[DEBUG] Sin fechas, usando hoy');
-  } else {
-    fromInput.value = fromVal || '';
-    toInput.value = toVal || '';
-    console.log('[DEBUG] Usando fechas guardadas:', fromVal, toVal);
-  }
-  
-  modal.style.visibility = 'visible';
-  modal.style.opacity = '1';
-  console.log('[DEBUG] Modal abierto');
-  setTimeout(() => { if(fromInput) fromInput.focus(); }, 100);
+// ── Modal de Fechas (Simple) ─────────────────────────────────────
+window.iaOpenDateModal=function(){
+  const m=document.getElementById('ia-date-modal');
+  const f=document.getElementById('ia-filter-from');
+  const t=document.getElementById('ia-filter-to');
+  const today=new Date().toISOString().split('T')[0];
+  document.getElementById('ia-modal-from').value=f.value||today;
+  document.getElementById('ia-modal-to').value=t.value||today;
+  m.style.visibility='visible';
+  m.style.opacity='1';
 };
-
-window.iaCloseDateModal = function(){
-  const modal = document.getElementById('ia-date-modal');
-  if(modal) {
-    modal.style.visibility = 'hidden';
-    modal.style.opacity = '0';
-  }
+window.iaCloseDateModal=function(){
+  const m=document.getElementById('ia-date-modal');
+  m.style.visibility='hidden';
+  m.style.opacity='0';
 };
-};
-
-window.iaApplyDateFilter = function(){
-  const fromInput = document.getElementById('ia-modal-from');
-  const toInput = document.getElementById('ia-modal-to');
-  const fromVal = fromInput.value;
-  const toVal = toInput.value;
-  
-  document.getElementById('ia-filter-from').value = fromVal;
-  document.getElementById('ia-filter-to').value = toVal;
-  
-  // Actualizar botón
-  const btn = document.getElementById('ia-btn-filter-date');
-  if(btn){
-    if(fromVal && toVal){
-      if(fromVal === toVal){
-        btn.textContent = '📅 ' + iaFormatDateLong(fromVal);
-      } else {
-        btn.textContent = '📅 ' + fromVal + ' → ' + toVal;
-      }
-    } else {
-      btn.textContent = '📅 Hoy';
-    }
-  }
-  
+window.iaApplyDateFilter=function(){
+  const f=document.getElementById('ia-modal-from').value;
+  const t=document.getElementById('ia-modal-to').value;
+  document.getElementById('ia-filter-from').value=f;
+  document.getElementById('ia-filter-to').value=t;
+  const btn=document.getElementById('ia-btn-filter-date');
+  if(btn) btn.textContent='📅 '+(f===t?f:f+' → '+t);
   iaCloseDateModal();
   iaRenderHistory();
 };
-
-window.iaClearDateFilter = function(){
-  document.getElementById('ia-filter-from').value = '';
-  document.getElementById('ia-filter-to').value = '';
-  const btn = document.getElementById('ia-btn-filter-date');
-  if(btn) btn.textContent = '📅 Hoy';
+window.iaClearDateFilter=function(){
+  document.getElementById('ia-filter-from').value='';
+  document.getElementById('ia-filter-to').value='';
+  const btn=document.getElementById('ia-btn-filter-date');
+  if(btn) btn.textContent='📅 Hoy';
   iaCloseDateModal();
   iaRenderHistory();
 };
-
-// Cerrar modal al hacer click fuera
-document.addEventListener('DOMContentLoaded', function(){
-  const modal = document.getElementById('ia-date-modal');
-  if(modal){
-    modal.addEventListener('click', function(e){
-      if(e.target === this){
-        iaCloseDateModal();
-      }
-    });
-  }
-});
 </script>
+<style>
+.ia-btn-filter-date{padding:8px 12px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;box-shadow:0 2px 8px rgba(37,99,235,.3);}
+.ia-btn-filter-date:hover{background:#1d4ed8;transform:translateY(-1px);box-shadow:0 4px 12px rgba(37,99,235,.4);}
+</style>
 
 <!-- Modal Filtro de Fechas -->
 <div id="ia-date-modal" style="position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:999;visibility:hidden;opacity:0;transition:opacity .3s,visibility .3s;" onclick="if(event.target===this)iaCloseDateModal()">
   <div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;">
     <div style="background:#fff;border-radius:12px;padding:24px;box-shadow:0 10px 40px rgba(0,0,0,.15);max-width:320px;width:90%;font-family:'Nunito',sans-serif;">
       <h3 style="margin:0 0 18px 0;color:#0f172a;font-size:16px;">Filtrar por Fecha</h3>
-      
-      <div style="margin-bottom:14px;">
-        <label style="display:block;font-size:12px;font-weight:700;color:#64748b;margin-bottom:6px;">DESDE</label>
-        <input type="date" id="ia-modal-from" style="width:100%;padding:10px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:'Nunito',sans-serif;font-size:13px;color:#0f172a;box-sizing:border-box;">
-      </div>
-      
-      <div style="margin-bottom:20px;">
-        <label style="display:block;font-size:12px;font-weight:700;color:#64748b;margin-bottom:6px;">HASTA</label>
-        <input type="date" id="ia-modal-to" style="width:100%;padding:10px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:'Nunito',sans-serif;font-size:13px;color:#0f172a;box-sizing:border-box;">
-      </div>
-      
-      <div style="display:flex;gap:10px;">
-        <button class="ia-btn-primary" onclick="iaApplyDateFilter()" style="margin-top:0;flex:1;padding:11px;">Filtrar</button>
-        <button class="ia-btn-volver" onclick="iaClearDateFilter()" style="margin-top:0;flex:1;padding:11px;font-size:14px;letter-spacing:1px;">Limpiar</button>
-      </div>
+      <div style="margin-bottom:14px;"><label style="display:block;font-size:12px;font-weight:700;color:#64748b;margin-bottom:6px;">DESDE</label><input type="date" id="ia-modal-from" style="width:100%;padding:10px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:'Nunito',sans-serif;font-size:13px;color:#0f172a;box-sizing:border-box;"></div>
+      <div style="margin-bottom:20px;"><label style="display:block;font-size:12px;font-weight:700;color:#64748b;margin-bottom:6px;">HASTA</label><input type="date" id="ia-modal-to" style="width:100%;padding:10px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:'Nunito',sans-serif;font-size:13px;color:#0f172a;box-sizing:border-box;"></div>
+      <div style="display:flex;gap:10px;"><button class="ia-btn-primary" onclick="iaApplyDateFilter()" style="margin-top:0;flex:1;padding:11px;">Filtrar</button><button class="ia-btn-volver" onclick="iaClearDateFilter()" style="margin-top:0;flex:1;padding:11px;font-size:14px;letter-spacing:1px;">Limpiar</button></div>
     </div>
   </div>
 </div>
