@@ -27,39 +27,90 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Control de Piso — Confecciones Millar</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<!-- ── Persistencia de Sesión y Pantalla ── -->
+<!-- Screen & Session Persistence -->
 <script>
-window.SessionPersist = {
-  SCREEN_KEY: 'millar_current_screen',
-  SESSION_KEY: 'millar_user_session',
-  saveScreen: function(screenName) {
+window.ScreenState = {
+  SCREEN_KEY: 'millar_screen_state',
+  SCREENS: {
+    'login-screen': 'login',
+    'area-screen': 'area',
+    'modulo-login-screen': 'modulo_login',
+    'modtable-screen': 'modtable',
+    'acum-screen': 'acumulado',
+    'cfg-screen': 'config',
+    'historico-screen': 'historico'
+  },
+  saveCurrentScreen: function() {
     try {
-      localStorage.setItem(this.SCREEN_KEY, screenName);
+      let visibleScreen = null;
+      for (const [elemId, screenName] of Object.entries(this.SCREENS)) {
+        const elem = document.getElementById(elemId);
+        if (elem && elem.style.display !== 'none') {
+          visibleScreen = screenName;
+          break;
+        }
+      }
+      if (visibleScreen) {
+        const state = {
+          screen: visibleScreen,
+          user: typeof currentUser !== 'undefined' ? currentUser : null,
+          rol: typeof currentUserRol !== 'undefined' ? currentUserRol : null,
+          timestamp: new Date().getTime()
+        };
+        localStorage.setItem(this.SCREEN_KEY, JSON.stringify(state));
+      }
     } catch(e) {}
   },
-  getScreen: function() {
+  loadSavedState: function() {
     try {
-      return localStorage.getItem(this.SCREEN_KEY);
+      const saved = localStorage.getItem(this.SCREEN_KEY);
+      return saved ? JSON.parse(saved) : null;
     } catch(e) {
       return null;
     }
   },
-  detectCurrentScreen: function() {
-    const path = window.location.pathname;
-    if (path.includes('/ingresos')) return 'ingresos';
-    if (path.includes('/alistamiento')) return 'alistamientos';
-    if (path.includes('/solicitar-insumos')) return 'solicitar_insumos';
-    if (path.includes('/ci')) return 'tablero_ci';
-    return 'index';
+  restoreScreen: function() {
+    const saved = this.loadSavedState();
+    if (!saved) return;
+    if (saved.user) {
+      window.currentUser = saved.user;
+      window.currentUserRol = saved.rol;
+    }
+    setTimeout(() => {
+      this.showScreen(saved.screen);
+    }, 500);
   },
-  clearSession: function() {
+  showScreen: function(screenName) {
+    for (const elemId of Object.keys(this.SCREENS)) {
+      const elem = document.getElementById(elemId);
+      if (elem) elem.style.display = 'none';
+    }
+    const screenMap = {
+      'login': 'login-screen',
+      'area': 'area-screen',
+      'modulo_login': 'modulo-login-screen',
+      'modtable': 'modtable-screen',
+      'acumulado': 'acum-screen',
+      'config': 'cfg-screen',
+      'historico': 'historico-screen'
+    };
+    const elemId = screenMap[screenName];
+    if (elemId) {
+      const elem = document.getElementById(elemId);
+      if (elem) elem.style.display = 'flex';
+    }
+  },
+  clear: function() {
     try {
       localStorage.removeItem(this.SCREEN_KEY);
     } catch(e) {}
   }
 };
-window.addEventListener('load', function() {
-  SessionPersist.saveScreen(SessionPersist.detectCurrentScreen());
+setInterval(() => {
+  ScreenState.saveCurrentScreen();
+}, 2000);
+window.addEventListener('beforeunload', () => {
+  ScreenState.saveCurrentScreen();
 });
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1805,21 +1856,10 @@ window.addEventListener('DOMContentLoaded', async ()=>{
     }
   }catch(e){ console.warn('Error restaurando sesión:', e); }
   
-  // ── Restaurar estado de pantalla guardado ──
-  setTimeout(function(){
-    const savedState = AppState.restore();
-    if(savedState && savedState.section){
-      console.log('[index.html] Restaurando estado:', savedState);
-      // Si estamos en configuraciones, restaurar la pestaña
-      if(savedState.section.startsWith('configuraciones_')){
-        const tab = savedState.data.tab || 'usuarios';
-        const tabBtn = document.getElementById('cfgn-' + tab);
-        if(tabBtn){
-          cfgSwitchTab(tab, tabBtn);
-        }
-      }
-    }
-  }, 500);
+  // ── Restaurar pantalla guardada ──
+  setTimeout(() => {
+    ScreenState.restoreScreen();
+  }, 1000);
 });
 
 // ══════════════════════════════════════════════════════════════════
@@ -2336,6 +2376,17 @@ function entrarTablero(){
   const hdUser  = document.getElementById('hd-user-name');
   if(hdUser) hdUser.textContent = currentUser || '';
   if(hdRight) hdRight.classList.add('visible');
+  
+  // ── Ocultar "Espera CI" en Tablero Mecánicos ──
+  const estatOrange = document.getElementById('stat-orange');
+  if(estatOrange){
+    if(currentUser==='Mecanicos'||currentUser==='Televisor'){
+      estatOrange.style.display = 'none';
+    } else {
+      estatOrange.style.display = '';
+    }
+  }
+  
   // Limpiar filtros al entrar — evita tablero vacío
   activeFilters.clear();
   const todosEl = document.getElementById('stat-todos');
@@ -4498,13 +4549,6 @@ function cfgSwitchTab(tab, el){
   document.getElementById('cfg-sec-title2').textContent = CFG_TITLES[tab]||tab;
   const s = document.getElementById('cfg-search2');
   if(s) s.value='';
-  
-  // ── Guardar estado actual ──
-  AppState.save('index', 'config_' + tab, {
-    tab: tab,
-    timestamp: new Date().toISOString()
-  });
-  
   const searchWrap = document.getElementById('cfg-search-wrap2');
   const btnCrear = document.getElementById('cfg-btn-crear2');
   const btnExcel = document.getElementById('cfg-btn-excel2');
