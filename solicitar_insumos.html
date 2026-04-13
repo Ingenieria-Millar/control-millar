@@ -871,40 +871,50 @@ function renderHistorial(){
     const isDone=r.status==='done';
     const isCump=r.status==='cumplido';
     const badgeLabel=isDone?'ENTREGADO':isCump?'LISTO':'PENDIENTE';
+    
+    // Calcular tiempo de espera
+    const tiempoEspera = r.waitTime ? Math.round(r.waitTime / 1000 / 60) : (r.alertStart ? Math.round((Date.now() - r.alertStart) / 1000 / 60) : 0);
+    
+    // Obtener primer insumo
+    const primerInsumo = r.insumos && r.insumos.length > 0 ? r.insumos[0].tipo : r.tipo || '—';
+    
     const card=document.createElement('div');
     card.className=`req-card ${r.status||'alert'}`;
     card.innerHTML=`
       <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;">
         <div>
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#0f172a;margin-bottom:2px;">${r.tipo||'—'}</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#0f172a;margin-bottom:2px;">${r.categoria||'Alistamiento'}</div>
         </div>
         <span class="req-badge ${r.status||'alert'}">${badgeLabel}</span>
       </div>
       <div style="display:flex;flex-direction:column;gap:12px;font-family:'Nunito',sans-serif;font-size:13px;">
         <div style="display:flex;justify-content:space-between;">
+          <span style="color:#64748b;font-weight:600;">TIPO</span>
+          <span style="color:#0f172a;font-weight:500;">${r.categoria||'Alistamiento'}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;">
           <span style="color:#64748b;font-weight:600;">REFERENCIA</span>
           <span style="color:#0f172a;font-weight:500;">${r.ref||'—'}</span>
         </div>
         <div style="display:flex;justify-content:space-between;">
-          <span style="color:#64748b;font-weight:600;">OP / OC</span>
-          <span style="color:#0f172a;font-weight:500;">${r.op||'—'}</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;">
           <span style="color:#64748b;font-weight:600;">INSUMO</span>
-          <span style="color:#0f172a;font-weight:500;">${r.insumo||'—'}</span>
+          <span style="color:#0f172a;font-weight:500;">${primerInsumo}</span>
         </div>
         <div style="display:flex;justify-content:space-between;">
           <span style="color:#64748b;font-weight:600;">CANTIDAD</span>
           <span style="color:#0f172a;font-weight:500;">${r.qty||'—'}</span>
         </div>
         <div style="display:flex;justify-content:space-between;">
-          <span style="color:#64748b;font-weight:600;">TALLA</span>
-          <span style="color:#0f172a;font-weight:500;">${r.talla||'—'}</span>
+          <span style="color:#64748b;font-weight:600;">HORA INICIO</span>
+          <span style="color:#0f172a;font-weight:500;">${r.hora||'—'}</span>
         </div>
-        ${r.obs?`<div style="display:flex;justify-content:space-between;"><span style="color:#64748b;font-weight:600;">OBSERVACIÓN</span><span style="color:#0f172a;font-weight:500;">${r.obs}</span></div>`:''}
+        <div style="display:flex;justify-content:space-between;">
+          <span style="color:#64748b;font-weight:600;">HORA FIN</span>
+          <span style="color:#0f172a;font-weight:500;">${r.resolvedAt||'—'}</span>
+        </div>
         <div style="display:flex;justify-content:space-between;border-top:1px solid #e2e8f0;padding-top:8px;margin-top:4px;">
-          <span style="color:#64748b;font-weight:600;">🕐 ${r.datetime||r.hora||'—'}</span>
-          ${isCump?`<button onclick="confirmarRecibo('${r._id}')" style="margin-left:auto;padding:6px 14px;border-radius:6px;border:none;cursor:pointer;background:linear-gradient(135deg,#15803d,#22c55e);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;">✅ Confirmar</button>`:''}
+          <span style="color:#64748b;font-weight:600;">T. ESPERA</span>
+          <span style="color:#0f172a;font-weight:500;">${tiempoEspera} min</span>
         </div>
       </div>
     `;
