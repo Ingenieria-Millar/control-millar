@@ -5,78 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Control de Ingresos — Confecciones Millar</title>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<!-- Screen Persistence -->
-<script>
-window.ScreenState = {
-  KEY: "millar_current_screen",
-  save: function(s) { try { localStorage.setItem(this.KEY, s); } catch(e) {} },
-  load: function() { try { return localStorage.getItem(this.KEY); } catch(e) { return null; } },
-  clear: function() { try { localStorage.removeItem(this.KEY); } catch(e) {} }
-};
-window.addEventListener("load", function() { ScreenState.save(window.location.pathname); });
-window.addEventListener("beforeunload", function() { ScreenState.save(window.location.pathname); });
-</script>
-<!-- Session & Screen Persistence v2 -->
-<script>
-<!-- Screen Persistence -->
-<script>
-window.ScreenState = {
-  KEY: "millar_current_screen",
-  save: function(s) { try { localStorage.setItem(this.KEY, s); } catch(e) {} },
-  load: function() { try { return localStorage.getItem(this.KEY); } catch(e) { return null; } },
-  clear: function() { try { localStorage.removeItem(this.KEY); } catch(e) {} }
-};
-window.addEventListener("load", function() { ScreenState.save(window.location.pathname); });
-window.addEventListener("beforeunload", function() { ScreenState.save(window.location.pathname); });
-</script>
-window.SessionPersist = {
-  SCREEN_KEY: 'millar_current_screen',
-  SESSION_KEY: 'millar_user_session',
-  saveScreen: function(screenName) {
-    try {
-      localStorage.setItem(this.SCREEN_KEY, screenName);
-    } catch(e) {}
-  },
-  saveSession: function(userData) {
-    try {
-      const session = {user: userData.user || null, rol: userData.rol || '', supId: userData.supId || null, timestamp: new Date().getTime()};
-      localStorage.setItem(this.SESSION_KEY, JSON.stringify(session));
-    } catch(e) {}
-  },
-  getScreen: function() {
-    try {
-      return localStorage.getItem(this.SCREEN_KEY);
-    } catch(e) {
-      return null;
-    }
-  },
-  getSession: function() {
-    try {
-      const saved = localStorage.getItem(this.SESSION_KEY);
-      return saved ? JSON.parse(saved) : null;
-    } catch(e) {
-      return null;
-    }
-  },
-  detectCurrentScreen: function() {
-    const path = window.location.pathname;
-    if (path.includes('/ingresos')) return 'ingresos';
-    if (path.includes('/alistamiento')) return 'alistamientos';
-    if (path.includes('/solicitar-insumos')) return 'solicitar_insumos';
-    if (path.includes('/ci')) return 'tablero_ci';
-    return 'index';
-  },
-  clearSession: function() {
-    try {
-      localStorage.removeItem(this.SESSION_KEY);
-      localStorage.removeItem(this.SCREEN_KEY);
-    } catch(e) {}
-  }
-};
-window.addEventListener('load', function() {
-  SessionPersist.saveScreen(SessionPersist.detectCurrentScreen());
-});
-</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Nunito:wght@300;400;500;600;700;800&display=swap&font-display=swap" rel="stylesheet">
 <style>
@@ -204,17 +132,6 @@ body { overflow-x: hidden; max-width: 100vw; }
 <div id="ingreso-app-root" style="display:none;"></div>
 
 <script>
-<!-- Screen Persistence -->
-<script>
-window.ScreenState = {
-  KEY: "millar_current_screen",
-  save: function(s) { try { localStorage.setItem(this.KEY, s); } catch(e) {} },
-  load: function() { try { return localStorage.getItem(this.KEY); } catch(e) { return null; } },
-  clear: function() { try { localStorage.removeItem(this.KEY); } catch(e) {} }
-};
-window.addEventListener("load", function() { ScreenState.save(window.location.pathname); });
-window.addEventListener("beforeunload", function() { ScreenState.save(window.location.pathname); });
-</script>
 // ── Utilidad debounce ─────────────────────────────────────────────
 function debounce(fn, ms){ let t; return function(...a){ clearTimeout(t); t=setTimeout(()=>fn.apply(this,a), ms); }; }
 // ══════════════════════════════════════════════════════
@@ -2011,27 +1928,18 @@ window.iaDoLogin=function(){
     } else {
       sup.isAdmin = memberIsAdmin;
     }
-    iaCurrentUser=sup.id; 
-    // Guardar sesión
-    SessionPersist.saveSession({user: sup.id, rol: 'miembro', supId: sup.id});
-    SessionPersist.saveScreen('ingresos');
-    iaInitApp();
+    iaCurrentUser=sup.id; iaInitApp();
     return;
   }
   // Login clásico con supervisor iaState
   const sup=iaGetSup(uid);
   if(!sup||sup.pass!==pass){document.getElementById('ia-login-error').style.display='block';return;}
   document.getElementById('ia-login-error').style.display='none';
-  iaCurrentUser=uid; 
-  // Guardar sesión
-  SessionPersist.saveSession({user: uid, rol: 'supervisor', supId: uid});
-  SessionPersist.saveScreen('ingresos');
-  iaInitApp();
+  iaCurrentUser=uid; iaInitApp();
 };
 document.getElementById('ia-login-pass').addEventListener('keydown',e=>{if(e.key==='Enter')iaDoLogin();});
 window.iaDoLogout=function(){
   iaCurrentUser=null;
-  SessionPersist.clearSession();
   document.getElementById('ia-app').style.display='none';
   document.getElementById('ia-login').style.display='flex';
   document.getElementById('ia-login-user').value='';
@@ -2041,13 +1949,6 @@ window.iaDoLogout=function(){
 function iaInitApp(){
   document.getElementById('ia-login').style.display='none';
   document.getElementById('ia-app').style.display='block';
-  
-  // Guardar estado de que estamos en la app principal
-  AppState.save('ingresos', 'app_main', {
-    screen: 'ingresos',
-    activeTab: 'historial'
-  });
-  
   const sup=iaGetSup(iaCurrentUser);
   document.getElementById('ia-sup-name').textContent=sup.name;
   document.getElementById('ia-header-date').textContent=iaFormatDateLong(iaTodayStr());
@@ -2714,15 +2615,6 @@ window.iaExportExcel=function(panel){
     if(!sel) return;
     sel.addEventListener('touchstart', function(e){ e.stopPropagation(); }, {passive:true});
     sel.addEventListener('touchmove', function(e){ e.stopPropagation(); }, {passive:true});
-    
-    // Restaurar estado guardado
-    setTimeout(function(){
-      const savedState = AppState.restore();
-      if(savedState && savedState.section){
-        console.log('[ingresos.html] Restaurando:', savedState.section);
-        // Aquí se pueden agregar lógicas específicas de restauración si es necesario
-      }
-    }, 500);
   });
 })();
 
@@ -2731,17 +2623,6 @@ const iaRenderHistoryDebounced     = debounce(()=>{ if(typeof iaRenderHistory===
 const iaRenderAdminTableDebounced  = debounce(()=>{ if(typeof iaRenderAdminTable==='function') iaRenderAdminTable(); }, 300);
 const iaRenderEmployeeListDebounced= debounce(()=>{ if(typeof iaRenderEmployeeList==='function') iaRenderEmployeeList(); }, 300);
 const iaFilterEmployeesDebounced   = debounce(()=>{ if(typeof iaFilterEmployees==='function') iaFilterEmployees(); }, 200);
-
-// ── Restaurar sesión guardada al cargar ──
-setTimeout(function(){
-  const savedSession = SessionPersist.getSession();
-  if(savedSession && savedSession.user){
-    console.log('[ingresos.html] Restaurando sesión:', savedSession.user);
-    // La sesión se restaurará automáticamente cuando el usuario logueado recargue
-    // El sistema ya mantiene iaCurrentUser en memoria y el login quedará visible
-    // Si la sesión expiró, el usuario tendrá que loguearse manualmente
-  }
-}, 100);
 </script>
 </body>
 </html>
