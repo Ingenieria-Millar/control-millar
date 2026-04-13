@@ -518,6 +518,20 @@ function getIngresoHTML(){
   transform:skewX(-18deg);transition:left .5s;
 }
 .ia-btn-primary:hover::after{left:130%;}
+.ia-btn-volver{
+  width:100%;padding:13px;border-radius:9px;border:2px solid #2563eb;
+  background:#fff;color:#2563eb;font-family:'Barlow Condensed',sans-serif;
+  font-size:17px;font-weight:700;letter-spacing:3px;text-transform:uppercase;
+  cursor:pointer;position:relative;overflow:hidden;
+  transition:all .22s;margin-top:.5rem;
+}
+.ia-btn-volver:hover{transform:translateY(-2px);background:#f0f5ff;box-shadow:0 4px 18px rgba(37,99,235,.38);}
+.ia-btn-filter-date{
+  padding:8px 12px;background:#2563eb;color:#fff;border:none;border-radius:8px;
+  font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;cursor:pointer;
+  transition:all .2s;box-shadow:0 2px 8px rgba(37,99,235,.3);
+}
+.ia-btn-filter-date:hover{background:#1d4ed8;transform:translateY(-1px);box-shadow:0 4px 12px rgba(37,99,235,.4);}
 .ia-err{
   color:#ef4444;font-size:.82rem;text-align:center;margin-top:.8rem;
   display:none;font-family:'Nunito',sans-serif;font-weight:600;
@@ -1561,6 +1575,7 @@ html { overflow-x: hidden; max-width: 100%; }
         <input type="password" id="ia-login-pass" placeholder="••••••••">
       </div>
       <button class="ia-btn-primary" onclick="iaDoLogin()">Ingresar →</button>
+      <button class="ia-btn-volver" onclick="window.location.href='/'">← Volver</button>
       <p class="ia-err" id="ia-login-error">⚠ Usuario o contraseña incorrectos</p>
     </div>
     <div class="ia-login-right-foot">© 2026 Ingeniería Confecciones Millar S.A.S.</div>
@@ -1652,10 +1667,7 @@ html { overflow-x: hidden; max-width: 100%; }
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
         <h3 style="margin:0;">Historial de Asistencia</h3>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-          <label style="font-size:12px;font-weight:700;color:#64748b;">Desde</label>
-          <input type="date" id="ia-filter-from" onchange="iaRenderHistory()" style="padding:6px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:'Nunito',sans-serif;font-size:13px;color:#0f172a;">
-          <label style="font-size:12px;font-weight:700;color:#64748b;">Hasta</label>
-          <input type="date" id="ia-filter-to" onchange="iaRenderHistory()" style="padding:6px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:'Nunito',sans-serif;font-size:13px;color:#0f172a;">
+          <button class="ia-btn-filter-date" id="ia-btn-filter-date" onclick="iaOpenDateModal()">📅 Hoy</button>
           <button class="ia-btn-excel" id="ia-btn-export-hist" onclick="iaExportExcel('history')" style="padding:6px 14px;font-size:13px;">📊 Excel</button>
         </div>
       </div>
@@ -2623,6 +2635,101 @@ const iaRenderHistoryDebounced     = debounce(()=>{ if(typeof iaRenderHistory===
 const iaRenderAdminTableDebounced  = debounce(()=>{ if(typeof iaRenderAdminTable==='function') iaRenderAdminTable(); }, 300);
 const iaRenderEmployeeListDebounced= debounce(()=>{ if(typeof iaRenderEmployeeList==='function') iaRenderEmployeeList(); }, 300);
 const iaFilterEmployeesDebounced   = debounce(()=>{ if(typeof iaFilterEmployees==='function') iaFilterEmployees(); }, 200);
+
+// ── Modal de Fechas ──────────────────────────────────────────────────
+window.iaOpenDateModal = function(){
+  const modal = document.getElementById('ia-date-modal');
+  if(!modal) return;
+  const fromInput = document.getElementById('ia-modal-from');
+  const toInput = document.getElementById('ia-modal-to');
+  const today = iaTodayStr();
+  
+  // Si no hay fechas guardadas, poner hoy
+  if(!document.getElementById('ia-filter-from')?.value && !document.getElementById('ia-filter-to')?.value){
+    fromInput.value = today;
+    toInput.value = today;
+  } else {
+    fromInput.value = document.getElementById('ia-filter-from')?.value || '';
+    toInput.value = document.getElementById('ia-filter-to')?.value || '';
+  }
+  
+  modal.style.display = 'flex';
+};
+
+window.iaCloseDateModal = function(){
+  const modal = document.getElementById('ia-date-modal');
+  if(modal) modal.style.display = 'none';
+};
+
+window.iaApplyDateFilter = function(){
+  const fromInput = document.getElementById('ia-modal-from');
+  const toInput = document.getElementById('ia-modal-to');
+  const fromVal = fromInput.value;
+  const toVal = toInput.value;
+  
+  document.getElementById('ia-filter-from').value = fromVal;
+  document.getElementById('ia-filter-to').value = toVal;
+  
+  // Actualizar botón
+  const btn = document.getElementById('ia-btn-filter-date');
+  if(btn){
+    if(fromVal && toVal){
+      if(fromVal === toVal){
+        btn.textContent = '📅 ' + iaFormatDateLong(fromVal);
+      } else {
+        btn.textContent = '📅 ' + fromVal + ' → ' + toVal;
+      }
+    } else {
+      btn.textContent = '📅 Hoy';
+    }
+  }
+  
+  iaCloseDateModal();
+  iaRenderHistory();
+};
+
+window.iaClearDateFilter = function(){
+  document.getElementById('ia-filter-from').value = '';
+  document.getElementById('ia-filter-to').value = '';
+  const btn = document.getElementById('ia-btn-filter-date');
+  if(btn) btn.textContent = '📅 Hoy';
+  iaCloseDateModal();
+  iaRenderHistory();
+};
+
+// Cerrar modal al hacer click fuera
+document.addEventListener('DOMContentLoaded', function(){
+  const modal = document.getElementById('ia-date-modal');
+  if(modal){
+    modal.addEventListener('click', function(e){
+      if(e.target === this){
+        iaCloseDateModal();
+      }
+    });
+  }
+});
 </script>
+
+<!-- Modal Filtro de Fechas -->
+<div id="ia-date-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:999;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:12px;padding:24px;box-shadow:0 10px 40px rgba(0,0,0,.15);max-width:320px;width:90%;font-family:'Nunito',sans-serif;">
+    <h3 style="margin:0 0 18px 0;color:#0f172a;font-size:16px;">Filtrar por Fecha</h3>
+    
+    <div style="margin-bottom:14px;">
+      <label style="display:block;font-size:12px;font-weight:700;color:#64748b;margin-bottom:6px;">DESDE</label>
+      <input type="date" id="ia-modal-from" style="width:100%;padding:10px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:'Nunito',sans-serif;font-size:13px;color:#0f172a;box-sizing:border-box;">
+    </div>
+    
+    <div style="margin-bottom:20px;">
+      <label style="display:block;font-size:12px;font-weight:700;color:#64748b;margin-bottom:6px;">HASTA</label>
+      <input type="date" id="ia-modal-to" style="width:100%;padding:10px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:'Nunito',sans-serif;font-size:13px;color:#0f172a;box-sizing:border-box;">
+    </div>
+    
+    <div style="display:flex;gap:10px;">
+      <button class="ia-btn-primary" onclick="iaApplyDateFilter()" style="margin-top:0;flex:1;padding:11px;">Filtrar</button>
+      <button class="ia-btn-volver" onclick="iaClearDateFilter()" style="margin-top:0;flex:1;padding:11px;font-size:14px;letter-spacing:1px;">Limpiar</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
