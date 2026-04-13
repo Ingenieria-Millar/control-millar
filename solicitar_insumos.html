@@ -829,20 +829,33 @@ function exportarExcelSI(){
   });
   if(!mias.length){ alert('No hay solicitudes para exportar'); return; }
   const statusLabel = s => s==='done'?'Entregado':s==='cumplido'?'Listo':s==='alert'?'Pendiente':s||'';
-  const rows = mias.map(r=>({
-    'Módulo':     r.module||'',
-    'Tipo':       r.tipo||'',
-    'Referencia': r.ref||'',
-    'OP / OC':    r.op||'',
-    'Cantidad':   r.qty||'',
-    'Talla':      r.talla||'',
-    'Observación':r.obs||'',
-    'Fecha':      r.fecha||'',
-    'Hora':       r.hora||'',
-    'Estado':     statusLabel(r.status),
-  }));
+  const rows = mias.map(r=>{
+    // Calcular tiempo tardado
+    let tiempoTardado = '—';
+    if(r.resolvedAt && r.hora){
+      // Calcular diferencia entre hora inicio y hora fin
+      const tiempoMs = r.waitTime || 0;
+      if(tiempoMs > 0){
+        const minutos = Math.round(tiempoMs / 1000 / 60);
+        tiempoTardado = minutos + ' min';
+      }
+    }
+    
+    return {
+      'Mecanico':        r.module||'',
+      'Insumo':          r.tipo||'',
+      'Referencia':      r.ref||'',
+      'Cantidad':        r.qty||'',
+      'Talla o color':   r.talla||'',
+      'Fecha':           r.fecha||'',
+      'Hora inicio':     r.hora||'',
+      'Hora fin':        r.resolvedAt||'—',
+      'Tiempo tardado':  tiempoTardado,
+      'Estado':          statusLabel(r.status),
+    };
+  });
   const ws = XLSX.utils.json_to_sheet(rows);
-  ws['!cols']=[{wch:10},{wch:20},{wch:14},{wch:14},{wch:10},{wch:8},{wch:20},{wch:14},{wch:14},{wch:12}];
+  ws['!cols']=[{wch:15},{wch:18},{wch:14},{wch:10},{wch:14},{wch:12},{wch:14},{wch:14},{wch:14},{wch:12}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Solicitudes');
   const label = (desde||'')+(desde!==hasta?'_'+(hasta||''):'');
