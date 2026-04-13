@@ -1707,11 +1707,11 @@ html { overflow-x: hidden; max-width: 100%; }
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px;">
         <h3 style="margin:0;">Editar Registros</h3>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-          <label style="font-size:12px;font-weight:700;color:#64748b;">Desde</label>
-          <input type="date" id="ia-admin-from" onchange="iaRenderAdminTable()" style="padding:6px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:'Nunito',sans-serif;font-size:13px;color:#0f172a;">
-          <label style="font-size:12px;font-weight:700;color:#64748b;">Hasta</label>
-          <input type="date" id="ia-admin-to" onchange="iaRenderAdminTable()" style="padding:6px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:'Nunito',sans-serif;font-size:13px;color:#0f172a;">
+          <button class="ia-btn-filter-date" id="ia-btn-filter-admin" onclick="iaOpenAdminDateModal()">📅 Hoy</button>
           <button class="ia-btn-excel" onclick="iaExportExcel('admin')" style="padding:6px 14px;font-size:13px;">📊 Excel</button>
+          <!-- Inputs ocultos para el código existente -->
+          <input type="date" id="ia-admin-from" onchange="iaRenderAdminTable()" style="display:none;">
+          <input type="date" id="ia-admin-to" onchange="iaRenderAdminTable()" style="display:none;">
         </div>
       </div>
       <div class="ia-table-wrap">
@@ -2667,11 +2667,58 @@ window.iaClearDateFilter=function(){
   iaCloseDateModal();
   iaRenderHistory();
 };
+
+// ── Modal Admin Registros ────────────────────────────────────────
+window.iaOpenAdminDateModal=function(){
+  const m=document.getElementById('ia-admin-date-modal');
+  const f=document.getElementById('ia-admin-from');
+  const t=document.getElementById('ia-admin-to');
+  const today=new Date().toISOString().split('T')[0];
+  document.getElementById('ia-admin-modal-from').value=f.value||today;
+  document.getElementById('ia-admin-modal-to').value=t.value||today;
+  m.style.visibility='visible';
+  m.style.opacity='1';
+};
+window.iaCloseAdminDateModal=function(){
+  const m=document.getElementById('ia-admin-date-modal');
+  m.style.visibility='hidden';
+  m.style.opacity='0';
+};
+window.iaApplyAdminDateFilter=function(){
+  const f=document.getElementById('ia-admin-modal-from').value;
+  const t=document.getElementById('ia-admin-modal-to').value;
+  document.getElementById('ia-admin-from').value=f;
+  document.getElementById('ia-admin-to').value=t;
+  const btn=document.getElementById('ia-btn-filter-admin');
+  if(btn) btn.textContent='📅 '+(f===t?f:f+' → '+t);
+  iaCloseAdminDateModal();
+  iaRenderAdminTable();
+};
+window.iaClearAdminDateFilter=function(){
+  document.getElementById('ia-admin-from').value='';
+  document.getElementById('ia-admin-to').value='';
+  const btn=document.getElementById('ia-btn-filter-admin');
+  if(btn) btn.textContent='📅 Hoy';
+  iaCloseAdminDateModal();
+  iaRenderAdminTable();
+};
 </script>
 <style>
 .ia-btn-filter-date{padding:8px 12px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;box-shadow:0 2px 8px rgba(37,99,235,.3);}
 .ia-btn-filter-date:hover{background:#1d4ed8;transform:translateY(-1px);box-shadow:0 4px 12px rgba(37,99,235,.4);}
 </style>
+
+<!-- Modal Filtro de Fechas - Admin -->
+<div id="ia-admin-date-modal" style="position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:999;visibility:hidden;opacity:0;transition:opacity .3s,visibility .3s;" onclick="if(event.target===this)iaCloseAdminDateModal()">
+  <div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;">
+    <div style="background:#fff;border-radius:12px;padding:24px;box-shadow:0 10px 40px rgba(0,0,0,.15);max-width:320px;width:90%;font-family:'Nunito',sans-serif;">
+      <h3 style="margin:0 0 18px 0;color:#0f172a;font-size:16px;">Filtrar por Fecha</h3>
+      <div style="margin-bottom:14px;"><label style="display:block;font-size:12px;font-weight:700;color:#64748b;margin-bottom:6px;">DESDE</label><input type="date" id="ia-admin-modal-from" style="width:100%;padding:10px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:'Nunito',sans-serif;font-size:13px;color:#0f172a;box-sizing:border-box;"></div>
+      <div style="margin-bottom:20px;"><label style="display:block;font-size:12px;font-weight:700;color:#64748b;margin-bottom:6px;">HASTA</label><input type="date" id="ia-admin-modal-to" style="width:100%;padding:10px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:'Nunito',sans-serif;font-size:13px;color:#0f172a;box-sizing:border-box;"></div>
+      <div style="display:flex;gap:10px;"><button class="ia-btn-primary" onclick="iaApplyAdminDateFilter()" style="margin-top:0;flex:1;padding:11px;">Filtrar</button><button class="ia-btn-volver" onclick="iaClearAdminDateFilter()" style="margin-top:0;flex:1;padding:11px;font-size:14px;letter-spacing:1px;">Limpiar</button></div>
+    </div>
+  </div>
+</div>
 
 <!-- Modal Filtro de Fechas -->
 <div id="ia-date-modal" style="position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:999;visibility:hidden;opacity:0;transition:opacity .3s,visibility .3s;" onclick="if(event.target===this)iaCloseDateModal()">
