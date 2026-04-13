@@ -909,6 +909,12 @@ function renderHistorial(){
           <span style="color:#64748b;font-weight:600;">T. ESPERA</span>
           <span style="color:#0f172a;font-weight:500;">${tiempoEspera} min</span>
         </div>
+        ${isCump?`
+        <div style="display:flex;gap:8px;margin-top:12px;border-top:1px solid #e2e8f0;padding-top:12px;">
+          <button onclick="aceptarInsumo('${r._id}')" style="flex:1;padding:9px;border-radius:8px;border:none;background:linear-gradient(135deg,#15803d,#22c55e);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;transition:all .2s;">✅ ACEPTAR</button>
+          <button onclick="rechazarInsumo('${r._id}')" style="flex:1;padding:9px;border-radius:8px;border:none;background:linear-gradient(135deg,#991b1b,#dc2626);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;transition:all .2s;">❌ RECHAZAR</button>
+        </div>
+        `:''}
       </div>
     `;
         list.appendChild(card);
@@ -928,6 +934,35 @@ function confirmarRecibo(reqId){
   wsSend({type:'ci_update_request', request:updated});
   renderHistorial();
   showToast('✅ Insumo confirmado como recibido');
+}
+
+function aceptarInsumo(reqId){
+  const req=ciRequests.find(r=>r._id===reqId);
+  if(!req) return;
+  const updated=Object.assign({},req,{
+    status:'done',
+    resolvedAt:new Date().toLocaleTimeString('es-CO'),
+    waitTime:req.alertStart?(Date.now()-req.alertStart):0
+  });
+  const idx=ciRequests.findIndex(r=>r._id===reqId);
+  if(idx>-1) ciRequests[idx]=updated;
+  wsSend({type:'ci_update_request', request:updated});
+  renderHistorial();
+  showToast('✅ Insumo aceptado');
+}
+
+function rechazarInsumo(reqId){
+  const req=ciRequests.find(r=>r._id===reqId);
+  if(!req) return;
+  const updated=Object.assign({},req,{
+    status:'alert',
+    resolvedAt:null
+  });
+  const idx=ciRequests.findIndex(r=>r._id===reqId);
+  if(idx>-1) ciRequests[idx]=updated;
+  wsSend({type:'ci_update_request', request:updated});
+  renderHistorial();
+  showToast('❌ Insumo rechazado');
 }
 
 // ── Toast ──
