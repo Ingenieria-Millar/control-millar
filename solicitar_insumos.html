@@ -111,7 +111,7 @@ header::after{
 /* ── GRID DE TARJETAS ── */
 #hist-list{
   display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+  grid-template-columns:repeat(3, 1fr);
   gap:16px;
   padding:16px clamp(12px,2.5vw,24px);
 }
@@ -376,6 +376,7 @@ header::after{
         <label>Mecánico</label>
         <select id="mec-select" onchange="document.getElementById('mec-confirm-btn').disabled=!this.value;">
           <option value="">— Selecciona tu nombre —</option>
+          <option value="ADMINISTRADOR">👤 ADMINISTRADOR</option>
         </select>
       </div>
       <div id="mec-select-error" style="display:none;color:#ef4444;font-size:12px;font-weight:700;margin-bottom:10px;"></div>
@@ -521,7 +522,7 @@ async function mostrarLoginMecanico(){
     const res = await fetch('/api/mecanicos');
     const mecanicos = await res.json();
     const sel = document.getElementById('mec-select');
-    sel.innerHTML = '<option value="">— Selecciona tu nombre —</option>';
+    sel.innerHTML = '<option value="">— Selecciona tu nombre —</option><option value="ADMINISTRADOR">👤 ADMINISTRADOR</option>';
 
     if(!mecanicos || mecanicos.length === 0){
       document.getElementById('mec-select-error').style.display = 'block';
@@ -812,7 +813,7 @@ function exportarExcelSI(){
   const desde = document.getElementById('si-fecha-desde').value;
   const hasta  = document.getElementById('si-fecha-hasta').value;
   const mias = ciRequests.filter(r=>{
-    if(r.module !== currentUser) return false;
+    if(currentUser !== 'ADMINISTRADOR' && r.module !== currentUser) return false;
     const f = parseFechaSI(r);
     if(desde && f && f < desde) return false;
     if(hasta  && f && f > hasta) return false;
@@ -845,7 +846,7 @@ function renderHistorial(){
   const desde = document.getElementById('si-fecha-desde')?.value||'';
   const hasta  = document.getElementById('si-fecha-hasta')?.value||'';
   const mias=ciRequests.filter(r=>{
-    if(r.module!==currentUser) return false;
+    if(currentUser !== 'ADMINISTRADOR' && r.module!==currentUser) return false;
     if(desde||hasta){
       const f = parseFechaSI(r);
       if(f){
