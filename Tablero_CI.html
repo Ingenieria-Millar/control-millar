@@ -5,73 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Tablero CI — Faltante de Insumos</title>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-<!-- Screen Persistence -->
-<script>
-window.ScreenState = {
-  KEY: "millar_current_screen",
-  save: function(s) { try { localStorage.setItem(this.KEY, s); } catch(e) {} },
-  load: function() { try { return localStorage.getItem(this.KEY); } catch(e) { return null; } },
-  clear: function() { try { localStorage.removeItem(this.KEY); } catch(e) {} }
-};
-window.addEventListener("load", function() { ScreenState.save(window.location.pathname); });
-window.addEventListener("beforeunload", function() { ScreenState.save(window.location.pathname); });
-</script>
-<!-- Session & Screen Persistence -->
-<script>
-<!-- Screen Persistence -->
-<script>
-window.ScreenState = {
-  KEY: "millar_current_screen",
-  save: function(s) { try { localStorage.setItem(this.KEY, s); } catch(e) {} },
-  load: function() { try { return localStorage.getItem(this.KEY); } catch(e) { return null; } },
-  clear: function() { try { localStorage.removeItem(this.KEY); } catch(e) {} }
-};
-window.addEventListener("load", function() { ScreenState.save(window.location.pathname); });
-window.addEventListener("beforeunload", function() { ScreenState.save(window.location.pathname); });
-</script>
-window.SessionPersist = {
-  SCREEN_KEY: 'millar_current_screen',
-  SESSION_KEY: 'millar_user_session',
-  saveScreen: function(screenName) {
-    try {
-      localStorage.setItem(this.SCREEN_KEY, screenName);
-    } catch(e) {}
-  },
-  saveSession: function(userData) {
-    try {
-      const session = {user: userData.user || null, rol: userData.rol || '', timestamp: new Date().getTime()};
-      localStorage.setItem(this.SESSION_KEY, JSON.stringify(session));
-    } catch(e) {}
-  },
-  getScreen: function() {
-    try {
-      return localStorage.getItem(this.SCREEN_KEY);
-    } catch(e) {
-      return null;
-    }
-  },
-  getSession: function() {
-    try {
-      const saved = localStorage.getItem(this.SESSION_KEY);
-      return saved ? JSON.parse(saved) : null;
-    } catch(e) {
-      return null;
-    }
-  },
-  detectCurrentScreen: function() {
-    return 'tablero_ci';
-  },
-  clearSession: function() {
-    try {
-      localStorage.removeItem(this.SESSION_KEY);
-      localStorage.removeItem(this.SCREEN_KEY);
-    } catch(e) {}
-  }
-};
-window.addEventListener('load', function() {
-  SessionPersist.saveScreen('tablero_ci');
-});
-</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -530,17 +463,6 @@ input,select,textarea{ font-size:16px !important; }
 <div id="ci-toast"></div>
 
 <script>
-<!-- Screen Persistence -->
-<script>
-window.ScreenState = {
-  KEY: "millar_current_screen",
-  save: function(s) { try { localStorage.setItem(this.KEY, s); } catch(e) {} },
-  load: function() { try { return localStorage.getItem(this.KEY); } catch(e) { return null; } },
-  clear: function() { try { localStorage.removeItem(this.KEY); } catch(e) {} }
-};
-window.addEventListener("load", function() { ScreenState.save(window.location.pathname); });
-window.addEventListener("beforeunload", function() { ScreenState.save(window.location.pathname); });
-</script>
 // ══════════════════════════════════════════════════════
 //  Tablero_CI.html — Faltante de Insumos
 //  Se comunica con server.js vía WebSocket
