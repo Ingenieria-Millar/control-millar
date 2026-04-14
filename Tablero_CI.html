@@ -603,7 +603,12 @@ function exportarExcel(){
     data.forEach(r => {
       // Si hay múltiples insumos, crear una fila por cada insumo
       if(r.insumos && r.insumos.length > 0){
-        r.insumos.forEach(ins => {
+        r.insumos.forEach((ins, index) => {
+          // T. Espera solo en la primera fila de la solicitud
+          const tiempoEspera = index === 0 
+            ? (r.waitTime!=null ? ((r.waitTime < 3600 && r.waitTime > 0) ? (r.waitTime/60).toFixed(2) : (r.waitTime/60000).toFixed(2)) : '')
+            : '';
+          
           rows.push({
             '# solicitud':    solicitudMap[r._id],
             'Módulo':         r.module||'',
@@ -615,7 +620,7 @@ function exportarExcel(){
             'Fecha':          r.fecha||'',
             'Hora Inicio':    r.hora||'',
             'Hora Fin':       r.resolvedAt||'',
-            'T. Espera (min)':r.waitTime!=null ? ((r.waitTime < 3600 && r.waitTime > 0) ? (r.waitTime/60).toFixed(2) : (r.waitTime/60000).toFixed(2)) : '',
+            'T. Espera (min)':tiempoEspera,
             'Estado':         statusLabel(r.status),
             'Obs.':           r.esMecanico && !r.obs ? 'Alistamiento' : (r.obs||'')
           });
