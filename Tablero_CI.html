@@ -849,36 +849,6 @@ function renderCards(){
     return;
   }
 
-  // Generar mapa de número de solicitud (desde el inicio de la historia)
-  // Contar solicitudes totales y asignar números secuenciales
-  const solicitudNumerados = [];
-  
-  // Primero, separar las que ya tienen solicitudNum de las que no
-  const conNumero = [];
-  const sinNumero = [];
-  
-  ciRequests.forEach(r => {
-    if(r.solicitudNum){
-      conNumero.push(r);
-    } else {
-      sinNumero.push(r);
-    }
-  });
-  
-  // Ordenar las que tienen número (para mantener consistencia)
-  conNumero.sort((a, b) => a.solicitudNum - b.solicitudNum);
-  
-  // Encontrar el próximo número disponible
-  let nextNum = 1;
-  conNumero.forEach(r => {
-    if(!r.solicitudNum) r.solicitudNum = nextNum++;
-  });
-  
-  // Asignar números a las que no tienen
-  sinNumero.forEach(r => {
-    r.solicitudNum = nextNum++;
-  });
-
   // Pending primero, luego done
   const sorted = [
     ...toShow.filter(r => r.status === 'alert' || r.status === 'cumplido'),
@@ -886,7 +856,7 @@ function renderCards(){
   ];
 
   sorted.forEach(req => {
-    const card = buildCard(req, req.solicitudNum);
+    const card = buildCard(req, req.solicitudNum || '—');
     main.appendChild(card);
   });
 }
