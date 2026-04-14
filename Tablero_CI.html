@@ -850,22 +850,21 @@ function renderCards(){
   }
 
   // Generar mapa de número de solicitud (desde el inicio de la historia)
-  // Si req.solicitudNum no existe, generarlo basado en posición
+  // Esto se hace UNA SOLA VEZ al cargar, luego se guarda en cada objeto
   let maxNum = 0;
-  const solicitudMap = {};
+  
+  // Primero, encontrar el máximo número existente
   ciRequests.forEach(r => {
     if(r.solicitudNum){
-      solicitudMap[r._id] = r.solicitudNum;
       maxNum = Math.max(maxNum, r.solicitudNum);
     }
   });
   
-  // Asignar números a los que no los tengan
-  ciRequests.forEach(r => {
-    if(!solicitudMap[r._id]){
+  // Luego, asignar números a los que no los tengan (en orden de creación/posición)
+  ciRequests.forEach((r, idx) => {
+    if(!r.solicitudNum){
       maxNum++;
-      solicitudMap[r._id] = maxNum;
-      r.solicitudNum = maxNum; // Guardar en el objeto
+      r.solicitudNum = maxNum; // Guardar en el objeto permanentemente
     }
   });
 
@@ -876,7 +875,7 @@ function renderCards(){
   ];
 
   sorted.forEach(req => {
-    const card = buildCard(req, req.solicitudNum || solicitudMap[req._id]);
+    const card = buildCard(req, req.solicitudNum);
     main.appendChild(card);
   });
 }
@@ -983,9 +982,9 @@ function buildCard(req, solicitudNum){
             </tr>
             ${(req.insumos && req.insumos.length > 0 ? req.insumos : [{tipo: req.tipo, qty: req.qty, talla: req.talla}]).map(ins => `
             <tr style="border-bottom:1px solid #e5e7eb;">
-              <td style="padding:8px 12px;color:#0f172a;font-weight:500;">${ins.tipo || '—'}</td>
-              <td style="padding:8px 12px;color:#0f172a;font-weight:500;text-align:center;">${ins.qty || '—'}</td>
-              <td style="padding:8px 12px;color:#0f172a;font-weight:500;text-align:center;">${ins.talla || '—'}</td>
+              <td style="padding:8px 12px;color:#111827;font-weight:500;font-size:13px;">${ins.tipo || '—'}</td>
+              <td style="padding:8px 12px;color:#111827;font-weight:500;font-size:13px;text-align:center;">${ins.qty || '—'}</td>
+              <td style="padding:8px 12px;color:#111827;font-weight:500;font-size:13px;text-align:center;">${ins.talla || '—'}</td>
             </tr>
             `).join('')}
           </table>
