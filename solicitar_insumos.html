@@ -892,17 +892,30 @@ function renderHistorial(){
     const isCump=r.status==='cumplido';
     const badgeLabel=isDone?'ENTREGADO':isCump?'LISTO':'PENDIENTE';
     
-    // Calcular tiempo de espera
-    const tiempoEspera = r.waitTime ? Math.round(r.waitTime / 1000 / 60) : (r.alertStart ? Math.round((Date.now() - r.alertStart) / 1000 / 60) : 0);
+    // Calcular tiempo de espera con 2 decimales
+    let tiempoEsperaVal = 0;
+    if(r.waitTime){
+      tiempoEsperaVal = (r.waitTime / 1000 / 60).toFixed(2);
+    } else if(r.alertStart){
+      tiempoEsperaVal = ((Date.now() - r.alertStart) / 1000 / 60).toFixed(2);
+    }
+    const tiempoEspera = tiempoEsperaVal || '';
     
-    // Obtener primer insumo
-    const primerInsumo = r.insumos && r.insumos.length > 0 ? r.insumos[0].tipo : r.tipo || '—';
+    // Formatear horas sin segundos
+    const formatearHora = (hora) => {
+      if(!hora) return '';
+      // Si es formato "HH:MM:SS a.m." o similar, quitar los segundos
+      return hora.replace(/:\d{2}\s/, ' ');
+    };
+    
+    const horaInicio = formatearHora(r.hora);
+    const horaFin = formatearHora(r.resolvedAt);
     
     const card=document.createElement('div');
     card.className=`req-card ${r.status||'alert'}`;
     card.innerHTML=`
       <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #e5e7eb;margin-bottom:0;">
-        <div style="font-family:'IBM Plex Sans',sans-serif;font-size:14px;font-weight:600;letter-spacing:0px;text-transform:uppercase;color:#0f172a;">${r.module||'—'}</div>
+        <div style="font-family:'IBM Plex Sans',sans-serif;font-size:14px;font-weight:600;letter-spacing:0px;text-transform:uppercase;color:#0f172a;">${r.module||''}</div>
         <span class="req-badge ${r.status||'alert'}" style="font-size:11px;padding:4px 8px;">${badgeLabel}</span>
       </div>
       <table style="width:100%;border-collapse:collapse;margin-bottom:0;">
@@ -916,21 +929,20 @@ function renderHistorial(){
               </tr>
               ${(r.insumos && r.insumos.length > 0 ? r.insumos : [{tipo: r.tipo, qty: r.qty, talla: r.talla}]).map(ins => `
               <tr style="border-bottom:1px solid #e5e7eb;">
-                <td style="padding:8px 12px;color:#111827;font-weight:500;font-size:13px;">${ins.tipo || '—'}</td>
-                <td style="padding:8px 12px;color:#111827;font-weight:500;font-size:13px;text-align:center;">${ins.qty || '—'}</td>
-                <td style="padding:8px 12px;color:#111827;font-weight:500;font-size:13px;text-align:center;">${ins.talla || '—'}</td>
+                <td style="padding:8px 12px;color:#111827;font-weight:500;font-size:13px;">${ins.tipo || ''}</td>
+                <td style="padding:8px 12px;color:#111827;font-weight:500;font-size:13px;text-align:center;">${ins.qty || ''}</td>
+                <td style="padding:8px 12px;color:#111827;font-weight:500;font-size:13px;text-align:center;">${ins.talla || ''}</td>
               </tr>
               `).join('')}
             </table>
           </td>
         </tr>
         <tr><td style="padding:8px 12px;color:#6b7280;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.8px;font-family:'IBM Plex Sans',sans-serif;">Tipo</td><td style="padding:8px 12px;color:#111827;font-weight:500;font-family:'IBM Plex Sans',sans-serif;font-size:13px;">${r.categoria||'Alistamiento'}</td></tr>
-        <tr><td style="padding:8px 12px;color:#6b7280;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.8px;font-family:'IBM Plex Sans',sans-serif;">Referencia</td><td style="padding:8px 12px;color:#111827;font-weight:500;font-family:'IBM Plex Sans',sans-serif;font-size:13px;">${r.ref||'—'}</td></tr>
-        <tr><td style="padding:8px 12px;color:#6b7280;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.8px;font-family:'IBM Plex Sans',sans-serif;">OP / OC</td><td style="padding:8px 12px;color:#111827;font-weight:500;font-family:'IBM Plex Sans',sans-serif;font-size:13px;">${r.op||'—'}</td></tr>
-        <tr><td style="padding:8px 12px;color:#6b7280;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.8px;font-family:'IBM Plex Sans',sans-serif;">Hora Inicio</td><td style="padding:8px 12px;color:#111827;font-weight:500;font-family:'IBM Plex Sans',sans-serif;font-size:13px;">${r.hora||'—'}</td></tr>
-        <tr><td style="padding:8px 12px;color:#6b7280;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.8px;font-family:'IBM Plex Sans',sans-serif;">Hora Fin</td><td style="padding:8px 12px;color:#111827;font-weight:500;font-family:'IBM Plex Sans',sans-serif;font-size:13px;">${r.resolvedAt||'—'}</td></tr>
+        <tr><td style="padding:8px 12px;color:#6b7280;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.8px;font-family:'IBM Plex Sans',sans-serif;">Referencia</td><td style="padding:8px 12px;color:#111827;font-weight:500;font-family:'IBM Plex Sans',sans-serif;font-size:13px;">${r.ref||''}</td></tr>
+        <tr><td style="padding:8px 12px;color:#6b7280;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.8px;font-family:'IBM Plex Sans',sans-serif;">OP / OC</td><td style="padding:8px 12px;color:#111827;font-weight:500;font-family:'IBM Plex Sans',sans-serif;font-size:13px;">${r.op||''}</td></tr>
+        <tr><td style="padding:8px 12px;color:#6b7280;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.8px;font-family:'IBM Plex Sans',sans-serif;">Hora Inicio</td><td style="padding:8px 12px;color:#111827;font-weight:500;font-family:'IBM Plex Sans',sans-serif;font-size:13px;">${horaInicio}</td></tr>
+        <tr><td style="padding:8px 12px;color:#6b7280;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.8px;font-family:'IBM Plex Sans',sans-serif;">Hora Fin</td><td style="padding:8px 12px;color:#111827;font-weight:500;font-family:'IBM Plex Sans',sans-serif;font-size:13px;">${horaFin}</td></tr>
         <tr><td style="padding:8px 12px;color:#6b7280;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.8px;font-family:'IBM Plex Sans',sans-serif;">T. Espera</td><td style="padding:8px 12px;color:#111827;font-weight:500;font-family:'IBM Plex Sans',sans-serif;font-size:13px;">${tiempoEspera}</td></tr>
-        <tr><td style="padding:8px 12px;color:#6b7280;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.8px;font-family:'IBM Plex Sans',sans-serif;">Observación</td><td style="padding:8px 12px;color:#111827;font-weight:500;font-family:'IBM Plex Sans',sans-serif;font-size:13px;">${r.obs||'—'}</td></tr>
       </table>
       ${isCump?`
       <div style="display:flex;gap:8px;padding:12px 16px;border-top:1px solid #e2e8f0;margin-top:0;">
