@@ -4716,11 +4716,9 @@ function submitLogin(){
 // ── Mostrar pantalla de selección de área ──────────────────────────────
 function mostrarAreaScreen(){
   const btns=document.getElementById('area-btns');btns.innerHTML='';
-  // Ocultar botón Atrás en panel izquierdo
   const backWrap = document.getElementById('sp-back-wrap');
   if(backWrap) backWrap.style.display='none';
 
-  // Actualizar info de usuario en todos los paneles izquierdos
   ['p2','p3','p4'].forEach(id=>{
     const un=document.getElementById('sp-username-'+id);
     const rb=document.getElementById('sp-role-'+id);
@@ -4740,19 +4738,41 @@ function mostrarAreaScreen(){
 
   // PRODUCCION
   if(hasPerm('area_ingreso')||hasPerm('area_produccion')){
-    let desc='Control de ingresos';
-    const c=makeCard('📋','Producción',desc,'ac-blue',()=>{
-      window.location.href='/ingresos?user='+encodeURIComponent(currentUser);
-    });
+    let desc, accion;
+    const _tienePermisosPlanta = hasPerm('area_ci')||hasPerm('area_mecanicos')||hasPerm('tablero');
+    if(currentUser==='Programador'){
+      desc='Control de ingresos · Acceso módulos';
+      accion=()=>mostrarSubMenuProduccion();
+    } else if(_tienePermisosPlanta || (hasPerm('modulos')&&!hasPerm('area_asistencia'))){
+      desc='Acceso módulos';
+      accion=()=>{ document.getElementById('area-screen').classList.add('hidden'); mostrarLoginModulos(); };
+    } else {
+      desc='Control de ingreso y asistencia';
+      accion=()=>{ window.location.href='/ingresos?user='+encodeURIComponent(currentUser); };
+    }
+    const c=makeCard('📋','Producción',desc,'ac-blue',accion);
     c.style.animationDelay=(idx*0.07)+'s'; idx++;
     btns.appendChild(c);
   }
 
   // MECANICOS
   if(hasPerm('area_mecanicos')||hasPerm('area_montajes')){
-    const desc = 'Tablero General';
+    const soloMontajes = hasPerm('area_montajes')&&!hasPerm('area_mecanicos');
+    const tieneAmbos   = hasPerm('area_mecanicos')&&hasPerm('area_montajes');
+    const esTelevisor  = (currentUser==='Televisor');
+    const nombreTablero = (currentUser==='Mecanicos'||esTelevisor) ? 'Tablero Mecanicos' : 'Tablero General';
+    let desc = soloMontajes ? 'Montajes' : tieneAmbos ? nombreTablero+' · Montajes' : nombreTablero;
     const c=makeCard('🔧','Mecánicos',desc,'ac-red',()=>{
-      window.location.href='/tableros.html?user='+encodeURIComponent(currentUser);
+      if(esTelevisor){
+        checkMemberSelectionNeeded(currentUser, (member)=>{
+          document.getElementById('area-screen').classList.add('hidden');
+          entrarTablero();
+        });
+      } else if(soloMontajes||tieneAmbos||hasPerm('area_montajes')){
+        mostrarSubMenuMecanicos();
+      } else {
+        mostrarSubMenuMecanicos();
+      }
     });
     c.style.animationDelay=(idx*0.07)+'s'; idx++;
     btns.appendChild(c);
@@ -4760,9 +4780,7 @@ function mostrarAreaScreen(){
 
   // CI
   if(hasPerm('area_ci')){
-    const c=makeCard('🏢','CI','Tablero Faltante de Insumos','ac-purple',()=>{ 
-      window.location.href='/ci?perfil='+(currentUser||'Admin'); 
-    });
+    const c=makeCard('🏢','CI','Tablero Faltante de Insumos','ac-purple',()=>{ window.location.href='/ci?perfil='+(currentUser||'Admin'); });
     c.style.animationDelay=(idx*0.07)+'s'; idx++;
     btns.appendChild(c);
   }
@@ -4847,6 +4865,157 @@ function saveConfig(cfg){
     headers:{'Content-Type':'application/json'},
     body: JSON.stringify(_appConfig)
   }).catch(e=>console.error('saveConfig error:',e));
+}
+
+// ── Funciones de navegación y áreas ───────────────────────────────────
+
+// Sub-menú Mecánicos: Tablero General | Montajes | Solicitar Insumos
+function mostrarSubMenuMecanicos(){
+  const btns=document.getElementById('area-btns');btns.innerHTML='';
+  function makeCard(icon,name,desc,colorClass,cb,disabled){
+    const card=document.createElement('div');card.className='area-card-new '+colorClass;
+    card.innerHTML=`<div class="ac-icon">${icon}</div><div class="ac-info"><div class="ac-name">${name}</div><div class="ac-desc">${desc}</div></div><div class="ac-arrow">›</div>`;
+    if(disabled){card.style.opacity='0.55';card.style.cursor='default';}
+    else{card.onclick=cb;}
+    return card;
+  }
+  const soloMontajes = hasPerm('area_montajes')&&!hasPerm('area_mecanicos');
+  if(!soloMontajes){
+    const c1=makeCard('🏭',(currentUser==='Mecanicos'||currentUser==='Televisor')?'Tablero Mecanicos':'Tablero General','Vista general · módulos','ac-red',()=>{
+      document.getElementById('area-screen').classList.add('hidden');
+      entrarTablero();
+    });
+    c1.style.animationDelay='0.05s';
+    btns.appendChild(c1);
+  }
+  if(hasPerm('area_montajes')){
+    const c2=makeCard('🔩','Montajes','Alistamiento & Mantenimiento','ac-blue',()=>{ mostrarSubMenuMontajes(); },false);
+    c2.style.animationDelay='0.12s';
+    btns.appendChild(c2);
+  }
+  if(currentUser!=='Televisor'){
+    const c3=makeCard('📦','Solicitar Insumos','Reportar faltante de insumos','ac-teal',()=>{
+      const url='/solicitar-insumos?perfil='+(currentUser||'Mecanicos');
+      setTimeout(()=>{ window.location.href=url; }, 50);
+    },false);
+    c3.style.animationDelay='0.18s';
+    btns.appendChild(c3);
+  }
+  const back=document.createElement('button');
+  back.className='sp-left-logout-btn';
+  back.style.cssText='display:none;';
+  back.textContent='⬅ Atrás';
+  back.onclick=mostrarAreaScreen;
+  btns.appendChild(back);
+  const backWrap = document.getElementById('sp-back-wrap');
+  if(backWrap) backWrap.style.display='block';
+}
+
+// Sub-menú Montajes: Alistamiento | Mantenimiento
+function mostrarSubMenuMontajes(){
+  const btns=document.getElementById('area-btns');btns.innerHTML='';
+  function makeCard(icon,name,desc,colorClass,cb){
+    const card=document.createElement('div');card.className='area-card-new '+colorClass;
+    card.innerHTML=`<div class="ac-icon">${icon}</div><div class="ac-info"><div class="ac-name">${name}</div><div class="ac-desc">${desc}</div></div><div class="ac-arrow">›</div>`;
+    card.onclick=cb;
+    return card;
+  }
+  const c1=makeCard('⚙️','Alistamiento','Preparación de máquinas · Pruebas de costura','ac-blue',()=>{
+    window.location.href='/alistamiento?seccion=alistamiento';
+  });
+  c1.style.animationDelay='0.05s';
+  btns.appendChild(c1);
+  const c2=makeCard('🔧','Mantenimiento','Preventivo · Correctivo · Fugas','ac-red',()=>{
+    window.location.href='/alistamiento?seccion=mantenimiento';
+  });
+  c2.style.animationDelay='0.12s';
+  btns.appendChild(c2);
+  const back=document.createElement('button');
+  back.className='sp-left-logout-btn';
+  back.style.cssText='display:none;';
+  back.textContent='⬅ Atrás';
+  back.onclick=mostrarSubMenuMecanicos;
+  btns.appendChild(back);
+  const backWrap = document.getElementById('sp-back-wrap');
+  if(backWrap){ backWrap.style.display='block'; backWrap.querySelector('button').onclick=mostrarSubMenuMecanicos; }
+}
+
+// Sub-menú Producción
+function mostrarSubMenuProduccion(){
+  const btns=document.getElementById('area-btns');btns.innerHTML='';
+  function makeCard(icon,name,desc,colorClass,cb){
+    const card=document.createElement('div');card.className='area-card-new '+colorClass;
+    card.innerHTML=`<div class="ac-icon">${icon}</div><div class="ac-info"><div class="ac-name">${name}</div><div class="ac-desc">${desc}</div></div><div class="ac-arrow">›</div>`;
+    card.onclick=cb;return card;
+  }
+  const c1=makeCard('📋','Control de Ingresos','Control de ingreso y asistencia','ac-blue',()=>{
+    window.location.href='/ingresos?user='+encodeURIComponent(currentUser);
+  });
+  c1.style.animationDelay='0.05s';
+  const c2=makeCard('📱','Acceso Módulos (Login)','Login de acceso módulos','ac-green',()=>elegirArea('produccion'));
+  c2.style.animationDelay='0.12s';
+  btns.appendChild(c1); btns.appendChild(c2);
+  const back=document.createElement('button');
+  back.className='sp-left-logout-btn';
+  back.style.cssText='display:none;';
+  back.textContent='⬅ Atrás';
+  back.onclick=mostrarAreaScreen;
+  btns.appendChild(back);
+  const backWrap3 = document.getElementById('sp-back-wrap');
+  if(backWrap3) backWrap3.style.display='block';
+}
+
+// Función para usuario Módulos: muestra login de módulo con listado
+function mostrarLoginModulos(){
+  document.getElementById('modulo-pass').value='';
+  document.getElementById('modulo-error').textContent='';
+  ['p2','p3','p4'].forEach(function(id){
+    var un=document.getElementById('sp-username-'+id);
+    var rb=document.getElementById('sp-role-'+id);
+    if(un) un.textContent=currentUser;
+    if(rb) rb.textContent=currentUser;
+  });
+  const msel=document.getElementById('modulo-sel');
+  if(msel){
+    const prevVal=msel.value;
+    msel.innerHTML='<option value="">— Selecciona tu módulo —</option>';
+    if(typeof MODULES !== 'undefined'){
+      MODULES.forEach(id=>{const o=document.createElement('option');o.value=id;o.textContent=id;msel.appendChild(o);});
+    }
+    if(prevVal) msel.value=prevVal;
+  }
+  const modLoginScreen = document.getElementById('modulo-login-screen');
+  if(modLoginScreen) modLoginScreen.classList.remove('hidden');
+}
+
+function elegirArea(area){
+  const areaScreen = document.getElementById('area-screen');
+  if(areaScreen) areaScreen.classList.add('hidden');
+  if(area==='mecanicos'){
+    entrarTablero();
+  } else {
+    if(currentUser==='Modulos'){
+      mostrarLoginModulos();
+    } else {
+      abrirModtable();
+    }
+  }
+}
+
+// Entrar al tablero general
+function entrarTablero(){
+  window.location.href='/tableros.html?user='+encodeURIComponent(currentUser);
+}
+
+// Abrir tabla modular
+function abrirModtable(){
+  const modtableScreen = document.getElementById('modtable-screen');
+  if(modtableScreen) modtableScreen.classList.remove('hidden');
+}
+
+// Verificar si se necesita seleccionar miembro del equipo
+function checkMemberSelectionNeeded(perfil, onSelected){
+  onSelected(null);
 }
 
 // ── Funciones de navegación y sesión ───────────────────────────────────
