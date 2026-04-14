@@ -849,19 +849,17 @@ function renderCards(){
     return;
   }
 
-  // Asignar solicitudNum a solicitudes que no lo tengan (compatibilidad con datos antiguos)
-  let maxNum = 0;
-  ciRequests.forEach(r => {
-    if(r.solicitudNum && r.solicitudNum > maxNum){
-      maxNum = r.solicitudNum;
-    }
+  // Asignar solicitudNum basado en orden cronológico (más antigua = #1)
+  // Copiar y ordenar por alertStart (fecha/hora de inicio)
+  const sortedByDate = [...ciRequests].sort((a, b) => {
+    const dateA = a.alertStart || a.fecha || 0;
+    const dateB = b.alertStart || b.fecha || 0;
+    return dateA - dateB; // Más antigua primero
   });
   
-  ciRequests.forEach(r => {
-    if(!r.solicitudNum){
-      maxNum++;
-      r.solicitudNum = maxNum;
-    }
+  // Asignar números secuenciales
+  sortedByDate.forEach((r, idx) => {
+    r.solicitudNum = idx + 1; // 1, 2, 3, ... 424
   });
 
   // Pending primero, luego done
@@ -871,7 +869,7 @@ function renderCards(){
   ];
 
   sorted.forEach(req => {
-    const card = buildCard(req, req.solicitudNum || '—');
+    const card = buildCard(req, req.solicitudNum);
     main.appendChild(card);
   });
 }
