@@ -293,9 +293,6 @@ app.use('/alistamiento/uploads', express.static(UPLOADS_DIR));
 app.get('/', (req, res) =>
   res.sendFile(path.join(__dirname, 'index.html'))
 );
-app.get('/index.html', (req, res) =>
-  res.redirect('/')
-);
 app.get('/ingresos', (req, res) =>
   res.sendFile(path.join(__dirname, 'ingresos.html'))
 );
@@ -866,6 +863,18 @@ wss.on('connection', (ws, req) => {
         if (!msg.request || !msg.request._id) { console.warn('WS ci_new_request: sin _id'); return; }
         if (!ciRequests.find(r => r._id === msg.request._id)) {
           if (!msg.request.alertStart) msg.request.alertStart = Date.now();
+          
+          // Asignar solicitudNum secuencial si no tiene
+          if(!msg.request.solicitudNum){
+            let maxNum = 0;
+            ciRequests.forEach(r => {
+              if(r.solicitudNum && r.solicitudNum > maxNum){
+                maxNum = r.solicitudNum;
+              }
+            });
+            msg.request.solicitudNum = maxNum + 1;
+          }
+          
           ciRequests.unshift(msg.request);
           if (ciRequests.length > 500) ciRequests = ciRequests.slice(0, 500);
           saveCiRequests();
