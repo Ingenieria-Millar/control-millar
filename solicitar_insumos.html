@@ -814,7 +814,7 @@ function exportarExcelSI(){
   if(typeof XLSX === 'undefined'){ alert('Librería Excel no disponible'); return; }
   const desde = document.getElementById('si-fecha-desde').value;
   const hasta  = document.getElementById('si-fecha-hasta').value;
-  const mias = ciRequests.filter(r=>{
+  let data = ciRequests.filter(r=>{
     // Si es ADMINISTRADOR, mostrar todas las solicitudes EXCEPTO las que explícitamente sean esMecanico: false
     if(currentUser === 'ADMINISTRADOR'){
       if(r.esMecanico === false) return false; // Excluir módulos (tienen esMecanico: false)
@@ -827,34 +827,80 @@ function exportarExcelSI(){
     if(hasta  && f && f > hasta) return false;
     return true;
   });
-  if(!mias.length){ alert('No hay solicitudes para exportar'); return; }
+  if(!data.length){ alert('No hay solicitudes para exportar'); return; }
+  
   const statusLabel = s => s==='done'?'Entregado':s==='cumplido'?'Listo':s==='alert'?'Pendiente':s||'';
-  const rows = mias.map(r=>{
-    // Calcular tiempo tardado
-    let tiempoTardado = '—';
-    if(r.resolvedAt && r.hora){
-      const tiempoMs = r.waitTime || 0;
-      if(tiempoMs > 0){
-        const minutos = Math.round(tiempoMs / 1000 / 60);
-        tiempoTardado = minutos + ' min';
-      }
-    }
-    
-    return {
-      'Mecanico':        r.module||'',
-      'Insumo':          r.tipo||'',
-      'Referencia':      r.ref||'',
-      'Cantidad':        r.qty||'',
-      'Talla o color':   r.talla||'',
-      'Fecha':           r.fecha||'',
-      'Hora inicio':     r.hora||'',
-      'Hora fin':        r.resolvedAt||'—',
-      'Tiempo tardado':  tiempoTardado,
-      'Estado':          statusLabel(r.status),
-    };
+  
+  // Asignar números de solicitud igual que en tarjetas (por fecha/hora inicio)
+  const sortedByDate = [...ciRequests].sort((a, b) => {
+    const dateA = a.alertStart || a.fecha || 0;
+    const dateB = b.alertStart || b.fecha || 0;
+    return dateA - dateB; // Más antigua primero
   });
+  
+  const solicitudMap = {};
+  sortedByDate.forEach((r, idx) => {
+    solicitudMap[r._id] = idx + 1; // 1, 2, 3, ...
+  });
+  
+  const rows = [];
+  data.forEach(r => {
+    // Si hay múltiples insumos, crear una fila por cada insumo
+    if(r.insumos && r.insumos.length > 0){
+      r.insumos.forEach((ins, index) => {
+        // Tiempo tardado solo en la primera fila de la solicitud
+        let tiempoTardado = '';
+        if(index === 0){
+          if(r.resolvedAt && r.hora){
+            const tiempoMs = r.waitTime || 0;
+            if(tiempoMs > 0){
+              tiempoTardado = (tiempoMs / 1000 / 60).toFixed(2);
+            }
+          }
+        }
+        
+        rows.push({
+          '# solicitud':     solicitudMap[r._id],
+          'Mecánico':        r.module||'',
+          'Insumo':          ins.tipo||'',
+          'Referencia':      r.ref||'',
+          'Cantidad':        ins.qty||'',
+          'Talla o color':   ins.talla||'',
+          'Fecha':           r.fecha||'',
+          'Hora inicio':     r.hora||'',
+          'Hora fin':        r.resolvedAt||'',
+          'Tiempo tardado':  tiempoTardado,
+          'Estado':          statusLabel(r.status),
+        });
+      });
+    } else {
+      // Si no hay insumos desglosados, crear una fila con el insumo principal
+      let tiempoTardado = '';
+      if(r.resolvedAt && r.hora){
+        const tiempoMs = r.waitTime || 0;
+        if(tiempoMs > 0){
+          tiempoTardado = (tiempoMs / 1000 / 60).toFixed(2);
+        }
+      }
+      
+      rows.push({
+        '# solicitud':     solicitudMap[r._id],
+        'Mecánico':        r.module||'',
+        'Insumo':          r.tipo||'',
+        'Referencia':      r.ref||'',
+        'Cantidad':        r.qty||'',
+        'Talla o color':   r.talla||'',
+        'Fecha':           r.fecha||'',
+        'Hora inicio':     r.hora||'',
+        'Hora fin':        r.resolvedAt||'',
+        'Tiempo tardado':  tiempoTardado,
+        'Estado':          statusLabel(r.status),
+      });
+    }
+  });
+  
   const ws = XLSX.utils.json_to_sheet(rows);
-  ws['!cols']=[{wch:15},{wch:18},{wch:14},{wch:10},{wch:14},{wch:12},{wch:14},{wch:14},{wch:14},{wch:12}];
+  ws['!cols']=[{wch:12},{wch:15},{wch:18},{wch:14},{wch:10},{wch:14},{wch:14},{wch:14},{wch:14},{wch:14},{wch:12}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Solicitudes');
   const label = (desde||'')+(desde!==hasta?'_'+(hasta||''):'');
