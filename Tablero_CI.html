@@ -850,22 +850,33 @@ function renderCards(){
   }
 
   // Generar mapa de número de solicitud (desde el inicio de la historia)
-  // Esto se hace UNA SOLA VEZ al cargar, luego se guarda en cada objeto
-  let maxNum = 0;
+  // Contar solicitudes totales y asignar números secuenciales
+  const solicitudNumerados = [];
   
-  // Primero, encontrar el máximo número existente
+  // Primero, separar las que ya tienen solicitudNum de las que no
+  const conNumero = [];
+  const sinNumero = [];
+  
   ciRequests.forEach(r => {
     if(r.solicitudNum){
-      maxNum = Math.max(maxNum, r.solicitudNum);
+      conNumero.push(r);
+    } else {
+      sinNumero.push(r);
     }
   });
   
-  // Luego, asignar números a los que no los tengan (en orden de creación/posición)
-  ciRequests.forEach((r, idx) => {
-    if(!r.solicitudNum){
-      maxNum++;
-      r.solicitudNum = maxNum; // Guardar en el objeto permanentemente
-    }
+  // Ordenar las que tienen número (para mantener consistencia)
+  conNumero.sort((a, b) => a.solicitudNum - b.solicitudNum);
+  
+  // Encontrar el próximo número disponible
+  let nextNum = 1;
+  conNumero.forEach(r => {
+    if(!r.solicitudNum) r.solicitudNum = nextNum++;
+  });
+  
+  // Asignar números a las que no tienen
+  sinNumero.forEach(r => {
+    r.solicitudNum = nextNum++;
   });
 
   // Pending primero, luego done
