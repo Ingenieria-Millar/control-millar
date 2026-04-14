@@ -1369,30 +1369,30 @@ function guardarEdicion(){
   
   // Recopilar todos los insumos del formulario
   const insumosEditados = [];
-  const insumoInputs = document.querySelectorAll('[id^="modal-edit-insumo-"][id$^!="custom"]');
   
-  // Obtener todos los índices de insumos
+  // Obtener todos los índices de insumos del formulario
   const indices = new Set();
   document.querySelectorAll('[id^="modal-edit-insumo-"]').forEach(el => {
     const match = el.id.match(/\d+$/);
     if(match) indices.add(parseInt(match[0]));
   });
   
+  // Procesar cada insumo
   indices.forEach(idx => {
     const insumoSelect = document.getElementById(`modal-edit-insumo-${idx}`);
     const qtyInput = document.getElementById(`modal-edit-qty-${idx}`);
     const tallaInput = document.getElementById(`modal-edit-talla-${idx}`);
     
     if(insumoSelect && qtyInput){
-      const insumo = insumoSelect.value.trim();
-      const qty = qtyInput.value.trim();
+      const insumo = insumoSelect.value ? insumoSelect.value.trim() : '';
+      const qty = qtyInput.value ? qtyInput.value.trim() : '';
       const talla = tallaInput ? tallaInput.value.trim() : '';
       
       if(insumo && qty){
         insumosEditados.push({
           tipo: insumo,
           qty: parseInt(qty),
-          talla: talla
+          talla: talla || ''
         });
       }
     }
