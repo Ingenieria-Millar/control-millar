@@ -4664,6 +4664,162 @@ function populateLoginSelect(){
 
   if(prev) sel.value = prev;
 }
+
+// ── Verificar permisos ────────────────────────────────────────────────
+let currentUser = null;
+let currentUserRol = '';
+
+function hasPerm(p){ return currentUser&&USUARIOS[currentUser]&&USUARIOS[currentUser].perms.includes(p); }
+function isProg(){ return hasPerm('fix')&&hasPerm('modulos')&&hasPerm('tablero'); }
+
+// ── Login ─────────────────────────────────────────────────────────────
+function submitLogin(){
+  const rawVal=document.getElementById('login-user').value;
+  const pass=document.getElementById('login-pass').value;
+  const err=document.getElementById('login-error');
+  const inp=document.getElementById('login-pass');
+  if(!rawVal){err.textContent='Selecciona un usuario';return;}
+
+  // ── Supervisora (login sin contraseña, accede a área de producción) ──
+  if(rawVal.startsWith('__sup__')){
+    const supNombre = rawVal.replace('__sup__','');
+    currentUser = supNombre;
+    currentUserRol = 'supervisora';
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('login-pass').value='';
+    document.getElementById('login-error').textContent='';
+    try{ localStorage.setItem('cm_session', JSON.stringify({user: rawVal, pass: document.getElementById('login-pass').value||pass, rol:'supervisora'})); }catch(e){}
+    mostrarAreaScreen(); return;
+  }
+
+  const usuario = rawVal;
+  if(!USUARIOS[usuario]){err.textContent='Usuario no válido';return;}
+  // Usuario Módulos entra sin contraseña
+  if(usuario==='Modulos'){
+    currentUser=usuario;
+    currentUserRol='';
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('login-pass').value='';
+    document.getElementById('login-error').textContent='';
+    try{ localStorage.setItem('cm_session', JSON.stringify({user: usuario, pass:'', rol:''})); }catch(e){}
+    mostrarAreaScreen();return;
+  }
+  if(pass!==USUARIOS[usuario].pass){
+    inp.classList.add('error');err.textContent='Contraseña incorrecta';inp.value='';
+    setTimeout(()=>{inp.classList.remove('error');inp.focus();},400);return;
+  }
+  currentUser=usuario;
+  currentUserRol='';
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('login-pass').value='';
+  document.getElementById('login-error').textContent='';
+  try{ localStorage.setItem('cm_session', JSON.stringify({user: usuario, pass: pass, rol:'', perms: USUARIOS[usuario]?.perms||[]})); }catch(e){}
+  mostrarAreaScreen();
+}
+
+// ── Mostrar pantalla de selección de área ──────────────────────────────
+function mostrarAreaScreen(){
+  const btns=document.getElementById('area-btns');btns.innerHTML='';
+  // Ocultar botón Atrás en panel izquierdo
+  const backWrap = document.getElementById('sp-back-wrap');
+  if(backWrap) backWrap.style.display='none';
+
+  // Actualizar info de usuario en todos los paneles izquierdos
+  ['p2','p3','p4'].forEach(id=>{
+    const un=document.getElementById('sp-username-'+id);
+    const rb=document.getElementById('sp-role-'+id);
+    if(un) un.textContent=currentUser;
+    if(rb) rb.textContent=currentUser;
+  });
+
+  function makeCard(icon,name,desc,colorClass,cb){
+    const card=document.createElement('div');
+    card.className='area-card-new '+colorClass;
+    card.innerHTML=`<div class="ac-icon">${icon}</div><div class="ac-info"><div class="ac-name">${name}</div><div class="ac-desc">${desc}</div></div><div class="ac-arrow">›</div>`;
+    card.onclick=cb;
+    return card;
+  }
+
+  let idx=0;
+
+  // PRODUCCION
+  if(hasPerm('area_ingreso')||hasPerm('area_produccion')){
+    let desc, accion;
+    const _tienePermisosPlanta = hasPerm('area_ci')||hasPerm('area_mecanicos')||hasPerm('tablero');
+    if(currentUser==='Programador'){
+      desc='Control de ingresos · Acceso módulos';
+      accion=()=>mostrarSubMenuProduccion();
+    } else if(_tienePermisosPlanta || (hasPerm('modulos')&&!hasPerm('area_asistencia'))){
+      desc='Acceso módulos';
+      accion=()=>{ document.getElementById('area-screen').classList.add('hidden'); mostrarLoginModulos(); };
+    } else {
+      desc='Control de ingreso y asistencia';
+      accion=()=>{ window.location.href='/ingresos?user='+encodeURIComponent(currentUser); };
+    }
+    const c=makeCard('📋','Producción',desc,'ac-blue',accion);
+    c.style.animationDelay=(idx*0.07)+'s'; idx++;
+    btns.appendChild(c);
+  }
+
+  // MECANICOS
+  if(hasPerm('area_mecanicos')||hasPerm('area_montajes')){
+    const soloMontajes = hasPerm('area_montajes')&&!hasPerm('area_mecanicos');
+    const tieneAmbos   = hasPerm('area_mecanicos')&&hasPerm('area_montajes');
+    const esTelevisor  = (currentUser==='Televisor');
+    const nombreTablero = (currentUser==='Mecanicos'||esTelevisor) ? 'Tablero Mecanicos' : 'Tablero General';
+    let desc = soloMontajes ? 'Montajes' : tieneAmbos ? nombreTablero+' · Montajes' : nombreTablero;
+    const c=makeCard('🔧','Mecánicos',desc,'ac-red',()=>{
+      if(esTelevisor){
+        checkMemberSelectionNeeded(currentUser, (member)=>{
+          document.getElementById('area-screen').classList.add('hidden');
+          entrarTablero();
+        });
+      } else if(soloMontajes||tieneAmbos||hasPerm('area_montajes')){
+        mostrarSubMenuMecanicos();
+      } else {
+        mostrarSubMenuMecanicos();
+      }
+    });
+    c.style.animationDelay=(idx*0.07)+'s'; idx++;
+    btns.appendChild(c);
+  }
+
+  // CI
+  if(hasPerm('area_ci')){
+    const c=makeCard('🏢','CI','Tablero Faltante de Insumos','ac-purple',()=>{ window.location.href='/ci?perfil='+(currentUser||'Admin'); });
+    c.style.animationDelay=(idx*0.07)+'s'; idx++;
+    btns.appendChild(c);
+  }
+
+  // SOLICITAR INSUMOS
+  if(hasPerm('area_solicitar_insumos')){
+    const c=makeCard('📦','Solicitar Insumos','Reportar faltante de insumos','ac-teal',()=>{
+      const url='/solicitar-insumos?perfil='+(currentUser||'Mecanicos');
+      setTimeout(()=>{ window.location.href=url; }, 50);
+    });
+    c.style.animationDelay=(idx*0.07)+'s'; idx++;
+    btns.appendChild(c);
+  }
+
+  // CONFIGURACIÓN
+  if(hasPerm('fix')){
+    const c=makeCard('⚙️','Configuración','Perfiles, usuarios, módulos','ac-gray',()=>{
+      openCfgScreen();
+    });
+    c.style.animationDelay=(idx*0.07)+'s'; idx++;
+    btns.appendChild(c);
+  }
+
+  document.getElementById('area-screen').classList.remove('hidden');
+}
+
+// Stubs para funciones que no están en index.html
+function mostrarSubMenuProduccion(){}
+function mostrarLoginModulos(){}
+function mostrarSubMenuMecanicos(){}
+function checkMemberSelectionNeeded(user, cb){ cb(null); }
+function entrarTablero(){}
+function openCfgScreen(){}
 </script>
 
 </body>
