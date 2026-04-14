@@ -1243,6 +1243,30 @@ async function loadConfigFromServer(){
 
 // Cargar config al iniciar
 loadConfigFromServer().then(() => {
+  // Inicializar áreas si no existen
+  const cfg = loadConfig();
+  if(!cfg._areas || cfg._areas.length === 0){
+    cfg._areas = [
+      { nombre: "Producción", descripcion: "Control de ingresos y producción", icono: "📋" },
+      { nombre: "Mecánicos", descripcion: "Tablero mecánicos y alistamientos", icono: "🔧" },
+      { nombre: "CI", descripcion: "Tablero faltante de insumos", icono: "🏢" }
+    ];
+  }
+  
+  // Inicializar usuarios extras si no existen
+  if(!cfg._usuarios_extra || cfg._usuarios_extra.length === 0){
+    cfg._usuarios_extra = [
+      { nombre: "Televisor", pass: "televisor", perms: ["area_mecanicos", "tablero"] },
+      { nombre: "Supervisoras", pass: "supervisoras", perms: ["area_ingreso", "area_produccion"] },
+      { nombre: "Modulos", pass: "modulos", perms: ["area_produccion", "modulos"] },
+      { nombre: "Mecanicos", pass: "mecanicos", perms: ["area_mecanicos", "tablero", "area_solicitar_insumos"] },
+      { nombre: "CI", pass: "ci", perms: ["area_ci"] },
+      { nombre: "Calidad", pass: "calidad", perms: [] },
+      { nombre: "Administrador", pass: "admin", perms: ["area_ingreso","area_produccion","area_mecanicos","tablero","modulos","excel","area_calidad","area_ci","area_empaque","area_corte","area_sst","area_montajes","area_solicitar_insumos","fix"] }
+    ];
+    saveConfig(cfg);
+  }
+  
   populateLoginSelect();
 });
 
