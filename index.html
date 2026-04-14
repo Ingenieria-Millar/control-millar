@@ -4801,10 +4801,34 @@ function getCfgUsuarios(){
   // Usuarios base del sistema (no editables = Programador)
   const base = {};
   Object.entries(USUARIOS).forEach(([k,v])=>{ base[k]={pass:v.pass, perms:v.perms, builtin: k==='Programador'}; });
+  
   // Merge con extras guardados en config
   const cfg = loadConfig();
-  if(cfg._usuarios_extra){ cfg._usuarios_extra.forEach(u=>{ base[u.nombre]={pass:u.pass, perms:u.perms||[], disabled:!!u.disabled, extra:true}; }); }
+  if(cfg._usuarios_extra){ 
+    cfg._usuarios_extra.forEach(u=>{ 
+      // Si no tiene permisos, asignarlos según el nombre
+      let perms = u.perms||[];
+      if(!perms.length){
+        perms = getPermsByUserName(u.nombre);
+      }
+      base[u.nombre]={pass:u.pass, perms:perms, disabled:!!u.disabled, extra:true}; 
+    }); 
+  }
   return base;
+}
+
+// ── Asignar permisos según nombre de usuario ────────────────────────────
+function getPermsByUserName(nombre){
+  const permsMap = {
+    'Televisor': ['area_mecanicos', 'tablero'],
+    'Supervisoras': ['area_ingreso', 'area_produccion'],
+    'Modulos': ['area_produccion', 'modulos'],
+    'Mecanicos': ['area_mecanicos', 'tablero', 'area_solicitar_insumos'],
+    'CI': ['area_ci'],
+    'Calidad': [],
+    'Administrador': ['area_ingreso','area_produccion','area_mecanicos','tablero','modulos','excel','area_calidad','area_ci','area_empaque','area_corte','area_sst','area_montajes','area_solicitar_insumos']
+  };
+  return permsMap[nombre] || [];
 }
 
 function getUsuariosExtra(){
