@@ -876,7 +876,7 @@ function renderCards(){
   ];
 
   sorted.forEach(req => {
-    const card = buildCard(req, solicitudMap[req._id]);
+    const card = buildCard(req, req.solicitudNum || solicitudMap[req._id]);
     main.appendChild(card);
   });
 }
@@ -973,9 +973,6 @@ function buildCard(req, solicitudNum){
       </div>
     </div>
     <table class="ci-card-table">
-      <tr><td>Tipo</td>        <td>${categoria}</td></tr>
-      <tr><td>Referencia</td>  <td>${ref}</td></tr>
-      <tr><td>OP / OC</td>      <td>${op}</td></tr>
       <tr>
         <td colspan="2" style="padding:0;border:none;">
           <table style="width:100%;border-collapse:collapse;">
@@ -994,6 +991,9 @@ function buildCard(req, solicitudNum){
           </table>
         </td>
       </tr>
+      <tr><td>Tipo</td>        <td>${categoria}</td></tr>
+      <tr><td>Referencia</td>  <td>${ref}</td></tr>
+      <tr><td>OP / OC</td>      <td>${op}</td></tr>
       <tr><td>Hora Inicio</td> <td>${horaInicio}</td></tr>
       <tr><td>Hora Fin</td>    <td>${horaFin}</td></tr>
       <tr class="row-espera"><td>T. Espera</td><td class="ci-tespera-val">${tEsperaInicial}</td></tr>
@@ -1301,7 +1301,7 @@ function procederEditar(){
               </div>
               <select id="modal-edit-insumo-${idx}" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;outline:none;margin-bottom:8px;">
                 <option value="">Selecciona insumo</option>
-                ${insumosConfig.map(ins => `<option value="${ins}" ${ins === (ins.tipo || '') ? 'selected' : ''}>${ins}</option>`).join('')}
+                ${insumosConfig.map(insumo => `<option value="${insumo}" ${insumo === ins.tipo ? 'selected' : ''}>${insumo}</option>`).join('')}
               </select>
               <label class="ci-modal-label" style="margin:0 0 4px 0;">Cantidad</label>
               <input type="number" id="modal-edit-qty-${idx}" value="${ins.qty || ''}" placeholder="Ej: 10" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;outline:none;margin-bottom:8px;">
