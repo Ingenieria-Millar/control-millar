@@ -4674,37 +4674,24 @@ function isProg(){ return hasPerm('fix')&&hasPerm('modulos')&&hasPerm('tablero')
 
 // ── Login ─────────────────────────────────────────────────────────────
 function submitLogin(){
-  console.log('submitLogin llamado');
   const rawVal=document.getElementById('login-user').value;
   const pass=document.getElementById('login-pass').value;
   const err=document.getElementById('login-error');
   const inp=document.getElementById('login-pass');
   
-  console.log('Usuario:', rawVal, 'Contraseña:', pass);
-  console.log('USUARIOS:', USUARIOS);
-  
   if(!rawVal){err.textContent='Selecciona un usuario';return;}
 
   const usuario = rawVal;
-  console.log('Validando usuario:', usuario);
-  console.log('USUARIOS[usuario]:', USUARIOS[usuario]);
-  
   if(!USUARIOS[usuario]){err.textContent='Usuario no válido';return;}
   
-  console.log('Usuario válido. Contraseña esperada:', USUARIOS[usuario].pass);
-  console.log('Contraseña ingresada:', pass);
-  
   if(pass!==USUARIOS[usuario].pass){
-    console.log('Contraseña incorrecta');
     inp.classList.add('error');err.textContent='Contraseña incorrecta';inp.value='';
     setTimeout(()=>{inp.classList.remove('error');inp.focus();},400);return;
   }
   
-  console.log('Login exitoso');
   currentUser=usuario;
   currentUserRol='';
   const loginScreen = document.getElementById('login-screen');
-  console.log('login-screen element:', loginScreen);
   
   if(loginScreen) {
     loginScreen.classList.add('hidden');
@@ -4714,7 +4701,6 @@ function submitLogin(){
   document.getElementById('login-error').textContent='';
   try{ localStorage.setItem('cm_session', JSON.stringify({user: usuario, pass: pass, rol:'', perms: USUARIOS[usuario]?.perms||[]})); }catch(e){}
   
-  console.log('Llamando mostrarAreaScreen');
   mostrarAreaScreen();
 }
 
@@ -4745,41 +4731,19 @@ function mostrarAreaScreen(){
 
   // PRODUCCION
   if(hasPerm('area_ingreso')||hasPerm('area_produccion')){
-    let desc, accion;
-    const _tienePermisosPlanta = hasPerm('area_ci')||hasPerm('area_mecanicos')||hasPerm('tablero');
-    if(currentUser==='Programador'){
-      desc='Control de ingresos · Acceso módulos';
-      accion=()=>mostrarSubMenuProduccion();
-    } else if(_tienePermisosPlanta || (hasPerm('modulos')&&!hasPerm('area_asistencia'))){
-      desc='Acceso módulos';
-      accion=()=>{ document.getElementById('area-screen').classList.add('hidden'); mostrarLoginModulos(); };
-    } else {
-      desc='Control de ingreso y asistencia';
-      accion=()=>{ window.location.href='/ingresos?user='+encodeURIComponent(currentUser); };
-    }
-    const c=makeCard('📋','Producción',desc,'ac-blue',accion);
+    let desc='Control de ingresos';
+    const c=makeCard('📋','Producción',desc,'ac-blue',()=>{
+      window.location.href='/ingresos?user='+encodeURIComponent(currentUser);
+    });
     c.style.animationDelay=(idx*0.07)+'s'; idx++;
     btns.appendChild(c);
   }
 
   // MECANICOS
   if(hasPerm('area_mecanicos')||hasPerm('area_montajes')){
-    const soloMontajes = hasPerm('area_montajes')&&!hasPerm('area_mecanicos');
-    const tieneAmbos   = hasPerm('area_mecanicos')&&hasPerm('area_montajes');
-    const esTelevisor  = (currentUser==='Televisor');
-    const nombreTablero = (currentUser==='Mecanicos'||esTelevisor) ? 'Tablero Mecanicos' : 'Tablero General';
-    let desc = soloMontajes ? 'Montajes' : tieneAmbos ? nombreTablero+' · Montajes' : nombreTablero;
+    const desc = 'Tablero General';
     const c=makeCard('🔧','Mecánicos',desc,'ac-red',()=>{
-      if(esTelevisor){
-        checkMemberSelectionNeeded(currentUser, (member)=>{
-          document.getElementById('area-screen').classList.add('hidden');
-          entrarTablero();
-        });
-      } else if(soloMontajes||tieneAmbos||hasPerm('area_montajes')){
-        mostrarSubMenuMecanicos();
-      } else {
-        mostrarSubMenuMecanicos();
-      }
+      window.location.href='/tableros.html?user='+encodeURIComponent(currentUser);
     });
     c.style.animationDelay=(idx*0.07)+'s'; idx++;
     btns.appendChild(c);
@@ -4787,7 +4751,9 @@ function mostrarAreaScreen(){
 
   // CI
   if(hasPerm('area_ci')){
-    const c=makeCard('🏢','CI','Tablero Faltante de Insumos','ac-purple',()=>{ window.location.href='/ci?perfil='+(currentUser||'Admin'); });
+    const c=makeCard('🏢','CI','Tablero Faltante de Insumos','ac-purple',()=>{ 
+      window.location.href='/ci?perfil='+(currentUser||'Admin'); 
+    });
     c.style.animationDelay=(idx*0.07)+'s'; idx++;
     btns.appendChild(c);
   }
