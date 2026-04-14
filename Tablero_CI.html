@@ -849,6 +849,21 @@ function renderCards(){
     return;
   }
 
+  // Asignar solicitudNum a solicitudes que no lo tengan (compatibilidad con datos antiguos)
+  let maxNum = 0;
+  ciRequests.forEach(r => {
+    if(r.solicitudNum && r.solicitudNum > maxNum){
+      maxNum = r.solicitudNum;
+    }
+  });
+  
+  ciRequests.forEach(r => {
+    if(!r.solicitudNum){
+      maxNum++;
+      r.solicitudNum = maxNum;
+    }
+  });
+
   // Pending primero, luego done
   const sorted = [
     ...toShow.filter(r => r.status === 'alert' || r.status === 'cumplido'),
