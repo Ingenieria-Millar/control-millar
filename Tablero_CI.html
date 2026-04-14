@@ -648,6 +648,7 @@ function exportarExcel(){
             'Módulo':         r.module||'',
             'Tipo':           r.esMecanico ? 'Alistamiento' : (r.categoria||'Falta de Insumo'),
             'Referencia':     r.ref||'',
+            'OP / OC':        r.op||'',
             'Insumo':         ins.tipo||'',
             'Cantidad':       ins.qty||'',
             'Talla':          ins.talla||'',
@@ -666,6 +667,7 @@ function exportarExcel(){
           'Módulo':         r.module||'',
           'Tipo':           r.esMecanico ? 'Alistamiento' : (r.categoria||'Falta de Insumo'),
           'Referencia':     r.ref||'',
+          'OP / OC':        r.op||'',
           'Insumo':         (r.tipo||'').replace(/\s*·\s*.+$/,''),
           'Cantidad':       r.qty||'',
           'Talla':          r.talla||'',
@@ -680,7 +682,7 @@ function exportarExcel(){
     });
     
     const ws = XLSX.utils.json_to_sheet(rows);
-    ws['!cols'] = [{wch:12},{wch:10},{wch:15},{wch:14},{wch:18},
+    ws['!cols'] = [{wch:12},{wch:10},{wch:15},{wch:14},{wch:10},{wch:18},
                    {wch:10},{wch:8},{wch:14},{wch:14},{wch:14},{wch:14},{wch:12},{wch:15}];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'CI');
@@ -817,7 +819,6 @@ function timerClass(ms){
 
 // ── Render principal ──
 function renderCards(){
-  _filterMod = '';
   const main = document.getElementById('ci-main');
   main.innerHTML = '';
 
@@ -1048,8 +1049,11 @@ function toggleFiltroModuloPanel(){
   if(isOpen){
     panel.style.display = 'none';
   } else {
-    // Llenar select con módulos únicos
-    const modulos = [...new Set(ciRequests.map(r => r.module).filter(Boolean))].sort();
+    // Llenar select con módulos de la fecha filtrada
+    let visible = ciRequests.slice();
+    visible = filtrarPorFecha(visible);
+    const modulos = [...new Set(visible.map(r => r.module).filter(Boolean))].sort();
+    
     const select = document.getElementById('ci-modulo-select');
     select.innerHTML = '<option value="">Todos</option>';
     modulos.forEach(mod => {
@@ -1284,10 +1288,8 @@ function procederEditar(){
         _editPasswordValidated = true;
         const req = ciRequests.find(r => r._id === _pendingEditId);
         
-        // Obtener lista de insumos disponibles (de todas las solicitudes)
-        const insumosDisponibles = [...new Set(
-          ciRequests.flatMap(r => r.insumos?.map(i => i.tipo) || r.tipo)
-        )].filter(Boolean).sort();
+        // Obtener insumos de la configuración
+        const insumosConfig = (ciConfig.tipoInsumoList || []).map(t => t.name).sort();
         
         // Llenar formulario con todos los insumos
         const listHTML = (req.insumos && req.insumos.length > 0 ? req.insumos : [{tipo: req.tipo, qty: req.qty, talla: req.talla}])
@@ -1299,9 +1301,8 @@ function procederEditar(){
               </div>
               <select id="modal-edit-insumo-${idx}" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;outline:none;margin-bottom:8px;">
                 <option value="">Selecciona insumo</option>
-                ${insumosDisponibles.map(ins => `<option value="${ins}" ${ins === (ins?.tipo || '') ? 'selected' : ''}>${ins}</option>`).join('')}
+                ${insumosConfig.map(ins => `<option value="${ins}" ${ins === (ins.tipo || '') ? 'selected' : ''}>${ins}</option>`).join('')}
               </select>
-              <input type="text" id="modal-edit-insumo-custom-${idx}" placeholder="O escribe uno nuevo" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;outline:none;margin-bottom:8px;" value="${ins.tipo || ''}">
               <label class="ci-modal-label" style="margin:0 0 4px 0;">Cantidad</label>
               <input type="number" id="modal-edit-qty-${idx}" value="${ins.qty || ''}" placeholder="Ej: 10" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;outline:none;margin-bottom:8px;">
               <label class="ci-modal-label" style="margin:0 0 4px 0;">Talla</label>
@@ -1331,9 +1332,7 @@ let _editInsumosCount = 0;
 function agregarInsumoEdit(){
   const listEl = document.getElementById('modal-edit-insumos-list');
   const req = ciRequests.find(r => r._id === _pendingEditId);
-  const insumosDisponibles = [...new Set(
-    ciRequests.flatMap(r => r.insumos?.map(i => i.tipo) || r.tipo)
-  )].filter(Boolean).sort();
+  const insumosConfig = (ciConfig.tipoInsumoList || []).map(t => t.name).sort();
   
   const idx = (req.insumos && req.insumos.length > 0 ? req.insumos.length : 1) + (document.querySelectorAll('[id^="modal-edit-insumo-"]').length - (req.insumos?.length || 1));
   
@@ -1345,9 +1344,8 @@ function agregarInsumoEdit(){
       </div>
       <select id="modal-edit-insumo-${idx}" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;outline:none;margin-bottom:8px;">
         <option value="">Selecciona insumo</option>
-        ${insumosDisponibles.map(ins => `<option value="${ins}">${ins}</option>`).join('')}
+        ${insumosConfig.map(ins => `<option value="${ins}">${ins}</option>`).join('')}
       </select>
-      <input type="text" id="modal-edit-insumo-custom-${idx}" placeholder="O escribe uno nuevo" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;outline:none;margin-bottom:8px;">
       <label class="ci-modal-label" style="margin:0 0 4px 0;">Cantidad</label>
       <input type="number" id="modal-edit-qty-${idx}" placeholder="Ej: 10" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;outline:none;margin-bottom:8px;">
       <label class="ci-modal-label" style="margin:0 0 4px 0;">Talla</label>
@@ -1371,22 +1369,32 @@ function guardarEdicion(){
   
   // Recopilar todos los insumos del formulario
   const insumosEditados = [];
-  const insumoInputs = document.querySelectorAll('[id^="modal-edit-insumo-"][id$!="custom"]');
+  const insumoInputs = document.querySelectorAll('[id^="modal-edit-insumo-"][id$^!="custom"]');
   
-  insumoInputs.forEach((select, idx) => {
-    const idxNum = parseInt(select.id.match(/\d+/)[0]);
-    const insumoSelect = document.getElementById(`modal-edit-insumo-${idxNum}`).value;
-    const insumoCust = document.getElementById(`modal-edit-insumo-custom-${idxNum}`)?.value.trim() || '';
-    const insumo = insumoCust || insumoSelect;
-    const qty = document.getElementById(`modal-edit-qty-${idxNum}`)?.value.trim();
-    const talla = document.getElementById(`modal-edit-talla-${idxNum}`)?.value.trim() || '';
+  // Obtener todos los índices de insumos
+  const indices = new Set();
+  document.querySelectorAll('[id^="modal-edit-insumo-"]').forEach(el => {
+    const match = el.id.match(/\d+$/);
+    if(match) indices.add(parseInt(match[0]));
+  });
+  
+  indices.forEach(idx => {
+    const insumoSelect = document.getElementById(`modal-edit-insumo-${idx}`);
+    const qtyInput = document.getElementById(`modal-edit-qty-${idx}`);
+    const tallaInput = document.getElementById(`modal-edit-talla-${idx}`);
     
-    if(insumo && qty){
-      insumosEditados.push({
-        tipo: insumo,
-        qty: parseInt(qty),
-        talla: talla
-      });
+    if(insumoSelect && qtyInput){
+      const insumo = insumoSelect.value.trim();
+      const qty = qtyInput.value.trim();
+      const talla = tallaInput ? tallaInput.value.trim() : '';
+      
+      if(insumo && qty){
+        insumosEditados.push({
+          tipo: insumo,
+          qty: parseInt(qty),
+          talla: talla
+        });
+      }
     }
   });
   
