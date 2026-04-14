@@ -626,11 +626,16 @@ function exportarExcel(){
 
   if(typeof XLSX !== 'undefined'){
     // SheetJS disponible — generar .xlsx real
-    // Generar número único de solicitud
-    let solicitudNum = 1;
+    // Asignar números de solicitud igual que en tarjetas (por fecha/hora inicio)
+    const sortedByDate = [...ciRequests].sort((a, b) => {
+      const dateA = a.alertStart || a.fecha || 0;
+      const dateB = b.alertStart || b.fecha || 0;
+      return dateA - dateB; // Más antigua primero
+    });
+    
     const solicitudMap = {};
-    data.forEach(r => {
-      solicitudMap[r._id] = solicitudNum++;
+    sortedByDate.forEach((r, idx) => {
+      solicitudMap[r._id] = idx + 1; // 1, 2, 3, ... 424
     });
     
     const rows = [];
@@ -1485,13 +1490,18 @@ function cfgAddTipo(){
   const v = document.getElementById('cfg-tipo-input').value.trim();
   if(!v) return;
   ciConfig.tipoInsumoList.push({ name: v, flow: 'qty_talla' });
+  // Ordenar alfabéticamente
+  ciConfig.tipoInsumoList.sort((a, b) => a.name.localeCompare(b.name));
   document.getElementById('cfg-tipo-input').value = '';
   renderCfgChips();
 }
+
 function cfgAddObs(){
   const v = document.getElementById('cfg-obs-input').value.trim();
   if(!v) return;
   ciConfig.obsList.push(v);
+  // Ordenar alfabéticamente
+  ciConfig.obsList.sort((a, b) => a.localeCompare(b));
   document.getElementById('cfg-obs-input').value = '';
   renderCfgChips();
 }
