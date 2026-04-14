@@ -372,6 +372,19 @@ input,select,textarea{ font-size:16px !important; }
     <div class="ci-stat done" id="sf-done" onclick="setFilter('done')">
       ✅ Entregados <span class="ci-badge" id="cnt-done">0</span>
     </div>
+    <button class="hd-back-btn" onclick="toggleFiltroModuloPanel()" id="btn-modulo" style="display:flex;align-items:center;gap:6px;font-size:12px;">
+      🏭 Módulo
+    </button>
+    <div id="filtro-modulo-panel" style="display:none;position:absolute;top:110%;left:0;z-index:300;background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:12px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:200px;">
+      <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Selecciona módulo</div>
+      <select id="ci-modulo-select" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;outline:none;">
+        <option value="">Todos</option>
+      </select>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button onclick="aplicarFiltroModulo()" style="flex:1;padding:8px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:.5px;cursor:pointer;">Filtrar</button>
+        <button onclick="limpiarFiltroModulo()" style="flex:1;padding:8px;border-radius:8px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">Limpiar</button>
+      </div>
+    </div>
     <div class="ci-stat-spacer"></div>
     <div style="position:relative;" id="fecha-wrap">
       <button class="hd-back-btn" onclick="toggleFechaPanel()" id="btn-fecha" style="display:flex;align-items:center;gap:6px;">
@@ -411,6 +424,29 @@ input,select,textarea{ font-size:16px !important; }
     <div class="ci-modal-btns">
       <button class="ci-modal-btn secondary" onclick="cerrarModalDel()">Cancelar</button>
       <button class="ci-modal-btn primary" style="background:linear-gradient(135deg,#991b1b,#ef4444);" onclick="confirmarDel()">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Editar solicitud con contraseña -->
+<div class="ci-modal-overlay" id="modal-edit">
+  <div class="ci-modal-box">
+    <div class="ci-modal-title">✏️ Editar solicitud</div>
+    <label class="ci-modal-label">Contraseña de administrador</label>
+    <input type="password" class="ci-modal-input" id="modal-edit-pass" placeholder="••••••"
+      onkeydown="if(event.key==='Enter') procederEditar()">
+    <div id="modal-edit-err" style="display:none;color:var(--danger);font-size:12px;font-weight:700;margin-bottom:10px;"></div>
+    <div id="modal-edit-form" style="display:none;">
+      <label class="ci-modal-label">Insumo</label>
+      <input type="text" class="ci-modal-input" id="modal-edit-insumo" placeholder="Ej: Elastico base">
+      <label class="ci-modal-label">Cantidad</label>
+      <input type="number" class="ci-modal-input" id="modal-edit-qty" placeholder="Ej: 10">
+      <label class="ci-modal-label">Talla</label>
+      <input type="text" class="ci-modal-input" id="modal-edit-talla" placeholder="Ej: M">
+    </div>
+    <div class="ci-modal-btns">
+      <button class="ci-modal-btn secondary" onclick="cerrarModalEdit()">Cancelar</button>
+      <button class="ci-modal-btn primary" id="modal-edit-btn" style="background:#4f46e5;" onclick="procederEditar()">Validar</button>
     </div>
   </div>
 </div>
@@ -814,6 +850,15 @@ function renderCards(){
     return;
   }
 
+  // Generar mapa de número de solicitud (desde el inicio de la historia)
+  let solicitudNum = 1;
+  const solicitudMap = {};
+  ciRequests.forEach(r => {
+    if(!solicitudMap[r._id]) {
+      solicitudMap[r._id] = solicitudNum++;
+    }
+  });
+
   // Pending primero, luego done
   const sorted = [
     ...toShow.filter(r => r.status === 'alert' || r.status === 'cumplido'),
@@ -821,7 +866,7 @@ function renderCards(){
   ];
 
   sorted.forEach(req => {
-    const card = buildCard(req);
+    const card = buildCard(req, solicitudMap[req._id]);
     main.appendChild(card);
   });
 }
@@ -851,7 +896,7 @@ function calcTEsperaDecimal(ms){
   return min.toFixed(2);
 }
 
-function buildCard(req){
+function buildCard(req, solicitudNum){
   const isDone = req.status === 'done';
   const isCump = req.status === 'cumplido';
   const isProd = (req.categoria || '').toLowerCase().includes('producci');
@@ -912,7 +957,10 @@ function buildCard(req){
   div.innerHTML = `
     <div class="ci-card-hdr">
       <div class="ci-card-mod">${req.module || ''}</div>
-      <span class="ci-card-badge ${req.status || 'alert'}">${badgeLabel}</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="ci-card-badge ${req.status || 'alert'}">${badgeLabel}</span>
+        <span style="font-size:11px;color:#9ca3af;font-weight:500;">#${solicitudNum}</span>
+      </div>
     </div>
     <table class="ci-card-table">
       <tr><td>Tipo</td>        <td>${categoria}</td></tr>
@@ -946,9 +994,11 @@ function buildCard(req){
           ${cumplirDisabled ? `disabled title="${cumplirTitle}"` : ''}>
           Marcar Cumplido
         </button>
+        <button class="ci-action-btn" style="background:#e8e8ff;color:#4f46e5;padding:8px 12px;" onclick="abrirEditar('${req._id}')">✏️</button>
         <button class="ci-action-btn del" onclick="abrirDel('${req._id}')">🗑</button>
       ` : `
-        <button class="ci-action-btn del" style="width:100%;" onclick="abrirDel('${req._id}')">Eliminar registro</button>
+        <button class="ci-action-btn" style="background:#e8e8ff;color:#4f46e5;" onclick="abrirEditar('${req._id}')">✏️</button>
+        <button class="ci-action-btn del" style="flex:1;" onclick="abrirDel('${req._id}')">Eliminar registro</button>
       `}
     </div>
   `;
@@ -976,6 +1026,45 @@ function startTimers(){
 // ── Filtros ──
 function setFilter(f){
   _filterStatus = f;
+  renderCards();
+}
+
+function toggleFiltroModuloPanel(){
+  const panel = document.getElementById('filtro-modulo-panel');
+  const isOpen = panel.style.display !== 'none';
+  
+  // Cerrar otros paneles
+  document.getElementById('fecha-panel').style.display = 'none';
+  
+  if(isOpen){
+    panel.style.display = 'none';
+  } else {
+    // Llenar select con módulos únicos
+    const modulos = [...new Set(ciRequests.map(r => r.module).filter(Boolean))].sort();
+    const select = document.getElementById('ci-modulo-select');
+    select.innerHTML = '<option value="">Todos</option>';
+    modulos.forEach(mod => {
+      const opt = document.createElement('option');
+      opt.value = mod;
+      opt.textContent = mod;
+      select.appendChild(opt);
+    });
+    select.value = _filterMod;
+    panel.style.display = 'block';
+  }
+}
+
+function aplicarFiltroModulo(){
+  const select = document.getElementById('ci-modulo-select');
+  _filterMod = select.value;
+  document.getElementById('filtro-modulo-panel').style.display = 'none';
+  renderCards();
+}
+
+function limpiarFiltroModulo(){
+  _filterMod = '';
+  document.getElementById('ci-modulo-select').value = '';
+  document.getElementById('filtro-modulo-panel').style.display = 'none';
   renderCards();
 }
 
@@ -1125,6 +1214,121 @@ function confirmarDel(){
     .catch(()=>{
       if(errEl){errEl.textContent='Error al verificar. Intenta de nuevo.';errEl.style.display='block';}
     });
+}
+
+// ── Modal Editar con contraseña admin ──
+let _pendingEditId = null;
+let _editPasswordValidated = false;
+
+function abrirEditar(id){
+  const req = ciRequests.find(r => r._id === id);
+  if(!req) return;
+  
+  _pendingEditId = id;
+  _editPasswordValidated = false;
+  
+  // Limpiar campos
+  document.getElementById('modal-edit-pass').value = '';
+  document.getElementById('modal-edit-err').style.display = 'none';
+  document.getElementById('modal-edit-form').style.display = 'none';
+  document.getElementById('modal-edit-btn').textContent = 'Validar';
+  document.getElementById('modal-edit-btn').onclick = () => procederEditar();
+  
+  document.getElementById('modal-edit').classList.add('open');
+  setTimeout(()=>{ document.getElementById('modal-edit-pass').focus(); }, 100);
+}
+
+function cerrarModalEdit(){
+  document.getElementById('modal-edit').classList.remove('open');
+  _pendingEditId = null;
+  _editPasswordValidated = false;
+}
+
+function procederEditar(){
+  if(!_pendingEditId) return;
+  
+  const pass = (document.getElementById('modal-edit-pass')?.value || '').trim();
+  const errEl = document.getElementById('modal-edit-err');
+  const form = document.getElementById('modal-edit-form');
+  
+  if(!_editPasswordValidated){
+    // Validar contraseña
+    if(!pass){
+      if(errEl){errEl.textContent='Ingresa la contraseña de administrador';errEl.style.display='block';}
+      return;
+    }
+    
+    fetch('/api/app-config')
+      .then(r=>r.json())
+      .then(cfg=>{
+        const usuarios = cfg._usuarios_extra || [];
+        const valid = usuarios.some(u => u.pass === pass && (u.perms||[]).includes('fix'))
+                   || pass === '1'; // Programador builtin
+        if(!valid){
+          if(errEl){errEl.textContent='Contraseña incorrecta';errEl.style.display='block';}
+          return;
+        }
+        
+        // Contraseña correcta — mostrar formulario
+        _editPasswordValidated = true;
+        const req = ciRequests.find(r => r._id === _pendingEditId);
+        
+        // Llenar formulario con datos actuales
+        const primerInsumo = req.insumos && req.insumos.length > 0 ? req.insumos[0] : req;
+        document.getElementById('modal-edit-insumo').value = primerInsumo.tipo || '';
+        document.getElementById('modal-edit-qty').value = primerInsumo.qty || '';
+        document.getElementById('modal-edit-talla').value = primerInsumo.talla || '';
+        
+        errEl.style.display = 'none';
+        form.style.display = 'block';
+        document.getElementById('modal-edit-pass').style.display = 'none';
+        document.getElementById('modal-edit-btn').textContent = 'Guardar cambios';
+        document.getElementById('modal-edit-btn').onclick = () => guardarEdicion();
+      })
+      .catch(()=>{
+        if(errEl){errEl.textContent='Error al verificar. Intenta de nuevo.';errEl.style.display='block';}
+      });
+  }
+}
+
+function guardarEdicion(){
+  if(!_pendingEditId) return;
+  
+  const req = ciRequests.find(r => r._id === _pendingEditId);
+  if(!req) return;
+  
+  const nuevoInsumo = document.getElementById('modal-edit-insumo').value.trim();
+  const nuevaQty = document.getElementById('modal-edit-qty').value.trim();
+  const nuevaTalla = document.getElementById('modal-edit-talla').value.trim();
+  
+  if(!nuevoInsumo || !nuevaQty){
+    alert('Insumo y Cantidad son requeridos');
+    return;
+  }
+  
+  // Actualizar en el array
+  if(req.insumos && req.insumos.length > 0){
+    req.insumos[0].tipo = nuevoInsumo;
+    req.insumos[0].qty = parseInt(nuevaQty);
+    req.insumos[0].talla = nuevaTalla;
+  } else {
+    req.tipo = nuevoInsumo;
+    req.qty = parseInt(nuevaQty);
+    req.talla = nuevaTalla;
+  }
+  
+  // Enviar al servidor
+  wsSend({
+    type: 'ci_edit_request',
+    reqId: _pendingEditId,
+    insumo: nuevoInsumo,
+    qty: parseInt(nuevaQty),
+    talla: nuevaTalla
+  });
+  
+  cerrarModalEdit();
+  renderCards();
+  showToast('✏️ Solicitud actualizada');
 }
 
 // ── Config ──
