@@ -592,6 +592,7 @@ function connectWS(){
         renderHistorial();
         if(msg.request.module===currentUser && msg.request.status==='cumplido'){
           showToast('📦 ¡Tu insumo está listo! El CI lo marcó como cumplido.');
+          _playSoundById('alarma'); // Toca alarma
         }
       } else if(msg.type==='ci_delete_request'){
         if(msg.reqId) ciRequests=ciRequests.filter(r=>r._id!==msg.reqId);
@@ -1095,6 +1096,55 @@ document.addEventListener('click', e=>{
 function volverInicio(){
   if(document.referrer && document.referrer!==window.location.href) window.history.back();
   else window.location.href='/';
+}
+
+// ── Función de sonidos ──
+function _playSoundById(id){
+  if(id === 'none') return;
+  try{
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const now = ctx.currentTime;
+    const dur = 5.0; // todos duran 5 segundos
+
+    if(id === 'sirena1'){
+      // Sirena clásica: oscila lentamente entre tono bajo y alto, 5 ciclos en 5s
+      const cycles = 5;
+      for(let i = 0; i < cycles; i++){
+        const t = now + i * (dur / cycles);
+        const half = (dur / cycles) / 2;
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.type = 'sawtooth';
+        o.frequency.setValueAtTime(400, t);
+        o.frequency.linearRampToValueAtTime(900, t + half);
+        o.frequency.linearRampToValueAtTime(400, t + half * 2);
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(0.5, t + 0.05);
+        g.gain.setValueAtTime(0.5, t + half * 2 - 0.05);
+        g.gain.linearRampToValueAtTime(0, t + half * 2);
+        o.start(t); o.stop(t + half * 2);
+      }
+    } else if(id === 'alarma'){
+      // Alarma industrial: tono fuerte pulsante
+      const pulsos = 8;
+      const pDur = dur / pulsos;
+      for(let i = 0; i < pulsos; i++){
+        const t = now + i * pDur;
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.type = 'sawtooth';
+        o.frequency.setValueAtTime(520, t);
+        o.frequency.linearRampToValueAtTime(560, t + pDur * 0.6);
+        g.gain.setValueAtTime(0, t);
+        g.gain.linearRampToValueAtTime(0.6, t + 0.02);
+        g.gain.setValueAtTime(0.6, t + pDur * 0.65);
+        g.gain.linearRampToValueAtTime(0, t + pDur * 0.75);
+        o.start(t); o.stop(t + pDur);
+      }
+    }
+  } catch(e){ console.warn('Audio no disponible'); }
 }
 
 // ── Init ──
