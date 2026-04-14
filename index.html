@@ -4891,6 +4891,70 @@ function saveConfig(cfg){
   }).catch(e=>console.error('saveConfig error:',e));
 }
 
+// ── Funciones de áreas ────────────────────────────────────────────────
+function cfgAddArea(){
+  const nombre = prompt('Nombre del área:');
+  if(!nombre) return;
+  const descripcion = prompt('Descripción:');
+  if(descripcion===null) return;
+  
+  const cfg = loadConfig();
+  if(!cfg._areas) cfg._areas = [];
+  
+  cfg._areas.push({nombre, descripcion});
+  saveConfig(cfg);
+  cfgSwitchTab('areas', document.getElementById('cfgn-areas'));
+}
+
+function cfgRenderAreas(body){
+  const q = cfgGetSearch().toLowerCase();
+  const cfg = loadConfig();
+  const areas = (cfg._areas||[]).filter(a=>!q||a.nombre.toLowerCase().includes(q));
+  
+  if(!areas.length){
+    const empty=document.createElement('div');
+    empty.style.cssText='padding:40px;text-align:center;color:#94a3b8;font-size:14px;';
+    empty.innerHTML='<div style="font-size:32px;margin-bottom:8px;">📍</div><div>No hay áreas creadas aún.<br>Usa "+ Nueva área" para agregar.</div>';
+    body.appendChild(empty); return;
+  }
+  
+  areas.forEach((area, idx)=>{
+    const card=document.createElement('div');card.className='cfg-card';
+    const av=document.createElement('div');av.className='cfg-avatar';
+    av.style.background='linear-gradient(135deg,#fef3c7,#fde68a)';
+    av.textContent='📍';
+    const info=document.createElement('div');info.className='cfg-info';
+    info.innerHTML=`<div class="cfg-name">${area.nombre}</div><div class="cfg-sub">${area.descripcion||'Sin descripción'}</div>`;
+    const acts=document.createElement('div');acts.className='cfg-actions';
+    const bE=document.createElement('button');bE.className='cfg-btn2 edit';bE.textContent='✏️ Editar';bE.onclick=()=>{
+      const newName = prompt('Nuevo nombre:', area.nombre);
+      if(!newName) return;
+      area.nombre = newName;
+      const newDesc = prompt('Nueva descripción:', area.descripcion||'');
+      if(newDesc!==null) area.descripcion = newDesc;
+      const cfg = loadConfig();
+      saveConfig(cfg);
+      cfgSwitchTab('areas', document.getElementById('cfgn-areas'));
+    };
+    acts.appendChild(bE);
+    const bD=document.createElement('button');bD.className='cfg-btn2 del';bD.textContent='🗑 Eliminar';bD.onclick=()=>{
+      if(!confirm('¿Eliminar '+area.nombre+'?')) return;
+      const cfg = loadConfig();
+      cfg._areas.splice(idx, 1);
+      saveConfig(cfg);
+      cfgSwitchTab('areas', document.getElementById('cfgn-areas'));
+    };
+    acts.appendChild(bD);
+    card.appendChild(av);card.appendChild(info);card.appendChild(acts);
+    body.appendChild(card);
+  });
+}
+
+function cfgGetSearch(){
+  const s = document.getElementById('cfg-search2');
+  return s ? s.value.toLowerCase() : '';
+}
+
 // ── Funciones de navegación y áreas ───────────────────────────────────
 
 // Sub-menú Mecánicos: Tablero General | Montajes | Solicitar Insumos
