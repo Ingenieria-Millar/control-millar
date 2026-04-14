@@ -4786,7 +4786,42 @@ function mostrarLoginModulos(){}
 function mostrarSubMenuMecanicos(){}
 function checkMemberSelectionNeeded(user, cb){ cb(null); }
 function entrarTablero(){}
-function openCfgScreen(){}
+
+// ── Funciones de navegación y sesión ───────────────────────────────────
+function volverLogin(){
+  ocultarTodo();
+  currentUser=null;
+  try{ localStorage.removeItem('cm_session'); }catch(e){}
+  populateLoginSelect();
+  document.getElementById('login-user').value='';
+  document.getElementById('login-pass').value='';
+  document.getElementById('login-error').textContent='';
+  document.getElementById('login-screen').classList.remove('hidden');
+}
+
+function volverAArea(){
+  const ids = ['modulo-login-screen','modtable-screen'];
+  ids.forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.classList.add('hidden');
+  });
+  mostrarAreaScreen();
+}
+
+function ocultarTodo(){
+  const ids = ['area-screen','modulo-login-screen','modtable-screen'];
+  ids.forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.classList.add('hidden');
+  });
+  const sb = document.getElementById('stats-bar');
+  const ns = document.getElementById('nav-single');
+  const gv = document.getElementById('grid-view');
+  if(sb) sb.style.display='none';
+  if(ns) ns.style.display='none';
+  if(gv) gv.style.display='none';
+  currentView=null;
+}
 </script>
 
 </body>
