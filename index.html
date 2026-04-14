@@ -2083,28 +2083,43 @@ function mostrarSubMenuMecanicos(){
     else{card.onclick=cb;}
     return card;
   }
-  const soloMontajes = hasPerm('area_montajes')&&!hasPerm('area_mecanicos');
-  if(!soloMontajes){
+  
+  let idx = 0;
+  
+  // Tablero General
+  if(hasPerm('tablero')){
     const c1=makeCard('🏭',(currentUser==='Mecanicos'||currentUser==='Televisor')?'Tablero Mecanicos':'Tablero General','Vista general · '+MODULES.length+' módulos','ac-red',()=>{
       document.getElementById('area-screen').classList.add('hidden');
       entrarTablero();
     });
-    c1.style.animationDelay='0.05s';
+    c1.style.animationDelay=(idx*0.07)+'s'; idx++;
     btns.appendChild(c1);
   }
+  
+  // Tablero Planta (con sonido)
+  if(hasPerm('tablero_planta')){
+    const c1b=makeCard('🔊','Tablero Planta (con sonido)','Tablero con notificaciones','ac-orange',()=>{
+      document.getElementById('area-screen').classList.add('hidden');
+      entrarTablero();
+    });
+    c1b.style.animationDelay=(idx*0.07)+'s'; idx++;
+    btns.appendChild(c1b);
+  }
+  
   // Montajes: solo si tiene permiso
   if(hasPerm('area_montajes')){
     const c2=makeCard('🔩','Montajes','Alistamiento & Mantenimiento','ac-blue',()=>{ mostrarSubMenuMontajes(); },false);
-    c2.style.animationDelay='0.12s';
+    c2.style.animationDelay=(idx*0.07)+'s'; idx++;
     btns.appendChild(c2);
   }
+  
   // Solicitar Insumos: no para Televisor
-  if(currentUser!=='Televisor'){
+  if(hasPerm('area_solicitar_insumos') && currentUser!=='Televisor'){
     const c3=makeCard('📦','Solicitar Insumos','Reportar faltante de insumos','ac-teal',()=>{
       const url='/solicitar-insumos?perfil='+(currentUser||'Mecanicos');
       setTimeout(()=>{ window.location.href=url; }, 50);
     },false);
-    c3.style.animationDelay='0.18s';
+    c3.style.animationDelay=(idx*0.07)+'s'; idx++;
     btns.appendChild(c3);
   }
 
@@ -2248,21 +2263,43 @@ function mostrarSubMenuProduccion(){
     card.onclick=cb;return card;
   }
   
-  // Tablero General
-  const c0=makeCard('🏭','Tablero General','Vista general · módulos','ac-red',()=>{
-    document.getElementById('area-screen').classList.add('hidden');
-    entrarTablero();
-  });
-  c0.style.animationDelay='0.01s';
-  btns.appendChild(c0);
+  let idx = 0;
   
-  const c1=makeCard('📋','Control de Ingresos','Control de ingreso y asistencia','ac-blue',()=>{
-    window.location.href='/ingresos?user='+encodeURIComponent(currentUser);
-  });
-  c1.style.animationDelay='0.05s';
-  const c2=makeCard('📱','Contador Módulos','Login de acceso módulos','ac-green',()=>elegirArea('produccion'));
-  c2.style.animationDelay='0.12s';
-  btns.appendChild(c1); btns.appendChild(c2);
+  // Tablero General
+  if(hasPerm('tablero')){
+    const c0=makeCard('🏭','Tablero General','Vista general · módulos','ac-red',()=>{
+      document.getElementById('area-screen').classList.add('hidden');
+      entrarTablero();
+    });
+    c0.style.animationDelay=(idx*0.07)+'s'; idx++;
+    btns.appendChild(c0);
+  }
+  
+  // Control de Asistencia
+  if(hasPerm('area_asistencia')){
+    const c1=makeCard('📋','Control de Asistencia','Control de ingreso y asistencia','ac-blue',()=>{
+      window.location.href='/ingresos?user='+encodeURIComponent(currentUser);
+    });
+    c1.style.animationDelay=(idx*0.07)+'s'; idx++;
+    btns.appendChild(c1);
+  }
+  
+  // Acceso Login Módulos
+  if(hasPerm('modulos')){
+    const c2=makeCard('📱','Contador Módulos','Login de acceso módulos','ac-green',()=>elegirArea('produccion'));
+    c2.style.animationDelay=(idx*0.07)+'s'; idx++;
+    btns.appendChild(c2);
+  }
+  
+  // Login sin contraseña admin
+  if(hasPerm('area_produccion') && currentUser === 'Programador'){
+    const c3=makeCard('🔐','Login sin contraseña admin','Acceso sin contraseña','ac-yellow',()=>{
+      window.location.href='/ingresos?user='+encodeURIComponent(currentUser);
+    });
+    c3.style.animationDelay=(idx*0.07)+'s'; idx++;
+    btns.appendChild(c3);
+  }
+  
   // Botón volver
   const back=document.createElement('button');
   back.className='sp-left-logout-btn';
