@@ -844,36 +844,15 @@ function buildCard(req){
   const op        = req.op     || '';
   const qty       = req.qty    || '';
 
-  // Multi-insumo: generar filas de insumos
-  let insumosHTML = '';
+  // Multi-insumo: cantidad a mostrar
   let cantidadDisplay = qty || '';
   
   if(req.insumos && req.insumos.length > 1){
-    // Múltiples insumos: mostrar todos con cantidad al frente, cantidad vacía
-    insumosHTML = req.insumos.map(ins => `
-      <tr>
-        <td style="font-weight:500;color:#0f172a;">
-          ${ins.tipo || ''}
-          ${ins.qty ? ` ×${ins.qty}` : ''}
-        </td>
-      </tr>`).join('');
+    // Múltiples insumos: cantidad vacía
     cantidadDisplay = ''; // Vacío cuando hay múltiples
   } else if(req.insumos && req.insumos.length === 1){
-    // Un solo insumo: mostrar normal
-    insumosHTML = `
-      <tr>
-        <td style="font-weight:500;color:#0f172a;">
-          ${req.insumos[0].tipo || ''}
-          ${req.insumos[0].qty ? ` ×${req.insumos[0].qty}` : ''}
-        </td>
-      </tr>`;
+    // Un solo insumo
     cantidadDisplay = req.insumos[0].qty || qty || '';
-  } else {
-    // Sin insumos desglosados
-    insumosHTML = `
-      <tr>
-        <td style="font-weight:500;color:#0f172a;">${insumo}</td>
-      </tr>`;
   }
 
   // Obs no obligatoria para Solicitud de Producción
@@ -892,8 +871,8 @@ function buildCard(req){
     <table class="ci-card-table">
       <tr><td>Tipo</td>        <td>${categoria}</td></tr>
       <tr><td>Referencia</td>  <td>${ref}</td></tr>
-      <tr><td>Insumo</td>      ${insumosHTML.split('<tr>')[1] ? insumosHTML : `<td>${insumo}</td>`}</tr>
-      ${insumosHTML.split('<tr>').slice(2).map(x => '<tr>' + x).join('')}
+      <tr><td>Insumo</td>      <td style="font-weight:500;color:#0f172a;">${req.insumos && req.insumos.length > 0 ? req.insumos[0].tipo : insumo}</td></tr>
+      ${req.insumos && req.insumos.length > 1 ? req.insumos.slice(1).map(ins => `<tr><td></td><td style="font-weight:500;color:#0f172a;">${ins.tipo}${ins.qty ? ` ×${ins.qty}` : ''}</td></tr>`).join('') : ''}
       <tr><td>Cantidad</td>    <td>${cantidadDisplay || '—'}</td></tr>
       <tr><td>Talla</td>       <td>${talla}</td></tr>
       <tr><td>Hora Inicio</td> <td>${horaInicio}</td></tr>
