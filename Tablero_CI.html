@@ -372,17 +372,19 @@ input,select,textarea{ font-size:16px !important; }
     <div class="ci-stat done" id="sf-done" onclick="setFilter('done')">
       ✅ Entregados <span class="ci-badge" id="cnt-done">0</span>
     </div>
-    <button class="hd-back-btn" onclick="toggleFiltroModuloPanel()" id="btn-modulo" style="display:flex;align-items:center;gap:6px;font-size:12px;position:relative;">
-      🏭 Módulo
-    </button>
-    <div id="filtro-modulo-panel" style="display:none;position:absolute;top:110%;left:0;z-index:300;background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:12px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:200px;">
-      <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Selecciona módulo</div>
-      <select id="ci-modulo-select" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;outline:none;">
-        <option value="">Todos</option>
-      </select>
-      <div style="display:flex;gap:8px;margin-top:10px;">
-        <button onclick="aplicarFiltroModulo()" style="flex:1;padding:8px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:.5px;cursor:pointer;">Filtrar</button>
-        <button onclick="limpiarFiltroModulo()" style="flex:1;padding:8px;border-radius:8px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">Limpiar</button>
+    <div style="position:relative;" id="modulo-wrap">
+      <button class="hd-back-btn" onclick="toggleFiltroModuloPanel()" id="btn-modulo" style="display:flex;align-items:center;gap:6px;font-size:12px;">
+        🏭 Módulo
+      </button>
+      <div id="filtro-modulo-panel" style="display:none;position:absolute;top:110%;right:0;z-index:300;background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:12px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:200px;">
+        <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Selecciona módulo</div>
+        <select id="ci-modulo-select" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;outline:none;">
+          <option value="">Todos</option>
+        </select>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button onclick="aplicarFiltroModulo()" style="flex:1;padding:8px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:.5px;cursor:pointer;">Filtrar</button>
+          <button onclick="limpiarFiltroModulo()" style="flex:1;padding:8px;border-radius:8px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">Limpiar</button>
+        </div>
       </div>
     </div>
     <div class="ci-stat-spacer"></div>
@@ -437,12 +439,8 @@ input,select,textarea{ font-size:16px !important; }
       onkeydown="if(event.key==='Enter') procederEditar()">
     <div id="modal-edit-err" style="display:none;color:var(--danger);font-size:12px;font-weight:700;margin-bottom:10px;"></div>
     <div id="modal-edit-form" style="display:none;">
-      <label class="ci-modal-label">Insumo</label>
-      <input type="text" class="ci-modal-input" id="modal-edit-insumo" placeholder="Ej: Elastico base">
-      <label class="ci-modal-label">Cantidad</label>
-      <input type="number" class="ci-modal-input" id="modal-edit-qty" placeholder="Ej: 10">
-      <label class="ci-modal-label">Talla</label>
-      <input type="text" class="ci-modal-input" id="modal-edit-talla" placeholder="Ej: M">
+      <div id="modal-edit-insumos-list" style="max-height:300px;overflow-y:auto;"></div>
+      <button type="button" id="modal-edit-agregar-btn" style="width:100%;padding:8px;margin-top:10px;border-radius:8px;border:1.5px dashed #2563eb;background:#fff;color:#2563eb;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">+ Agregar Insumo</button>
     </div>
     <div class="ci-modal-btns">
       <button class="ci-modal-btn secondary" onclick="cerrarModalEdit()">Cancelar</button>
@@ -851,11 +849,22 @@ function renderCards(){
   }
 
   // Generar mapa de número de solicitud (desde el inicio de la historia)
-  let solicitudNum = 1;
+  // Si req.solicitudNum no existe, generarlo basado en posición
+  let maxNum = 0;
   const solicitudMap = {};
   ciRequests.forEach(r => {
-    if(!solicitudMap[r._id]) {
-      solicitudMap[r._id] = solicitudNum++;
+    if(r.solicitudNum){
+      solicitudMap[r._id] = r.solicitudNum;
+      maxNum = Math.max(maxNum, r.solicitudNum);
+    }
+  });
+  
+  // Asignar números a los que no los tengan
+  ciRequests.forEach(r => {
+    if(!solicitudMap[r._id]){
+      maxNum++;
+      solicitudMap[r._id] = maxNum;
+      r.solicitudNum = maxNum; // Guardar en el objeto
     }
   });
 
@@ -1231,6 +1240,7 @@ function abrirEditar(id){
   document.getElementById('modal-edit-pass').value = '';
   document.getElementById('modal-edit-err').style.display = 'none';
   document.getElementById('modal-edit-form').style.display = 'none';
+  document.getElementById('modal-edit-pass').style.display = 'block';
   document.getElementById('modal-edit-btn').textContent = 'Validar';
   document.getElementById('modal-edit-btn').onclick = () => procederEditar();
   
@@ -1242,6 +1252,7 @@ function cerrarModalEdit(){
   document.getElementById('modal-edit').classList.remove('open');
   _pendingEditId = null;
   _editPasswordValidated = false;
+  document.getElementById('modal-edit-insumos-list').innerHTML = '';
 }
 
 function procederEditar(){
@@ -1269,26 +1280,87 @@ function procederEditar(){
           return;
         }
         
-        // Contraseña correcta — mostrar formulario
+        // Contraseña correcta — mostrar formulario con todos los insumos
         _editPasswordValidated = true;
         const req = ciRequests.find(r => r._id === _pendingEditId);
         
-        // Llenar formulario con datos actuales
-        const primerInsumo = req.insumos && req.insumos.length > 0 ? req.insumos[0] : req;
-        document.getElementById('modal-edit-insumo').value = primerInsumo.tipo || '';
-        document.getElementById('modal-edit-qty').value = primerInsumo.qty || '';
-        document.getElementById('modal-edit-talla').value = primerInsumo.talla || '';
+        // Obtener lista de insumos disponibles (de todas las solicitudes)
+        const insumosDisponibles = [...new Set(
+          ciRequests.flatMap(r => r.insumos?.map(i => i.tipo) || r.tipo)
+        )].filter(Boolean).sort();
+        
+        // Llenar formulario con todos los insumos
+        const listHTML = (req.insumos && req.insumos.length > 0 ? req.insumos : [{tipo: req.tipo, qty: req.qty, talla: req.talla}])
+          .map((ins, idx) => `
+            <div style="margin-bottom:15px;padding:12px;background:#f8f9fa;border-radius:8px;border:1px solid #e5e7eb;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <label class="ci-modal-label" style="margin:0;">Insumo ${idx + 1}</label>
+                ${idx > 0 ? `<button type="button" onclick="eliminarInsumoEdit(${idx})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:4px;padding:4px 8px;cursor:pointer;font-size:11px;">✕ Eliminar</button>` : ''}
+              </div>
+              <select id="modal-edit-insumo-${idx}" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;outline:none;margin-bottom:8px;">
+                <option value="">Selecciona insumo</option>
+                ${insumosDisponibles.map(ins => `<option value="${ins}" ${ins === (ins?.tipo || '') ? 'selected' : ''}>${ins}</option>`).join('')}
+              </select>
+              <input type="text" id="modal-edit-insumo-custom-${idx}" placeholder="O escribe uno nuevo" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;outline:none;margin-bottom:8px;" value="${ins.tipo || ''}">
+              <label class="ci-modal-label" style="margin:0 0 4px 0;">Cantidad</label>
+              <input type="number" id="modal-edit-qty-${idx}" value="${ins.qty || ''}" placeholder="Ej: 10" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;outline:none;margin-bottom:8px;">
+              <label class="ci-modal-label" style="margin:0 0 4px 0;">Talla</label>
+              <input type="text" id="modal-edit-talla-${idx}" value="${ins.talla || ''}" placeholder="Ej: M" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;outline:none;">
+            </div>
+          `).join('');
+        
+        document.getElementById('modal-edit-insumos-list').innerHTML = listHTML;
         
         errEl.style.display = 'none';
         form.style.display = 'block';
         document.getElementById('modal-edit-pass').style.display = 'none';
         document.getElementById('modal-edit-btn').textContent = 'Guardar cambios';
         document.getElementById('modal-edit-btn').onclick = () => guardarEdicion();
+        
+        // Agregar insumo
+        document.getElementById('modal-edit-agregar-btn').onclick = () => agregarInsumoEdit();
       })
       .catch(()=>{
         if(errEl){errEl.textContent='Error al verificar. Intenta de nuevo.';errEl.style.display='block';}
       });
   }
+}
+
+let _editInsumosCount = 0;
+
+function agregarInsumoEdit(){
+  const listEl = document.getElementById('modal-edit-insumos-list');
+  const req = ciRequests.find(r => r._id === _pendingEditId);
+  const insumosDisponibles = [...new Set(
+    ciRequests.flatMap(r => r.insumos?.map(i => i.tipo) || r.tipo)
+  )].filter(Boolean).sort();
+  
+  const idx = (req.insumos && req.insumos.length > 0 ? req.insumos.length : 1) + (document.querySelectorAll('[id^="modal-edit-insumo-"]').length - (req.insumos?.length || 1));
+  
+  const newHTML = `
+    <div style="margin-bottom:15px;padding:12px;background:#f8f9fa;border-radius:8px;border:1px solid #e5e7eb;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <label class="ci-modal-label" style="margin:0;">Insumo ${idx + 1}</label>
+        <button type="button" onclick="eliminarInsumoEdit(${idx})" style="background:#fee2e2;color:#dc2626;border:none;border-radius:4px;padding:4px 8px;cursor:pointer;font-size:11px;">✕ Eliminar</button>
+      </div>
+      <select id="modal-edit-insumo-${idx}" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;outline:none;margin-bottom:8px;">
+        <option value="">Selecciona insumo</option>
+        ${insumosDisponibles.map(ins => `<option value="${ins}">${ins}</option>`).join('')}
+      </select>
+      <input type="text" id="modal-edit-insumo-custom-${idx}" placeholder="O escribe uno nuevo" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;outline:none;margin-bottom:8px;">
+      <label class="ci-modal-label" style="margin:0 0 4px 0;">Cantidad</label>
+      <input type="number" id="modal-edit-qty-${idx}" placeholder="Ej: 10" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;outline:none;margin-bottom:8px;">
+      <label class="ci-modal-label" style="margin:0 0 4px 0;">Talla</label>
+      <input type="text" id="modal-edit-talla-${idx}" placeholder="Ej: M" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;outline:none;">
+    </div>
+  `;
+  
+  listEl.insertAdjacentHTML('beforeend', newHTML);
+}
+
+function eliminarInsumoEdit(idx){
+  const el = document.getElementById(`modal-edit-insumo-${idx}`).parentElement;
+  if(el) el.remove();
 }
 
 function guardarEdicion(){
@@ -1297,33 +1369,40 @@ function guardarEdicion(){
   const req = ciRequests.find(r => r._id === _pendingEditId);
   if(!req) return;
   
-  const nuevoInsumo = document.getElementById('modal-edit-insumo').value.trim();
-  const nuevaQty = document.getElementById('modal-edit-qty').value.trim();
-  const nuevaTalla = document.getElementById('modal-edit-talla').value.trim();
+  // Recopilar todos los insumos del formulario
+  const insumosEditados = [];
+  const insumoInputs = document.querySelectorAll('[id^="modal-edit-insumo-"][id$!="custom"]');
   
-  if(!nuevoInsumo || !nuevaQty){
-    alert('Insumo y Cantidad son requeridos');
+  insumoInputs.forEach((select, idx) => {
+    const idxNum = parseInt(select.id.match(/\d+/)[0]);
+    const insumoSelect = document.getElementById(`modal-edit-insumo-${idxNum}`).value;
+    const insumoCust = document.getElementById(`modal-edit-insumo-custom-${idxNum}`)?.value.trim() || '';
+    const insumo = insumoCust || insumoSelect;
+    const qty = document.getElementById(`modal-edit-qty-${idxNum}`)?.value.trim();
+    const talla = document.getElementById(`modal-edit-talla-${idxNum}`)?.value.trim() || '';
+    
+    if(insumo && qty){
+      insumosEditados.push({
+        tipo: insumo,
+        qty: parseInt(qty),
+        talla: talla
+      });
+    }
+  });
+  
+  if(insumosEditados.length === 0){
+    alert('Debe haber al menos un insumo con cantidad');
     return;
   }
   
   // Actualizar en el array
-  if(req.insumos && req.insumos.length > 0){
-    req.insumos[0].tipo = nuevoInsumo;
-    req.insumos[0].qty = parseInt(nuevaQty);
-    req.insumos[0].talla = nuevaTalla;
-  } else {
-    req.tipo = nuevoInsumo;
-    req.qty = parseInt(nuevaQty);
-    req.talla = nuevaTalla;
-  }
+  req.insumos = insumosEditados;
   
   // Enviar al servidor
   wsSend({
     type: 'ci_edit_request',
     reqId: _pendingEditId,
-    insumo: nuevoInsumo,
-    qty: parseInt(nuevaQty),
-    talla: nuevaTalla
+    insumos: insumosEditados
   });
   
   cerrarModalEdit();
