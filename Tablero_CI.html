@@ -862,8 +862,9 @@ function buildCard(req){
   const cumplirDisabled = false;
   const cumplirTitle    = '';
 
-  // Observación — solo lectura
-  const obsCell = `<td style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:500;color:${req.obs ? '#111827' : '#9ca3af'};">${req.obs || '—'}</td>`;
+  // Observación — si es Solicitud de Producción, mostrar ese texto
+  const displayObs = categoria === 'Solicitud de Producción' ? 'Solicitud de Producción' : (req.obs || '—');
+  const obsCell = `<td style="font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:500;color:${displayObs !== '—' ? '#111827' : '#9ca3af'};">${displayObs}</td>`;
 
   div.innerHTML = `
     <div class="ci-card-hdr">
