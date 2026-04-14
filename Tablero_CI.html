@@ -871,10 +871,30 @@ function buildCard(req){
     <table class="ci-card-table">
       <tr><td>Tipo</td>        <td>${categoria}</td></tr>
       <tr><td>Referencia</td>  <td>${ref}</td></tr>
+      ${req.insumos && req.insumos.length > 1 ? `
+      <tr>
+        <td colspan="2" style="padding:0;border:none;">
+          <table style="width:100%;border-collapse:collapse;">
+            <tr style="background-color:#f3f4f6;border-bottom:1px solid #d1d5db;">
+              <td style="padding:8px 12px;font-weight:700;color:#374151;font-size:12px;text-transform:uppercase;">Insumo</td>
+              <td style="padding:8px 12px;font-weight:700;color:#374151;font-size:12px;text-transform:uppercase;text-align:center;">Cantidad</td>
+              <td style="padding:8px 12px;font-weight:700;color:#374151;font-size:12px;text-transform:uppercase;text-align:center;">Talla</td>
+            </tr>
+            ${req.insumos.map(ins => `
+            <tr style="border-bottom:1px solid #e5e7eb;">
+              <td style="padding:8px 12px;color:#0f172a;font-weight:500;">${ins.tipo || '—'}</td>
+              <td style="padding:8px 12px;color:#0f172a;font-weight:500;text-align:center;">${ins.qty || '—'}</td>
+              <td style="padding:8px 12px;color:#0f172a;font-weight:500;text-align:center;">${ins.talla || '—'}</td>
+            </tr>
+            `).join('')}
+          </table>
+        </td>
+      </tr>
+      ` : `
       <tr><td>Insumo</td>      <td style="font-weight:500;color:#0f172a;">${req.insumos && req.insumos.length > 0 ? req.insumos[0].tipo : insumo}</td></tr>
-      ${req.insumos && req.insumos.length > 1 ? req.insumos.slice(1).map(ins => `<tr><td></td><td style="font-weight:500;color:#0f172a;">${ins.tipo}${ins.qty ? ` ×${ins.qty}` : ''}</td></tr>`).join('') : ''}
       <tr><td>Cantidad</td>    <td>${cantidadDisplay || '—'}</td></tr>
       <tr><td>Talla</td>       <td>${talla}</td></tr>
+      `}
       <tr><td>Hora Inicio</td> <td>${horaInicio}</td></tr>
       <tr><td>Hora Fin</td>    <td>${horaFin}</td></tr>
       <tr class="row-espera"><td>T. Espera</td><td class="ci-tespera-val">${tEsperaInicial}</td></tr>
