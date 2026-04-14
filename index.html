@@ -1222,6 +1222,30 @@ const USUARIOS={
   'Programador':  {pass:'1',perms:['area_ingreso','area_produccion','area_mecanicos','tablero','modulos','excel','fix','area_calidad','area_ci','area_empaque','area_corte','area_sst','area_montajes']},
 };
 
+// ── Variables de configuración ─────────────────────────────────────────
+let _appConfig = {};  // caché en memoria
+let _appConfigLoaded = false;
+
+// ── Funciones de configuración ─────────────────────────────────────────
+function loadConfig(){ return _appConfig; }
+
+async function loadConfigFromServer(){
+  try{
+    const r = await fetch('/api/app-config');
+    _appConfig = await r.json();
+    _appConfigLoaded = true;
+  } catch(e){
+    console.error('loadConfigFromServer error:',e);
+    _appConfig = {};
+    _appConfigLoaded = true;
+  }
+}
+
+// Cargar config al iniciar
+loadConfigFromServer().then(() => {
+  populateLoginSelect();
+});
+
 // ── CFG SCREEN LOGIC ──────────────────────────────────────────────
 let cfgCurrentTab = 'perfiles';
 const CFG_TITLES = {
