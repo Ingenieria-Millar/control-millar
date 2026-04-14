@@ -4682,9 +4682,18 @@ function submitLogin(){
   if(!rawVal){err.textContent='Selecciona un usuario';return;}
 
   const usuario = rawVal;
-  if(!USUARIOS[usuario]){err.textContent='Usuario no válido';return;}
   
-  if(pass!==USUARIOS[usuario].pass){
+  // Buscar usuario en USUARIOS o en extras
+  let usuarioData = USUARIOS[usuario];
+  if(!usuarioData){
+    // Buscar en extras
+    const cfg = loadConfig();
+    const extra = (cfg._usuarios_extra||[]).find(u => u.nombre === usuario);
+    if(!extra || extra.disabled){err.textContent='Usuario no válido o inactivo';return;}
+    usuarioData = {pass: extra.pass, perms: extra.perms||[]};
+  }
+  
+  if(pass !== usuarioData.pass){
     inp.classList.add('error');err.textContent='Contraseña incorrecta';inp.value='';
     setTimeout(()=>{inp.classList.remove('error');inp.focus();},400);return;
   }
@@ -4699,7 +4708,7 @@ function submitLogin(){
   
   document.getElementById('login-pass').value='';
   document.getElementById('login-error').textContent='';
-  try{ localStorage.setItem('cm_session', JSON.stringify({user: usuario, pass: pass, rol:'', perms: USUARIOS[usuario]?.perms||[]})); }catch(e){}
+  try{ localStorage.setItem('cm_session', JSON.stringify({user: usuario, pass: pass, rol:'', perms: usuarioData.perms||[]})); }catch(e){}
   
   mostrarAreaScreen();
 }
