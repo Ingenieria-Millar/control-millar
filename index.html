@@ -4787,6 +4787,35 @@ function mostrarSubMenuMecanicos(){}
 function checkMemberSelectionNeeded(user, cb){ cb(null); }
 function entrarTablero(){}
 
+// ── Funciones de configuración de usuarios ────────────────────────────
+function getCfgUsuarios(){
+  // Usuarios base del sistema (no editables = Programador)
+  const base = {};
+  Object.entries(USUARIOS).forEach(([k,v])=>{ base[k]={pass:v.pass, perms:v.perms, builtin: k==='Programador'}; });
+  // Merge con extras guardados en config
+  const cfg = loadConfig();
+  if(cfg._usuarios_extra){ cfg._usuarios_extra.forEach(u=>{ base[u.nombre]={pass:u.pass, perms:u.perms||[], disabled:!!u.disabled, extra:true}; }); }
+  return base;
+}
+
+function getUsuariosExtra(){
+  const cfg = loadConfig(); return cfg._usuarios_extra||[];
+}
+
+function saveUsuariosExtra(arr){
+  const cfg = loadConfig(); cfg._usuarios_extra=arr; saveConfig(cfg);
+}
+
+function saveConfig(cfg){
+  // Mergear con _appConfig actual para no perder datos
+  _appConfig = Object.assign({}, _appConfig, cfg);
+  fetch('/api/app-config', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(_appConfig)
+  }).catch(e=>console.error('saveConfig error:',e));
+}
+
 // ── Funciones de navegación y sesión ───────────────────────────────────
 function volverLogin(){
   ocultarTodo();
