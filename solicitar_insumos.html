@@ -928,6 +928,19 @@ function renderHistorial(){
     }
     return true;
   });
+  
+  // Asignar números de solicitud igual que en tarjetas (por fecha/hora inicio)
+  const sortedByDate = [...ciRequests].sort((a, b) => {
+    const dateA = a.alertStart || a.fecha || 0;
+    const dateB = b.alertStart || b.fecha || 0;
+    return dateA - dateB; // Más antigua primero
+  });
+  
+  const solicitudMap = {};
+  sortedByDate.forEach((r, idx) => {
+    solicitudMap[r._id] = idx + 1; // 1, 2, 3, ...
+  });
+  
   if(mias.length===0){
     list.innerHTML='<div class="hist-empty">📦<br>No tienes solicitudes aún</div>';
     return;
@@ -960,9 +973,12 @@ function renderHistorial(){
     const card=document.createElement('div');
     card.className=`req-card ${r.status||'alert'}`;
     card.innerHTML=`
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #e5e7eb;margin-bottom:0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #e5e7eb;">
         <div style="font-family:'IBM Plex Sans',sans-serif;font-size:14px;font-weight:600;letter-spacing:0px;text-transform:uppercase;color:#0f172a;">${r.module||''}</div>
-        <span class="req-badge ${r.status||'alert'}" style="font-size:11px;padding:4px 8px;">${badgeLabel}</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="req-badge ${r.status||'alert'}" style="font-size:11px;padding:4px 8px;">${badgeLabel}</span>
+          <span style="font-size:11px;color:#9ca3af;font-weight:500;">#${solicitudMap[r._id]}</span>
+        </div>
       </div>
       <table style="width:100%;border-collapse:collapse;margin-bottom:0;">
         <tr>
@@ -985,7 +1001,6 @@ function renderHistorial(){
         </tr>
         <tr><td style="padding:8px 12px;color:#6b7280;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.8px;font-family:'IBM Plex Sans',sans-serif;">Tipo</td><td style="padding:8px 12px;color:#111827;font-weight:500;font-family:'IBM Plex Sans',sans-serif;font-size:13px;">${r.categoria||'Alistamiento'}</td></tr>
         <tr><td style="padding:8px 12px;color:#6b7280;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.8px;font-family:'IBM Plex Sans',sans-serif;">Referencia</td><td style="padding:8px 12px;color:#111827;font-weight:500;font-family:'IBM Plex Sans',sans-serif;font-size:13px;">${r.ref||''}</td></tr>
-        <tr><td style="padding:8px 12px;color:#6b7280;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.8px;font-family:'IBM Plex Sans',sans-serif;">OP / OC</td><td style="padding:8px 12px;color:#111827;font-weight:500;font-family:'IBM Plex Sans',sans-serif;font-size:13px;">${r.op||''}</td></tr>
         <tr><td style="padding:8px 12px;color:#6b7280;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.8px;font-family:'IBM Plex Sans',sans-serif;">Hora Inicio</td><td style="padding:8px 12px;color:#111827;font-weight:500;font-family:'IBM Plex Sans',sans-serif;font-size:13px;">${horaInicio}</td></tr>
         <tr><td style="padding:8px 12px;color:#6b7280;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.8px;font-family:'IBM Plex Sans',sans-serif;">Hora Fin</td><td style="padding:8px 12px;color:#111827;font-weight:500;font-family:'IBM Plex Sans',sans-serif;font-size:13px;">${horaFin}</td></tr>
         <tr><td style="padding:8px 12px;color:#6b7280;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.8px;font-family:'IBM Plex Sans',sans-serif;">T. Espera</td><td style="padding:8px 12px;color:#111827;font-weight:500;font-family:'IBM Plex Sans',sans-serif;font-size:13px;">${tiempoEspera}</td></tr>
