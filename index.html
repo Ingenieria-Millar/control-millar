@@ -55,6 +55,8 @@ window.ScreenState = {
           screen: visibleScreen,
           user: typeof currentUser !== 'undefined' ? currentUser : null,
           rol: typeof currentUserRol !== 'undefined' ? currentUserRol : null,
+          selectedMod: typeof selectedMod !== 'undefined' ? selectedMod : null,
+          currentView: typeof currentView !== 'undefined' ? currentView : null,
           timestamp: new Date().getTime()
         };
         localStorage.setItem(this.SCREEN_KEY, JSON.stringify(state));
@@ -1874,6 +1876,14 @@ window.addEventListener('DOMContentLoaded', async ()=>{
           }
           document.getElementById('login-screen').classList.add('hidden');
           mostrarAreaScreen();
+          // Restaurar módulo seleccionado y vista si estaba en tablero
+          const screenSaved = ScreenState.loadSavedState();
+          if(screenSaved && screenSaved.selectedMod && screenSaved.currentView === 'single'){
+            selectedMod = screenSaved.selectedMod;
+            setTimeout(() => { setView('single'); }, 600);
+          } else if(screenSaved && screenSaved.currentView === 'grid'){
+            setTimeout(() => { entrarTablero(); }, 600);
+          }
         } else {
           // Usuario ya no existe, limpiar sesión
           localStorage.removeItem('cm_session');
@@ -2387,6 +2397,7 @@ function submitModuloLogin(){
 function volverLogin(){
   ocultarTodo();currentUser=null;selectedMod=null;
   try{ localStorage.removeItem('cm_session'); }catch(e){}
+  ScreenState.clear();
   populateLoginSelect();
   document.getElementById('login-user').value='';
   document.getElementById('login-pass').value='';
