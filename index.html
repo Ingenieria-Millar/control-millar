@@ -1823,11 +1823,14 @@ window.addEventListener('DOMContentLoaded', async ()=>{
     if(saved){
       const s = JSON.parse(saved);
       if(s && s.user){
-        // Verificar que el usuario sigue siendo válido
-        // Si la sesión tiene perms guardados, aplicarlos antes de verificar
-        if(s.perms && s.perms.length && typeof USUARIOS!=='undefined'){
+        // Cargar permisos desde Configuraciones
+        const cfg = loadConfig();
+        if(cfg[s.user] && cfg[s.user].perms){
           if(!USUARIOS[s.user]) USUARIOS[s.user] = {pass:'', perms:[]};
-          // Solo aplicar si el usuario no tiene perms ya (aún no llegaron del servidor)
+          USUARIOS[s.user].perms = cfg[s.user].perms;
+        } else if(s.perms && s.perms.length && typeof USUARIOS!=='undefined'){
+          // Fallback a permisos guardados en sesión si no hay en Configuraciones
+          if(!USUARIOS[s.user]) USUARIOS[s.user] = {pass:'', perms:[]};
           if(!USUARIOS[s.user].perms || USUARIOS[s.user].perms.length === 0){
             USUARIOS[s.user].perms = s.perms;
           }
@@ -1899,6 +1902,13 @@ function submitLogin(){
   document.getElementById('login-screen').classList.add('hidden');
   document.getElementById('login-pass').value='';
   document.getElementById('login-error').textContent='';
+  
+  // Cargar permisos desde Configuraciones
+  const cfg = loadConfig();
+  if(cfg[usuario] && cfg[usuario].perms){
+    USUARIOS[usuario].perms = cfg[usuario].perms;
+  }
+  
   try{ localStorage.setItem('cm_session', JSON.stringify({user: usuario, pass: pass, rol:'', perms: USUARIOS[usuario]?.perms||[]})); }catch(e){}
   mostrarAreaScreen();
 }
@@ -2279,7 +2289,7 @@ function mostrarSubMenuProduccion(){
   }
   
   // Informes
-  if(hasPerm('area_ingreso')||hasPerm('area_produccion')){
+  if(hasPerm('informes')){
     const c3=makeCard('📊','Informes','Reportes y estadísticas','ac-indigo',()=>{
       alert('📊 Módulo de Informes - Próximamente');
     });
@@ -3304,7 +3314,7 @@ const AREAS_CONFIG = [
       {key:'tablero',         label:'Tablero General'},
       {key:'area_asistencia', label:'Control de Asistencia'},
       {key:'modulos',         label:'Contador Módulos'},
-      {key:'area_ingreso',    label:'Informes'},
+      {key:'informes',        label:'Informes'},
     ]
   },
   {
