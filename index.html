@@ -7647,30 +7647,75 @@ function siEnviar(){
       font-size:14px;font-weight:700;letter-spacing:1px;cursor:pointer;
     }
     #hst-date-popup .dp-apply:hover{filter:brightness(1.1);}
-    /* Tarjeta acción (fecha y excel) — mismo tamaño que summary-card */
+    /* Tarjeta acción — fecha (gris) */
     #historico-screen .hst-action-card{
-      background:#f1f5f9;border:1.5px solid #e2e8f0;border-radius:10px;
-      padding:10px 16px;display:flex;flex-direction:column;gap:2px;min-width:140px;
-      cursor:pointer;transition:border-color .2s, background .2s;
+      display:flex;align-items:center;gap:8px;padding:9px 18px;
+      background:#f1f5f9;border:1.5px solid #cbd5e1;border-radius:50px;
+      cursor:pointer;transition:all .2s;margin-left:auto;
     }
-    #historico-screen .hst-action-card:hover{border-color:#94a3b8;background:#e2e8f0;}
-    #historico-screen .hst-action-card .sc-label{
-      font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#64748b;
+    #historico-screen .hst-action-card:hover{background:#e2e8f0;border-color:#94a3b8;}
+    #historico-screen .hst-action-card .ac-icon{font-size:16px;}
+    #historico-screen .hst-action-card .ac-text{
+      font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;
+      letter-spacing:.5px;color:#0f172a;
     }
-    #historico-screen .hst-action-card .sc-val{
-      font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;
-    }
+    /* Tarjeta acción — excel (verde) */
     #historico-screen .hst-excel-card{
-      background:#16a34a;border:1.5px solid #16a34a;border-radius:10px;
-      padding:10px 16px;display:flex;flex-direction:column;gap:2px;min-width:140px;
+      display:flex;align-items:center;gap:8px;padding:9px 18px;
+      background:#16a34a;border:1.5px solid #16a34a;border-radius:50px;
       cursor:pointer;transition:filter .2s;
     }
     #historico-screen .hst-excel-card:hover{filter:brightness(1.1);}
-    #historico-screen .hst-excel-card .sc-label{
-      font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,255,255,.75);
+    #historico-screen .hst-excel-card .ac-icon{font-size:16px;}
+    #historico-screen .hst-excel-card .ac-text{
+      font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;
+      letter-spacing:.5px;color:#fff;
     }
-    #historico-screen .hst-excel-card .sc-val{
-      font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#fff;
+    /* Encabezados ordenables */
+    #historico-screen th.sortable{cursor:pointer;user-select:none;}
+    #historico-screen th.sortable:hover{color:#0f172a;}
+    #historico-screen th.sortable .sort-arrow{margin-left:4px;opacity:.4;font-size:10px;}
+    #historico-screen th.sortable.asc .sort-arrow::after{content:'▲';opacity:1;}
+    #historico-screen th.sortable.desc .sort-arrow::after{content:'▼';opacity:1;}
+    #historico-screen th.sortable:not(.asc):not(.desc) .sort-arrow::after{content:'⇅';}
+    /* Botón eliminar fila */
+    #historico-screen .hst-del-btn{
+      background:none;border:none;cursor:pointer;color:#cbd5e1;font-size:14px;
+      padding:2px 4px;border-radius:4px;transition:color .15s;line-height:1;
+    }
+    #historico-screen .hst-del-btn:hover{color:#ef4444;}
+    /* Modal eliminar */
+    #hst-del-modal{
+      display:none;position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.4);
+      align-items:center;justify-content:center;
+    }
+    #hst-del-modal.open{display:flex;}
+    #hst-del-modal .dm-box{
+      background:#fff;border-radius:16px;padding:28px 24px;width:100%;max-width:320px;
+      box-shadow:0 12px 40px rgba(0,0,0,.18);display:flex;flex-direction:column;gap:14px;
+    }
+    #hst-del-modal .dm-title{
+      font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;
+      letter-spacing:1px;color:#dc2626;text-transform:uppercase;
+    }
+    #hst-del-modal .dm-sub{font-family:'Nunito',sans-serif;font-size:13px;color:#64748b;}
+    #hst-del-modal .dm-input{
+      width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;
+      font-family:'Courier New',monospace;font-size:20px;letter-spacing:8px;text-align:center;
+      outline:none;
+    }
+    #hst-del-modal .dm-input:focus{border-color:#ef4444;}
+    #hst-del-modal .dm-input.error{border-color:#ef4444;animation:shake .3s ease;}
+    #hst-del-modal .dm-btns{display:flex;gap:10px;}
+    #hst-del-modal .dm-cancel{
+      flex:1;padding:11px;border-radius:10px;border:1.5px solid #e2e8f0;
+      background:#f1f5f9;color:#64748b;font-family:'Barlow Condensed',sans-serif;
+      font-size:14px;font-weight:700;cursor:pointer;
+    }
+    #hst-del-modal .dm-confirm{
+      flex:1;padding:11px;border-radius:10px;border:none;
+      background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff;
+      font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer;
     }
     /* Filtros por columna */
     #historico-screen .hst-col-filters td{padding:4px 14px 8px;background:#f8fafc;}
@@ -7759,13 +7804,14 @@ function siEnviar(){
       <table>
         <thead>
           <tr>
-            <th>Módulo</th>
-            <th>Nombre Operaria</th>
-            <th>Tipo de Improductivo</th>
-            <th>Hora Inicio</th>
-            <th>Hora Fin</th>
-            <th>Tiempo (min)</th>
-            <th>Mecánico</th>
+            <th class="sortable" onclick="sortHistorico('mod')">Módulo<span class="sort-arrow"></span></th>
+            <th class="sortable" onclick="sortHistorico('empleada')">Nombre Operaria<span class="sort-arrow"></span></th>
+            <th class="sortable" onclick="sortHistorico('tipo')">Tipo de Improductivo<span class="sort-arrow"></span></th>
+            <th class="sortable" onclick="sortHistorico('horaInicio')">Hora Inicio<span class="sort-arrow"></span></th>
+            <th class="sortable" onclick="sortHistorico('hora')">Hora Fin<span class="sort-arrow"></span></th>
+            <th class="sortable" onclick="sortHistorico('min')">Tiempo (min)<span class="sort-arrow"></span></th>
+            <th class="sortable" onclick="sortHistorico('mecanico')">Mecánico<span class="sort-arrow"></span></th>
+            <th></th>
           </tr>
           <tr class="hst-col-filters">
             <td><input class="hst-col-input" id="hcf-mod"      placeholder="Buscar..." oninput="renderHistorico()"></td>
@@ -7775,10 +7821,24 @@ function siEnviar(){
             <td><input class="hst-col-input" id="hcf-fin"      placeholder="Buscar..." oninput="renderHistorico()"></td>
             <td><input class="hst-col-input" id="hcf-tiempo"   placeholder="Buscar..." oninput="renderHistorico()"></td>
             <td><input class="hst-col-input" id="hcf-mecanico" placeholder="Buscar..." oninput="renderHistorico()"></td>
+            <td></td>
           </tr>
         </thead>
         <tbody id="hst-tbody"></tbody>
       </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal eliminar registro histórico -->
+<div id="hst-del-modal">
+  <div class="dm-box">
+    <div class="dm-title">🗑 Eliminar Registro</div>
+    <div class="dm-sub">Ingresa la contraseña de administrador para confirmar.</div>
+    <input type="password" id="hst-del-pass" class="dm-input" placeholder="····" maxlength="20">
+    <div class="dm-btns">
+      <button class="dm-cancel" onclick="cerrarDelModal()">Cancelar</button>
+      <button class="dm-confirm" onclick="confirmarEliminarRegistro()">Eliminar</button>
     </div>
   </div>
 </div>
@@ -7891,11 +7951,12 @@ function renderHistorico(){
   let rows = [];
 
   // Registros individuales del historial persistido
-  hist.forEach(r=>{
+  hist.forEach((r,idx)=>{
     if(!r.tipo || r.tipo==='green') return;
     if(desde && r.fechaISO && r.fechaISO < desde) return;
     if(hasta  && r.fechaISO && r.fechaISO > hasta) return;
     rows.push({
+      _histIdx:   idx,
       mod:        r.modulo||'—',
       empleada:   r.empleada||'',
       tipo:       r.tipo,
@@ -7916,11 +7977,8 @@ function renderHistorico(){
   if(cfTiempo)   rows = rows.filter(r=>r.min.toFixed(2).includes(cfTiempo));
   if(cfMecanico) rows = rows.filter(r=>r.mecanico.toLowerCase().includes(cfMecanico));
 
-  // Ordenar por fecha/hora descendente (más reciente primero)
-  rows.sort((a,b)=>{
-    if(b.fecha !== a.fecha) return b.fecha.localeCompare(a.fecha);
-    return (b.hora||'').localeCompare(a.hora||'');
-  });
+  // Ordenar por columna seleccionada
+  rows = aplicarOrden(rows);
 
   // Summary cards
   const totalMin  = rows.reduce((s,r)=>s+r.min, 0);
@@ -7941,22 +7999,22 @@ function renderHistorico(){
       <div class="sc-label">Registros</div>
       <div class="sc-val" style="color:#0f172a;">${rows.length}</div>
     </div>
-    <div class="hst-action-card" id="hst-date-btn" onclick="toggleDatePopup()" style="margin-left:auto;">
-      <div class="sc-label">📅 Fecha</div>
-      <div class="sc-val" style="color:#0f172a;font-size:16px;">${fechaLabel}</div>
+    <div class="hst-action-card" id="hst-date-btn" onclick="toggleDatePopup()">
+      <span class="ac-icon">📅</span>
+      <span class="ac-text" id="hst-date-label-text">${fechaLabel}</span>
     </div>
     <div class="hst-excel-card" onclick="exportarHistoricoExcel()">
-      <div class="sc-label">📥 Descargar</div>
-      <div class="sc-val">Excel</div>
+      <span class="ac-icon">📊</span>
+      <span class="ac-text">Exportar</span>
     </div>`;
 
   // Tabla
   if(rows.length === 0){
-    tbody.innerHTML = `<tr><td colspan="7" class="hst-empty">📊 No hay datos para el período seleccionado</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="hst-empty">📊 No hay datos para el período seleccionado</td></tr>`;
     return;
   }
 
-  tbody.innerHTML = rows.map(r=>{
+  tbody.innerHTML = rows.map((r,i)=>{
     const t = HST_TIPOS[r.tipo] || { label:r.tipo, color:'#f8fafc', text:'#0f172a', border:'#e2e8f0', icon:'⚪' };
     return `<tr>
       <td><span class="hst-mod-badge">${r.mod}</span></td>
@@ -7966,6 +8024,7 @@ function renderHistorico(){
       <td style="font-family:monospace;font-size:12px;color:#475569;">${r.hora||'—'}</td>
       <td><span class="hst-tiempo">${r.min.toFixed(2)}</span></td>
       <td style="font-family:'Nunito',sans-serif;font-size:13px;color:#0f172a;">${r.mecanico||'—'}</td>
+      <td><button class="hst-del-btn" onclick="abrirDelModal(${r._histIdx})" title="Eliminar">🗑</button></td>
     </tr>`;
   }).join('');
 }
@@ -8000,6 +8059,70 @@ function exportarHistoricoExcel(){
   XLSX.utils.book_append_sheet(wb, ws, 'Histórico');
   const label = (desde||'')+(desde!==hasta?'_'+(hasta||''):'');
   XLSX.writeFile(wb, 'Historico_'+(label||'completo')+'.xlsx');
+}
+
+// ── ORDENAR COLUMNAS ──────────────────────────────────────────────
+let _hstSortCol = 'hora';
+let _hstSortDir = 'desc'; // 'asc' | 'desc'
+
+function sortHistorico(col){
+  if(_hstSortCol === col){
+    _hstSortDir = _hstSortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    _hstSortCol = col;
+    _hstSortDir = 'asc';
+  }
+  // Actualizar clases visuales
+  document.querySelectorAll('#historico-screen th.sortable').forEach(th=>{
+    th.classList.remove('asc','desc');
+  });
+  const idx = ['mod','empleada','tipo','horaInicio','hora','min','mecanico'].indexOf(col);
+  const ths = document.querySelectorAll('#historico-screen th.sortable');
+  if(ths[idx]){ ths[idx].classList.add(_hstSortDir); }
+  renderHistorico();
+}
+
+function aplicarOrden(rows){
+  const col = _hstSortCol;
+  const dir = _hstSortDir === 'asc' ? 1 : -1;
+  return rows.slice().sort((a,b)=>{
+    let va = a[col]??'', vb = b[col]??'';
+    if(col==='min'){ return (va-vb)*dir; }
+    return String(va).localeCompare(String(vb))*dir;
+  });
+}
+
+// ── ELIMINAR REGISTRO ────────────────────────────────────────────
+let _pendingDelIdx = null;
+
+function abrirDelModal(histIdx){
+  _pendingDelIdx = histIdx;
+  const inp = document.getElementById('hst-del-pass');
+  inp.value = '';
+  inp.classList.remove('error');
+  document.getElementById('hst-del-modal').classList.add('open');
+  setTimeout(()=>inp.focus(), 100);
+}
+
+function cerrarDelModal(){
+  _pendingDelIdx = null;
+  document.getElementById('hst-del-modal').classList.remove('open');
+}
+
+function confirmarEliminarRegistro(){
+  const inp = document.getElementById('hst-del-pass');
+  if(inp.value !== '1'){
+    inp.classList.add('error');
+    inp.value='';
+    setTimeout(()=>{ inp.classList.remove('error'); inp.focus(); }, 400);
+    return;
+  }
+  if(_pendingDelIdx === null) return;
+  const h = loadHistory();
+  h.splice(_pendingDelIdx, 1);
+  saveHistory(h);
+  cerrarDelModal();
+  renderHistorico();
 }
 </script>
 
