@@ -156,12 +156,13 @@ const MODULES = [
   'M21','M22','M23','M24','M25','M26','M27'
 ];
 
-const floorDefault = { states: {}, lastMec: {} };
-MODULES.forEach(id => { floorDefault.states[id] = 'green'; floorDefault.lastMec[id] = ''; });
+const floorDefault = { states: {}, lastMec: {}, stateTimes: {} };
+MODULES.forEach(id => { floorDefault.states[id] = 'green'; floorDefault.lastMec[id] = ''; floorDefault.stateTimes[id] = Date.now(); });
 
 const floorPersisted = readJSON(FILES.floor_state, floorDefault);
-const states  = floorPersisted.states  || { ...floorDefault.states  };
-const lastMec = floorPersisted.lastMec || { ...floorDefault.lastMec };
+const states     = floorPersisted.states     || { ...floorDefault.states     };
+const lastMec    = floorPersisted.lastMec    || { ...floorDefault.lastMec    };
+const stateTimes = floorPersisted.stateTimes || { ...floorDefault.stateTimes };
 
 function getAllActiveModules() {
   const extra    = modulesConfig.extra    || [];
@@ -174,19 +175,21 @@ function getAllActiveModules() {
 }
 
 MODULES.forEach(id => {
-  if (!states[id])  states[id]  = 'green';
-  if (!lastMec[id]) lastMec[id] = '';
+  if (!states[id])      states[id]     = 'green';
+  if (!lastMec[id])     lastMec[id]    = '';
+  if (!stateTimes[id])  stateTimes[id] = Date.now();
 });
 
 // Inicializar estados para módulos extra ya configurados
 (modulesConfig.extra || []).forEach(id => {
   const renamed = (modulesConfig.renamed || {})[id] || id;
-  if (!states[renamed])  states[renamed]  = 'green';
-  if (!lastMec[renamed]) lastMec[renamed] = '';
+  if (!states[renamed])      states[renamed]     = 'green';
+  if (!lastMec[renamed])     lastMec[renamed]    = '';
+  if (!stateTimes[renamed])  stateTimes[renamed] = Date.now();
 });
 
 function saveFloorState() {
-  writeJSON(FILES.floor_state, { states, lastMec });
+  writeJSON(FILES.floor_state, { states, lastMec, stateTimes });
 }
 
 // ── Estado Tablero CI ──────────────────────────────────────────────
@@ -768,6 +771,7 @@ wss.on('connection', (ws, req) => {
     type:          'init',
     states:        { ...states },
     lastMec:       { ...lastMec },
+    stateTimes:    { ...stateTimes },
     iaState:       iaState,
     iaRecords:     iaRecords,
     modulesConfig: modulesConfig
@@ -792,14 +796,16 @@ wss.on('connection', (ws, req) => {
         if (!msg.id) { console.warn('WS change: sin id'); return; }
         // Aceptar módulos extra aunque no estén en states aún
         if (states[msg.id] === undefined) {
-          states[msg.id]  = 'green';
-          lastMec[msg.id] = '';
+          states[msg.id]     = 'green';
+          lastMec[msg.id]    = '';
+          stateTimes[msg.id] = Date.now();
         }
-        states[msg.id] = msg.state || 'green';
+        states[msg.id]     = msg.state || 'green';
+        stateTimes[msg.id] = Date.now();
         if (msg.state === 'red') lastMec[msg.id] = '';
         else if (msg.mecanico) lastMec[msg.id] = msg.mecanico;
         saveFloorState();
-        broadcastLocal({ type:'change', id:msg.id, state:msg.state, mecanico:msg.mecanico||'', limite:msg.limite||null, empleada:msg.empleada||'' });
+        broadcastLocal({ type:'change', id:msg.id, state:msg.state, mecanico:msg.mecanico||'', limite:msg.limite||null, empleada:msg.empleada||'', stateTime:stateTimes[msg.id] });
       }
 
       else if (msg.type === 'change2') {
