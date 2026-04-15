@@ -1434,7 +1434,7 @@ const MECANICOS=[];
 
 // ── Perfiles del sistema con sus permisos base ──────────────────────
 const USUARIOS={
-  'Programador':  {pass:'1',perms:['area_ingreso','area_produccion','area_mecanicos','tablero','modulos','excel','fix','area_calidad','area_ci','area_empaque','area_corte','area_sst','area_montajes']},
+  'Programador':  {pass:'1',perms:['tablero','area_asistencia','informes','area_montajes','area_solicitar_insumos','tablero_planta','area_ci','modulos','excel','fix']},
 };
 
 const states={}, timers={}, lastMec={}, acumRed={}, acumYellow={}, acumBlue={}, acumOrange={}, acumPurple={};
@@ -1797,6 +1797,7 @@ window.addEventListener('DOMContentLoaded', async ()=>{
   ]);
 
   applyConfig();
+  initializePermissions();
   rebuildModules();
   // Garantía final: si MODULES quedó vacío (config corrupta), restaurar base
   if(MODULES.length === 0){
@@ -3405,6 +3406,40 @@ function applyConfig(){
     if(u.disabled){ delete USUARIOS[u.nombre]; return; }
     USUARIOS[u.nombre] = {pass: u.pass, perms: u.perms||[]};
   });
+}
+
+// ── Inicializar permisos correctos para cada perfil ───────────────────
+function initializePermissions(){
+  const cfg = loadConfig();
+  
+  const permisosDefault = {
+    'Administrador': ['tablero', 'area_asistencia', 'informes', 'area_montajes', 'area_solicitar_insumos', 'area_ci'],
+    'Calidad': ['tablero', 'area_asistencia', 'area_ci'],
+    'Mecanicos': ['tablero_planta', 'area_montajes', 'area_solicitar_insumos'],
+    'Modulos': ['modulos'],
+    'Supervisora': ['informes', 'area_asistencia'],
+    'Televisor': ['tablero_planta']
+  };
+  
+  // Si no existen permisos guardados, inicializar con los defaults
+  let cambios = false;
+  Object.entries(permisosDefault).forEach(([user, perms]) => {
+    const extras = cfg._usuarios_extra || [];
+    const userIdx = extras.findIndex(u => u.nombre === user);
+    
+    if(userIdx > -1){
+      // Usuario existe en _usuarios_extra
+      if(!extras[userIdx].perms || extras[userIdx].perms.length === 0){
+        extras[userIdx].perms = perms;
+        cambios = true;
+      }
+    }
+  });
+  
+  if(cambios){
+    saveConfig(cfg);
+    applyConfig();
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════
