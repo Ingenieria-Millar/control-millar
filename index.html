@@ -1277,7 +1277,6 @@ body { overflow-x: hidden; max-width: 100vw; }
       <div class="sp-modtable-grid" id="modtable-grid"></div>
     </div>
     <div class="sp-footer">
-      <button class="sp-logout-btn" onclick="volverAArea()">⬅ Atrás</button>
       <span class="sp-right-foot">© 2026 Ingenieria Confecciones Millar S.A.S.</span>
     </div>
   </div>
@@ -2086,9 +2085,9 @@ function mostrarSubMenuMecanicos(){
   
   let idx = 0;
   
-  // Tablero General
+  // Tablero Mecánicos
   if(hasPerm('tablero')){
-    const c1=makeCard('🏭',(currentUser==='Mecanicos'||currentUser==='Televisor')?'Tablero Mecanicos':'Tablero General','Vista general · '+MODULES.length+' módulos','ac-red',()=>{
+    const c1=makeCard('🏭','Tablero Mecánicos','Vista general · '+MODULES.length+' módulos','ac-red',()=>{
       document.getElementById('area-screen').classList.add('hidden');
       entrarTablero();
     });
@@ -2275,6 +2274,15 @@ function mostrarSubMenuProduccion(){
     btns.appendChild(c0);
   }
   
+  // Control de Ingresos
+  if(hasPerm('area_ingreso')){
+    const c0b=makeCard('📥','Control de Ingresos','Control de ingreso y asistencia','ac-blue',()=>{
+      window.location.href='/ingresos?user='+encodeURIComponent(currentUser);
+    });
+    c0b.style.animationDelay=(idx*0.07)+'s'; idx++;
+    btns.appendChild(c0b);
+  }
+  
   // Control de Asistencia
   if(hasPerm('area_asistencia')){
     const c1=makeCard('📋','Control de Asistencia','Control de ingreso y asistencia','ac-blue',()=>{
@@ -2298,15 +2306,6 @@ function mostrarSubMenuProduccion(){
     });
     c3.style.animationDelay=(idx*0.07)+'s'; idx++;
     btns.appendChild(c3);
-  }
-  
-  // Login sin contraseña admin
-  if(hasPerm('area_produccion') && currentUser === 'Programador'){
-    const c4=makeCard('🔐','Login sin contraseña admin','Acceso sin contraseña','ac-yellow',()=>{
-      window.location.href='/ingresos?user='+encodeURIComponent(currentUser);
-    });
-    c4.style.animationDelay=(idx*0.07)+'s'; idx++;
-    btns.appendChild(c4);
   }
   
   // Botón volver
