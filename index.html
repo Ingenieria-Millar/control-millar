@@ -1690,14 +1690,14 @@ async function loadHistorialFromServer(){
   try{ const r=await fetch('/api/historial'); _historialCache=await r.json(); }
   catch(e){ console.error('loadHistorial:',e); _historialCache=[]; }
 }
-function logChange(modulo,prev,next,durMs,mecanico,limite){
+function logChange(modulo,prev,next,durMs,mecanico,limite,timerInicio){
   // Solo loguear si hubo tiempo real en el estado anterior
   if(!prev||prev==='green'||durMs<1000) return;
   const h=loadHistory();
   const now=new Date();
   const horaFin = now.toLocaleTimeString('es-CO');
-  // Calcular hora de inicio restando la duración
-  const inicioMs = now.getTime() - durMs;
+  // Usar timerInicio si viene (hora exacta del servidor), si no calcular restando duración
+  const inicioMs = timerInicio || (now.getTime() - durMs);
   const horaInicio = new Date(inicioMs).toLocaleTimeString('es-CO');
   // Para estado blue: detectar si fue 30 o 60 min según el limite guardado
   let tipoLabel = prev;
@@ -2615,7 +2615,7 @@ function commitChange2(id, s, mecanico){
 function cerrarImproductivoExtra(id){
   if(states2[id] && timers2[id]){
     const dur = Date.now()-timers2[id];
-    logChange(id, states2[id], 'green', dur, lastMec2[id]||'');
+    logChange(id, states2[id], 'green', dur, lastMec2[id]||'', null, timers2[id]);
   }
   if(cambioTimers2[id]){clearTimeout(cambioTimers2[id]);delete cambioTimers2[id];delete cambioLimites2[id];}
   states2[id]=null; timers2[id]=null; lastMec2[id]='';
@@ -2779,7 +2779,7 @@ function commitChange(id,s,mecanico,limite){
   if(prev==='orange') acumOrange[id]+=dur;
   if(prev==='purple') acumPurple[id]+=dur;
   if(prev==='blue'&&cambioTimers[id]){clearTimeout(cambioTimers[id]);delete cambioTimers[id];delete cambioLimites[id];}
-  logChange(id,prev,s,dur,mecanico,cambioLimites[id]||null);
+  logChange(id,prev,s,dur,mecanico,cambioLimites[id]||null,timers[id]||null);
   states[id]=s;timers[id]=ahora;
   if(mecanico) lastMec[id]=mecanico;
   if(s==='red') lastMec[id]=''; // Resetear mecánico al volver a alerta
