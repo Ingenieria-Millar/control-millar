@@ -1940,44 +1940,34 @@ function mostrarAreaScreen(){
 
   // PRODUCCION
   if(hasPerm('area_ingreso')||hasPerm('area_produccion')){
-    let desc, accion;
+    let accion;
     // Si tiene permisos de planta (ci, mecanicos, tablero) nunca va a Control de Ingresos
     const _tienePermisosPlanta = hasPerm('area_ci')||hasPerm('area_mecanicos')||hasPerm('tablero');
     if(currentUser==='Programador'){
-      desc='Control de ingresos · Acceso módulos';
       accion=()=>mostrarSubMenuProduccion();
     } else if(_tienePermisosPlanta || (hasPerm('modulos')&&!hasPerm('area_asistencia'))){
       // Perfiles con acceso a planta o módulos sin asistencia → login módulos
-      desc='Acceso módulos';
       accion=()=>{ document.getElementById('area-screen').classList.add('hidden'); mostrarLoginModulos(); };
     } else {
       // Solo supervisoras puras con area_ingreso → Control de Ingresos
-      desc='Control de ingreso y asistencia';
       accion=()=>{ window.location.href='/ingresos?user='+encodeURIComponent(currentUser); };
     }
-    const c=makeCard('📋','Producción',desc,'ac-blue',accion);
+    const c=makeCard('📋','Producción','','ac-blue',accion);
     c.style.animationDelay=(idx*0.07)+'s'; idx++;
     btns.appendChild(c);
   }
 
   // MECANICOS
   if(hasPerm('area_mecanicos')||hasPerm('area_montajes')){
-    const soloMontajes = hasPerm('area_montajes')&&!hasPerm('area_mecanicos');
-    const tieneAmbos   = hasPerm('area_mecanicos')&&hasPerm('area_montajes');
     const esTelevisor  = (currentUser==='Televisor');
-    const nombreTablero = (currentUser==='Mecanicos'||esTelevisor) ? 'Tablero Mecanicos' : 'Tablero General';
-    let desc = soloMontajes ? 'Montajes' : tieneAmbos ? nombreTablero+' · Montajes' : nombreTablero;
-    const c=makeCard('🔧','Mecánicos',desc,'ac-red',()=>{
+    const c=makeCard('🔧','Mecánicos','','ac-red',()=>{
       if(esTelevisor){
         // Televisor va directo al tablero sin submenú
         checkMemberSelectionNeeded(currentUser, (member)=>{
           document.getElementById('area-screen').classList.add('hidden');
           entrarTablero();
         });
-      } else if(soloMontajes||tieneAmbos||hasPerm('area_montajes')){
-        mostrarSubMenuMecanicos();
       } else {
-        // Solo area_mecanicos sin montajes — mostrar submenú para acceder a Solicitar Insumos
         mostrarSubMenuMecanicos();
       }
     });
@@ -1985,49 +1975,10 @@ function mostrarAreaScreen(){
     btns.appendChild(c);
   }
 
-  // CALIDAD — solo botón, sin funcionalidad (próximamente)
-  if(hasPerm('area_calidad')){
-    const c=makeCard('✅','Calidad','Próximamente','ac-green',()=>{});
-    c.style.animationDelay=(idx*0.07)+'s'; idx++;
-    c.style.opacity='0.55'; c.style.cursor='default';
-    c.onclick=null;
-    btns.appendChild(c);
-  }
-
   // CI — abre submenú con Tablero CI e Inventario de Hilos
   if(hasPerm('area_ci')){
-    const c=makeCard('🏢','CI','Tablero Faltante de Insumos','ac-purple',()=>{ window.location.href='/ci?perfil='+(currentUser||'Admin'); });
+    const c=makeCard('🏢','CI','','ac-purple',()=>{ window.location.href='/ci?perfil='+(currentUser||'Admin'); });
     c.style.animationDelay=(idx*0.07)+'s'; idx++;
-    btns.appendChild(c);
-  }
-
-  // SOLICITAR INSUMOS - Ahora es subárea de Mecánicos (eliminado del menú principal)
-
-
-  // EMPAQUE — sin funcionalidad (próximamente)
-  if(hasPerm('area_empaque')){
-    const c=makeCard('📦','Empaque','Próximamente','ac-yellow',()=>{});
-    c.style.animationDelay=(idx*0.07)+'s'; idx++;
-    c.style.opacity='0.55'; c.style.cursor='default';
-    c.onclick=null;
-    btns.appendChild(c);
-  }
-
-  // CORTE — sin funcionalidad (próximamente)
-  if(hasPerm('area_corte')){
-    const c=makeCard('✂️','Corte','Próximamente','ac-red',()=>{});
-    c.style.animationDelay=(idx*0.07)+'s'; idx++;
-    c.style.opacity='0.55'; c.style.cursor='default';
-    c.onclick=null;
-    btns.appendChild(c);
-  }
-
-  // SST — sin funcionalidad (próximamente)
-  if(hasPerm('area_sst')){
-    const c=makeCard('🦺','SST','Próximamente','ac-orange',()=>{});
-    c.style.animationDelay=(idx*0.07)+'s'; idx++;
-    c.style.opacity='0.55'; c.style.cursor='default';
-    c.onclick=null;
     btns.appendChild(c);
   }
 
@@ -4494,8 +4445,6 @@ setInterval(()=>{const n=new Date();document.getElementById('clock').textContent
       <div class="cfg-nav-item" id="cfgn-modulos" onclick="cfgSwitchTab('modulos',this)"><span>🏭</span> Módulos</div>
       <div class="cfg-nav-item" id="cfgn-areas" onclick="cfgSwitchTab('areas',this)"><span>📍</span> Áreas</div>
       <div class="cfg-nav-item" id="cfgn-novedades" onclick="cfgSwitchTab('novedades',this)"><span>📋</span> Novedades</div>
-      <div class="cfg-nav-item" id="cfgn-refresh" onclick="cfgRefreshSistema()" style="margin-top:auto;color:#2563eb;border-color:rgba(37,99,235,0.3);"><span>🔄</span> Actualizar</div>
-      <div class="cfg-nav-item" id="cfgn-reset-local" onclick="cfgResetLocalStorage()" style="color:#ef4444;border-color:rgba(239,68,68,0.3);"><span>🗑</span> Resetear todo</div>
     </div>
 
     <!-- MAIN AREA -->
