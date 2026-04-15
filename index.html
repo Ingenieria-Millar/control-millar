@@ -1501,7 +1501,9 @@ function connectWS(){
       if(msg.type==='init'){
         MODULES.forEach(id=>{
           if(msg.states[id]){
-            states[id]=msg.states[id]; timers[id]=Date.now();
+            states[id]=msg.states[id];
+            // Usar hora del servidor si existe, si no usar hora actual (fallback)
+            timers[id]= (msg.stateTimes && msg.stateTimes[id]) ? msg.stateTimes[id] : Date.now();
           }
           if(msg.lastMec[id]) lastMec[id]=msg.lastMec[id];
         });
@@ -1538,7 +1540,9 @@ function connectWS(){
         const dur=Date.now()-(timers[id]||Date.now());
         if(prev==='red')    acumRed[id]   +=dur;
         if(prev==='yellow') acumYellow[id]+=dur;
-        states[id]=s; timers[id]=Date.now();
+        states[id]=s;
+        // Usar hora del servidor si viene, si no usar hora actual (fallback)
+        timers[id]= msg.stateTime ? msg.stateTime : Date.now();
         if(s==='blue'&&msg.limite){ cambioLimites[id]=msg.limite; }
         else if(s!=='blue'){ delete cambioLimites[id]; }
         if(s==='red') lastMec[id]='';
