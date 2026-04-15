@@ -7618,39 +7618,16 @@ function siEnviar(){
       font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0f172a;
     }
     #historico-screen .hst-title span{color:#0f172a;}
-    #historico-screen .hst-filters{
-      display:flex;align-items:center;gap:8px;flex-wrap:wrap;
-      padding:12px clamp(12px,2.5vw,24px);background:#fff;
-      border-bottom:1px solid #e2e8f0;
-    }
-    #historico-screen .hst-filter-label{
-      font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;
-      color:#64748b;
-    }
-    #historico-screen .hst-input{
-      padding:7px 12px;border:1.5px solid #e2e8f0;border-radius:8px;
-      font-family:'Nunito',sans-serif;font-size:13px;color:#0f172a;
-      background:#f8fafc;outline:none;
-    }
-    #historico-screen .hst-input:focus{border-color:#7c3aed;}
+    /* Botón volver */
     #historico-screen .hst-btn{
       padding:7px 16px;border-radius:8px;border:1.5px solid #e2e8f0;
       background:#fff;color:#1e3a8a;font-family:'Barlow Condensed',sans-serif;
       font-size:13px;font-weight:700;letter-spacing:.5px;cursor:pointer;transition:all .2s;
     }
     #historico-screen .hst-btn:hover{background:#f1f5f9;}
-    #historico-screen .hst-btn.primary{background:#7c3aed;color:#fff;border-color:#7c3aed;}
-    #historico-screen .hst-btn.primary:hover{filter:brightness(1.1);}
-    /* Botón de rango de fecha */
-    #historico-screen .hst-date-btn{
-      display:flex;align-items:center;gap:7px;padding:7px 16px;border-radius:8px;
-      border:1.5px solid #e2e8f0;background:#f8fafc;color:#0f172a;
-      font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;
-    }
-    #historico-screen .hst-date-btn:hover{border-color:#7c3aed;background:#faf5ff;}
     /* Popup de fechas */
     #hst-date-popup{
-      display:none;position:absolute;top:calc(100% + 8px);left:0;z-index:200;
+      display:none;position:fixed;z-index:200;
       background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;
       padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:260px;
     }
@@ -7670,6 +7647,31 @@ function siEnviar(){
       font-size:14px;font-weight:700;letter-spacing:1px;cursor:pointer;
     }
     #hst-date-popup .dp-apply:hover{filter:brightness(1.1);}
+    /* Tarjeta acción (fecha y excel) — mismo tamaño que summary-card */
+    #historico-screen .hst-action-card{
+      background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;
+      padding:10px 16px;display:flex;flex-direction:column;gap:2px;min-width:140px;
+      cursor:pointer;transition:border-color .2s, background .2s;
+    }
+    #historico-screen .hst-action-card:hover{border-color:#7c3aed;background:#faf5ff;}
+    #historico-screen .hst-action-card .sc-label{
+      font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#94a3b8;
+    }
+    #historico-screen .hst-action-card .sc-val{
+      font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;
+    }
+    #historico-screen .hst-excel-card{
+      background:#7c3aed;border:1.5px solid #7c3aed;border-radius:10px;
+      padding:10px 16px;display:flex;flex-direction:column;gap:2px;min-width:140px;
+      cursor:pointer;transition:filter .2s;
+    }
+    #historico-screen .hst-excel-card:hover{filter:brightness(1.1);}
+    #historico-screen .hst-excel-card .sc-label{
+      font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:rgba(255,255,255,.7);
+    }
+    #historico-screen .hst-excel-card .sc-val{
+      font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:#fff;
+    }
     /* Filtros por columna */
     #historico-screen .hst-col-filters td{padding:4px 14px 8px;background:#f8fafc;}
     #historico-screen .hst-col-input{
@@ -7732,27 +7734,19 @@ function siEnviar(){
     <button class="hst-btn" onclick="cerrarHistorico()">← Volver</button>
   </div>
 
-  <!-- Filtros -->
-  <div class="hst-filters" style="position:relative;">
-    <div style="position:relative;">
-      <button class="hst-date-btn" id="hst-date-btn" onclick="toggleDatePopup()">
-        📅 <span id="hst-date-label">Hoy</span>
-      </button>
-      <div id="hst-date-popup">
-        <div class="dp-row">
-          <div>
-            <span class="dp-label">Desde</span>
-            <input type="date" id="hst-desde" class="dp-input">
-          </div>
-          <div>
-            <span class="dp-label">Hasta</span>
-            <input type="date" id="hst-hasta" class="dp-input">
-          </div>
-        </div>
-        <button class="dp-apply" onclick="aplicarFechasHistorico()">Aplicar</button>
+  <!-- Popup de fecha (oculto, se posiciona dinámicamente) -->
+  <div id="hst-date-popup">
+    <div class="dp-row">
+      <div>
+        <span class="dp-label">Desde</span>
+        <input type="date" id="hst-desde" class="dp-input">
+      </div>
+      <div>
+        <span class="dp-label">Hasta</span>
+        <input type="date" id="hst-hasta" class="dp-input">
       </div>
     </div>
-    <button class="hst-btn primary" onclick="exportarHistoricoExcel()">📥 Excel</button>
+    <button class="dp-apply" onclick="aplicarFechasHistorico()">Aplicar</button>
   </div>
 
   <!-- Body -->
@@ -7829,7 +7823,14 @@ function cerrarHistorico(){
 
 function toggleDatePopup(){
   const popup = document.getElementById('hst-date-popup');
-  popup.classList.toggle('open');
+  const btn   = document.getElementById('hst-date-btn');
+  if(popup.classList.contains('open')){ popup.classList.remove('open'); return; }
+  if(btn){
+    const rect = btn.getBoundingClientRect();
+    popup.style.top  = (rect.bottom + 8) + 'px';
+    popup.style.left = rect.left + 'px';
+  }
+  popup.classList.add('open');
 }
 
 function cerrarDatePopup(){
@@ -7846,14 +7847,7 @@ document.addEventListener('click', function(e){
 });
 
 function actualizarLabelFecha(){
-  const desde = document.getElementById('hst-desde').value;
-  const hasta  = document.getElementById('hst-hasta').value;
-  const label  = document.getElementById('hst-date-label');
-  if(!label) return;
-  const hoy = new Date().toISOString().split('T')[0];
-  if(desde === hasta && desde === hoy){ label.textContent = 'Hoy'; return; }
-  if(desde === hasta){ label.textContent = desde; return; }
-  label.textContent = (desde||'?') + ' → ' + (hasta||'?');
+  // El label de fecha se regenera en renderHistorico dentro del summary
 }
 
 function aplicarFechasHistorico(){
@@ -7919,6 +7913,9 @@ function renderHistorico(){
   // Summary cards
   const totalMin  = rows.reduce((s,r)=>s+r.min, 0);
   const totalMods = new Set(rows.map(r=>r.mod)).size;
+  const desdeVal = document.getElementById('hst-desde').value;
+  const hastaVal  = document.getElementById('hst-hasta').value;
+  const fechaLabel = desdeVal === hastaVal ? desdeVal : (desdeVal||'?')+' → '+(hastaVal||'?');
   summary.innerHTML = `
     <div class="hst-summary-card">
       <div class="sc-label">Total Improductivo</div>
@@ -7931,6 +7928,14 @@ function renderHistorico(){
     <div class="hst-summary-card">
       <div class="sc-label">Registros</div>
       <div class="sc-val" style="color:#0f172a;">${rows.length}</div>
+    </div>
+    <div class="hst-action-card" id="hst-date-btn" onclick="toggleDatePopup()">
+      <div class="sc-label">📅 Fecha</div>
+      <div class="sc-val" style="color:#0f172a;font-size:16px;">${fechaLabel}</div>
+    </div>
+    <div class="hst-excel-card" onclick="exportarHistoricoExcel()">
+      <div class="sc-label">📥 Descargar</div>
+      <div class="sc-val">Excel</div>
     </div>`;
 
   // Tabla
