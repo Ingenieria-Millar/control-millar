@@ -1693,6 +1693,10 @@ function logChange(modulo,prev,next,durMs,mecanico,limite){
   if(!prev||prev==='green'||durMs<1000) return;
   const h=loadHistory();
   const now=new Date();
+  const horaFin = now.toLocaleTimeString('es-CO');
+  // Calcular hora de inicio restando la duración
+  const inicioMs = now.getTime() - durMs;
+  const horaInicio = new Date(inicioMs).toLocaleTimeString('es-CO');
   // Para estado blue: detectar si fue 30 o 60 min según el limite guardado
   let tipoLabel = prev;
   if(prev==='blue' && limite){
@@ -1700,17 +1704,32 @@ function logChange(modulo,prev,next,durMs,mecanico,limite){
     if(minutos <= 35) tipoLabel = 'blue30';
     else tipoLabel = 'blue60';
   }
+  // Empleada: si es Alerta (red) tomar del registro actual
+  // Si es Atendiendo (yellow) buscar la Alerta anterior del mismo módulo para heredar la operaria
+  let empleada = '';
+  if(prev==='red' && window._lastEmpleada && window._lastEmpleada[modulo]){
+    empleada = window._lastEmpleada[modulo];
+  } else if(prev==='yellow'){
+    // Buscar el último registro de Alerta (red) del mismo módulo para copiar la operaria
+    for(let i=h.length-1; i>=0; i--){
+      if(h[i].modulo===modulo && h[i].tipo==='red' && h[i].empleada){
+        empleada = h[i].empleada;
+        break;
+      }
+    }
+  }
   h.push({
     fecha:now.toLocaleDateString('es-CO'),
     fechaISO:now.toISOString().split('T')[0],
-    hora:now.toLocaleTimeString('es-CO'),
+    horaInicio,
+    hora:horaFin,
     modulo,
     tipo:tipoLabel,
     estadoAnterior:prev,
     estadoNuevo:next,
     durMinutos:parseFloat((durMs/60000).toFixed(2)),
     mecanico:mecanico||'',
-    empleada:(prev==='red'&&window._lastEmpleada&&window._lastEmpleada[modulo])?window._lastEmpleada[modulo]:''
+    empleada
   });
   if(h.length>10000) h.splice(0,h.length-10000);
   saveHistory(h);
@@ -7700,7 +7719,10 @@ function siEnviar(){
             <th>Módulo</th>
             <th>Nombre Operaria</th>
             <th>Tipo de Improductivo</th>
+            <th>Hora Inicio</th>
+            <th>Hora Fin</th>
             <th>Tiempo (min)</th>
+            <th>Mecánico</th>
           </tr>
         </thead>
         <tbody id="hst-tbody"></tbody>
@@ -7792,12 +7814,14 @@ function renderHistorico(){
     if(desde && r.fechaISO && r.fechaISO < desde) return;
     if(hasta  && r.fechaISO && r.fechaISO > hasta) return;
     rows.push({
-      mod:      r.modulo||'—',
-      empleada: r.empleada||'',
-      tipo:     r.tipo,
-      min:      parseFloat((r.durMinutos||0).toFixed(2)),
-      fecha:    r.fechaISO||'',
-      hora:     r.hora||''
+      mod:        r.modulo||'—',
+      empleada:   r.empleada||'',
+      tipo:       r.tipo,
+      min:        parseFloat((r.durMinutos||0).toFixed(2)),
+      fecha:      r.fechaISO||'',
+      hora:       r.hora||'',
+      horaInicio: r.horaInicio||'',
+      mecanico:   r.mecanico||''
     });
   });
 
@@ -7830,7 +7854,7 @@ function renderHistorico(){
 
   // Tabla
   if(rows.length === 0){
-    tbody.innerHTML = `<tr><td colspan="4" class="hst-empty">📊 No hay datos para el período seleccionado</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="hst-empty">📊 No hay datos para el período seleccionado</td></tr>`;
     return;
   }
 
@@ -7840,7 +7864,10 @@ function renderHistorico(){
       <td><span class="hst-mod-badge">${r.mod}</span></td>
       <td style="font-family:'Nunito',sans-serif;font-size:13px;color:#0f172a;">${r.empleada||'—'}</td>
       <td><span class="hst-tipo-badge" style="background:${t.color};color:${t.text};border:1px solid ${t.border};">${t.icon} ${t.label}</span></td>
+      <td style="font-family:monospace;font-size:12px;color:#475569;">${r.horaInicio||'—'}</td>
+      <td style="font-family:monospace;font-size:12px;color:#475569;">${r.hora||'—'}</td>
       <td><span class="hst-tiempo">${r.min.toFixed(2)}</span></td>
+      <td style="font-family:'Nunito',sans-serif;font-size:13px;color:#0f172a;">${r.mecanico||'—'}</td>
     </tr>`;
   }).join('');
 }
@@ -7862,16 +7889,19 @@ function exportarHistoricoExcel(){
     if(filtTipo && r.tipo   !== filtTipo) return;
     const t = HST_TIPOS[r.tipo] || { label: r.tipo };
     rows.push({
-      'Módulo':              r.modulo||'',
-      'Nombre Operaria':     r.empleada||'',
-      'Tipo de Improductivo':t.label,
-      'Tiempo (min)':        parseFloat((r.durMinutos||0).toFixed(2)),
+      'Módulo':               r.modulo||'',
+      'Nombre Operaria':      r.empleada||'',
+      'Tipo de Improductivo': t.label,
+      'Hora Inicio':          r.horaInicio||'',
+      'Hora Fin':             r.hora||'',
+      'Tiempo (min)':         parseFloat((r.durMinutos||0).toFixed(2)),
+      'Mecánico':             r.mecanico||'',
     });
   });
 
   if(rows.length === 0){ alert('No hay datos para exportar'); return; }
   const ws = XLSX.utils.json_to_sheet(rows);
-  ws['!cols'] = [{wch:10},{wch:28},{wch:24},{wch:14}];
+  ws['!cols'] = [{wch:10},{wch:28},{wch:24},{wch:12},{wch:12},{wch:14},{wch:22}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Histórico');
   const label = (desde||'')+(desde!==hasta?'_'+(hasta||''):'');
