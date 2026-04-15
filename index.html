@@ -1955,44 +1955,31 @@ function mostrarAreaScreen(){
   console.log('[AREA] USUARIOS[user]:', JSON.stringify(USUARIOS[currentUser]));
   console.log('[AREA] hasPerm area_ci:', hasPerm('area_ci'), '| area_ingreso:', hasPerm('area_ingreso'), '| area_produccion:', hasPerm('area_produccion'), '| modulos:', hasPerm('modulos'));
 
-  // PRODUCCION
-  if(hasPerm('area_ingreso')||hasPerm('area_produccion')){
+  // PRODUCCION - mostrar si tiene al menos una actividad habilitada
+  const tieneProduccion = hasPerm('tablero')||hasPerm('area_asistencia')||hasPerm('modulos')||hasPerm('informes');
+  if(tieneProduccion){
     let accion;
-    // Si tiene permisos de planta (ci, mecanicos, tablero) nunca va a Control de Ingresos
-    const _tienePermisosPlanta = hasPerm('area_ci')||hasPerm('area_mecanicos')||hasPerm('tablero');
     if(currentUser==='Programador'){
       accion=()=>mostrarSubMenuProduccion();
-    } else if(_tienePermisosPlanta || (hasPerm('modulos')&&!hasPerm('area_asistencia'))){
-      // Perfiles con acceso a planta o módulos sin asistencia → login módulos
-      accion=()=>{ document.getElementById('area-screen').classList.add('hidden'); mostrarLoginModulos(); };
     } else {
-      // Solo supervisoras puras con area_ingreso → Control de Ingresos
-      accion=()=>{ window.location.href='/ingresos?user='+encodeURIComponent(currentUser); };
+      accion=()=>mostrarSubMenuProduccion();
     }
     const c=makeCard('📋','Producción','','ac-blue',accion);
     c.style.animationDelay=(idx*0.07)+'s'; idx++;
     btns.appendChild(c);
   }
 
-  // MECANICOS
-  if(hasPerm('area_mecanicos')||hasPerm('area_montajes')){
-    const esTelevisor  = (currentUser==='Televisor');
+  // MECANICOS - mostrar si tiene al menos una actividad habilitada
+  const tieneMecanicos = hasPerm('tablero_planta')||hasPerm('area_montajes')||hasPerm('area_solicitar_insumos');
+  if(tieneMecanicos){
     const c=makeCard('🔧','Mecánicos','','ac-red',()=>{
-      if(esTelevisor){
-        // Televisor va directo al tablero sin submenú
-        checkMemberSelectionNeeded(currentUser, (member)=>{
-          document.getElementById('area-screen').classList.add('hidden');
-          entrarTablero();
-        });
-      } else {
-        mostrarSubMenuMecanicos();
-      }
+      mostrarSubMenuMecanicos();
     });
     c.style.animationDelay=(idx*0.07)+'s'; idx++;
     btns.appendChild(c);
   }
 
-  // CI — abre submenú con Tablero CI e Inventario de Hilos
+  // CI — mostrar si tiene permiso
   if(hasPerm('area_ci')){
     const c=makeCard('🏢','CI','','ac-purple',()=>{ window.location.href='/ci?perfil='+(currentUser||'Admin'); });
     c.style.animationDelay=(idx*0.07)+'s'; idx++;
@@ -4234,17 +4221,30 @@ function toggleAreaPerm(user, areaKey, subKeys){
 function togglePerm(user, perm, enabled){
   const cfg = loadConfig();
   if(!cfg[user]) cfg[user] = {};
-  const base = cfg[user].perms !== undefined ? cfg[user].perms : (USUARIOS[user]?.perms ? [...USUARIOS[user].perms] : []);
-  if(enabled){ if(!base.includes(perm)) base.push(perm); }
-  else { const idx=base.indexOf(perm); if(idx>-1) base.splice(idx,1); }
-  cfg[user].perms = base;
+  
+  // Inicializar permisos si no existen
+  if(!Array.isArray(cfg[user].perms)){
+    cfg[user].perms = [];
+  }
+  
+  // Agregar o quitar el permiso
+  if(enabled){ 
+    if(!cfg[user].perms.includes(perm)) cfg[user].perms.push(perm); 
+  }
+  else { 
+    cfg[user].perms = cfg[user].perms.filter(p => p !== perm);
+  }
+  
   // Si es usuario extra, también actualizar en _usuarios_extra
   const extras = cfg._usuarios_extra||[];
   const ei = extras.findIndex(u=>u.nombre===user);
-  if(ei>-1){ extras[ei].perms=base; cfg._usuarios_extra=extras; }
+  if(ei>-1){ extras[ei].perms=cfg[user].perms; cfg._usuarios_extra=extras; }
+  
   saveConfig(cfg);
-  if(USUARIOS[user]) USUARIOS[user].perms = base;
-  else USUARIOS[user] = {pass: (extras[ei]?.pass||''), perms: base};
+  
+  // Actualizar USUARIOS en memoria
+  if(!USUARIOS[user]) USUARIOS[user] = {pass: '', perms: []};
+  USUARIOS[user].perms = cfg[user].perms;
   
   // Actualizar pantalla si el usuario actual está mirando
   if(user === currentUser && !document.getElementById('area-screen').classList.contains('hidden')){
