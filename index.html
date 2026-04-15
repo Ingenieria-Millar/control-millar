@@ -4235,6 +4235,11 @@ function togglePerm(user, perm, enabled){
   saveConfig(cfg);
   if(USUARIOS[user]) USUARIOS[user].perms = base;
   else USUARIOS[user] = {pass: (extras[ei]?.pass||''), perms: base};
+  
+  // Actualizar pantalla si el usuario actual está mirando
+  if(user === currentUser && !document.getElementById('area-screen').classList.contains('hidden')){
+    mostrarAreaScreen();
+  }
 }
 
 // Apply saved config on load — se llama desde DOMContentLoaded tras cargar datos del servidor
