@@ -7746,7 +7746,10 @@ function siEnviar(){
         <input type="date" id="hst-hasta" class="dp-input">
       </div>
     </div>
-    <button class="dp-apply" onclick="aplicarFechasHistorico()">Aplicar</button>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button class="dp-apply" style="flex:1;" onclick="aplicarFechasHistorico()">Aplicar</button>
+      <button class="dp-apply" style="flex:1;background:#e2e8f0;color:#0f172a;" onclick="limpiarFechasHistorico()">Limpiar</button>
+    </div>
   </div>
 
   <!-- Body -->
@@ -7858,6 +7861,13 @@ function aplicarFechasHistorico(){
   renderHistorico();
 }
 
+function limpiarFechasHistorico(){
+  const hoy = new Date().toISOString().split('T')[0];
+  document.getElementById('hst-desde').value = hoy;
+  document.getElementById('hst-hasta').value = hoy;
+  aplicarFechasHistorico();
+}
+
 function poblarModulosHistorico(){
   // Mantenida por compatibilidad — ya no se usa el select externo
 }
@@ -7931,7 +7941,7 @@ function renderHistorico(){
       <div class="sc-label">Registros</div>
       <div class="sc-val" style="color:#0f172a;">${rows.length}</div>
     </div>
-    <div class="hst-action-card" id="hst-date-btn" onclick="toggleDatePopup()">
+    <div class="hst-action-card" id="hst-date-btn" onclick="toggleDatePopup()" style="margin-left:auto;">
       <div class="sc-label">📅 Fecha</div>
       <div class="sc-val" style="color:#0f172a;font-size:16px;">${fechaLabel}</div>
     </div>
