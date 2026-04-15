@@ -7617,7 +7617,7 @@ function siEnviar(){
       font-family:'Barlow Condensed',sans-serif;font-size:clamp(16px,2.5vw,22px);
       font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0f172a;
     }
-    #historico-screen .hst-title span{color:#7c3aed;}
+    #historico-screen .hst-title span{color:#0f172a;}
     #historico-screen .hst-filters{
       display:flex;align-items:center;gap:8px;flex-wrap:wrap;
       padding:12px clamp(12px,2.5vw,24px);background:#fff;
@@ -7641,6 +7641,42 @@ function siEnviar(){
     #historico-screen .hst-btn:hover{background:#f1f5f9;}
     #historico-screen .hst-btn.primary{background:#7c3aed;color:#fff;border-color:#7c3aed;}
     #historico-screen .hst-btn.primary:hover{filter:brightness(1.1);}
+    /* Botón de rango de fecha */
+    #historico-screen .hst-date-btn{
+      display:flex;align-items:center;gap:7px;padding:7px 16px;border-radius:8px;
+      border:1.5px solid #e2e8f0;background:#f8fafc;color:#0f172a;
+      font-family:'Nunito',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;
+    }
+    #historico-screen .hst-date-btn:hover{border-color:#7c3aed;background:#faf5ff;}
+    /* Popup de fechas */
+    #hst-date-popup{
+      display:none;position:absolute;top:calc(100% + 8px);left:0;z-index:200;
+      background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;
+      padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:260px;
+    }
+    #hst-date-popup.open{display:block;}
+    #hst-date-popup .dp-label{
+      font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#64748b;margin-bottom:4px;display:block;
+    }
+    #hst-date-popup .dp-row{display:flex;flex-direction:column;gap:12px;}
+    #hst-date-popup .dp-input{
+      width:100%;padding:7px 12px;border:1.5px solid #e2e8f0;border-radius:8px;
+      font-family:'Nunito',sans-serif;font-size:13px;color:#0f172a;background:#f8fafc;outline:none;
+    }
+    #hst-date-popup .dp-input:focus{border-color:#7c3aed;}
+    #hst-date-popup .dp-apply{
+      margin-top:14px;width:100%;padding:8px;border-radius:8px;border:none;
+      background:#7c3aed;color:#fff;font-family:'Barlow Condensed',sans-serif;
+      font-size:14px;font-weight:700;letter-spacing:1px;cursor:pointer;
+    }
+    #hst-date-popup .dp-apply:hover{filter:brightness(1.1);}
+    /* Filtros por columna */
+    #historico-screen .hst-col-filters td{padding:4px 14px 8px;background:#f8fafc;}
+    #historico-screen .hst-col-input{
+      width:100%;padding:5px 8px;border:1.5px solid #e2e8f0;border-radius:6px;
+      font-family:'Nunito',sans-serif;font-size:12px;color:#0f172a;background:#fff;outline:none;
+    }
+    #historico-screen .hst-col-input:focus{border-color:#7c3aed;}
     #historico-screen .hst-body{padding:16px clamp(12px,2.5vw,24px);}
     #historico-screen .hst-table-wrap{
       background:#fff;border-radius:12px;border:1.5px solid #e2e8f0;
@@ -7697,26 +7733,25 @@ function siEnviar(){
   </div>
 
   <!-- Filtros -->
-  <div class="hst-filters">
-    <span class="hst-filter-label">Desde</span>
-    <input type="date" id="hst-desde" class="hst-input" onchange="renderHistorico()">
-    <span class="hst-filter-label">Hasta</span>
-    <input type="date" id="hst-hasta" class="hst-input" onchange="renderHistorico()">
-    <span class="hst-filter-label">Módulo</span>
-    <select id="hst-modulo" class="hst-input" onchange="renderHistorico()">
-      <option value="">Todos</option>
-    </select>
-    <span class="hst-filter-label">Tipo</span>
-    <select id="hst-tipo" class="hst-input" onchange="renderHistorico()">
-      <option value="">Todos</option>
-      <option value="red">Alerta</option>
-      <option value="yellow">Atendiendo</option>
-      <option value="orange">Espera CI</option>
-      <option value="blue30">Cambio 30 min</option>
-      <option value="blue60">Cambio 60 min</option>
-      <option value="blue">Cambio (sin límite)</option>
-    </select>
-    <button class="hst-btn" onclick="limpiarFiltrosHistorico()">Limpiar</button>
+  <div class="hst-filters" style="position:relative;">
+    <div style="position:relative;">
+      <button class="hst-date-btn" id="hst-date-btn" onclick="toggleDatePopup()">
+        📅 <span id="hst-date-label">Hoy</span>
+      </button>
+      <div id="hst-date-popup">
+        <div class="dp-row">
+          <div>
+            <span class="dp-label">Desde</span>
+            <input type="date" id="hst-desde" class="dp-input">
+          </div>
+          <div>
+            <span class="dp-label">Hasta</span>
+            <input type="date" id="hst-hasta" class="dp-input">
+          </div>
+        </div>
+        <button class="dp-apply" onclick="aplicarFechasHistorico()">Aplicar</button>
+      </div>
+    </div>
     <button class="hst-btn primary" onclick="exportarHistoricoExcel()">📥 Excel</button>
   </div>
 
@@ -7734,6 +7769,15 @@ function siEnviar(){
             <th>Hora Fin</th>
             <th>Tiempo (min)</th>
             <th>Mecánico</th>
+          </tr>
+          <tr class="hst-col-filters">
+            <td><input class="hst-col-input" id="hcf-mod"      placeholder="Buscar..." oninput="renderHistorico()"></td>
+            <td><input class="hst-col-input" id="hcf-empleada" placeholder="Buscar..." oninput="renderHistorico()"></td>
+            <td><input class="hst-col-input" id="hcf-tipo"     placeholder="Buscar..." oninput="renderHistorico()"></td>
+            <td><input class="hst-col-input" id="hcf-inicio"   placeholder="Buscar..." oninput="renderHistorico()"></td>
+            <td><input class="hst-col-input" id="hcf-fin"      placeholder="Buscar..." oninput="renderHistorico()"></td>
+            <td><input class="hst-col-input" id="hcf-tiempo"   placeholder="Buscar..." oninput="renderHistorico()"></td>
+            <td><input class="hst-col-input" id="hcf-mecanico" placeholder="Buscar..." oninput="renderHistorico()"></td>
           </tr>
         </thead>
         <tbody id="hst-tbody"></tbody>
@@ -7772,49 +7816,70 @@ async function abrirHistorico(){
   const hasta  = document.getElementById('hst-hasta');
   if(!desde.value) desde.value = hoy;
   if(!hasta.value)  hasta.value  = hoy;
+  actualizarLabelFecha();
   // Cargar historial del servidor
   await loadHistorialFromServer();
-  // Poblar select de módulos
-  poblarModulosHistorico();
   renderHistorico();
 }
 
 function cerrarHistorico(){
   document.getElementById('historico-screen').style.display = 'none';
+  cerrarDatePopup();
+}
+
+function toggleDatePopup(){
+  const popup = document.getElementById('hst-date-popup');
+  popup.classList.toggle('open');
+}
+
+function cerrarDatePopup(){
+  document.getElementById('hst-date-popup').classList.remove('open');
+}
+
+// Cerrar popup al hacer click fuera
+document.addEventListener('click', function(e){
+  const popup = document.getElementById('hst-date-popup');
+  const btn   = document.getElementById('hst-date-btn');
+  if(popup && btn && !popup.contains(e.target) && !btn.contains(e.target)){
+    popup.classList.remove('open');
+  }
+});
+
+function actualizarLabelFecha(){
+  const desde = document.getElementById('hst-desde').value;
+  const hasta  = document.getElementById('hst-hasta').value;
+  const label  = document.getElementById('hst-date-label');
+  if(!label) return;
+  const hoy = new Date().toISOString().split('T')[0];
+  if(desde === hasta && desde === hoy){ label.textContent = 'Hoy'; return; }
+  if(desde === hasta){ label.textContent = desde; return; }
+  label.textContent = (desde||'?') + ' → ' + (hasta||'?');
+}
+
+function aplicarFechasHistorico(){
+  actualizarLabelFecha();
+  cerrarDatePopup();
+  renderHistorico();
 }
 
 function poblarModulosHistorico(){
-  const sel = document.getElementById('hst-modulo');
-  const current = sel.value;
-  sel.innerHTML = '<option value="">Todos</option>';
-  const hist = loadHistory();
-  const mods = [...new Set(hist.map(r=>r.modulo).filter(Boolean))].sort();
-  // También incluir módulos actuales
-  const allMods = [...new Set([...MODULES,...mods])].sort();
-  allMods.forEach(m=>{
-    const o = document.createElement('option');
-    o.value = m; o.textContent = m;
-    sel.appendChild(o);
-  });
-  sel.value = current;
-}
-
-function limpiarFiltrosHistorico(){
-  const hoy = new Date().toISOString().split('T')[0];
-  document.getElementById('hst-desde').value = hoy;
-  document.getElementById('hst-hasta').value = hoy;
-  document.getElementById('hst-modulo').value = '';
-  document.getElementById('hst-tipo').value = '';
-  renderHistorico();
+  // Mantenida por compatibilidad — ya no se usa el select externo
 }
 
 function renderHistorico(){
   const desde  = document.getElementById('hst-desde').value;
   const hasta   = document.getElementById('hst-hasta').value;
-  const filtMod = document.getElementById('hst-modulo').value;
-  const filtTipo= document.getElementById('hst-tipo').value;
   const tbody   = document.getElementById('hst-tbody');
   const summary = document.getElementById('hst-summary');
+
+  // Filtros por columna
+  const cfMod      = (document.getElementById('hcf-mod')?.value||'').toLowerCase().trim();
+  const cfEmpleada = (document.getElementById('hcf-empleada')?.value||'').toLowerCase().trim();
+  const cfTipo     = (document.getElementById('hcf-tipo')?.value||'').toLowerCase().trim();
+  const cfInicio   = (document.getElementById('hcf-inicio')?.value||'').toLowerCase().trim();
+  const cfFin      = (document.getElementById('hcf-fin')?.value||'').toLowerCase().trim();
+  const cfTiempo   = (document.getElementById('hcf-tiempo')?.value||'').toLowerCase().trim();
+  const cfMecanico = (document.getElementById('hcf-mecanico')?.value||'').toLowerCase().trim();
 
   const hist = loadHistory();
   let rows = [];
@@ -7836,9 +7901,14 @@ function renderHistorico(){
     });
   });
 
-  // Aplicar filtros
-  if(filtMod)  rows = rows.filter(r=>r.mod===filtMod);
-  if(filtTipo) rows = rows.filter(r=>r.tipo===filtTipo);
+  // Aplicar filtros por columna
+  if(cfMod)      rows = rows.filter(r=>r.mod.toLowerCase().includes(cfMod));
+  if(cfEmpleada) rows = rows.filter(r=>r.empleada.toLowerCase().includes(cfEmpleada));
+  if(cfTipo)     rows = rows.filter(r=>{ const t=HST_TIPOS[r.tipo]; return (t?t.label:r.tipo).toLowerCase().includes(cfTipo); });
+  if(cfInicio)   rows = rows.filter(r=>r.horaInicio.toLowerCase().includes(cfInicio));
+  if(cfFin)      rows = rows.filter(r=>r.hora.toLowerCase().includes(cfFin));
+  if(cfTiempo)   rows = rows.filter(r=>r.min.toFixed(2).includes(cfTiempo));
+  if(cfMecanico) rows = rows.filter(r=>r.mecanico.toLowerCase().includes(cfMecanico));
 
   // Ordenar por fecha/hora descendente (más reciente primero)
   rows.sort((a,b)=>{
@@ -7887,8 +7957,6 @@ function exportarHistoricoExcel(){
   if(typeof XLSX === 'undefined'){ alert('Librería Excel no disponible'); return; }
   const desde  = document.getElementById('hst-desde').value;
   const hasta   = document.getElementById('hst-hasta').value;
-  const filtMod = document.getElementById('hst-modulo').value;
-  const filtTipo= document.getElementById('hst-tipo').value;
   const hist   = loadHistory();
   let rows = [];
 
@@ -7896,8 +7964,6 @@ function exportarHistoricoExcel(){
     if(!r.tipo || r.tipo==='green') return;
     if(desde && r.fechaISO && r.fechaISO < desde) return;
     if(hasta  && r.fechaISO && r.fechaISO > hasta) return;
-    if(filtMod  && r.modulo !== filtMod) return;
-    if(filtTipo && r.tipo   !== filtTipo) return;
     const t = HST_TIPOS[r.tipo] || { label: r.tipo };
     rows.push({
       'Módulo':               r.modulo||'',
