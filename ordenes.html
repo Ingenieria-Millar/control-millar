@@ -193,6 +193,7 @@ td{ padding:10px 14px;font-family:'Nunito',sans-serif;font-size:13px;color:#0f17
   <div class="toolbar">
     <div class="toolbar-title">📋 Órdenes</div>
     <span class="toolbar-count" id="ord-count">0 órdenes</span>
+    <button class="btn danger" id="btn-del-sel" onclick="eliminarSeleccionados()" style="display:none;">🗑 Eliminar seleccionados (<span id="sel-count">0</span>)</button>
     <button class="btn" onclick="abrirImportExcel()" title="Importar desde Excel">
       📥 Importar
       <input type="file" id="import-file" accept=".xlsx,.xls,.csv" style="display:none;" onchange="importarExcel(event)">
@@ -206,17 +207,21 @@ td{ padding:10px 14px;font-family:'Nunito',sans-serif;font-size:13px;color:#0f17
     <table>
       <thead>
         <tr>
+          <th style="width:40px;"><input type="checkbox" id="chk-all" onchange="toggleSelAll(this.checked)" style="width:15px;height:15px;cursor:pointer;accent-color:#2563eb;"></th>
           <th>Módulo</th>
           <th>Referencia</th>
           <th>OP / OC</th>
           <th>Cantidad</th>
+          <th>Fecha</th>
           <th>Acciones</th>
         </tr>
         <tr class="col-filters">
+          <td></td>
           <td><input class="col-input" id="cf-modulo"     placeholder="Buscar..." oninput="renderTabla()"></td>
           <td><input class="col-input" id="cf-referencia" placeholder="Buscar..." oninput="renderTabla()"></td>
           <td><input class="col-input" id="cf-opoc"       placeholder="Buscar..." oninput="renderTabla()"></td>
           <td><input class="col-input" id="cf-cantidad"   placeholder="Buscar..." oninput="renderTabla()"></td>
+          <td><input class="col-input" id="cf-fecha"      placeholder="Buscar..." oninput="renderTabla()"></td>
           <td></td>
         </tr>
       </thead>
@@ -321,28 +326,35 @@ function renderTabla(){
   const cfRef  = (document.getElementById('cf-referencia')?.value||'').toLowerCase().trim();
   const cfOp   = (document.getElementById('cf-opoc')?.value||'').toLowerCase().trim();
   const cfCant = (document.getElementById('cf-cantidad')?.value||'').toLowerCase().trim();
+  const cfFech = (document.getElementById('cf-fecha')?.value||'').toLowerCase().trim();
 
   let rows = ordenes.map((o,i)=>({...o, _idx:i}));
   if(cfMod)  rows = rows.filter(r=>(r.modulo||'').toLowerCase().includes(cfMod));
   if(cfRef)  rows = rows.filter(r=>(r.referencia||'').toLowerCase().includes(cfRef));
   if(cfOp)   rows = rows.filter(r=>(r.opoc||'').toLowerCase().includes(cfOp));
   if(cfCant) rows = rows.filter(r=>String(r.cantidad||'').includes(cfCant));
+  if(cfFech) rows = rows.filter(r=>(r.fecha||'').toLowerCase().includes(cfFech));
 
   const tbody = document.getElementById('ord-tbody');
   const countEl = document.getElementById('ord-count');
   countEl.textContent = rows.length + ' orden' + (rows.length!==1?'es':'');
 
   if(rows.length === 0){
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="5">📋 No hay órdenes para mostrar</td></tr>`;
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="7">📋 No hay órdenes para mostrar</td></tr>`;
+    actualizarBtnDel();
     return;
   }
 
   tbody.innerHTML = rows.map(r=>`
     <tr>
+      <td style="text-align:center;">
+        <input type="checkbox" class="chk-row" data-idx="${r._idx}" onchange="onCheckRow()" style="width:15px;height:15px;cursor:pointer;accent-color:#2563eb;">
+      </td>
       <td><span class="td-mod">${r.modulo||'—'}</span></td>
       <td>${r.referencia||'—'}</td>
       <td style="font-family:'Courier New',monospace;font-size:13px;">${r.opoc||'—'}</td>
       <td><span class="td-num">${r.cantidad||'—'}</span></td>
+      <td style="font-size:12px;color:#64748b;">${r.fecha||'—'}</td>
       <td>
         <div class="td-actions">
           <button class="action-btn edit" onclick="abrirEditar(${r._idx})">✏ Editar</button>
@@ -350,6 +362,15 @@ function renderTabla(){
         </div>
       </td>
     </tr>`).join('');
+
+  actualizarBtnDel();
+  // Restaurar checkboxes seleccionados
+  document.querySelectorAll('.chk-row').forEach(chk=>{
+    if(_seleccionados.has(parseInt(chk.dataset.idx))) chk.checked=true;
+  });
+  // Actualizar check-all
+  const chkAll = document.getElementById('chk-all');
+  if(chkAll) chkAll.checked = rows.length>0 && rows.every(r=>_seleccionados.has(r._idx));
 }
 
 // ── Modal crear / editar ───────────────────────────────
@@ -417,6 +438,7 @@ function guardarOrden(){
     showToast('✅ Orden creada');
   }
 
+  _seleccionados.clear();
   guardarEnServidor();
   cerrarModal();
   renderTabla();
@@ -436,10 +458,60 @@ function cerrarConfirmDel(){
 function confirmarEliminar(){
   if(deletingIdx === null) return;
   ordenes.splice(deletingIdx, 1);
+  _seleccionados.clear();
   guardarEnServidor();
   cerrarConfirmDel();
   renderTabla();
   showToast('🗑 Orden eliminada');
+}
+
+// ── Selección múltiple ─────────────────────────────────
+let _seleccionados = new Set();
+
+function onCheckRow(){
+  _seleccionados.clear();
+  document.querySelectorAll('.chk-row:checked').forEach(chk=>{
+    _seleccionados.add(parseInt(chk.dataset.idx));
+  });
+  actualizarBtnDel();
+  // Actualizar check-all
+  const total = document.querySelectorAll('.chk-row').length;
+  const sel   = document.querySelectorAll('.chk-row:checked').length;
+  const chkAll = document.getElementById('chk-all');
+  if(chkAll) chkAll.checked = total>0 && sel===total;
+}
+
+function toggleSelAll(checked){
+  _seleccionados.clear();
+  document.querySelectorAll('.chk-row').forEach(chk=>{
+    chk.checked = checked;
+    if(checked) _seleccionados.add(parseInt(chk.dataset.idx));
+  });
+  actualizarBtnDel();
+}
+
+function actualizarBtnDel(){
+  const btn = document.getElementById('btn-del-sel');
+  const cnt = document.getElementById('sel-count');
+  if(!btn) return;
+  if(_seleccionados.size > 0){
+    btn.style.display='flex';
+    if(cnt) cnt.textContent = _seleccionados.size;
+  } else {
+    btn.style.display='none';
+  }
+}
+
+function eliminarSeleccionados(){
+  if(_seleccionados.size === 0) return;
+  if(!confirm('¿Eliminar ' + _seleccionados.size + ' orden(es) seleccionada(s)? Esta acción no se puede deshacer.')) return;
+  // Eliminar de mayor a menor índice para no desplazar
+  const indices = [..._seleccionados].sort((a,b)=>b-a);
+  indices.forEach(i => ordenes.splice(i,1));
+  _seleccionados.clear();
+  guardarEnServidor();
+  renderTabla();
+  showToast('🗑 ' + indices.length + ' orden(es) eliminada(s)');
 }
 
 // ── Exportar Excel ─────────────────────────────────────
