@@ -650,15 +650,24 @@ function abrirModal(){
   document.getElementById('modal-error').style.display='none';
   document.getElementById('modal-error').textContent='';
   document.getElementById('modal-mec-name').textContent = currentUser;
-  // Poblar módulos desde ciConfig.moduleList
+  // Poblar módulos desde configuración del servidor (respeta renombres y deshabilitados)
   const modSel = document.getElementById('modal-modulo');
-  modSel.innerHTML = '<option value="">— Seleccionar —</option>';
-  const modList = ciConfig.moduleList && ciConfig.moduleList.length
-    ? ciConfig.moduleList
-    : ['M01','M02','M03','M04','M05','M06','M07','M08','M09','M10',
+  modSel.innerHTML = '<option value="">— Cargando... —</option>';
+  fetch('/api/modules')
+    .then(r=>r.json())
+    .then(mods=>{
+      modSel.innerHTML = '<option value="">— Seleccionar —</option>';
+      (mods||[]).forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=m; modSel.appendChild(o); });
+    })
+    .catch(()=>{
+      // Fallback a módulos base si falla la API
+      modSel.innerHTML = '<option value="">— Seleccionar —</option>';
+      ['M01','M02','M03','M04','M05','M06','M07','M08','M09','M10',
        'M11','M12','M13','M14','M15','M16','M17','M18','M19','M20',
-       'M21','M22','M23','M24','M25','M26','M27'];
-  modList.forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=m; modSel.appendChild(o); });
+       'M21','M22','M23','M24','M25','M26','M27'].forEach(m=>{
+        const o=document.createElement('option'); o.value=m; o.textContent=m; modSel.appendChild(o);
+      });
+    });
   modalRenderInsumosList();
   document.getElementById('modal-overlay').classList.add('open');
 }
