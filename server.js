@@ -826,6 +826,22 @@ wss.on('connection', (ws, req) => {
         broadcastLocal({ type:'change2', id:msg.id, state:msg.state||null, mecanico:msg.mecanico||'' });
       }
 
+      // ── Estado pink (Alistamiento) ──────────────────────────────
+      else if (msg.type === 'change_pink') {
+        if (!msg.id) return;
+        if (states[msg.id] === undefined) {
+          states[msg.id]       = 'green';
+          lastMec[msg.id]      = '';
+          stateTimes[msg.id]   = Date.now();
+          lastEmpleada[msg.id] = '';
+        }
+        states[msg.id]     = 'pink';
+        stateTimes[msg.id] = Date.now();
+        if (msg.mecanico) lastMec[msg.id] = msg.mecanico;
+        saveFloorState();
+        broadcast({ type:'change', id:msg.id, state:'pink', mecanico:msg.mecanico||'', limite:null, empleada:'', stateTime:stateTimes[msg.id] });
+      }
+
       // ── Config Módulos ──────────────────────────────────────────
       else if (msg.type === 'modules_config') {
         // Inicializar states para módulos extra nuevos
@@ -899,6 +915,18 @@ wss.on('connection', (ws, req) => {
           saveCiRequests();
         }
         broadcastLocal({ type:'ci_new_request', request:msg.request });
+
+        // Si es solicitud de alistamiento, poner el moduloDestino en pink
+        if (msg.request.esMecanico && msg.request.moduloDestino) {
+          const modId = msg.request.moduloDestino;
+          if (states[modId] !== undefined) {
+            states[modId]     = 'pink';
+            stateTimes[modId] = Date.now();
+            if (msg.request.module) lastMec[modId] = msg.request.module; // nombre del mecánico
+            saveFloorState();
+            broadcast({ type:'change', id:modId, state:'pink', mecanico:msg.request.module||'', limite:null, empleada:lastEmpleada[modId]||'', stateTime:stateTimes[modId] });
+          }
+        }
       }
 
       else if (msg.type === 'ci_update_request') {
@@ -907,6 +935,24 @@ wss.on('connection', (ws, req) => {
         if (idx > -1) ciRequests[idx] = msg.request;
         saveCiRequests();
         broadcastLocal({ type:'ci_update_request', request:msg.request });
+
+        // Si fue aceptado (done), liberar el moduloDestino de pink a green
+        if (msg.request.status === 'done' && msg.request.moduloDestino) {
+          const modId = msg.request.moduloDestino;
+          if (states[modId] === 'pink') {
+            states[modId]     = 'green';
+            stateTimes[modId] = Date.now();
+            lastMec[modId]    = '';
+            saveFloorState();
+            broadcast({ type:'change', id:modId, state:'green', mecanico:'', limite:null, empleada:'', stateTime:stateTimes[modId] });
+          }
+        }
+      }
+
+      else if (msg.type === 'ci_reactivar_alerta') {
+        if (!msg.reqId) return;
+        // Retransmitir a todos (incluyendo al emisor) para que CI reactive la alerta
+        broadcast({ type:'ci_reactivar_alerta', reqId:msg.reqId });
       }
 
       else if (msg.type === 'ci_delete_request') {
