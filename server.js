@@ -66,6 +66,7 @@ const FILES = {
   maquinaria:     path.join(DATA_DIR, 'maquinaria.json'),
   turnos:         path.join(DATA_DIR, 'turnos.json'),
   historial:      path.join(DATA_DIR, 'historial.json'),
+  ordenes:        path.join(DATA_DIR, 'ordenes.json'),
 };
 
 // ── Helpers de persistencia ────────────────────────────────────────
@@ -309,6 +310,21 @@ app.get('/alistamiento', (req, res) =>
 app.get('/solicitar-insumos', (req, res) =>
   res.sendFile(path.join(__dirname, 'solicitar_insumos.html'))
 );
+
+app.get('/ordenes', (req, res) =>
+  res.sendFile(path.join(__dirname, 'ordenes.html'))
+);
+
+// ── API Órdenes de Producción ─────────────────────────────────────
+app.get('/api/ordenes', (req, res) => {
+  res.json(loadDB('ordenes') || []);
+});
+app.post('/api/ordenes', (req, res) => {
+  const data = req.body;
+  if (!Array.isArray(data)) return res.status(400).json({ error: 'Se esperaba un array' });
+  saveDB('ordenes', data);
+  res.json({ ok: true });
+});
 
 const CI_PATH = path.join(__dirname, 'Tablero_CI.html');
 app.get('/ci', (req, res) => {
