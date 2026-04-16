@@ -1448,7 +1448,13 @@ let selectedMod=null, activeFilters=new Set(), currentView=null, pendingTransici
 // Módulos ocultos por el usuario (persiste en localStorage)
 const hiddenMods=new Set(); localStorage.removeItem('hiddenMods'); // visibilidad siempre completa
 // ── Helpers de permisos ─────────────────────────────────────────────
-function hasPerm(p){ return currentUser&&USUARIOS[currentUser]&&USUARIOS[currentUser].perms.includes(p); }
+function hasPerm(p){
+  // Permisos normales desde USUARIOS
+  if(currentUser && USUARIOS[currentUser] && USUARIOS[currentUser].perms.includes(p)) return true;
+  // Supervisoras: tienen area_asistencia e informes por defecto
+  if(currentUserRol==='supervisora' && (p==='area_asistencia'||p==='informes')) return true;
+  return false;
+}
 function isProg(){ return hasPerm('fix')&&hasPerm('modulos')&&hasPerm('tablero'); }
 
 // ── Variables globales Control de Asistencia ─────────────────────
@@ -2106,9 +2112,9 @@ function mostrarSubMenuMecanicos(){
     btns.appendChild(c1);
   }
   
-  // Tablero Planta (con sonido)
+  // Tablero Mecánicos
   if(hasPerm('tablero_planta')){
-    const c1b=makeCard('🔊','Tablero Planta (con sonido)','Tablero con notificaciones','ac-orange',()=>{
+    const c1b=makeCard('🔊','Tablero Mecánicos','Tablero con notificaciones','ac-orange',()=>{
       document.getElementById('area-screen').classList.add('hidden');
       entrarTablero();
     });
