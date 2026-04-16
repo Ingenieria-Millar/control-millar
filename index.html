@@ -42,12 +42,21 @@ window.ScreenState = {
   },
   saveCurrentScreen: function() {
     try {
+      // Detectar vista activa: primero revisar grid/single que no son pantallas HTML
       let visibleScreen = null;
-      for (const [elemId, screenName] of Object.entries(this.SCREENS)) {
-        const elem = document.getElementById(elemId);
-        if (elem && elem.style.display !== 'none') {
-          visibleScreen = screenName;
-          break;
+      const cv = typeof currentView !== 'undefined' ? currentView : null;
+      if(cv === 'grid') {
+        visibleScreen = 'tablero_grid';
+      } else if(cv === 'single') {
+        visibleScreen = 'tablero_single';
+      } else {
+        // Buscar pantalla HTML visible
+        for (const [elemId, screenName] of Object.entries(this.SCREENS)) {
+          const elem = document.getElementById(elemId);
+          if (elem && elem.style.display !== 'none' && !elem.classList.contains('hidden')) {
+            visibleScreen = screenName;
+            break;
+          }
         }
       }
       if (visibleScreen) {
@@ -56,7 +65,7 @@ window.ScreenState = {
           user: typeof currentUser !== 'undefined' ? currentUser : null,
           rol: typeof currentUserRol !== 'undefined' ? currentUserRol : null,
           selectedMod: typeof selectedMod !== 'undefined' ? selectedMod : null,
-          currentView: typeof currentView !== 'undefined' ? currentView : null,
+          currentView: cv,
           timestamp: new Date().getTime()
         };
         localStorage.setItem(this.SCREEN_KEY, JSON.stringify(state));
@@ -1897,13 +1906,39 @@ window.addEventListener('DOMContentLoaded', async ()=>{
           }
           document.getElementById('login-screen').classList.add('hidden');
           mostrarAreaScreen();
-          // Restaurar módulo seleccionado y vista si estaba en tablero
+          // Restaurar pantalla — esperar a que el WS conecte y traiga datos
           const screenSaved = ScreenState.loadSavedState();
-          if(screenSaved && screenSaved.selectedMod && screenSaved.currentView === 'single'){
-            selectedMod = screenSaved.selectedMod;
-            setTimeout(() => { setView('single'); }, 600);
-          } else if(screenSaved && screenSaved.currentView === 'grid'){
-            setTimeout(() => { entrarTablero(); }, 600);
+          if(screenSaved && screenSaved.screen){
+            const screen = screenSaved.screen;
+            const restoreNav = () => {
+              if(screen === 'tablero_grid' || screenSaved.currentView === 'grid'){
+                entrarTablero();
+              } else if((screen === 'tablero_single' || screenSaved.currentView === 'single') && screenSaved.selectedMod){
+                selectedMod = screenSaved.selectedMod;
+                setView('single');
+              } else if(screen === 'config'){
+                document.querySelectorAll('.sp-screen, #area-screen').forEach(el=>el.style.display='none');
+                const cfg = document.getElementById('cfg-screen');
+                if(cfg) cfg.style.display='flex';
+              } else if(screen === 'historico'){
+                abrirHistorico();
+              } else if(screen === 'acumulado'){
+                const ac = document.getElementById('acum-screen');
+                if(ac) ac.style.display='flex';
+              }
+              // area, modulo_login, modtable → ya están en mostrarAreaScreen, no hacer nada
+            };
+            // Esperar a que el WS traiga el init antes de restaurar
+            const waitForWS = (attempts) => {
+              if(typeof iaReady !== 'undefined' && iaReady){
+                restoreNav();
+              } else if(attempts > 0){
+                setTimeout(() => waitForWS(attempts - 1), 200);
+              } else {
+                restoreNav(); // timeout — restaurar igual
+              }
+            };
+            setTimeout(() => waitForWS(15), 300);
           }
         } else {
           // Usuario ya no existe, limpiar sesión
