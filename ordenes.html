@@ -444,21 +444,23 @@ function confirmarEliminar(){
 
 // ── Exportar Excel ─────────────────────────────────────
 function exportarExcel(){
-  if(!ordenes.length){ showToast('⚠ No hay órdenes para exportar'); return; }
-  const rows = ordenes.map(o=>({
-    'Módulo':     o.modulo||'',
-    'Referencia': o.referencia||'',
-    'OP / OC':    o.opoc||'',
-    'Cantidad':   o.cantidad||0,
-    'Fecha':      o.fecha||''
-  }));
+  const rows = ordenes.length > 0
+    ? ordenes.map(o=>({
+        'Módulo':     o.modulo||'',
+        'Referencia': o.referencia||'',
+        'OP / OC':    o.opoc||'',
+        'Cantidad':   o.cantidad||0,
+        'Fecha':      o.fecha||''
+      }))
+    : [{ 'Módulo':'', 'Referencia':'', 'OP / OC':'', 'Cantidad':0, 'Fecha':'' }]; // plantilla vacía
   const ws = XLSX.utils.json_to_sheet(rows);
   ws['!cols'] = [{wch:12},{wch:20},{wch:14},{wch:12},{wch:14}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Órdenes');
   const fecha = new Date().toISOString().split('T')[0];
-  XLSX.writeFile(wb, 'Ordenes_Produccion_'+fecha+'.xlsx');
-  showToast('📤 Excel exportado');
+  const fname = ordenes.length > 0 ? 'Ordenes_Produccion_'+fecha+'.xlsx' : 'Plantilla_Ordenes.xlsx';
+  XLSX.writeFile(wb, fname);
+  showToast(ordenes.length > 0 ? '📤 Excel exportado' : '📋 Plantilla descargada');
 }
 
 // ── Importar Excel ─────────────────────────────────────
