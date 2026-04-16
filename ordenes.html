@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Órdenes de Producción — Confecciones Millar</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Nunito:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{ box-sizing:border-box; margin:0; padding:0; }
+body{ background:#f1f5f9; font-family:'Nunito',sans-serif; color:#0f172a; min-height:100vh; overflow-x:hidden; }
+input,select,textarea{ font-size:16px !important; }
+:root{
+  --accent:#2563eb; --accent2:#1e3a8a; --text:#0f172a;
+  --muted:#64748b; --border:#e2e8f0; --surface:#fff;
+  --ok:#16a34a; --danger:#ef4444; --warn:#f59e0b;
+}
+
+/* ── HEADER ── */
+header{
+  position:sticky;top:0;z-index:100;
+  background:#fff;border-bottom:1px solid var(--border);
+  box-shadow:0 1px 6px rgba(0,0,0,.07);
+  padding:0 clamp(12px,2.5vw,24px);min-height:64px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+}
+header::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);
+}
+.hd-left{ display:flex;align-items:center;gap:12px; }
+.hd-logo{
+  width:36px;height:36px;border-radius:50%;background:#fff;
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
+  box-shadow:0 0 0 2px #e2e8f0,0 2px 8px rgba(0,0,0,.08);flex-shrink:0;
+}
+.hd-logo img{ width:100%;height:100%;object-fit:contain;padding:3px; }
+.hd-title{
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:clamp(16px,2.5vw,22px);font-weight:800;
+  letter-spacing:2px;text-transform:uppercase;color:#0f172a;line-height:1.1;
+}
+.hd-title span{ color:var(--accent); }
+.hd-right{ display:flex;align-items:center;gap:8px; }
+
+/* ── BOTONES ── */
+.btn{
+  padding:7px 16px;border-radius:8px;border:1.5px solid var(--border);
+  background:#fff;color:var(--accent2);font-family:'Barlow Condensed',sans-serif;
+  font-size:13px;font-weight:700;letter-spacing:.5px;cursor:pointer;transition:all .2s;
+  display:flex;align-items:center;gap:6px;white-space:nowrap;
+}
+.btn:hover{ background:#f1f5f9; }
+.btn.primary{ background:var(--accent);color:#fff;border-color:var(--accent); }
+.btn.primary:hover{ filter:brightness(1.1); }
+.btn.success{ background:var(--ok);color:#fff;border-color:var(--ok); }
+.btn.success:hover{ filter:brightness(1.1); }
+.btn.danger{ background:var(--danger);color:#fff;border-color:var(--danger); }
+.btn.danger:hover{ filter:brightness(1.1); }
+
+/* ── BODY ── */
+.page-body{ padding:20px clamp(12px,2.5vw,24px); }
+
+/* ── TOOLBAR ── */
+.toolbar{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  margin-bottom:16px;
+}
+.toolbar-title{
+  font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;
+  letter-spacing:1px;color:#0f172a;flex:1;
+}
+.toolbar-count{
+  font-family:'Nunito',sans-serif;font-size:12px;font-weight:600;
+  color:var(--muted);background:#f1f5f9;padding:4px 10px;border-radius:20px;
+}
+
+/* ── TABLA ── */
+.table-wrap{
+  background:#fff;border-radius:12px;border:1.5px solid var(--border);
+  box-shadow:0 1px 4px rgba(0,0,0,.04);overflow:hidden;
+}
+table{ width:100%;border-collapse:collapse; }
+thead tr:first-child{ background:#f8fafc;border-bottom:2px solid var(--border); }
+th{
+  padding:10px 14px;text-align:left;
+  font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:800;
+  letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);white-space:nowrap;
+}
+.col-filters td{ padding:4px 14px 8px;background:#f8fafc; }
+.col-input{
+  width:100%;padding:5px 8px;border:1.5px solid var(--border);border-radius:6px;
+  font-family:'Nunito',sans-serif;font-size:12px;color:#0f172a;background:#fff;outline:none;
+}
+.col-input:focus{ border-color:var(--accent); }
+tbody tr{ border-bottom:1px solid #f1f5f9;transition:background .12s; }
+tbody tr:last-child{ border-bottom:none; }
+tbody tr:hover{ background:#f0f7ff; }
+td{ padding:10px 14px;font-family:'Nunito',sans-serif;font-size:13px;color:#0f172a; }
+.td-mod{
+  font-family:'Courier New',monospace;font-size:12px;font-weight:700;
+  background:#f1f5f9;color:var(--accent2);border:1px solid var(--border);
+  padding:2px 8px;border-radius:4px;display:inline-block;
+}
+.td-num{ font-family:'Courier New',monospace;font-size:13px;font-weight:700;color:var(--accent2); }
+.td-actions{ display:flex;gap:6px;align-items:center; }
+.action-btn{
+  padding:4px 10px;border-radius:6px;border:1.5px solid var(--border);
+  background:#fff;cursor:pointer;font-size:12px;font-weight:700;
+  font-family:'Barlow Condensed',sans-serif;letter-spacing:.3px;transition:all .15s;
+}
+.action-btn.edit{ color:var(--accent2);border-color:#bfdbfe; }
+.action-btn.edit:hover{ background:#eff6ff;border-color:var(--accent); }
+.action-btn.del{ color:var(--danger);border-color:#fecaca; }
+.action-btn.del:hover{ background:#fef2f2;border-color:var(--danger); }
+.empty-row td{
+  text-align:center;padding:60px 20px;color:#94a3b8;
+  font-family:'Barlow Condensed',sans-serif;font-size:16px;letter-spacing:2px;
+}
+
+/* ── MODAL ── */
+.modal-overlay{
+  display:none;position:fixed;inset:0;z-index:500;
+  background:rgba(15,23,42,.5);backdrop-filter:blur(4px);
+  align-items:center;justify-content:center;padding:16px;
+}
+.modal-overlay.open{ display:flex; }
+.modal-box{
+  background:#fff;border-radius:18px;padding:32px 28px 24px;
+  width:100%;max-width:480px;box-shadow:0 24px 60px rgba(15,23,42,.18);
+  animation:slideUp .22s ease;
+}
+@keyframes slideUp{ from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
+.modal-title{
+  font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;
+  letter-spacing:2px;text-transform:uppercase;color:var(--accent2);margin-bottom:20px;
+}
+.field{ margin-bottom:14px; }
+.field label{
+  display:block;font-size:10px;font-weight:800;letter-spacing:1.5px;
+  text-transform:uppercase;color:var(--muted);margin-bottom:6px;
+}
+.field input, .field select{
+  width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;
+  font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;background:#f8fafc;outline:none;
+  transition:border-color .2s;
+}
+.field input:focus, .field select:focus{ border-color:var(--accent); }
+.field input.error{ border-color:var(--danger); }
+.modal-btns{ display:flex;gap:10px;margin-top:20px; }
+.modal-btns .btn{ flex:1;justify-content:center; }
+
+/* ── CONFIRM DELETE ── */
+#confirm-del-overlay .modal-box{ max-width:360px; }
+
+/* ── TOAST ── */
+#ord-toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:#0f172a;color:#fff;padding:12px 24px;border-radius:12px;
+  font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;
+  z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.2);
+  opacity:0;transition:opacity .2s;pointer-events:none;
+}
+#ord-toast.show{ opacity:1; }
+
+@media(max-width:600px){
+  .toolbar{ flex-direction:column;align-items:stretch; }
+  .toolbar-title{ font-size:18px; }
+  th, td{ padding:8px 10px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hd-left">
+    <div class="hd-logo">
+      <img src="/logo.png" onerror="this.style.display='none'">
+    </div>
+    <div>
+      <div class="hd-title">ÓRDENES <span>DE PRODUCCIÓN</span></div>
+    </div>
+  </div>
+  <div class="hd-right">
+    <button class="btn" onclick="window.history.back()">← Volver</button>
+  </div>
+</header>
+
+<div class="page-body">
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="toolbar-title">📋 Órdenes</div>
+    <span class="toolbar-count" id="ord-count">0 órdenes</span>
+    <button class="btn" onclick="abrirImportExcel()" title="Importar desde Excel">
+      📥 Importar
+      <input type="file" id="import-file" accept=".xlsx,.xls,.csv" style="display:none;" onchange="importarExcel(event)">
+    </button>
+    <button class="btn success" onclick="exportarExcel()">📤 Exportar</button>
+    <button class="btn primary" onclick="abrirModal()">+ Nueva Orden</button>
+  </div>
+
+  <!-- Tabla -->
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Módulo</th>
+          <th>Referencia</th>
+          <th>OP / OC</th>
+          <th>Cantidad</th>
+          <th>Acciones</th>
+        </tr>
+        <tr class="col-filters">
+          <td><input class="col-input" id="cf-modulo"     placeholder="Buscar..." oninput="renderTabla()"></td>
+          <td><input class="col-input" id="cf-referencia" placeholder="Buscar..." oninput="renderTabla()"></td>
+          <td><input class="col-input" id="cf-opoc"       placeholder="Buscar..." oninput="renderTabla()"></td>
+          <td><input class="col-input" id="cf-cantidad"   placeholder="Buscar..." oninput="renderTabla()"></td>
+          <td></td>
+        </tr>
+      </thead>
+      <tbody id="ord-tbody"></tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- Modal crear / editar -->
+<div class="modal-overlay" id="form-overlay">
+  <div class="modal-box">
+    <div class="modal-title" id="form-title">Nueva Orden</div>
+    <div class="field">
+      <label>Módulo <span style="color:#ef4444;">*</span></label>
+      <select id="f-modulo">
+        <option value="">— Seleccionar —</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Referencia <span style="color:#ef4444;">*</span></label>
+      <input type="text" id="f-referencia" placeholder="Ej: 3201854">
+    </div>
+    <div class="field">
+      <label>OP / OC</label>
+      <input type="text" id="f-opoc" placeholder="Ej: OP-001">
+    </div>
+    <div class="field">
+      <label>Cantidad <span style="color:#ef4444;">*</span></label>
+      <input type="number" id="f-cantidad" min="1" placeholder="Ej: 100">
+    </div>
+    <div id="form-error" style="display:none;color:#ef4444;font-size:12px;font-weight:700;margin-top:-8px;margin-bottom:8px;"></div>
+    <div class="modal-btns">
+      <button class="btn" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn primary" onclick="guardarOrden()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal confirmar eliminar -->
+<div class="modal-overlay" id="confirm-del-overlay">
+  <div class="modal-box" style="max-width:360px;">
+    <div class="modal-title" style="color:#dc2626;">🗑 Eliminar Orden</div>
+    <p style="font-family:'Nunito',sans-serif;font-size:14px;color:#64748b;margin-bottom:20px;">
+      ¿Estás seguro de que quieres eliminar esta orden? Esta acción no se puede deshacer.
+    </p>
+    <div class="modal-btns">
+      <button class="btn" onclick="cerrarConfirmDel()">Cancelar</button>
+      <button class="btn danger" onclick="confirmarEliminar()">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<div id="ord-toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════
+//  ÓRDENES DE PRODUCCIÓN
+// ══════════════════════════════════════════════════════
+let ordenes = [];
+let editingIdx = null;
+let deletingIdx = null;
+
+// ── Cargar datos del servidor ──────────────────────────
+async function cargarOrdenes(){
+  try{
+    const r = await fetch('/api/ordenes');
+    ordenes = await r.json();
+  } catch(e){ ordenes = []; }
+  renderTabla();
+}
+
+// ── Cargar módulos activos ──────────────────────────────
+async function cargarModulos(){
+  try{
+    const r = await fetch('/api/modules');
+    const mods = await r.json();
+    const sel = document.getElementById('f-modulo');
+    sel.innerHTML = '<option value="">— Seleccionar —</option>';
+    (mods||[]).forEach(m=>{
+      const o = document.createElement('option');
+      o.value = m; o.textContent = m;
+      sel.appendChild(o);
+    });
+  } catch(e){}
+}
+
+// ── Guardar en servidor ────────────────────────────────
+async function guardarEnServidor(){
+  try{
+    await fetch('/api/ordenes',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(ordenes)
+    });
+  } catch(e){ showToast('⚠ Error al guardar en el servidor'); }
+}
+
+// ── Renderizar tabla ───────────────────────────────────
+function renderTabla(){
+  const cfMod  = (document.getElementById('cf-modulo')?.value||'').toLowerCase().trim();
+  const cfRef  = (document.getElementById('cf-referencia')?.value||'').toLowerCase().trim();
+  const cfOp   = (document.getElementById('cf-opoc')?.value||'').toLowerCase().trim();
+  const cfCant = (document.getElementById('cf-cantidad')?.value||'').toLowerCase().trim();
+
+  let rows = ordenes.map((o,i)=>({...o, _idx:i}));
+  if(cfMod)  rows = rows.filter(r=>(r.modulo||'').toLowerCase().includes(cfMod));
+  if(cfRef)  rows = rows.filter(r=>(r.referencia||'').toLowerCase().includes(cfRef));
+  if(cfOp)   rows = rows.filter(r=>(r.opoc||'').toLowerCase().includes(cfOp));
+  if(cfCant) rows = rows.filter(r=>String(r.cantidad||'').includes(cfCant));
+
+  const tbody = document.getElementById('ord-tbody');
+  const countEl = document.getElementById('ord-count');
+  countEl.textContent = rows.length + ' orden' + (rows.length!==1?'es':'');
+
+  if(rows.length === 0){
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="5">📋 No hay órdenes para mostrar</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(r=>`
+    <tr>
+      <td><span class="td-mod">${r.modulo||'—'}</span></td>
+      <td>${r.referencia||'—'}</td>
+      <td style="font-family:'Courier New',monospace;font-size:13px;">${r.opoc||'—'}</td>
+      <td><span class="td-num">${r.cantidad||'—'}</span></td>
+      <td>
+        <div class="td-actions">
+          <button class="action-btn edit" onclick="abrirEditar(${r._idx})">✏ Editar</button>
+          <button class="action-btn del"  onclick="abrirConfirmDel(${r._idx})">🗑</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+// ── Modal crear / editar ───────────────────────────────
+function abrirModal(){
+  editingIdx = null;
+  document.getElementById('form-title').textContent = 'Nueva Orden';
+  document.getElementById('f-modulo').value = '';
+  document.getElementById('f-referencia').value = '';
+  document.getElementById('f-opoc').value = '';
+  document.getElementById('f-cantidad').value = '';
+  document.getElementById('form-error').style.display = 'none';
+  ['f-modulo','f-referencia','f-cantidad'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.style.borderColor = '#e2e8f0';
+  });
+  document.getElementById('form-overlay').classList.add('open');
+  setTimeout(()=>document.getElementById('f-referencia').focus(), 100);
+}
+
+function abrirEditar(idx){
+  editingIdx = idx;
+  const o = ordenes[idx];
+  if(!o) return;
+  document.getElementById('form-title').textContent = 'Editar Orden';
+  document.getElementById('f-modulo').value    = o.modulo    || '';
+  document.getElementById('f-referencia').value= o.referencia|| '';
+  document.getElementById('f-opoc').value      = o.opoc      || '';
+  document.getElementById('f-cantidad').value  = o.cantidad  || '';
+  document.getElementById('form-error').style.display = 'none';
+  document.getElementById('form-overlay').classList.add('open');
+}
+
+function cerrarModal(){
+  document.getElementById('form-overlay').classList.remove('open');
+  editingIdx = null;
+}
+
+function guardarOrden(){
+  const modulo     = document.getElementById('f-modulo').value.trim();
+  const referencia = document.getElementById('f-referencia').value.trim();
+  const opoc       = document.getElementById('f-opoc').value.trim();
+  const cantidad   = document.getElementById('f-cantidad').value.trim();
+  const errEl      = document.getElementById('form-error');
+
+  // Validar obligatorios
+  let hasError = false;
+  if(!modulo){    document.getElementById('f-modulo').style.borderColor='#ef4444';    hasError=true; } else document.getElementById('f-modulo').style.borderColor='#e2e8f0';
+  if(!referencia){ document.getElementById('f-referencia').style.borderColor='#ef4444'; hasError=true; } else document.getElementById('f-referencia').style.borderColor='#e2e8f0';
+  if(!cantidad){  document.getElementById('f-cantidad').style.borderColor='#ef4444';  hasError=true; } else document.getElementById('f-cantidad').style.borderColor='#e2e8f0';
+
+  if(hasError){
+    errEl.textContent = 'Completa los campos obligatorios';
+    errEl.style.display = 'block';
+    return;
+  }
+  errEl.style.display = 'none';
+
+  const orden = { modulo, referencia, opoc, cantidad: parseInt(cantidad)||0, fecha: new Date().toLocaleDateString('es-CO') };
+
+  if(editingIdx !== null){
+    ordenes[editingIdx] = orden;
+    showToast('✅ Orden actualizada');
+  } else {
+    ordenes.push(orden);
+    showToast('✅ Orden creada');
+  }
+
+  guardarEnServidor();
+  cerrarModal();
+  renderTabla();
+}
+
+// ── Eliminar ───────────────────────────────────────────
+function abrirConfirmDel(idx){
+  deletingIdx = idx;
+  document.getElementById('confirm-del-overlay').classList.add('open');
+}
+
+function cerrarConfirmDel(){
+  deletingIdx = null;
+  document.getElementById('confirm-del-overlay').classList.remove('open');
+}
+
+function confirmarEliminar(){
+  if(deletingIdx === null) return;
+  ordenes.splice(deletingIdx, 1);
+  guardarEnServidor();
+  cerrarConfirmDel();
+  renderTabla();
+  showToast('🗑 Orden eliminada');
+}
+
+// ── Exportar Excel ─────────────────────────────────────
+function exportarExcel(){
+  if(!ordenes.length){ showToast('⚠ No hay órdenes para exportar'); return; }
+  const rows = ordenes.map(o=>({
+    'Módulo':     o.modulo||'',
+    'Referencia': o.referencia||'',
+    'OP / OC':    o.opoc||'',
+    'Cantidad':   o.cantidad||0,
+    'Fecha':      o.fecha||''
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [{wch:12},{wch:20},{wch:14},{wch:12},{wch:14}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Órdenes');
+  const fecha = new Date().toISOString().split('T')[0];
+  XLSX.writeFile(wb, 'Ordenes_Produccion_'+fecha+'.xlsx');
+  showToast('📤 Excel exportado');
+}
+
+// ── Importar Excel ─────────────────────────────────────
+function abrirImportExcel(){
+  document.getElementById('import-file').click();
+}
+
+function importarExcel(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    try{
+      const wb = XLSX.read(ev.target.result, {type:'binary'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(ws);
+      let importadas = 0;
+      data.forEach(row=>{
+        const modulo     = String(row['Módulo']||row['Modulo']||row['modulo']||'').trim();
+        const referencia = String(row['Referencia']||row['referencia']||'').trim();
+        const opoc       = String(row['OP / OC']||row['OP/OC']||row['opoc']||'').trim();
+        const cantidad   = parseInt(row['Cantidad']||row['cantidad']||0)||0;
+        if(modulo && referencia){
+          ordenes.push({ modulo, referencia, opoc, cantidad, fecha: new Date().toLocaleDateString('es-CO') });
+          importadas++;
+        }
+      });
+      if(importadas > 0){
+        guardarEnServidor();
+        renderTabla();
+        showToast('📥 ' + importadas + ' orden(es) importada(s)');
+      } else {
+        showToast('⚠ No se encontraron órdenes válidas en el archivo');
+      }
+    } catch(err){
+      showToast('⚠ Error al leer el archivo Excel');
+    }
+    e.target.value = '';
+  };
+  reader.readAsBinaryString(file);
+}
+
+// ── Toast ──────────────────────────────────────────────
+let _toastTimer = null;
+function showToast(msg){
+  const t = document.getElementById('ord-toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  if(_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(()=>t.classList.remove('show'), 2800);
+}
+
+// ── Cerrar modales con Escape ──────────────────────────
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape'){
+    cerrarModal();
+    cerrarConfirmDel();
+  }
+});
+
+// ── Click fuera del modal para cerrar ─────────────────
+document.getElementById('form-overlay').addEventListener('click', e=>{
+  if(e.target === document.getElementById('form-overlay')) cerrarModal();
+});
+document.getElementById('confirm-del-overlay').addEventListener('click', e=>{
+  if(e.target === document.getElementById('confirm-del-overlay')) cerrarConfirmDel();
+});
+
+// ── Init ───────────────────────────────────────────────
+cargarModulos();
+cargarOrdenes();
+</script>
+</body>
+</html>
