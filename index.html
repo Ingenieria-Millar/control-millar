@@ -7794,7 +7794,17 @@ function siEnviar(){
   <!-- Topbar -->
   <div class="hst-topbar">
     <div class="hst-title">📊 HISTÓ<span>RICO</span></div>
-    <button class="hst-btn" onclick="cerrarHistorico()">← Volver</button>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="hst-action-card" id="hst-date-btn" onclick="toggleDatePopup()">
+        <span class="ac-icon">📅</span>
+        <span class="ac-text" id="hst-date-label-text">Hoy</span>
+      </div>
+      <div class="hst-excel-card" onclick="exportarHistoricoExcel()">
+        <span class="ac-icon">📊</span>
+        <span class="ac-text">Exportar</span>
+      </div>
+      <button class="hst-btn" onclick="cerrarHistorico()">← Volver</button>
+    </div>
   </div>
 
   <!-- Popup de fecha (oculto, se posiciona dinámicamente) -->
@@ -7998,33 +8008,14 @@ function renderHistorico(){
   // Ordenar por columna seleccionada
   rows = aplicarOrden(rows);
 
-  // Summary cards
-  const totalMin  = rows.reduce((s,r)=>s+r.min, 0);
-  const totalMods = new Set(rows.map(r=>r.mod)).size;
+  // Actualizar label de fecha en topbar
   const desdeVal = document.getElementById('hst-desde').value;
   const hastaVal  = document.getElementById('hst-hasta').value;
   const fechaLabel = desdeVal === hastaVal ? desdeVal : (desdeVal||'?')+' → '+(hastaVal||'?');
-  summary.innerHTML = `
-    <div class="hst-summary-card">
-      <div class="sc-label">Total Improductivo</div>
-      <div class="sc-val" style="color:#7c3aed;">${fmtMinutos(totalMin)}</div>
-    </div>
-    <div class="hst-summary-card">
-      <div class="sc-label">Módulos afectados</div>
-      <div class="sc-val" style="color:#1e3a8a;">${totalMods}</div>
-    </div>
-    <div class="hst-summary-card">
-      <div class="sc-label">Registros</div>
-      <div class="sc-val" style="color:#0f172a;">${rows.length}</div>
-    </div>
-    <div class="hst-action-card" id="hst-date-btn" onclick="toggleDatePopup()">
-      <span class="ac-icon">📅</span>
-      <span class="ac-text" id="hst-date-label-text">${fechaLabel}</span>
-    </div>
-    <div class="hst-excel-card" onclick="exportarHistoricoExcel()">
-      <span class="ac-icon">📊</span>
-      <span class="ac-text">Exportar</span>
-    </div>`;
+  const lblTopbar = document.getElementById('hst-date-label-text');
+  if(lblTopbar) lblTopbar.textContent = fechaLabel;
+  // Summary — limpiado
+  summary.innerHTML = '';
 
   // Tabla
   if(rows.length === 0){
