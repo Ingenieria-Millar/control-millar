@@ -1648,7 +1648,23 @@ function connectWS(){
         if(!window._ciRequests) window._ciRequests=[];
         const idx = window._ciRequests.findIndex(r=>r._id===req._id);
         if(idx>-1) window._ciRequests[idx]=req; else window._ciRequests.unshift(req);
-        if(req && req.module === selectedMod && currentView==='single'){
+
+        // Solicitud de Producción: liberar módulo directamente sin esperar confirmación
+        if(req && (req.categoria==='Solicitud de Producción' || req.tipo==='Solicitud de Producción')){
+          const modId = req.module;
+          if(modId){
+            if(states[modId]==='purple') commitChange(modId,'green',null);
+            if(states2[modId]==='purple') cerrarImproductivoExtra(modId);
+          }
+          // También enviar ci_update_request con status done para sincronizar el CI
+          const updated = Object.assign({}, req, {
+            status: 'done',
+            resolvedAt: new Date().toLocaleTimeString('es-CO'),
+            waitTime: req.alertStart ? (Date.now() - req.alertStart) : 0
+          });
+          if(typeof wsSend==='function') wsSend({type:'ci_update_request', request: updated});
+          showToastSimple('🟢 ' + (modId||'') + ' — Solicitud de producción atendida');
+        } else if(req && req.module === selectedMod && currentView==='single'){
           showCiCumplidoModal(req);
         } else if(req && req.module){
           showToastSimple('📦 ' + req.module + ' — Insumo listo para confirmar');
