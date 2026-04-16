@@ -1052,12 +1052,13 @@ body { overflow-x: hidden; max-width: 100vw; }
 </div>
 
 <div id="filter-hint" style="display:none;"></div>
-<div id="nav-single" style="display:flex;align-items:center;justify-content:flex-end;gap:8px;">
+<div id="nav-single" style="display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;">
   <button class="btn-bar" onclick="cambiarModulo()">📱 Cambiar Módulo</button>
   <div class="hd-user-badge" id="nav-single-badge" style="display:none;">
     <span class="hd-user-dot"></span>
     <span id="nav-single-user"></span>
   </div>
+  <div id="nav-orden-info" style="display:none;padding:4px 12px;border-radius:8px;background:#f0fdf4;border:1.5px solid #86efac;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;color:#15803d;white-space:nowrap;"></div>
   <button class="hd-back-btn" onclick="atrasDesdeModulo()">← Volver</button>
 </div>
 
@@ -1259,6 +1260,33 @@ body { overflow-x: hidden; max-width: 100vw; }
     </div>
     <div class="sp-footer">
       <span></span>
+      <span class="sp-right-foot">© 2026 Ingenieria Confecciones Millar S.A.S.</span>
+    </div>
+  </div>
+</div>
+
+<!-- PANTALLA: SELECCIÓN DE ORDEN DE PRODUCCIÓN -->
+<div class="sp-screen hidden" id="orden-screen">
+  <div class="sp-left">
+    <div class="sp-mesh"></div><div class="sp-dotgrid"></div>
+    <div class="sp-orb sp-orb1"></div><div class="sp-orb sp-orb2"></div>
+    <div class="sp-user-zone">
+      <div class="sp-logo-ring"><img src="data:image/png;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoH" alt=""></div>
+      <div class="sp-greeting">Módulo</div>
+      <div class="sp-username" id="orden-mod-name">—</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:24px;padding:0 20px;">
+      <button class="sp-left-logout-btn" onclick="volverLoginModulo()" style="background:#334155;">← Atrás</button>
+    </div>
+  </div>
+  <div class="sp-right">
+    <div class="sp-right-header">
+      <div class="sp-brand-row"><div class="sp-brand-pip"></div><span class="sp-brand-txt">Confecciones Millar</span></div>
+      <div class="sp-right-title">Órdenes asignadas</div>
+      <div class="sp-right-sub">Selecciona la orden con la que vas a trabajar hoy</div>
+    </div>
+    <div class="sp-right-body" id="orden-lista" style="padding:20px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;"></div>
+    <div class="sp-footer" style="justify-content:flex-end;">
       <span class="sp-right-foot">© 2026 Ingenieria Confecciones Millar S.A.S.</span>
     </div>
   </div>
@@ -2467,10 +2495,84 @@ function submitModuloLogin(){
   document.getElementById('modulo-login-screen').classList.add('hidden');
   document.getElementById('modulo-pass').value='';
   document.getElementById('modulo-error').textContent='';
-  setView('single');
+  // Mostrar pantalla de selección de orden antes del tablero
+  mostrarOrdenesModulo(modulo);
 }
 
 // ── NAVEGACIÓN ────────────────────────────────────────────────────
+// ── Órdenes de Producción para módulo ────────────────────────────
+window._ordenSeleccionada = null;
+
+async function mostrarOrdenesModulo(modulo){
+  // Cargar órdenes del servidor
+  let ordenes = [];
+  try{
+    const r = await fetch('/api/ordenes');
+    ordenes = await r.json();
+  } catch(e){ ordenes = []; }
+
+  // Filtrar por módulo
+  const ordenesModulo = ordenes.filter(o => (o.modulo||'') === modulo);
+
+  if(ordenesModulo.length === 0){
+    // Sin órdenes — bloquear ingreso
+    showToastSimple('⚠ No hay órdenes asignadas para el módulo ' + modulo + '. Contacta al programador.');
+    // Volver al login del módulo
+    document.getElementById('orden-screen').classList.add('hidden');
+    document.getElementById('modulo-login-screen').classList.remove('hidden');
+    return;
+  }
+
+  // Mostrar pantalla de selección
+  document.getElementById('orden-mod-name').textContent = modulo;
+  const lista = document.getElementById('orden-lista');
+  lista.innerHTML = '';
+
+  ordenesModulo.forEach((o, i) => {
+    const card = document.createElement('div');
+    card.style.cssText = 'background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;padding:18px 20px;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;gap:8px;';
+    card.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <span style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;color:#1e3a8a;letter-spacing:1px;">${o.referencia||'—'}</span>
+        <span style="font-family:'Courier New',monospace;font-size:13px;font-weight:700;color:#2563eb;background:#eff6ff;padding:3px 10px;border-radius:6px;">${o.opoc||'—'}</span>
+      </div>
+      <div style="display:flex;gap:16px;align-items:center;">
+        <span style="font-size:12px;color:#64748b;font-family:'Nunito',sans-serif;">Módulo: <b style="color:#0f172a;">${o.modulo||'—'}</b></span>
+        <span style="font-size:12px;color:#64748b;font-family:'Nunito',sans-serif;">Cantidad: <b style="color:#0f172a;">${o.cantidad||'—'}</b></span>
+      </div>
+      <div style="margin-top:4px;">
+        <button style="width:100%;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;cursor:pointer;">Trabajar con esta orden →</button>
+      </div>`;
+    card.querySelector('button').addEventListener('click', ()=>{
+      seleccionarOrden(o);
+    });
+    card.addEventListener('mouseenter', ()=>{ card.style.borderColor='#2563eb'; card.style.boxShadow='0 4px 16px rgba(37,99,235,.15)'; });
+    card.addEventListener('mouseleave', ()=>{ card.style.borderColor='#e2e8f0'; card.style.boxShadow='none'; });
+    lista.appendChild(card);
+  });
+
+  document.getElementById('orden-screen').classList.remove('hidden');
+}
+
+function seleccionarOrden(orden){
+  window._ordenSeleccionada = orden;
+  // Mostrar info en nav-single
+  const infoEl = document.getElementById('nav-orden-info');
+  if(infoEl){
+    infoEl.textContent = '📋 Ref: ' + (orden.referencia||'—') + (orden.opoc ? '  |  OP: ' + orden.opoc : '');
+    infoEl.style.display = 'block';
+  }
+  // Cerrar pantalla de órdenes y entrar al tablero
+  document.getElementById('orden-screen').classList.add('hidden');
+  setView('single');
+}
+
+function volverLoginModulo(){
+  document.getElementById('orden-screen').classList.add('hidden');
+  selectedMod = null;
+  window._ordenSeleccionada = null;
+  document.getElementById('modulo-login-screen').classList.remove('hidden');
+}
 function volverLogin(){
   ocultarTodo();currentUser=null;selectedMod=null;
   try{ localStorage.removeItem('cm_session'); }catch(e){}
@@ -7403,6 +7505,13 @@ function siOpen(){
   document.getElementById('si-talla').value = '';
   document.getElementById('si-opoc').value = '';
   document.getElementById('si-error').style.display = 'none';
+  // Pre-llenar referencia y OP/OC desde la orden seleccionada
+  if(window._ordenSeleccionada){
+    const ref = document.getElementById('si-ref');
+    const opoc = document.getElementById('si-opoc');
+    if(ref)  ref.value  = window._ordenSeleccionada.referencia || '';
+    if(opoc) opoc.value = window._ordenSeleccionada.opoc || '';
+  }
   // Mostrar mecánico seleccionado + módulo
   const mecNombre = window._siMecanicoNombre || '';
   const modLabel = selectedMod || currentUser || '';
