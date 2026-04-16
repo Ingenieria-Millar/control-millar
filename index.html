@@ -2721,19 +2721,26 @@ function onImpMec(){
   const isExtra = el && el.dataset.extra==='1';
   cancelImproductivo();
   if(!id) return;
-  if(isExtra){
-    // Flujo completo igual al normal — pero al confirmar mecánico usa commitChange2
-    window._extraMod = id;
-    const iaS = typeof iaState!=='undefined'&&iaState ? iaState : {employees:[]};
-    const empsDelMod = (iaS.employees||[]).filter(e=>!e.disabled&&(e.module===id||e.modulo===id));
-    if(empsDelMod.length === 0){ commitChange2(id,'red',null); return; }
-    abrirModalEmpleadaMec(id, empsDelMod);
+
+  // Buscar operarias registradas HOY en este módulo (status==='presente' y area===id)
+  const hoy = new Date().toISOString().split('T')[0];
+  const empsHoy = (iaRecords||[]).filter(r =>
+    r.status === 'presente' &&
+    r.date === hoy &&
+    (r.area === id || r.area === ((_appConfig&&_appConfig._modulos_renamed)||{})[id])
+  ).map(r => ({ name: r.empName, nombre: r.empName }));
+
+  if(empsHoy.length === 0){
+    showToastSimple('⚠ No hay operarias registradas hoy en ' + id + '. La supervisora debe registrar la asistencia primero.');
     return;
   }
-  const iaS = typeof iaState!=='undefined'&&iaState ? iaState : {employees:[]};
-  const empsDelMod = (iaS.employees||[]).filter(e=>!e.disabled&&(e.module===id||e.modulo===id));
-  if(empsDelMod.length === 0){ commitChange(id,'red',null); return; }
-  abrirModalEmpleadaMec(id, empsDelMod);
+
+  if(isExtra){
+    window._extraMod = id;
+    abrirModalEmpleadaMec(id, empsHoy);
+    return;
+  }
+  abrirModalEmpleadaMec(id, empsHoy);
 }
 function onImpRef(){
   const id=pendingMod;
