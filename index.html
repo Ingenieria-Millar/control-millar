@@ -2724,10 +2724,12 @@ function onImpMec(){
 
   // Buscar operarias registradas HOY en este módulo (status==='presente' y area===id)
   const hoy = new Date().toISOString().split('T')[0];
+  const renamed = (_appConfig&&_appConfig._modulos_renamed)||{};
+  const displayName = renamed[id] || id; // nombre visible del módulo
   const empsHoy = (iaRecords||[]).filter(r =>
     r.status === 'presente' &&
     r.date === hoy &&
-    (r.area === id || r.area === ((_appConfig&&_appConfig._modulos_renamed)||{})[id])
+    (r.area === id || r.area === displayName)
   ).map(r => ({ name: r.empName, nombre: r.empName }));
 
   if(empsHoy.length === 0){
