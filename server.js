@@ -619,6 +619,11 @@ app.get('/api/ci-config', (req, res) => {
   res.json(ciConfig);
 });
 
+// Lista de módulos activos según configuración del Programador
+app.get('/api/modules', (req, res) => {
+  res.json(getAllActiveModules());
+});
+
 // Lista de mecánicos (supervisores activos, sin programador)
 app.get('/api/mecanicos', (req, res) => {
   // Leer miembros del perfil "Mecanicos" desde app_config._perfil_members
