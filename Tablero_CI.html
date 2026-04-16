@@ -697,7 +697,7 @@ function exportarExcel(){
             'Módulo':         r.module||'',
             'Tipo':           r.esMecanico ? 'Alistamiento' : (r.categoria||'Falta de Insumo'),
             'Referencia':     r.ref||'',
-            'OP / OC':        r.op||'',
+            'OP / OC':        r.opoc||r.op||'',
             'Insumo':         ins.tipo||'',
             'Cantidad':       ins.qty||'',
             'Talla':          ins.talla||'',
@@ -716,7 +716,7 @@ function exportarExcel(){
           'Módulo':         r.module||'',
           'Tipo':           r.esMecanico ? 'Alistamiento' : (r.categoria||'Falta de Insumo'),
           'Referencia':     r.ref||'',
-          'OP / OC':        r.op||'',
+          'OP / OC':        r.opoc||r.op||'',
           'Insumo':         (r.tipo||'').replace(/\s*·\s*.+$/,''),
           'Cantidad':       r.qty||'',
           'Talla':          r.talla||'',
@@ -743,7 +743,7 @@ function exportarExcel(){
     // Fallback: CSV con BOM para que Excel lo abra bien
     const headers = ['Módulo','Tipo','Referencia','OP/OC','Insumo','Cantidad','Talla','Fecha','Hora Inicio','Hora Fin','T.Espera(min)','Estado','Obs.'];
     const rows = data.map(r => [
-      r.module||'', r.categoria||'Falta de Insumo', r.ref||'', r.op||'',
+      r.module||'', r.categoria||'Falta de Insumo', r.ref||'', r.opoc||r.op||'',
       (r.tipo||'').replace(/\s*·\s*.+$/,''), r.qty||'', r.talla||'',
       r.fecha||'', r.hora||'', r.resolvedAt||'',
       r.waitTime!=null?((r.waitTime < 3600 && r.waitTime > 0)?(r.waitTime/60).toFixed(2):(r.waitTime/60000).toFixed(2)):'', statusLabel(r.status), r.obs||''
@@ -1037,7 +1037,7 @@ function buildCard(req, solicitudNum){
   const categoria = req.esMecanico ? 'Alistamiento' : (req.categoria || '');
   const talla     = req.talla  || '';
   const ref       = req.ref    || '';
-  const op        = req.op     || '';
+  const op        = req.opoc || req.op || '';
   const qty       = req.qty    || '';
 
   // Multi-insumo: cantidad a mostrar
