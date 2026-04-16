@@ -1289,6 +1289,10 @@ body { overflow-x: hidden; max-width: 100vw; }
     <div style="margin-bottom:20px;">
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:clamp(20px,3vw,28px);font-weight:800;letter-spacing:1px;color:#0f172a;" id="orden-screen-title">Órdenes asignadas</div>
       <div style="font-size:13px;color:#64748b;margin-top:2px;">Selecciona la orden con la que vas a trabajar hoy</div>
+      <input id="orden-buscar" type="text" placeholder="🔍  Buscar por referencia o OP / OC..."
+        oninput="filtrarOrdenLista()"
+        style="margin-top:14px;width:100%;max-width:420px;padding:10px 16px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;background:#fff;outline:none;box-shadow:0 1px 4px rgba(0,0,0,.05);"
+        onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
     </div>
     <div id="orden-lista" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;"></div>
   </div>
@@ -2536,8 +2540,14 @@ async function mostrarOrdenesModulo(modulo){
   const lista = document.getElementById('orden-lista');
   lista.innerHTML = '';
 
+  // Limpiar búsqueda al abrir
+  const buscarEl = document.getElementById('orden-buscar');
+  if(buscarEl) buscarEl.value = '';
+
   ordenesModulo.forEach((o, i) => {
     const card = document.createElement('div');
+    card.dataset.ref = o.referencia||'';
+    card.dataset.op  = o.opoc||'';
     card.style.cssText = 'background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;padding:14px 16px;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;gap:6px;';
     card.innerHTML = `
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
@@ -2583,6 +2593,15 @@ function volverLoginModulo(){
   const infoEl = document.getElementById('nav-orden-info');
   if(infoEl) infoEl.style.display='none';
   document.getElementById('modulo-login-screen').classList.remove('hidden');
+}
+
+function filtrarOrdenLista(){
+  const q = (document.getElementById('orden-buscar')?.value||'').toLowerCase().trim();
+  document.querySelectorAll('#orden-lista > div').forEach(card=>{
+    const ref = (card.dataset.ref||'').toLowerCase();
+    const op  = (card.dataset.op||'').toLowerCase();
+    card.style.display = (!q || ref.includes(q) || op.includes(q)) ? '' : 'none';
+  });
 }
 function volverLogin(){
   ocultarTodo();currentUser=null;selectedMod=null;
