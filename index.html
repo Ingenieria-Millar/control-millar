@@ -1501,6 +1501,7 @@ function connectWS(){
       }
 
       if(msg.type==='init'){
+        if(!window._lastEmpleada) window._lastEmpleada={};
         MODULES.forEach(id=>{
           if(msg.states[id]){
             states[id]=msg.states[id];
@@ -1508,6 +1509,8 @@ function connectWS(){
             timers[id]= (msg.stateTimes && msg.stateTimes[id]) ? msg.stateTimes[id] : Date.now();
           }
           if(msg.lastMec[id]) lastMec[id]=msg.lastMec[id];
+          // Restaurar empleada guardada en servidor
+          if(msg.lastEmpleada && msg.lastEmpleada[id]) window._lastEmpleada[id]=msg.lastEmpleada[id];
         });
         // ── Control de Asistencia: recibir datos del servidor ──
         if(msg.iaState){ iaState = msg.iaState; populateLoginSelect(); }
@@ -1545,7 +1548,8 @@ function connectWS(){
         if(prev==='orange') acumOrange[id]+=dur;
         if(prev==='purple') acumPurple[id]+=dur;
         // Guardar en histórico cuando llega confirmación de orange/purple desde otro dispositivo
-        if((prev==='orange'||prev==='purple') && s==='green' && dur>1000){
+        // Solo si el timer es válido (viene del servidor, no de la carga de página)
+        if((prev==='orange'||prev==='purple') && s==='green' && dur>1000 && timers[id] && msg.stateTime){
           logChange(id, prev, s, dur, lastMec[id]||'', null, timers[id]||null);
         }
         states[id]=s;
@@ -1555,10 +1559,10 @@ function connectWS(){
         else if(s!=='blue'){ delete cambioLimites[id]; }
         if(s==='red') lastMec[id]='';
         else if(msg.mecanico) lastMec[id]=msg.mecanico;
-        // Guardar empleada recibida del servidor
+        // Guardar empleada — conservar la que viene del servidor, limpiar solo al volver a green
         if(!window._lastEmpleada) window._lastEmpleada={};
-        if(s==='red' && msg.empleada) window._lastEmpleada[id]=msg.empleada;
-        else if(s!=='red') window._lastEmpleada[id]='';
+        if(msg.empleada) window._lastEmpleada[id]=msg.empleada;
+        else if(s==='green') window._lastEmpleada[id]='';
         const esPlantaSnd=(currentUser==='Televisor'||currentUser==='Mecanicos');
         if(s!=='green'&&s!=='yellow'&&!(esPlantaSnd&&s==='orange')&&!(esPlantaSnd&&s==='purple')&&esPlantaSnd){
           playAlertSound();
@@ -2794,12 +2798,15 @@ function commitChange(id,s,mecanico,limite){
   states[id]=s;timers[id]=ahora;
   if(mecanico) lastMec[id]=mecanico;
   if(s==='red') lastMec[id]=''; // Resetear mecánico al volver a alerta
+  // Limpiar empleada solo al volver a verde — conservarla en orange/purple/yellow/blue
+  if(!window._lastEmpleada) window._lastEmpleada={};
+  if(s==='green') window._lastEmpleada[id]='';
   const _esPlantaSnd=(currentUser==='Televisor'||currentUser==='Mecanicos');
   if(s!=='green'&&s!=='yellow'&&!(_esPlantaSnd&&s==='orange')&&!(_esPlantaSnd&&s==='purple')&&_esPlantaSnd){
     playAlertSound();
   }
-  // Enviar cambio al servidor para sincronizar otros dispositivos
-  const _empladaEnviar = (s==='red' && window._lastEmpleada && window._lastEmpleada[id]) ? window._lastEmpleada[id] : '';
+  // Enviar cambio al servidor — incluir empleada para todos los estados
+  const _empladaEnviar = (window._lastEmpleada && window._lastEmpleada[id]) ? window._lastEmpleada[id] : '';
   wsSend({type:'change', id, state:s, mecanico:mecanico||'', limite:limite||null, empleada:_empladaEnviar});
   updateStats();if(selectedMod===id)renderBig();showToast(id,s);renderGrid();
   // Si el estado principal llega a verde y hay un segundo activo, promoverlo a principal
