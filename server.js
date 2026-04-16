@@ -156,13 +156,14 @@ const MODULES = [
   'M21','M22','M23','M24','M25','M26','M27'
 ];
 
-const floorDefault = { states: {}, lastMec: {}, stateTimes: {} };
-MODULES.forEach(id => { floorDefault.states[id] = 'green'; floorDefault.lastMec[id] = ''; floorDefault.stateTimes[id] = Date.now(); });
+const floorDefault = { states: {}, lastMec: {}, stateTimes: {}, lastEmpleada: {} };
+MODULES.forEach(id => { floorDefault.states[id] = 'green'; floorDefault.lastMec[id] = ''; floorDefault.stateTimes[id] = Date.now(); floorDefault.lastEmpleada[id] = ''; });
 
 const floorPersisted = readJSON(FILES.floor_state, floorDefault);
-const states     = floorPersisted.states     || { ...floorDefault.states     };
-const lastMec    = floorPersisted.lastMec    || { ...floorDefault.lastMec    };
-const stateTimes = floorPersisted.stateTimes || { ...floorDefault.stateTimes };
+const states        = floorPersisted.states        || { ...floorDefault.states     };
+const lastMec       = floorPersisted.lastMec       || { ...floorDefault.lastMec    };
+const stateTimes    = floorPersisted.stateTimes    || { ...floorDefault.stateTimes };
+const lastEmpleada  = floorPersisted.lastEmpleada  || { ...floorDefault.lastEmpleada };
 
 function getAllActiveModules() {
   const extra    = modulesConfig.extra    || [];
@@ -175,21 +176,23 @@ function getAllActiveModules() {
 }
 
 MODULES.forEach(id => {
-  if (!states[id])      states[id]     = 'green';
-  if (!lastMec[id])     lastMec[id]    = '';
-  if (!stateTimes[id])  stateTimes[id] = Date.now();
+  if (!states[id])       states[id]       = 'green';
+  if (!lastMec[id])      lastMec[id]      = '';
+  if (!stateTimes[id])   stateTimes[id]   = Date.now();
+  if (!lastEmpleada[id]) lastEmpleada[id] = '';
 });
 
 // Inicializar estados para módulos extra ya configurados
 (modulesConfig.extra || []).forEach(id => {
   const renamed = (modulesConfig.renamed || {})[id] || id;
-  if (!states[renamed])      states[renamed]     = 'green';
-  if (!lastMec[renamed])     lastMec[renamed]    = '';
-  if (!stateTimes[renamed])  stateTimes[renamed] = Date.now();
+  if (!states[renamed])       states[renamed]       = 'green';
+  if (!lastMec[renamed])      lastMec[renamed]      = '';
+  if (!stateTimes[renamed])   stateTimes[renamed]   = Date.now();
+  if (!lastEmpleada[renamed]) lastEmpleada[renamed] = '';
 });
 
 function saveFloorState() {
-  writeJSON(FILES.floor_state, { states, lastMec, stateTimes });
+  writeJSON(FILES.floor_state, { states, lastMec, stateTimes, lastEmpleada });
 }
 
 // ── Estado Tablero CI ──────────────────────────────────────────────
@@ -772,6 +775,7 @@ wss.on('connection', (ws, req) => {
     states:        { ...states },
     lastMec:       { ...lastMec },
     stateTimes:    { ...stateTimes },
+    lastEmpleada:  { ...lastEmpleada },
     iaState:       iaState,
     iaRecords:     iaRecords,
     modulesConfig: modulesConfig
@@ -796,16 +800,20 @@ wss.on('connection', (ws, req) => {
         if (!msg.id) { console.warn('WS change: sin id'); return; }
         // Aceptar módulos extra aunque no estén en states aún
         if (states[msg.id] === undefined) {
-          states[msg.id]     = 'green';
-          lastMec[msg.id]    = '';
-          stateTimes[msg.id] = Date.now();
+          states[msg.id]       = 'green';
+          lastMec[msg.id]      = '';
+          stateTimes[msg.id]   = Date.now();
+          lastEmpleada[msg.id] = '';
         }
         states[msg.id]     = msg.state || 'green';
         stateTimes[msg.id] = Date.now();
         if (msg.state === 'red') lastMec[msg.id] = '';
         else if (msg.mecanico) lastMec[msg.id] = msg.mecanico;
+        // Guardar empleada: conservar si hay nueva, limpiar solo al volver a green
+        if (msg.empleada) lastEmpleada[msg.id] = msg.empleada;
+        else if (msg.state === 'green') lastEmpleada[msg.id] = '';
         saveFloorState();
-        broadcastLocal({ type:'change', id:msg.id, state:msg.state, mecanico:msg.mecanico||'', limite:msg.limite||null, empleada:msg.empleada||'', stateTime:stateTimes[msg.id] });
+        broadcastLocal({ type:'change', id:msg.id, state:msg.state, mecanico:msg.mecanico||'', limite:msg.limite||null, empleada:lastEmpleada[msg.id]||'', stateTime:stateTimes[msg.id] });
       }
 
       else if (msg.type === 'change2') {
