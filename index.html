@@ -7643,9 +7643,7 @@ function showCiCumplidoModal(req){
 function ciConfirmarRecepcion(reqId, accepted){
   const ov = document.getElementById('ci-confirm-overlay');
   if(ov) ov.style.display = 'none';
-  if(!typeof wsSend==='function') return;
   if(accepted){
-    // Buscar la solicitud en _ciRequests si existe
     const existing = (window._ciRequests||[]).find(r=>r._id===reqId);
     const req = Object.assign({}, existing||{_id:reqId}, {
       status: 'done',
@@ -7653,17 +7651,23 @@ function ciConfirmarRecepcion(reqId, accepted){
       waitTime: existing && existing.alertStart ? (Date.now() - existing.alertStart) : 0
     });
     if(typeof wsSend==='function') wsSend({type:'ci_update_request', request: req});
+    // Liberar módulo localmente también (por si el WS tarda)
+    const modId = req.module;
+    if(modId){
+      if(states[modId]==='orange') commitChange(modId,'green',null);
+      if(states2[modId]==='orange') cerrarImproductivoExtra(modId);
+    }
     showToastSimple('✅ Insumo confirmado como recibido');
   } else {
-    // No recibido — vuelve a alerta, tiempo sigue contando, reactivar sonido en CI
     const existing = (window._ciRequests||[]).find(r=>r._id===reqId);
     const req = Object.assign({}, existing||{_id:reqId}, {
       status: 'alert',
       waitTime: null
     });
-    if(typeof wsSend==='function') wsSend({type:'ci_update_request', request: req});
-    // Notificar al CI que reactive la alerta sonora
-    if(typeof wsSend==='function') wsSend({type:'ci_reactivar_alerta', reqId: reqId});
+    if(typeof wsSend==='function'){
+      wsSend({type:'ci_update_request', request: req});
+      wsSend({type:'ci_reactivar_alerta', reqId: reqId});
+    }
     showToastSimple('⚠ No recibido — solicitud reactivada en el CI');
   }
 }
