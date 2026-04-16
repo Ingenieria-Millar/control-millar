@@ -1542,6 +1542,12 @@ function connectWS(){
         const dur=Date.now()-(timers[id]||Date.now());
         if(prev==='red')    acumRed[id]   +=dur;
         if(prev==='yellow') acumYellow[id]+=dur;
+        if(prev==='orange') acumOrange[id]+=dur;
+        if(prev==='purple') acumPurple[id]+=dur;
+        // Guardar en histórico cuando llega confirmación de orange/purple desde otro dispositivo
+        if((prev==='orange'||prev==='purple') && s==='green' && dur>1000){
+          logChange(id, prev, s, dur, lastMec[id]||'', null, timers[id]||null);
+        }
         states[id]=s;
         // Usar hora del servidor si viene, si no usar hora actual (fallback)
         timers[id]= msg.stateTime ? msg.stateTime : Date.now();
@@ -1706,17 +1712,22 @@ function logChange(modulo,prev,next,durMs,mecanico,limite,timerInicio){
     if(minutos <= 35) tipoLabel = 'blue30';
     else tipoLabel = 'blue60';
   }
-  // Empleada: si es Alerta (red) tomar del registro actual
-  // Si es Atendiendo (yellow) buscar la Alerta anterior del mismo módulo para heredar la operaria
+  // Empleada: buscar según el tipo de estado
   let empleada = '';
   if(prev==='red' && window._lastEmpleada && window._lastEmpleada[modulo]){
+    // Alerta: tomar directamente
     empleada = window._lastEmpleada[modulo];
-  } else if(prev==='yellow'){
-    // Buscar el último registro de Alerta (red) del mismo módulo para copiar la operaria
-    for(let i=h.length-1; i>=0; i--){
-      if(h[i].modulo===modulo && h[i].tipo==='red' && h[i].empleada){
-        empleada = h[i].empleada;
-        break;
+  } else if(prev==='yellow'||prev==='orange'||prev==='purple'||prev==='blue'||prev==='blue30'||prev==='blue60'){
+    // Para cualquier otro estado: primero revisar _lastEmpleada, luego buscar en historial
+    if(window._lastEmpleada && window._lastEmpleada[modulo]){
+      empleada = window._lastEmpleada[modulo];
+    } else {
+      // Buscar la última Alerta (red) del mismo módulo para heredar la operaria
+      for(let i=h.length-1; i>=0; i--){
+        if(h[i].modulo===modulo && (h[i].tipo==='red'||h[i].tipo==='yellow') && h[i].empleada){
+          empleada = h[i].empleada;
+          break;
+        }
       }
     }
   }
