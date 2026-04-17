@@ -786,6 +786,10 @@ function modalEnviar(){
   };
 
   wsSend({ type:'ci_new_request', request:newReq });
+  // Cambiar módulo destino a rosado (Alistamiento) en el tablero general
+  if(modulo){
+    wsSend({ type:'change_pink', id:modulo, mecanico:currentUser });
+  }
   ciRequests.unshift(newReq);
   window._modalInsumosTemp = [];
   cerrarModal();
@@ -847,9 +851,9 @@ function exportarExcelSI(){
   const desde = document.getElementById('si-fecha-desde').value;
   const hasta  = document.getElementById('si-fecha-hasta').value;
   let data = ciRequests.filter(r=>{
-    // Si es ADMINISTRADOR, mostrar todas las solicitudes EXCEPTO las que explícitamente sean esMecanico: false
+    // Si es ADMINISTRADOR, mostrar solo solicitudes de Alistamiento (esMecanico: true)
     if(currentUser === 'ADMINISTRADOR'){
-      if(r.esMecanico === false) return false; // Excluir módulos (tienen esMecanico: false)
+      if(!r.esMecanico) return false;
     } else {
       // Si NO es ADMINISTRADOR, mostrar solo sus solicitudes
       if(r.module !== currentUser) return false;
@@ -944,9 +948,9 @@ function renderHistorial(){
   const desde = document.getElementById('si-fecha-desde')?.value||'';
   const hasta  = document.getElementById('si-fecha-hasta')?.value||'';
   const mias=ciRequests.filter(r=>{
-    // Si es ADMINISTRADOR, mostrar todas las solicitudes EXCEPTO las que explícitamente sean esMecanico: false
+    // Si es ADMINISTRADOR, mostrar solo solicitudes de Alistamiento (esMecanico: true)
     if(currentUser === 'ADMINISTRADOR'){
-      if(r.esMecanico === false) return false; // Excluir módulos (tienen esMecanico: false)
+      if(!r.esMecanico) return false;
     } else {
       // Si NO es ADMINISTRADOR, mostrar solo sus solicitudes
       if(r.module!==currentUser) return false;
