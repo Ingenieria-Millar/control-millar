@@ -2709,7 +2709,13 @@ function atrasDesdeTablero(){
   // Ocultar badge usuario y volver
   const hdRight = document.getElementById('hd-tablero-right');
   if(hdRight) hdRight.classList.remove('visible');
-  currentView=null;mostrarAreaScreen();
+  currentView=null;
+  // Si es Televisor o Mecánicos, volver al submenú de mecánicos
+  if(currentUser==='Televisor'||currentUser==='Mecanicos'){
+    mostrarSubMenuMecanicos();
+  } else {
+    mostrarAreaScreen();
+  }
 }
 function atrasDesdeModulo(){
   document.getElementById('nav-single').style.display='none';
@@ -3122,9 +3128,9 @@ function renderGrid(){
       sVis = s;
       if(s2g && s2g!=='green' && s==='green') sVis=s2g;
     }
-    const mecHtml=(sVis==='yellow'||sVis==='red')&&(lastMec[id]||lastMec2[id])?`<span class="mod-mec">🔧 ${lastMec[id]||lastMec2[id]}</span>`:`<span class="mod-mec"></span>`;
-    const empHtml=(sVis==='red'||sVis==='yellow')&&window._lastEmpleada&&window._lastEmpleada[id]?`<span class="mod-mec" style="color:#7f1d1d;">👤 ${window._lastEmpleada[id]}</span>`:``;
-    const pinkMecHtml=(sVis==='pink')&&(lastMec[id]||lastMec2[id])?`<span class="mod-mec" style="color:#9d174d;">🔧 ${lastMec[id]||lastMec2[id]}</span>`:``;
+    const mecHtml=(sVis==='yellow'||sVis==='red')&&(lastMec[id]||lastMec2[id])?`<span class="mod-mec" style="font-size:10px;">🔧 ${lastMec[id]||lastMec2[id]}</span>`:`<span class="mod-mec"></span>`;
+    const empHtml=(sVis==='red'||sVis==='yellow')&&window._lastEmpleada&&window._lastEmpleada[id]?`<span class="mod-mec" style="font-size:10px;color:#7f1d1d;">👤 ${window._lastEmpleada[id]}</span>`:``;
+    const pinkMecHtml=(sVis==='pink')&&(lastMec[id]||lastMec2[id])?`<span class="mod-mec" style="font-size:10px;color:#9d174d;">🔧 ${lastMec[id]||lastMec2[id]}</span>`:``;
     div.className=`module ${canClick?'clickable':'readonly'} ${sVis}`;
     div.innerHTML=`<span class="mod-id">${id}</span><div class="light"></div><span class="mod-label">${LABELS[sVis]||sVis}</span><span class="mod-timer" id="timer-${id}"></span>${mecHtml}${empHtml}${pinkMecHtml}`;
     const filtrado=activeFilters.size>0&&!activeFilters.has(sVis);
@@ -3214,7 +3220,9 @@ function toggleHideModule(id, e){
 function updateStats(){
   const esPlanta=(currentUser==='Mecanicos'||currentUser==='Televisor');
   let g=0,y=0,r=0,b=0,o=0;
-  Object.values(states).forEach(s=>{
+  Object.entries(states).forEach(([id,s])=>{
+    // No contar módulos ocultos con el ojito
+    if(typeof _hiddenModsSession!=='undefined' && _hiddenModsSession.has(id)) return;
     if(s==='green')g++;
     else if(s==='yellow')y++;
     else if(s==='red')r++;
