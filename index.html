@@ -2007,6 +2007,18 @@ window.addEventListener('DOMContentLoaded', async ()=>{
       }
     }
   }catch(e){ console.warn('Error restaurando sesión:', e); }
+
+  // ── Detectar retorno desde páginas externas ────────────────────
+  const _urlParams = new URLSearchParams(location.search);
+  const _volver = _urlParams.get('volver');
+  if(_volver === 'produccion'){
+    // Limpiar parámetro de la URL sin recargar
+    history.replaceState({}, '', '/');
+    // Si hay sesión activa, ir al submenú de producción
+    if(currentUser){
+      setTimeout(()=>{ mostrarSubMenuProduccion(); }, 300);
+    }
+  }
 });
 
 // ══════════════════════════════════════════════════════════════════
