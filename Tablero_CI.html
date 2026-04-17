@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Tablero CI — Faltante de Insumos</title>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -446,6 +447,7 @@ font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:now
         </button>
       </div>
     </div>
+    <button class="hd-back-btn" onclick="abrirDashboard()" style="background:#f0f4ff;border-color:#a5b4fc;color:#3730a3;">📊 Dashboard</button>
     <button class="hd-back-btn" onclick="abrirConfig()" title="Configuración" style="padding:6px 10px;">⚙️</button>
   </div>
 
@@ -453,6 +455,88 @@ font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:now
 
   <div id="ci-main"></div>
 
+</div>
+
+<!-- ── DASHBOARD CI ── -->
+
+<div id="dash-overlay" style="display:none;position:fixed;inset:0;z-index:400;background:#f1f5f9;overflow-y:auto;">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+  <!-- Header dashboard -->
+
+  <div style="background:#fff;border-bottom:1px solid #e2e8f0;padding:0 clamp(12px,2.5vw,24px);min-height:56px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:10;box-shadow:0 1px 6px rgba(0,0,0,.07);">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0f172a;">DASHBOARD <span style="color:#2563eb;">CI</span></div>
+      <div id="dash-live-badge" style="padding:3px 10px;border-radius:20px;background:#f0fdf4;border:1px solid #86efac;font-family:'IBM Plex Sans',sans-serif;font-size:11px;font-weight:700;color:#15803d;">● En vivo</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <!-- Filtro fecha -->
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span style="font-size:11px;font-weight:700;color:#64748b;">Desde</span>
+        <input type="date" id="dash-desde" style="padding:4px 8px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:12px;outline:none;" oninput="renderDashboard()">
+        <span style="font-size:11px;font-weight:700;color:#64748b;">Hasta</span>
+        <input type="date" id="dash-hasta" style="padding:4px 8px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:12px;outline:none;" oninput="renderDashboard()">
+        <button onclick="dashHoy()" style="padding:4px 10px;border-radius:6px;border:1.5px solid #e2e8f0;background:#fff;font-size:11px;font-weight:700;cursor:pointer;color:#2563eb;">Hoy</button>
+      </div>
+      <button onclick="cerrarDashboard()" style="padding:6px 14px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;color:#334155;">← Volver</button>
+    </div>
+    <div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#1e3a8a,#2563eb,#7c3aed);"></div>
+  </div>
+
+  <!-- Contenido dashboard -->
+
+  <div style="padding:20px clamp(12px,2.5vw,24px);">
+
+```
+<!-- KPIs -->
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:24px;" id="dash-kpis"></div>
+
+<!-- Gráficas -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;" id="dash-charts-wrap">
+  <div style="background:#fff;border-radius:12px;padding:20px;border:1px solid #e2e8f0;box-shadow:0 1px 4px rgba(0,0,0,.04);">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:4px;">Solicitudes por Tipo</div>
+    <div style="font-size:11px;color:#94a3b8;margin-bottom:16px;">Distribución de categorías</div>
+    <div style="position:relative;height:200px;"><canvas id="dash-chart-tipo"></canvas></div>
+  </div>
+  <div style="background:#fff;border-radius:12px;padding:20px;border:1px solid #e2e8f0;box-shadow:0 1px 4px rgba(0,0,0,.04);">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:4px;">Solicitudes por Hora</div>
+    <div style="font-size:11px;color:#94a3b8;margin-bottom:16px;">Volumen a lo largo del día</div>
+    <div style="position:relative;height:200px;"><canvas id="dash-chart-hora"></canvas></div>
+  </div>
+  <div style="background:#fff;border-radius:12px;padding:20px;border:1px solid #e2e8f0;box-shadow:0 1px 4px rgba(0,0,0,.04);">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:4px;">T. Espera por Módulo</div>
+    <div style="font-size:11px;color:#94a3b8;margin-bottom:16px;">Minutos promedio de espera</div>
+    <div style="position:relative;height:200px;"><canvas id="dash-chart-modulo"></canvas></div>
+  </div>
+  <div style="background:#fff;border-radius:12px;padding:20px;border:1px solid #e2e8f0;box-shadow:0 1px 4px rgba(0,0,0,.04);">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:4px;">Estado Solicitudes</div>
+    <div style="font-size:11px;color:#94a3b8;margin-bottom:16px;">Entregadas vs Pendientes</div>
+    <div style="position:relative;height:200px;"><canvas id="dash-chart-estado"></canvas></div>
+  </div>
+</div>
+
+<!-- Rankings + Tabla -->
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:24px;" id="dash-rankings"></div>
+
+<!-- Tabla detalle -->
+<div style="background:#fff;border-radius:12px;padding:20px;border:1px solid #e2e8f0;box-shadow:0 1px 4px rgba(0,0,0,.04);">
+  <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:16px;">Detalle de Solicitudes</div>
+  <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead>
+        <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0;">
+          <th style="padding:8px 12px;text-align:left;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#64748b;">Módulo</th>
+          <th style="padding:8px 12px;text-align:left;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#64748b;">Improductivo</th>
+          <th style="padding:8px 12px;text-align:right;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#64748b;">T. Espera (min)</th>
+        </tr>
+      </thead>
+      <tbody id="dash-tabla-body"></tbody>
+    </table>
+  </div>
+</div>
+```
+
+  </div>
 </div>
 
 <!-- Modal obs eliminado — reemplazado por dropdown -->
@@ -622,12 +706,14 @@ function connectWS(){
         renderCards();
         playAlertSound();
         showToast('📦 Nueva solicitud de ' + (msg.request.module || ''));
+        document.dispatchEvent(new Event('ci-updated'));
 
       } else if(msg.type === 'ci_update_request'){
         const idx = ciRequests.findIndex(r => r._id === msg.request._id);
         if(idx > -1) ciRequests[idx] = msg.request;
         else ciRequests.unshift(msg.request);
         renderCards();
+        document.dispatchEvent(new Event('ci-updated'));
 
       } else if(msg.type === 'ci_reactivar_alerta'){
         // Módulo rechazó el insumo — reactivar alerta sonora
@@ -1813,6 +1899,179 @@ if(_userLbl) _userLbl.textContent = currentUser.toUpperCase();
 
 // ── Iniciar ──
 connectWS();
+
+// ══════════════════════════════════════════════════════════════════
+//  DASHBOARD CI
+// ══════════════════════════════════════════════════════════════════
+let _dashCharts = {};
+
+function abrirDashboard(){
+  const hoy = fechaLocal();
+  document.getElementById('dash-desde').value = hoy;
+  document.getElementById('dash-hasta').value = hoy;
+  document.getElementById('dash-overlay').style.display = 'block';
+  renderDashboard();
+}
+
+function cerrarDashboard(){
+  document.getElementById('dash-overlay').style.display = 'none';
+}
+
+function dashHoy(){
+  const hoy = fechaLocal();
+  document.getElementById('dash-desde').value = hoy;
+  document.getElementById('dash-hasta').value = hoy;
+  renderDashboard();
+}
+
+function dashGetTiempo(r){
+  if(r.waitTime == null) return 0;
+  return r.waitTime < 3600 && r.waitTime > 0 ? r.waitTime/60 : r.waitTime/60000;
+}
+
+function dashFiltrar(){
+  const desde = document.getElementById('dash-desde').value;
+  const hasta  = document.getElementById('dash-hasta').value;
+  return ciRequests.filter(r=>{
+    const f = parseFechaSI ? parseFechaSI(r) : (r.fecha||'');
+    if(desde && f && f < desde) return false;
+    if(hasta  && f && f > hasta) return false;
+    return true;
+  });
+}
+
+function renderDashboard(){
+  const data = dashFiltrar();
+  const statusLabel = s => s==='done'?'Entregado':s==='cumplido'?'Listo':s==='alert'?'Pendiente':s||'';
+
+  const total     = data.length;
+  const entregadas = data.filter(r=>r.status==='done'||r.status==='cumplido').length;
+  const pendientes = data.filter(r=>r.status==='alert').length;
+  const tiempos   = data.filter(r=>r.waitTime!=null&&r.waitTime>0).map(r=>dashGetTiempo(r));
+  const tProm     = tiempos.length ? (tiempos.reduce((a,b)=>a+b,0)/tiempos.length).toFixed(1) : '0';
+  const alistamientos = data.filter(r=>r.esMecanico).length;
+
+  // ── KPIs ──
+  const kpiData = [
+    {icon:'📋', val:total,       label:'Total Solicitudes',    sub:'período seleccionado', color:'#2563eb', bg:'#eff6ff', border:'#bfdbfe'},
+    {icon:'✅', val:entregadas,  label:'Entregadas',           sub:total?Math.round(entregadas/total*100)+'% atención':'', color:'#15803d', bg:'#f0fdf4', border:'#86efac'},
+    {icon:'⏳', val:pendientes,  label:'Pendientes',           sub:total?Math.round(pendientes/total*100)+'% sin atender':'', color:'#dc2626', bg:'#fef2f2', border:'#fca5a5'},
+    {icon:'⏱',  val:tProm+' min',label:'T. Espera Promedio',  sub:'por solicitud', color:'#a16207', bg:'#fefce8', border:'#fde047'},
+    {icon:'🔧', val:alistamientos,label:'Alistamientos',       sub:'mecánicos', color:'#6d28d9', bg:'#f5f3ff', border:'#c4b5fd'},
+  ];
+  document.getElementById('dash-kpis').innerHTML = kpiData.map(k=>`
+    <div style="background:#fff;border-radius:12px;padding:18px;border:1px solid #e2e8f0;border-left:4px solid ${k.color};box-shadow:0 1px 4px rgba(0,0,0,.04);">
+      <div style="font-size:22px;margin-bottom:6px;">${k.icon}</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:${k.color};line-height:1;">${k.val}</div>
+      <div style="font-size:12px;color:#0f172a;font-weight:700;margin-top:4px;">${k.label}</div>
+      <div style="font-size:11px;color:#94a3b8;margin-top:2px;">${k.sub}</div>
+    </div>`).join('');
+
+  // ── Gráfica: Por Tipo ──
+  const tipoCount = {};
+  data.forEach(r=>{ const t = r.esMecanico?'Alistamiento':(r.categoria||'Falta de Insumos'); tipoCount[t]=(tipoCount[t]||0)+1; });
+  dashChart('dash-chart-tipo','doughnut',
+    Object.keys(tipoCount), Object.values(tipoCount),
+    ['#f97316','#8b5cf6','#2563eb','#ef4444','#22c55e'],
+    {plugins:{legend:{position:'bottom',labels:{padding:10,font:{size:10}}}}}
+  );
+
+  // ── Gráfica: Por Hora ──
+  const horaCount = {};
+  for(let h=6;h<=20;h++) horaCount[h+':00']=0;
+  data.forEach(r=>{
+    if(r.hora){ const h=parseInt(r.hora.split(':')[0]||0); const k=h+':00'; if(horaCount[k]!==undefined) horaCount[k]++; }
+  });
+  dashChart('dash-chart-hora','bar',
+    Object.keys(horaCount), Object.values(horaCount),
+    '#2563eb', {plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}},x:{grid:{display:false}}}}
+  );
+
+  // ── Gráfica: T. Espera por Módulo ──
+  const modTiempo = {};
+  const modCount2 = {};
+  data.forEach(r=>{ if(r.module&&r.waitTime!=null&&r.waitTime>0){ modTiempo[r.module]=(modTiempo[r.module]||0)+dashGetTiempo(r); modCount2[r.module]=(modCount2[r.module]||0)+1; }});
+  const modKeys = Object.keys(modTiempo).sort((a,b)=>modTiempo[b]-modTiempo[a]).slice(0,8);
+  const modVals = modKeys.map(k=>parseFloat((modTiempo[k]/modCount2[k]).toFixed(1)));
+  dashChart('dash-chart-modulo','bar', modKeys, modVals,
+    modVals.map(v=>v>15?'#ef4444':v>8?'#f59e0b':'#22c55e'),
+    {plugins:{legend:{display:false}},indexAxis:'y',scales:{x:{beginAtZero:true},y:{grid:{display:false}}}}
+  );
+
+  // ── Gráfica: Estado ──
+  dashChart('dash-chart-estado','pie',
+    ['Entregadas','Pendientes'],[entregadas,pendientes],
+    ['#22c55e','#ef4444'],
+    {plugins:{legend:{position:'bottom',labels:{padding:10,font:{size:10}}}}}
+  );
+
+  // ── Rankings ──
+  const modSol = {};
+  data.forEach(r=>{ if(r.module) modSol[r.module]=(modSol[r.module]||0)+1; });
+  const topMod = Object.entries(modSol).sort((a,b)=>b[1]-a[1]).slice(0,5);
+
+  const insumoCount = {};
+  data.forEach(r=>{ (r.insumos||[{tipo:r.tipo}]).forEach(i=>{ if(i.tipo) insumoCount[i.tipo]=(insumoCount[i.tipo]||0)+1; }); });
+  const topIns = Object.entries(insumoCount).sort((a,b)=>b[1]-a[1]).slice(0,5);
+
+  const topEspera = Object.entries(modTiempo).sort((a,b)=>b[1]-a[1]).slice(0,5);
+
+  document.getElementById('dash-rankings').innerHTML = [
+    { title:'🏭 Módulos con más solicitudes', rows: topMod.map(([k,v])=>({name:k,val:v})) },
+    { title:'📦 Insumos más solicitados',     rows: topIns.map(([k,v])=>({name:k,val:v})) },
+    { title:'⏱ Mayor tiempo de espera',       rows: topEspera.map(([k,v])=>({name:k,val:parseFloat(v.toFixed(1))+' min'})) },
+  ].map(card=>`
+    <div style="background:#fff;border-radius:12px;padding:20px;border:1px solid #e2e8f0;box-shadow:0 1px 4px rgba(0,0,0,.04);">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:12px;">${card.title}</div>
+      ${card.rows.length===0?'<div style="color:#94a3b8;font-size:12px;padding:8px 0;">Sin datos</div>':card.rows.map((r,i)=>`
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f1f5f9;font-size:13px;">
+          <span style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;color:#e2e8f0;width:20px;">${i+1}</span>
+          <span style="flex:1;font-weight:600;color:#0f172a;margin:0 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.name}</span>
+          <span style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;color:#2563eb;">${r.val}</span>
+        </div>`).join('')}
+    </div>`).join('');
+
+  // ── Tabla detalle ──
+  document.getElementById('dash-tabla-body').innerHTML = data.length===0
+    ? `<tr><td colspan="3" style="text-align:center;padding:32px;color:#94a3b8;font-size:13px;">Sin solicitudes en el período</td></tr>`
+    : data.map(r=>{
+        const tipo = r.esMecanico?'Alistamiento':(r.categoria||'Falta de Insumos');
+        const tEsp = r.waitTime!=null&&r.waitTime>0 ? parseFloat(dashGetTiempo(r).toFixed(2)) : '—';
+        const colores = {'Falta de Insumos':'#fff7ed','Alistamiento':'#fdf2f8','Solicitud de Producción':'#f5f3ff'};
+        const textos  = {'Falta de Insumos':'#9a3412','Alistamiento':'#9d174d','Solicitud de Producción':'#5b21b6'};
+        return `<tr style="border-bottom:1px solid #f1f5f9;">
+          <td style="padding:8px 12px;font-family:'Courier New',monospace;font-size:12px;font-weight:700;color:#1e40af;">${r.module||'—'}</td>
+          <td style="padding:8px 12px;">
+            <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${colores[tipo]||'#f8fafc'};color:${textos[tipo]||'#0f172a'};">${tipo}</span>
+          </td>
+          <td style="padding:8px 12px;text-align:right;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;color:${typeof tEsp==='number'&&tEsp>10?'#dc2626':typeof tEsp==='number'&&tEsp>5?'#d97706':'#15803d'};">${tEsp}</td>
+        </tr>`;
+      }).join('');
+}
+
+function dashChart(id, type, labels, data, colors, options){
+  if(_dashCharts[id]){ _dashCharts[id].destroy(); delete _dashCharts[id]; }
+  const ctx = document.getElementById(id);
+  if(!ctx) return;
+  if(typeof Chart === 'undefined') return;
+  _dashCharts[id] = new Chart(ctx, {
+    type,
+    data:{ labels, datasets:[{ data, backgroundColor:colors, borderRadius:type==='bar'?6:0, borderWidth:type==='doughnut'||type==='pie'?2:0, borderColor:'#fff' }] },
+    options:{ responsive:true, maintainAspectRatio:false, font:{family:"'IBM Plex Sans',sans-serif"}, color:'#64748b', ...options }
+  });
+}
+
+// Actualizar dashboard automáticamente con cada nueva solicitud
+const _origRenderCards = typeof renderCards === 'function' ? renderCards : null;
+function renderCardsYDash(){
+  if(_origRenderCards) _origRenderCards();
+  if(document.getElementById('dash-overlay')?.style.display !== 'none') renderDashboard();
+}
+
+// Escuchar eventos CI para auto-actualizar
+document.addEventListener('ci-updated', ()=>{
+  if(document.getElementById('dash-overlay')?.style.display !== 'none') renderDashboard();
+});
 </script>
 
 </body>
