@@ -133,7 +133,56 @@ function loadInitialState() {
   return ensureProgramador({ supervisors: [], employees: [] });
 }
 
-// ── Estado Control de Asistencia ──────────────────────────────────
+// ── Etiquetas de estado para el histórico ─────────────────────────
+const STATE_LABELS = {
+  red:    'Espera Mecánico',
+  yellow: 'Atención Mecánico',
+  blue:   'Cambio Referencia',
+  orange: 'Espera Insumos',
+  purple: 'Prod. Solicitada',
+  pink:   'Insumos Alistamiento'
+};
+
+function logHistorial(id, prevState, newState, mecanico, empleada) {
+  // No registrar si el estado anterior es verde o no hay estado previo
+  if (!prevState || prevState === 'green') return;
+  // No registrar si no hubo cambio
+  if (prevState === newState) return;
+
+  const ahora      = Date.now();
+  const timerInicio = stateTimes[id] || ahora;
+  const durMs      = ahora - timerInicio;
+
+  // No registrar eventos menores a 3 segundos (ruido)
+  if (durMs < 3000) return;
+
+  const now        = new Date();
+  const horaFin    = now.toLocaleTimeString('es-CO');
+  const horaInicio = new Date(timerInicio).toLocaleTimeString('es-CO');
+  const fecha      = now.toLocaleDateString('es-CO');
+  const fechaISO   = now.toISOString().split('T')[0];
+  const durMinutos = parseFloat((durMs / 60000).toFixed(2));
+  const tipo       = STATE_LABELS[prevState] || prevState;
+
+  const registro = {
+    fecha, fechaISO, horaInicio,
+    hora: horaFin,
+    modulo: id,
+    tipo,
+    estadoAnterior: prevState,
+    estadoNuevo:    newState,
+    durMinutos,
+    mecanico:  mecanico  || lastMec[id]      || '',
+    empleada:  empleada  || lastEmpleada[id] || ''
+  };
+
+  // Leer historial, agregar registro y guardar
+  let historial = readJSON(FILES.historial, []);
+  historial.push(registro);
+  // Limitar a 10000 registros
+  if (historial.length > 10000) historial = historial.slice(-10000);
+  writeJSON(FILES.historial, historial);
+}
 let iaState       = readJSON(FILES.ia_state, null);
 let iaRecords     = readJSON(FILES.ia_records, []);
 let modulesConfig = readJSON(FILES.modules_config, { disabled:[], extra:[], renamed:{}, modPass:{} });
@@ -835,6 +884,11 @@ wss.on('connection', (ws, req) => {
           stateTimes[msg.id]   = Date.now();
           lastEmpleada[msg.id] = '';
         }
+
+        // Guardar en historial ANTES de actualizar el estado
+        const prevState = states[msg.id];
+        logHistorial(msg.id, prevState, msg.state || 'green', msg.mecanico || '', msg.empleada || '');
+
         states[msg.id]     = msg.state || 'green';
         stateTimes[msg.id] = Date.now();
         if (msg.state === 'red') lastMec[msg.id] = '';
