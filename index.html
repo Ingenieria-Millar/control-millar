@@ -7393,28 +7393,28 @@ function cfgSavePerfilModal(){
   <div style="background:#fff;border-radius:18px;padding:32px 28px 24px;width:100%;max-width:460px;max-height:92vh;overflow-y:auto;box-shadow:0 24px 60px rgba(15,23,42,.18);animation:slup .22s ease;position:relative;">
     <button onclick="siClose()" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:20px;color:#94a3b8;cursor:pointer;line-height:1;">✕</button>
     <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#1e3a8a;margin-bottom:4px;">Solicitar Insumo</div>
-    <div id="si-modulo-lbl" style="font-size:12px;color:#64748b;margin-bottom:20px;"></div>
+    <div id="si-modulo-lbl" style="font-size:12px;color:#64748b;margin-bottom:6px;"></div>
+    <div id="si-ref-info" style="display:none;font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;color:#0f172a;letter-spacing:.5px;margin-bottom:16px;"></div>
 
-    <!-- TIPO (fijo, no editable) -->
-    <div style="margin-bottom:14px;">
-      <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:6px;">1. TIPO</div>
-      <input type="text" value="Falta de Insumos" readonly style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#64748b;background:#f1f5f9;outline:none;cursor:default;">
+    <!-- TIPO (fijo, oculto - se envía automáticamente) -->
+    <div style="display:none;">
+      <input type="text" value="Falta de Insumos" readonly id="si-tipo-display">
     </div>
 
     <!-- Referencia (oculto si hay orden, visible si no hay) -->
     <div id="si-ref-wrap" style="display:none;margin-bottom:14px;">
-      <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:6px;">2. REFERENCIA <span style="color:#ef4444;">*</span></div>
+      <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#0f172a;margin-bottom:6px;">2. REFERENCIA <span style="color:#ef4444;">*</span></div>
       <input id="si-ref" type="text" placeholder="Ej: 62302 - PANTY" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;background:#f8fafc;outline:none;">
     </div>
 
     <!-- OP / OC (oculto si hay orden, visible si no hay) -->
     <div id="si-opoc-wrap" style="display:none;margin-bottom:14px;">
-      <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:6px;">3. OP / OC</div>
+      <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#0f172a;margin-bottom:6px;">3. OP / OC</div>
       <input id="si-opoc" type="text" placeholder="Ej: OP-001" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;background:#f8fafc;outline:none;">
     </div>
 
     <!-- ── LISTA DE INSUMOS ── -->
-    <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:8px;">2. INSUMOS <span style="color:#ef4444;">*</span></div>
+    <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#0f172a;margin-bottom:8px;">1. INSUMOS <span style="color:#ef4444;">*</span></div>
 
     <!-- Insumos ya agregados -->
     <div id="si-insumos-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"></div>
@@ -7423,18 +7423,18 @@ function cfgSavePerfilModal(){
     <div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:12px;margin-bottom:10px;">
       <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:8px;">
         <div>
-          <div style="font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#94a3b8;margin-bottom:4px;">TIPO DE INSUMO <span style="color:#ef4444;">*</span></div>
+          <div style="font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#0f172a;margin-bottom:4px;">TIPO DE INSUMO <span style="color:#ef4444;">*</span></div>
           <select id="si-tipo" onchange="siOnTipoChange()" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:'Nunito',sans-serif;font-size:13px;color:#0f172a;background:#fff;outline:none;">
             <option value="">— Seleccionar —</option>
           </select>
         </div>
         <div>
-          <div style="font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#94a3b8;margin-bottom:4px;">CANT. <span style="color:#ef4444;">*</span></div>
+          <div style="font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#0f172a;margin-bottom:4px;">CANT. <span style="color:#ef4444;">*</span></div>
           <input id="si-qty" type="number" min="1" placeholder="" style="width:72px;padding:9px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:'Nunito',sans-serif;font-size:13px;color:#0f172a;background:#fff;outline:none;">
         </div>
       </div>
       <div id="si-talla-wrap" style="display:block;margin-bottom:8px;">
-        <div style="font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#94a3b8;margin-bottom:4px;">TALLA O COLOR</div>
+        <div style="font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#0f172a;margin-bottom:4px;">TALLA O COLOR</div>
         <input id="si-talla" type="text" placeholder="" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:'Nunito',sans-serif;font-size:13px;color:#0f172a;background:#fff;outline:none;">
       </div>
       <button onclick="siAgregarInsumo()" style="width:100%;padding:9px;border-radius:8px;border:1.5px dashed #93c5fd;background:#eff6ff;color:#1d4ed8;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all .2s;">
@@ -7444,7 +7444,7 @@ function cfgSavePerfilModal(){
 
     <!-- 5. Observación -->
     <div style="margin-bottom:14px;">
-      <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:6px;">5. OBSERVACIÓN <span style="color:#ef4444;">*</span></div>
+      <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#0f172a;margin-bottom:6px;">2. OBSERVACIÓN <span style="color:#ef4444;">*</span></div>
       <div style="position:relative;" id="si-obs-wrap">
         <button type="button" onclick="siToggleObsMenu()"
           style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;background:#f8fafc;outline:none;text-align:left;cursor:pointer;display:flex;align-items:center;justify-content:space-between;"
@@ -7542,16 +7542,20 @@ function siOpen(){
   const refWrap  = document.getElementById('si-ref-wrap');
   const opocWrap = document.getElementById('si-opoc-wrap');
 
+  const refInfoEl = document.getElementById('si-ref-info');
   if(window._ordenSeleccionada){
-    // Hay orden — pre-llenar y ocultar campos
     document.getElementById('si-ref').value  = window._ordenSeleccionada.referencia || '';
     document.getElementById('si-opoc').value = window._ordenSeleccionada.opoc || '';
     if(refWrap)  refWrap.style.display  = 'none';
     if(opocWrap) opocWrap.style.display = 'none';
+    if(refInfoEl){
+      refInfoEl.textContent = window._ordenSeleccionada.referencia || '';
+      refInfoEl.style.display = 'block';
+    }
   } else {
-    // Sin orden — mostrar campos para que el operario los llene
     if(refWrap)  refWrap.style.display  = 'block';
     if(opocWrap) opocWrap.style.display = 'block';
+    if(refInfoEl) refInfoEl.style.display = 'none';
   }
   // Mostrar mecánico seleccionado + módulo
   const mecNombre = window._siMecanicoNombre || '';
