@@ -1649,22 +1649,8 @@ function connectWS(){
         const idx = window._ciRequests.findIndex(r=>r._id===req._id);
         if(idx>-1) window._ciRequests[idx]=req; else window._ciRequests.unshift(req);
 
-        // Solicitud de Producción: liberar módulo directamente sin esperar confirmación
-        if(req && (req.categoria==='Solicitud de Producción' || req.tipo==='Solicitud de Producción')){
-          const modId = req.module;
-          if(modId){
-            if(states[modId]==='purple') commitChange(modId,'green',null);
-            if(states2[modId]==='purple') cerrarImproductivoExtra(modId);
-          }
-          // También enviar ci_update_request con status done para sincronizar el CI
-          const updated = Object.assign({}, req, {
-            status: 'done',
-            resolvedAt: new Date().toLocaleTimeString('es-CO'),
-            waitTime: req.alertStart ? (Date.now() - req.alertStart) : 0
-          });
-          if(typeof wsSend==='function') wsSend({type:'ci_update_request', request: updated});
-          showToastSimple('🟢 ' + (modId||'') + ' — Solicitud de producción atendida');
-        } else if(req && req.module === selectedMod && currentView==='single'){
+        // Mismo flujo para todos los tipos: mostrar modal de confirmación al módulo
+        if(req && req.module && (req.module === selectedMod || req.module === currentUser)){
           showCiCumplidoModal(req);
         } else if(req && req.module){
           showToastSimple('📦 ' + req.module + ' — Insumo listo para confirmar');
@@ -7415,14 +7401,16 @@ function cfgSavePerfilModal(){
       <input type="text" value="Falta de Insumos" readonly style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#64748b;background:#f1f5f9;outline:none;cursor:default;">
     </div>
 
-    <!-- Referencia (oculto - se llena automáticamente desde la orden) -->
-    <div id="si-ref-wrap" style="display:none;">
-      <input id="si-ref" type="text" placeholder="">
+    <!-- Referencia (oculto si hay orden, visible si no hay) -->
+    <div id="si-ref-wrap" style="display:none;margin-bottom:14px;">
+      <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:6px;">2. REFERENCIA <span style="color:#ef4444;">*</span></div>
+      <input id="si-ref" type="text" placeholder="Ej: 62302 - PANTY" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;background:#f8fafc;outline:none;">
     </div>
 
-    <!-- OP / OC (oculto - se llena automáticamente desde la orden) -->
-    <div id="si-opoc-wrap" style="display:none;">
-      <input id="si-opoc" type="text" placeholder="">
+    <!-- OP / OC (oculto si hay orden, visible si no hay) -->
+    <div id="si-opoc-wrap" style="display:none;margin-bottom:14px;">
+      <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:6px;">3. OP / OC</div>
+      <input id="si-opoc" type="text" placeholder="Ej: OP-001" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;background:#f8fafc;outline:none;">
     </div>
 
     <!-- ── LISTA DE INSUMOS ── -->
@@ -7550,12 +7538,20 @@ function siOpen(){
   document.getElementById('si-talla').value = '';
   document.getElementById('si-opoc').value = '';
   document.getElementById('si-error').style.display = 'none';
-  // Pre-llenar referencia y OP/OC desde la orden seleccionada
+
+  const refWrap  = document.getElementById('si-ref-wrap');
+  const opocWrap = document.getElementById('si-opoc-wrap');
+
   if(window._ordenSeleccionada){
-    const ref = document.getElementById('si-ref');
-    const opoc = document.getElementById('si-opoc');
-    if(ref)  ref.value  = window._ordenSeleccionada.referencia || '';
-    if(opoc) opoc.value = window._ordenSeleccionada.opoc || '';
+    // Hay orden — pre-llenar y ocultar campos
+    document.getElementById('si-ref').value  = window._ordenSeleccionada.referencia || '';
+    document.getElementById('si-opoc').value = window._ordenSeleccionada.opoc || '';
+    if(refWrap)  refWrap.style.display  = 'none';
+    if(opocWrap) opocWrap.style.display = 'none';
+  } else {
+    // Sin orden — mostrar campos para que el operario los llene
+    if(refWrap)  refWrap.style.display  = 'block';
+    if(opocWrap) opocWrap.style.display = 'block';
   }
   // Mostrar mecánico seleccionado + módulo
   const mecNombre = window._siMecanicoNombre || '';
@@ -7622,13 +7618,13 @@ function showCiCumplidoModal(req){
   }
   ov.innerHTML = `
     <div style="background:#fff;border-radius:18px;padding:32px 28px 24px;width:100%;max-width:380px;box-shadow:0 24px 60px rgba(15,23,42,.25);animation:slup .22s ease;text-align:center;">
-      <div style="font-size:48px;margin-bottom:12px;">📦</div>
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;letter-spacing:2px;color:#1e3a8a;margin-bottom:8px;">¡INSUMO LISTO!</div>
-      <div style="font-size:14px;color:#64748b;margin-bottom:20px;">El CI confirma que tu insumo fue entregado.<br>¿Confirmas que lo recibiste?</div>
+      <div style="font-size:48px;margin-bottom:12px;">${(req.categoria==='Solicitud de Producción'||req.tipo==='Solicitud de Producción')?'🟣':'📦'}</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;letter-spacing:2px;color:#1e3a8a;margin-bottom:8px;">${(req.categoria==='Solicitud de Producción'||req.tipo==='Solicitud de Producción')?'¡PRODUCCIÓN LISTA!':'¡INSUMO LISTO!'}</div>
+      <div style="font-size:14px;color:#64748b;margin-bottom:20px;">El CI confirma que fue atendido.<br>¿Confirmas que lo recibiste?</div>
       <div style="background:#f8fafc;border-radius:10px;padding:12px;margin-bottom:20px;text-align:left;font-size:13px;">
-        <div><b>Tipo:</b> ${req.tipo||'—'}</div>
+        <div><b>Tipo:</b> ${req.tipo||req.categoria||'—'}</div>
         <div><b>Referencia:</b> ${req.ref||'—'}</div>
-        <div><b>Cantidad:</b> ${req.qty||'—'}</div>
+        <div><b>OP / OC:</b> ${req.opoc||req.op||'—'}</div>
       </div>
       <div style="display:flex;gap:10px;">
         <button onclick="ciConfirmarRecepcion('${req._id}',true)" style="flex:1;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,#15803d,#22c55e);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;cursor:pointer;">
@@ -7655,8 +7651,8 @@ function ciConfirmarRecepcion(reqId, accepted){
     // Liberar módulo localmente también (por si el WS tarda)
     const modId = req.module;
     if(modId){
-      if(states[modId]==='orange') commitChange(modId,'green',null);
-      if(states2[modId]==='orange') cerrarImproductivoExtra(modId);
+      if(states[modId]==='orange'||states[modId]==='purple') commitChange(modId,'green',null);
+      if(states2[modId]==='orange'||states2[modId]==='purple') cerrarImproductivoExtra(modId);
     }
     showToastSimple('✅ Insumo confirmado como recibido');
   } else {
