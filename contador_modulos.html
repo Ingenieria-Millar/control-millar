@@ -611,12 +611,14 @@ function openMecanicoModal(title, sub){
     list.innerHTML='';
     if(!mecs||mecs.length===0){ list.innerHTML='<div style="color:#94a3b8;font-size:13px;padding:8px;">Sin mecánicos registrados</div>'; return; }
     mecs.forEach(m=>{
+      const nombre = typeof m === 'string' ? m : (m.name || m.nombre || '');
+      if(!nombre) return;
       const btn=document.createElement('button');
-      btn.textContent=m;
+      btn.textContent=nombre;
       btn.style.cssText='padding:12px 16px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;font-family:Nunito,sans-serif;font-size:14px;font-weight:600;cursor:pointer;text-align:left;transition:background .15s;';
       btn.onmouseenter=()=>btn.style.background='#f0f7ff';
       btn.onmouseleave=()=>btn.style.background='#fff';
-      btn.onclick=()=>{ seleccionarMecanico(m); };
+      btn.onclick=()=>{ seleccionarMecanico(nombre); };
       list.appendChild(btn);
     });
   }).catch(()=>{ list.innerHTML='<div style="color:#ef4444;font-size:13px;padding:8px;">Error al cargar mecánicos</div>'; });
