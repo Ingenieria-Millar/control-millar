@@ -468,6 +468,20 @@ input,select,textarea{ font-size:16px !important; }
         <input type="date" id="dash-hasta" style="padding:4px 8px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:12px;outline:none;" oninput="renderDashboard()">
         <button onclick="dashHoy()" style="padding:4px 10px;border-radius:6px;border:1.5px solid #e2e8f0;background:#fff;font-size:11px;font-weight:700;cursor:pointer;color:#2563eb;">Hoy</button>
       </div>
+      <div style="position:relative;" id="dash-dl-wrap">
+        <button onclick="toggleDashDl()" style="padding:6px 14px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;color:#334155;display:flex;align-items:center;gap:5px;">⬇ Descargar</button>
+        <div id="dash-dl-menu" style="display:none;position:absolute;top:110%;right:0;z-index:300;background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;padding:8px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:180px;">
+          <button onclick="dashDescargarExcel();toggleDashDl();" style="width:100%;padding:10px 14px;border:none;background:none;text-align:left;cursor:pointer;border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:#0f172a;display:flex;flex-direction:column;gap:2px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='none'">
+            <span style="font-weight:700;">📊 Excel</span>
+            <span style="font-size:11px;color:#64748b;">Datos + gráficas estáticas</span>
+          </button>
+          <div style="height:1px;background:#f1f5f9;margin:4px 0;"></div>
+          <button onclick="dashDescargarPDF();toggleDashDl();" style="width:100%;padding:10px 14px;border:none;background:none;text-align:left;cursor:pointer;border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:#0f172a;display:flex;flex-direction:column;gap:2px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='none'">
+            <span style="font-weight:700;">📄 PDF</span>
+            <span style="font-size:11px;color:#64748b;">Dashboard visual completo</span>
+          </button>
+        </div>
+      </div>
       <button onclick="cerrarDashboard()" style="padding:6px 14px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;color:#334155;">← Volver</button>
     </div>
     <div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#1e3a8a,#2563eb,#7c3aed);"></div>
@@ -841,7 +855,119 @@ function exportarExcel(){
 }
 
 // ── Toggle menú Excel ──
-function toggleExcelMenu(){
+function toggleDashDl(){
+  const menu = document.getElementById('dash-dl-menu');
+  if(!menu) return;
+  const isOpen = menu.style.display !== 'none';
+  menu.style.display = isOpen ? 'none' : 'block';
+  if(!isOpen){
+    setTimeout(()=>{
+      document.addEventListener('click', function handler(e){
+        if(!document.getElementById('dash-dl-wrap')?.contains(e.target)){
+          menu.style.display='none';
+          document.removeEventListener('click', handler);
+        }
+      });
+    }, 10);
+  }
+}
+
+function dashDescargarExcel(){
+  if(typeof XLSX === 'undefined'){ showToast('⚠ Librería Excel no disponible'); return; }
+  const data = dashFiltrar();
+  const desde = document.getElementById('dash-desde').value;
+  const hasta  = document.getElementById('dash-hasta').value;
+
+  const wb = XLSX.utils.book_new();
+
+  // ── Hoja 1: KPIs ──
+  const total      = data.length;
+  const entregadas = data.filter(r=>r.status==='done'||r.status==='cumplido').length;
+  const pendientes = data.filter(r=>r.status==='alert').length;
+  const tiempos    = data.filter(r=>r.waitTime!=null&&r.waitTime>0).map(r=>dashGetTiempo(r));
+  const tProm      = tiempos.length ? parseFloat((tiempos.reduce((a,b)=>a+b,0)/tiempos.length).toFixed(1)) : 0;
+  const tTotal     = tiempos.length ? parseFloat(tiempos.reduce((a,b)=>a+b,0).toFixed(1)) : 0;
+  const alist      = data.filter(r=>r.esMecanico).length;
+
+  const wsKpi = XLSX.utils.aoa_to_sheet([
+    ['DASHBOARD CI — '+desde+(desde!==hasta?' al '+hasta:'')],
+    [],
+    ['KPI','Valor'],
+    ['Total Solicitudes', total],
+    ['Entregadas', entregadas],
+    ['Pendientes', pendientes],
+    ['T. Espera Promedio (min)', tProm],
+    ['T. Espera Total (min)', tTotal],
+    ['Alistamientos', alist],
+  ]);
+  wsKpi['!cols'] = [{wch:28},{wch:14}];
+  XLSX.utils.book_append_sheet(wb, wsKpi, 'Resumen');
+
+  // ── Hoja 2: Detalle solicitudes ──
+  const rowsDet = data.map(r=>({
+    'Módulo':      r.module||'',
+    'Tipo':        r.esMecanico?'Alistamiento':(r.categoria||'Falta de Insumos'),
+    'Referencia':  r.ref||'',
+    'OP / OC':     r.opoc||r.op||'',
+    'Fecha':       r.fecha||'',
+    'Hora Inicio': r.hora||'',
+    'Hora Fin':    r.resolvedAt||'',
+    'T. Espera (min)': r.waitTime!=null&&r.waitTime>0 ? parseFloat(dashGetTiempo(r).toFixed(2)) : '',
+    'Estado':      r.status==='done'||r.status==='cumplido'?'Entregado':'Pendiente',
+    'Obs.':        r.obs||'',
+  }));
+  const wsDet = XLSX.utils.json_to_sheet(rowsDet);
+  wsDet['!cols'] = [{wch:10},{wch:20},{wch:16},{wch:12},{wch:12},{wch:14},{wch:14},{wch:16},{wch:12},{wch:18}];
+  XLSX.utils.book_append_sheet(wb, wsDet, 'Solicitudes');
+
+  // ── Hoja 3: Por tipo ──
+  const tipoCount = {};
+  data.forEach(r=>{ const t=r.esMecanico?'Alistamiento':(r.categoria||'Falta de Insumos'); tipoCount[t]=(tipoCount[t]||0)+1; });
+  const wsTipo = XLSX.utils.aoa_to_sheet([['Tipo','Cantidad'],...Object.entries(tipoCount)]);
+  wsTipo['!cols'] = [{wch:24},{wch:12}];
+  XLSX.utils.book_append_sheet(wb, wsTipo, 'Por Tipo');
+
+  // ── Hoja 4: Por módulo ──
+  const modSol={}, modTiempo={}, modCount2={};
+  data.forEach(r=>{
+    if(r.module){ modSol[r.module]=(modSol[r.module]||0)+1; }
+    if(r.module&&r.waitTime!=null&&r.waitTime>0){ modTiempo[r.module]=(modTiempo[r.module]||0)+dashGetTiempo(r); modCount2[r.module]=(modCount2[r.module]||0)+1; }
+  });
+  const wsMod = XLSX.utils.aoa_to_sheet([
+    ['Módulo','Solicitudes','T. Espera Total (min)','T. Espera Prom. (min)'],
+    ...Object.keys(modSol).sort().map(k=>[k, modSol[k], parseFloat((modTiempo[k]||0).toFixed(2)), parseFloat(((modTiempo[k]||0)/(modCount2[k]||1)).toFixed(2))])
+  ]);
+  wsMod['!cols'] = [{wch:12},{wch:14},{wch:22},{wch:22}];
+  XLSX.utils.book_append_sheet(wb, wsMod, 'Por Módulo');
+
+  const fname = 'Dashboard_CI_'+(desde||fechaLocal())+(desde!==hasta?'_al_'+(hasta||''):'') +'.xlsx';
+  XLSX.writeFile(wb, fname);
+  showToast('📊 Excel descargado');
+}
+
+function dashDescargarPDF(){
+  // Usar el print del navegador con estilos optimizados para PDF
+  const contenido = document.getElementById('dash-overlay');
+  const header = contenido.querySelector('div[style*="sticky"]');
+  if(header) header.style.position = 'relative';
+
+  window.print();
+
+  if(header) header.style.position = 'sticky';
+  showToast('📄 Usa "Guardar como PDF" en el diálogo de impresión');
+}
+
+// CSS para impresión PDF
+const _dashPrintStyle = document.createElement('style');
+_dashPrintStyle.textContent = `
+@media print {
+  body > *:not(#dash-overlay) { display: none !important; }
+  #dash-overlay { display: block !important; position: relative !important; overflow: visible !important; }
+  #dash-overlay > div:first-child { display: none !important; }
+  canvas { max-width: 100% !important; }
+  @page { margin: 1cm; size: A4 landscape; }
+}`;
+document.head.appendChild(_dashPrintStyle);
   const menu = document.getElementById('excel-menu');
   if(!menu) return;
   const isOpen = menu.style.display !== 'none';
@@ -1934,13 +2060,16 @@ function renderDashboard(){
   const tProm     = tiempos.length ? (tiempos.reduce((a,b)=>a+b,0)/tiempos.length).toFixed(1) : '0';
   const alistamientos = data.filter(r=>r.esMecanico).length;
 
+  const tTotal    = tiempos.length ? tiempos.reduce((a,b)=>a+b,0).toFixed(1) : '0';
+
   // ── KPIs ──
   const kpiData = [
-    {icon:'📋', val:total,       label:'Total Solicitudes',    sub:'período seleccionado', color:'#2563eb', bg:'#eff6ff', border:'#bfdbfe'},
-    {icon:'✅', val:entregadas,  label:'Entregadas',           sub:total?Math.round(entregadas/total*100)+'% atención':'', color:'#15803d', bg:'#f0fdf4', border:'#86efac'},
-    {icon:'⏳', val:pendientes,  label:'Pendientes',           sub:total?Math.round(pendientes/total*100)+'% sin atender':'', color:'#dc2626', bg:'#fef2f2', border:'#fca5a5'},
-    {icon:'⏱',  val:tProm+' min',label:'T. Espera Promedio',  sub:'por solicitud', color:'#a16207', bg:'#fefce8', border:'#fde047'},
-    {icon:'🔧', val:alistamientos,label:'Alistamientos',       sub:'mecánicos', color:'#6d28d9', bg:'#f5f3ff', border:'#c4b5fd'},
+    {icon:'📋', val:total,          label:'Total Solicitudes',    sub:'período seleccionado',                    color:'#2563eb', bg:'#eff6ff', border:'#bfdbfe'},
+    {icon:'✅', val:entregadas,     label:'Entregadas',           sub:total?Math.round(entregadas/total*100)+'% atención':'', color:'#15803d', bg:'#f0fdf4', border:'#86efac'},
+    {icon:'⏳', val:pendientes,     label:'Pendientes',           sub:total?Math.round(pendientes/total*100)+'% sin atender':'', color:'#dc2626', bg:'#fef2f2', border:'#fca5a5'},
+    {icon:'⏱',  val:tProm+' min',  label:'T. Espera Promedio',   sub:'por solicitud',                           color:'#a16207', bg:'#fefce8', border:'#fde047'},
+    {icon:'⏱',  val:tTotal+' min', label:'T. Espera Total',      sub:'acumulado del período',                   color:'#0369a1', bg:'#e0f2fe', border:'#7dd3fc'},
+    {icon:'🔧', val:alistamientos, label:'Alistamientos',        sub:'mecánicos',                               color:'#6d28d9', bg:'#f5f3ff', border:'#c4b5fd'},
   ];
   document.getElementById('dash-kpis').innerHTML = kpiData.map(k=>`
     <div style="background:#fff;border-radius:12px;padding:18px;border:1px solid #e2e8f0;border-left:4px solid ${k.color};box-shadow:0 1px 4px rgba(0,0,0,.04);">
