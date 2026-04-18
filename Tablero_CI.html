@@ -452,7 +452,6 @@ input,select,textarea{ font-size:16px !important; }
 
 <!-- ── DASHBOARD CI ── -->
 <div id="dash-overlay" style="display:none;position:fixed;inset:0;z-index:400;background:#f1f5f9;overflow-y:auto;">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 
   <!-- Header dashboard -->
   <div style="background:#fff;border-bottom:1px solid #e2e8f0;padding:0 clamp(12px,2.5vw,24px);min-height:56px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:10;box-shadow:0 1px 6px rgba(0,0,0,.07);">
@@ -1894,7 +1893,7 @@ function abrirDashboard(){
   document.getElementById('dash-desde').value = hoy;
   document.getElementById('dash-hasta').value = hoy;
   document.getElementById('dash-overlay').style.display = 'block';
-  renderDashboard();
+  setTimeout(()=>renderDashboard(), 50);
 }
 
 function cerrarDashboard(){
@@ -1917,7 +1916,7 @@ function dashFiltrar(){
   const desde = document.getElementById('dash-desde').value;
   const hasta  = document.getElementById('dash-hasta').value;
   return ciRequests.filter(r=>{
-    const f = parseFechaSI ? parseFechaSI(r) : (r.fecha||'');
+    const f = typeof parseFechaReq==='function' ? parseFechaReq(r) : (r.fecha||'');
     if(desde && f && f < desde) return false;
     if(hasta  && f && f > hasta) return false;
     return true;
