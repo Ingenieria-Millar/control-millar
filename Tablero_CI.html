@@ -1105,7 +1105,10 @@ function filtrarPorFecha(list){
 
 
 // ── Arrancar ──
+let _ciArranked = false;
 function arrancar(){
+  if(_ciArranked) return;
+  _ciArranked = true;
   dbg('Arrancando — ' + ciRequests.length + ' solicitudes');
   document.getElementById('ci-loader').style.display = 'none';
   document.getElementById('ci-app').style.display    = 'block';
@@ -2008,6 +2011,15 @@ if(_userLbl) _userLbl.textContent = currentUser.toUpperCase();
 
 // ── Iniciar ──
 connectWS();
+
+// ── Timeout de respaldo: si el WS no responde en 4s, arrancar igual ──────
+// Esto evita que la página quede congelada cuando Render está durmiendo
+setTimeout(() => {
+  if(!_ciArranked){
+    dbg('WS sin respuesta en 4s — arrancando sin datos del servidor');
+    arrancar();
+  }
+}, 4000);
 
 // ══════════════════════════════════════════════════════════════════
 //  DASHBOARD CI
