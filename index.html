@@ -70,13 +70,14 @@ window.ScreenState = {
         };
         localStorage.setItem(this.SCREEN_KEY, JSON.stringify(state));
       }
-    } catch(e) {}
+    } catch(e) { console.warn('[ScreenState] saveCurrentScreen:', e); }
   },
   loadSavedState: function() {
     try {
       const saved = localStorage.getItem(this.SCREEN_KEY);
       return saved ? JSON.parse(saved) : null;
     } catch(e) {
+      console.warn('[ScreenState] loadSavedState:', e);
       return null;
     }
   },
@@ -114,7 +115,7 @@ window.ScreenState = {
   clear: function() {
     try {
       localStorage.removeItem(this.SCREEN_KEY);
-    } catch(e) {}
+    } catch(e) { console.warn('[ScreenState] clear:', e); }
   }
 };
 setInterval(() => {
@@ -155,7 +156,6 @@ header.tablero-mode #hd-subtitle{display:block !important;}
 .hd-user-badge{display:flex;align-items:center;gap:7px;padding:6px 14px;border-radius:8px;background:#fff;border:1.5px solid #e2e8f0;font-family:'Barlow Condensed',sans-serif;font-size:clamp(11px,1.3vw,14px);font-weight:700;color:#475569;letter-spacing:1.5px;text-transform:uppercase;}
 .hd-user-dot{width:9px;height:9px;border-radius:50%;background:#22c55e;box-shadow:0 0 6px rgba(34,197,94,.7);flex-shrink:0;}
 .hd-back-btn{padding:6px 14px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#1e3a8a;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;}
-.hd-back-btn:hover{background:#f1f5f9;border-color:#93c5fd;}
 .hd-back-btn:hover{background:#f1f5f9;border-color:#93c5fd;}
 .hd-logo{width:36px;height:36px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 0 0 2px rgba(255,255,255,.2),0 2px 8px rgba(0,0,0,.3);flex-shrink:0;}
 .hd-logo img{width:100%;height:100%;object-fit:contain;padding:3px;}
@@ -2040,7 +2040,7 @@ function submitLogin(){
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('login-pass').value='';
     document.getElementById('login-error').textContent='';
-    try{ localStorage.setItem('cm_session', JSON.stringify({user: rawVal, pass: document.getElementById('login-pass').value||pass, rol:'supervisora'})); }catch(e){}
+    try{ localStorage.setItem('cm_session', JSON.stringify({user: rawVal, pass: document.getElementById('login-pass').value||pass, rol:'supervisora'})); }catch(e){ console.warn('[Login] No se pudo guardar sesión:', e); }
     mostrarAreaScreen(); return;
   }
 
@@ -2053,7 +2053,7 @@ function submitLogin(){
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('login-pass').value='';
     document.getElementById('login-error').textContent='';
-    try{ localStorage.setItem('cm_session', JSON.stringify({user: usuario, pass:'', rol:''})); }catch(e){}
+    try{ localStorage.setItem('cm_session', JSON.stringify({user: usuario, pass:'', rol:''})); }catch(e){ console.warn('[Login] No se pudo guardar sesión:', e); }
     mostrarAreaScreen();return;
   }
   if(pass!==USUARIOS[usuario].pass){
@@ -2072,7 +2072,7 @@ function submitLogin(){
     USUARIOS[usuario].perms = cfg[usuario].perms;
   }
   
-  try{ localStorage.setItem('cm_session', JSON.stringify({user: usuario, pass: pass, rol:'', perms: USUARIOS[usuario]?.perms||[]})); }catch(e){}
+  try{ localStorage.setItem('cm_session', JSON.stringify({user: usuario, pass: pass, rol:'', perms: USUARIOS[usuario]?.perms||[]})); }catch(e){ console.warn('[Login] No se pudo guardar sesión:', e); }
   mostrarAreaScreen();
 }
 
@@ -2621,7 +2621,7 @@ function filtrarOrdenLista(){
 }
 function volverLogin(){
   ocultarTodo();currentUser=null;selectedMod=null;
-  try{ localStorage.removeItem('cm_session'); }catch(e){}
+  try{ localStorage.removeItem('cm_session'); }catch(e){ console.warn('[Logout] No se pudo limpiar sesión:', e); }
   ScreenState.clear();
   populateLoginSelect();
   document.getElementById('login-user').value='';
