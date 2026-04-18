@@ -1595,6 +1595,7 @@ html { overflow-x: hidden; max-width: 100%; }
       <button class="ia-tab-btn" id="ia-tab-btn-history" onclick="iaShowTab('history',this)">📋 Historial</button>
       <button class="ia-tab-btn admin-tab hidden" id="ia-tab-btn-records" onclick="iaShowTab('records',this)" style="display:none">🛠 Editar Registros</button>
       <button class="ia-tab-btn admin-tab hidden" id="ia-tab-btn-config" onclick="iaShowTab('config',this)" style="display:none">⚙️ Configuración</button>
+      <button class="ia-tab-btn admin-tab hidden" id="ia-tab-btn-dashboard" onclick="iaShowTab('dashboard',this)" style="display:none">📊 Dashboard</button>
     </div>
 
     <div class="ia-stats-row">
@@ -1793,6 +1794,67 @@ html { overflow-x: hidden; max-width: 100%; }
     </div>
   </div>
 </div>
+
+<!-- Panel Dashboard -->
+    <div class="ia-panel hidden" id="ia-tab-dashboard" style="display:none;">
+      <!-- Filtro fecha -->
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:20px;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">📊 Dashboard de Asistencia</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-left:auto;">
+          <span style="font-size:11px;font-weight:700;color:#64748b;">Fecha</span>
+          <input type="date" id="iaDash-fecha" style="padding:5px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;outline:none;" oninput="iaDashRender()">
+          <button onclick="iaDashHoy()" style="padding:5px 12px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;font-size:11px;font-weight:700;cursor:pointer;color:#2563eb;">Hoy</button>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div id="iaDash-kpis" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:24px;"></div>
+
+      <!-- Gráficas: 2 columnas -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
+        <div style="background:#fff;border-radius:12px;padding:20px;border:1px solid #e2e8f0;box-shadow:0 1px 4px rgba(0,0,0,.04);">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:4px;">Asistencia del Día</div>
+          <div style="font-size:11px;color:#94a3b8;margin-bottom:12px;">Presentes vs Faltantes vs Novedades</div>
+          <div style="position:relative;height:200px;"><canvas id="iaDash-chart-asistencia"></canvas></div>
+        </div>
+        <div style="background:#fff;border-radius:12px;padding:20px;border:1px solid #e2e8f0;box-shadow:0 1px 4px rgba(0,0,0,.04);">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:4px;">Personal por Supervisora</div>
+          <div style="font-size:11px;color:#94a3b8;margin-bottom:12px;">Total empleados asignados</div>
+          <div style="position:relative;height:200px;"><canvas id="iaDash-chart-supervisora"></canvas></div>
+        </div>
+        <div style="background:#fff;border-radius:12px;padding:20px;border:1px solid #e2e8f0;box-shadow:0 1px 4px rgba(0,0,0,.04);">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:4px;">Novedades por Tipo</div>
+          <div style="font-size:11px;color:#94a3b8;margin-bottom:12px;">Renuncias, vacaciones y otros</div>
+          <div style="position:relative;height:200px;"><canvas id="iaDash-chart-novedades"></canvas></div>
+        </div>
+        <div style="background:#fff;border-radius:12px;padding:20px;border:1px solid #e2e8f0;box-shadow:0 1px 4px rgba(0,0,0,.04);">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:4px;">Personal por Módulo</div>
+          <div style="font-size:11px;color:#94a3b8;margin-bottom:12px;">Empleados registrados hoy</div>
+          <div style="position:relative;height:200px;"><canvas id="iaDash-chart-modulo"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Tablas: Rankings -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:24px;" id="iaDash-rankings"></div>
+
+      <!-- Tabla detalle: Personal por módulo -->
+      <div style="background:#fff;border-radius:12px;padding:20px;border:1px solid #e2e8f0;box-shadow:0 1px 4px rgba(0,0,0,.04);">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:16px;">Personal Registrado por Módulo</div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead>
+              <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0;">
+                <th style="padding:8px 12px;text-align:left;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#64748b;">Módulo</th>
+                <th style="padding:8px 12px;text-align:left;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#64748b;">Empleada</th>
+                <th style="padding:8px 12px;text-align:left;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#64748b;">Supervisora</th>
+                <th style="padding:8px 12px;text-align:center;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#64748b;">Estado</th>
+              </tr>
+            </thead>
+            <tbody id="iaDash-tabla-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
 
 <!-- Modales del Control de Asistencia -->
 <div class="ia-modal-overlay" id="ia-edit-modal">
@@ -2331,7 +2393,7 @@ window.iaRemoveArea=function(supId,area){
 // ── Auto-actualización cada 3 segundos ───────────────────────
 setInterval(function(){
   if(!wsReady) return;
-  const tabs=['register','history','records','config'];
+  const tabs=['register','history','records','config','dashboard'];
   let activeTab='register';
   tabs.forEach(t=>{const btn=document.getElementById('ia-tab-btn-'+t);if(btn&&btn.classList.contains('active'))activeTab=t;});
   // No re-renderizar si el usuario está escribiendo en un textarea
@@ -2341,6 +2403,7 @@ setInterval(function(){
   if(activeTab==='history') iaRenderHistory();
   else if(activeTab==='records') iaRenderAdminTable();
   else if(activeTab==='config') iaRenderConfig();
+  else if(activeTab==='dashboard') iaDashRender();
   else { iaRenderTodayChips(); iaUpdateStats(); const _asel=document.getElementById('ia-emp-area'); if(document.activeElement!==_asel) iaBuildAreaSelect(); }
 }, 3000);
 
@@ -2727,5 +2790,161 @@ window.iaClearAdminDateFilter=function(){
     </div>
   </div>
 </div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+// ══════════════════════════════════════════════════════════════════
+//  DASHBOARD DE ASISTENCIA — Solo Administrador
+// ══════════════════════════════════════════════════════════════════
+let _iaDashCharts = {};
+
+function iaDashHoy(){
+  const hoy = new Date().toISOString().split('T')[0];
+  const el = document.getElementById('iaDash-fecha');
+  if(el){ el.value = hoy; iaDashRender(); }
+}
+
+function iaDashRender(){
+  const fechaEl = document.getElementById('iaDash-fecha');
+  const fecha = fechaEl ? fechaEl.value : new Date().toISOString().split('T')[0];
+
+  // Filtrar registros por fecha
+  const registros = (iaRecords||[]).filter(r=>r.date===fecha);
+  const empleados = (iaState&&iaState.employees)||[];
+  const supervisoras = (iaState&&iaState.supervisors)||[];
+
+  const presentes  = registros.filter(r=>r.status==='presente');
+  const faltos     = registros.filter(r=>r.status==='falto');
+  const novedades  = registros.filter(r=>r.status==='novedad');
+  const totalEmp   = empleados.filter(e=>!e.disabled).length;
+  const sinRegistro = Math.max(0, totalEmp - registros.length);
+
+  // ── KPIs ──
+  const kpis = [
+    {icon:'👥', val:totalEmp,         label:'Total Empleados',    color:'#2563eb', bg:'#eff6ff', border:'#bfdbfe'},
+    {icon:'✅', val:presentes.length,  label:'Presentes',          color:'#15803d', bg:'#f0fdf4', border:'#86efac'},
+    {icon:'❌', val:faltos.length,     label:'Faltantes',          color:'#dc2626', bg:'#fef2f2', border:'#fca5a5'},
+    {icon:'📋', val:novedades.length,  label:'Novedades',          color:'#d97706', bg:'#fefce8', border:'#fde047'},
+    {icon:'⏳', val:sinRegistro,       label:'Sin Registrar',      color:'#6d28d9', bg:'#f5f3ff', border:'#c4b5fd'},
+    {icon:'📊', val:totalEmp>0?Math.round(presentes.length/totalEmp*100)+'%':'0%', label:'% Asistencia', color:'#0369a1', bg:'#e0f2fe', border:'#7dd3fc'},
+  ];
+  document.getElementById('iaDash-kpis').innerHTML = kpis.map(k=>`
+    <div style="background:#fff;border-radius:12px;padding:16px;border:1px solid #e2e8f0;border-left:4px solid ${k.color};box-shadow:0 1px 4px rgba(0,0,0,.04);">
+      <div style="font-size:20px;margin-bottom:6px;">${k.icon}</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:${k.color};line-height:1;">${k.val}</div>
+      <div style="font-size:12px;color:#0f172a;font-weight:700;margin-top:4px;">${k.label}</div>
+    </div>`).join('');
+
+  // ── Gráfica: Asistencia del día ──
+  iaDashChart('iaDash-chart-asistencia','doughnut',
+    ['Presentes','Faltantes','Novedades','Sin Registrar'],
+    [presentes.length, faltos.length, novedades.length, sinRegistro],
+    ['#22c55e','#ef4444','#f59e0b','#a78bfa'],
+    {plugins:{legend:{position:'bottom',labels:{padding:10,font:{size:10}}}}}
+  );
+
+  // ── Gráfica: Personal por supervisora (empleados asignados) ──
+  const supEmp = {};
+  supervisoras.filter(s=>!s.isAdmin&&!s.disabled).forEach(s=>{ supEmp[s.name]=0; });
+  empleados.filter(e=>!e.disabled).forEach(e=>{
+    const sup = supervisoras.find(s=>s.id===e.supId);
+    if(sup) supEmp[sup.name]=(supEmp[sup.name]||0)+1;
+  });
+  const supKeys = Object.keys(supEmp).sort();
+  iaDashChart('iaDash-chart-supervisora','bar', supKeys, supKeys.map(k=>supEmp[k]),
+    '#2563eb',{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}},x:{grid:{display:false},ticks:{font:{size:10}}}}}
+  );
+
+  // ── Gráfica: Novedades por tipo ──
+  const novTipo = {};
+  novedades.forEach(r=>{ const t=r.area||'Sin tipo'; novTipo[t]=(novTipo[t]||0)+1; });
+  const novKeys = Object.keys(novTipo);
+  iaDashChart('iaDash-chart-novedades', novKeys.length?'doughnut':'doughnut',
+    novKeys.length?novKeys:['Sin novedades'], novKeys.length?novKeys.map(k=>novTipo[k]):[1],
+    novKeys.length?['#f97316','#ef4444','#8b5cf6','#06b6d4','#84cc16','#f59e0b']:['#e2e8f0'],
+    {plugins:{legend:{position:'bottom',labels:{padding:8,font:{size:10}}}}}
+  );
+
+  // ── Gráfica: Personal por módulo (presentes hoy) ──
+  const modEmp = {};
+  presentes.forEach(r=>{ if(r.area&&r.area!=='—') modEmp[r.area]=(modEmp[r.area]||0)+1; });
+  const modKeys = Object.keys(modEmp).sort();
+  iaDashChart('iaDash-chart-modulo','bar', modKeys, modKeys.map(k=>modEmp[k]),
+    '#22c55e',{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{stepSize:1}},x:{grid:{display:false},ticks:{font:{size:9}}}}}
+  );
+
+  // ── Rankings ──
+  const supPresentes={}, supFaltos={}, supNovedades={};
+  supervisoras.filter(s=>!s.isAdmin).forEach(s=>{ supPresentes[s.name]=0; supFaltos[s.name]=0; supNovedades[s.name]=0; });
+  registros.forEach(r=>{
+    const sup = supervisoras.find(s=>s.name===r.supervisor||s.id===r.supervisor);
+    if(!sup||sup.isAdmin) return;
+    if(r.status==='presente') supPresentes[sup.name]=(supPresentes[sup.name]||0)+1;
+    else if(r.status==='falto') supFaltos[sup.name]=(supFaltos[sup.name]||0)+1;
+    else if(r.status==='novedad') supNovedades[sup.name]=(supNovedades[sup.name]||0)+1;
+  });
+
+  // Novedades históricas por tipo y supervisora
+  const novHistRenuncia={}, novHistVacacion={};
+  supervisoras.filter(s=>!s.isAdmin).forEach(s=>{ novHistRenuncia[s.name]=0; novHistVacacion[s.name]=0; });
+  (iaRecords||[]).forEach(r=>{
+    if(r.status!=='novedad') return;
+    const sup = supervisoras.find(s=>s.name===r.supervisor||s.id===r.supervisor);
+    if(!sup||sup.isAdmin) return;
+    const tipo=(r.area||'').toLowerCase();
+    if(tipo.includes('renuncia')) novHistRenuncia[sup.name]=(novHistRenuncia[sup.name]||0)+1;
+    if(tipo.includes('vacacion')||tipo.includes('vacación')) novHistVacacion[sup.name]=(novHistVacacion[sup.name]||0)+1;
+  });
+
+  document.getElementById('iaDash-rankings').innerHTML = [
+    { title:'✅ Presentes por Supervisora', data: Object.entries(supPresentes).sort((a,b)=>b[1]-a[1]).slice(0,5), color:'#15803d' },
+    { title:'📋 Renuncias por Supervisora', data: Object.entries(novHistRenuncia).sort((a,b)=>b[1]-a[1]).slice(0,5), color:'#dc2626' },
+    { title:'🌴 Vacaciones por Supervisora', data: Object.entries(novHistVacacion).sort((a,b)=>b[1]-a[1]).slice(0,5), color:'#2563eb' },
+  ].map(card=>`
+    <div style="background:#fff;border-radius:12px;padding:18px;border:1px solid #e2e8f0;box-shadow:0 1px 4px rgba(0,0,0,.04);">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:12px;">${card.title}</div>
+      ${card.data.length===0||card.data.every(([,v])=>v===0)?'<div style="color:#94a3b8;font-size:12px;">Sin datos</div>':
+        card.data.map(([k,v],i)=>`
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:12px;">
+            <span style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;color:#e2e8f0;width:18px;">${i+1}</span>
+            <span style="flex:1;font-weight:600;color:#0f172a;margin:0 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${k}</span>
+            <span style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;color:${card.color};">${v}</span>
+          </div>`).join('')}
+    </div>`).join('');
+
+  // ── Tabla: Personal por módulo ──
+  const tablaRows = presentes.sort((a,b)=>(a.area||'').localeCompare(b.area||''));
+  document.getElementById('iaDash-tabla-body').innerHTML = tablaRows.length===0
+    ? `<tr><td colspan="4" style="text-align:center;padding:32px;color:#94a3b8;font-size:13px;">Sin registros de presentes para esta fecha</td></tr>`
+    : tablaRows.map(r=>`
+      <tr style="border-bottom:1px solid #f1f5f9;">
+        <td style="padding:8px 12px;font-family:'Courier New',monospace;font-size:12px;font-weight:700;color:#1e40af;">${r.area||'—'}</td>
+        <td style="padding:8px 12px;font-size:13px;color:#0f172a;">${r.empName||'—'}</td>
+        <td style="padding:8px 12px;font-size:12px;color:#64748b;">${r.supervisor||'—'}</td>
+        <td style="padding:8px 12px;text-align:center;">
+          <span style="padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;background:#f0fdf4;color:#15803d;border:1px solid #86efac;">✅ Presente</span>
+        </td>
+      </tr>`).join('');
+}
+
+function iaDashChart(id, type, labels, data, colors, options){
+  if(_iaDashCharts[id]){ _iaDashCharts[id].destroy(); delete _iaDashCharts[id]; }
+  const ctx = document.getElementById(id);
+  if(!ctx||typeof Chart==='undefined') return;
+  _iaDashCharts[id] = new Chart(ctx, {
+    type,
+    data:{ labels, datasets:[{ data, backgroundColor:colors, borderRadius:type==='bar'?6:0, borderWidth:type==='doughnut'||type==='pie'?2:0, borderColor:'#fff' }] },
+    options:{ responsive:true, maintainAspectRatio:false, ...options }
+  });
+}
+
+// Inicializar fecha al abrir el tab dashboard
+const _origIaShowTab = window.iaShowTab;
+window.iaShowTab = function(tab, btn){
+  if(_origIaShowTab) _origIaShowTab(tab, btn);
+  if(tab==='dashboard'){
+    iaDashHoy();
+  }
+};
+</script>
 </body>
 </html>
