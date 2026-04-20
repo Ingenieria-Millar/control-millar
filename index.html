@@ -7876,6 +7876,7 @@ function siEnviar(){
       padding:7px 16px;border-radius:8px;border:1.5px solid #e2e8f0;
       background:#fff;color:#1e3a8a;font-family:'Barlow Condensed',sans-serif;
       font-size:13px;font-weight:700;letter-spacing:.5px;cursor:pointer;transition:all .2s;
+      height:36px;box-sizing:border-box;display:flex;align-items:center;
     }
     #historico-screen .hst-btn:hover{background:#f1f5f9;}
     /* Popup de fechas */
@@ -7900,29 +7901,132 @@ function siEnviar(){
       font-size:14px;font-weight:700;letter-spacing:1px;cursor:pointer;
     }
     #hst-date-popup .dp-apply:hover{filter:brightness(1.1);}
-    /* Tarjeta acción — fecha (gris) */
+    /* Tarjeta acción — fecha (gris) — mismo tamaño que hst-btn */
     #historico-screen .hst-action-card{
       display:flex;align-items:center;gap:7px;padding:7px 16px;
-      background:#f1f5f9;border:1.5px solid #cbd5e1;border-radius:8px;
-      cursor:pointer;transition:all .2s;
+      background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;
+      cursor:pointer;transition:all .2s;height:36px;box-sizing:border-box;
     }
-    #historico-screen .hst-action-card:hover{background:#e2e8f0;border-color:#94a3b8;}
+    #historico-screen .hst-action-card:hover{background:#f1f5f9;border-color:#93c5fd;}
     #historico-screen .hst-action-card .ac-icon{font-size:14px;}
     #historico-screen .hst-action-card .ac-text{
       font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;
       letter-spacing:.5px;color:#1e3a8a;
     }
-    /* Tarjeta acción — excel (verde) */
+    /* Tarjeta acción — excel (verde) — mismo tamaño que hst-btn */
     #historico-screen .hst-excel-card{
       display:flex;align-items:center;gap:7px;padding:7px 16px;
       background:#16a34a;border:1.5px solid #16a34a;border-radius:8px;
-      cursor:pointer;transition:filter .2s;
+      cursor:pointer;transition:filter .2s;height:36px;box-sizing:border-box;
     }
     #historico-screen .hst-excel-card:hover{filter:brightness(1.1);}
     #historico-screen .hst-excel-card .ac-icon{font-size:14px;}
     #historico-screen .hst-excel-card .ac-text{
       font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;
       letter-spacing:.5px;color:#fff;
+    }
+    /* Botón dashboard */
+    #historico-screen .hst-dash-btn{
+      display:flex;align-items:center;gap:7px;padding:7px 16px;
+      background:#fff;border:1.5px solid #7c3aed;border-radius:8px;
+      cursor:pointer;transition:all .2s;height:36px;box-sizing:border-box;
+      font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;
+      letter-spacing:.5px;color:#7c3aed;
+    }
+    #historico-screen .hst-dash-btn:hover{background:#f5f3ff;border-color:#6d28d9;color:#6d28d9;}
+    /* Botón editar fila */
+    #historico-screen .hst-edit-btn{
+      background:none;border:none;cursor:pointer;color:#cbd5e1;font-size:14px;
+      padding:2px 4px;border-radius:4px;transition:color .15s;line-height:1;
+    }
+    #historico-screen .hst-edit-btn:hover{color:#7c3aed;}
+    /* Modal editar */
+    #hst-edit-modal{
+      display:none;position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.4);
+      align-items:center;justify-content:center;
+    }
+    #hst-edit-modal.open{display:flex;}
+    #hst-edit-modal .em-box{
+      background:#fff;border-radius:16px;padding:28px 24px;width:100%;max-width:400px;
+      box-shadow:0 12px 40px rgba(0,0,0,.18);display:flex;flex-direction:column;gap:14px;
+    }
+    #hst-edit-modal .em-title{
+      font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;
+      letter-spacing:1px;color:#7c3aed;text-transform:uppercase;
+    }
+    #hst-edit-modal .em-label{
+      font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;
+      color:#64748b;margin-bottom:4px;display:block;
+    }
+    #hst-edit-modal .em-input{
+      width:100%;padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:8px;
+      font-family:'Nunito',sans-serif;font-size:13px;color:#0f172a;background:#f8fafc;outline:none;
+    }
+    #hst-edit-modal .em-input:focus{border-color:#7c3aed;}
+    #hst-edit-modal .em-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    #hst-edit-modal .em-btns{display:flex;gap:10px;margin-top:4px;}
+    #hst-edit-modal .em-cancel{
+      flex:1;padding:11px;border-radius:10px;border:1.5px solid #e2e8f0;
+      background:#f1f5f9;color:#64748b;font-family:'Barlow Condensed',sans-serif;
+      font-size:14px;font-weight:700;cursor:pointer;
+    }
+    #hst-edit-modal .em-confirm{
+      flex:1;padding:11px;border-radius:10px;border:none;
+      background:linear-gradient(135deg,#7c3aed,#a78bfa);color:#fff;
+      font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer;
+    }
+    /* Panel Dashboard */
+    #hst-dashboard-panel{
+      display:none;position:fixed;inset:0;z-index:9000;background:#f1f5f9;overflow-y:auto;
+    }
+    #hst-dashboard-panel.open{display:block;}
+    #hst-dashboard-panel .dash-topbar{
+      position:sticky;top:0;z-index:10;background:#fff;
+      border-bottom:1px solid #e2e8f0;padding:0 clamp(12px,2.5vw,24px);
+      min-height:60px;display:flex;align-items:center;justify-content:space-between;gap:12px;
+      box-shadow:0 1px 6px rgba(0,0,0,.07);
+    }
+    #hst-dashboard-panel .dash-topbar::after{
+      content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
+      background:linear-gradient(90deg,#7c3aed,#a78bfa,#c4b5fd);
+    }
+    #hst-dashboard-panel .dash-title{
+      font-family:'Barlow Condensed',sans-serif;font-size:clamp(16px,2.5vw,22px);
+      font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0f172a;
+    }
+    #hst-dashboard-panel .dash-body{padding:20px clamp(12px,2.5vw,24px);display:flex;flex-direction:column;gap:20px;}
+    #hst-dashboard-panel .dash-kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;}
+    #hst-dashboard-panel .dash-kpi{
+      background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;
+      padding:14px 16px;display:flex;flex-direction:column;gap:4px;
+    }
+    #hst-dashboard-panel .dash-kpi .kpi-label{
+      font-size:9px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#94a3b8;
+    }
+    #hst-dashboard-panel .dash-kpi .kpi-val{
+      font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:#0f172a;
+    }
+    #hst-dashboard-panel .dash-kpi .kpi-sub{font-size:11px;color:#64748b;}
+    #hst-dashboard-panel .dash-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+    @media(max-width:700px){#hst-dashboard-panel .dash-row{grid-template-columns:1fr;}}
+    #hst-dashboard-panel .dash-card{
+      background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;
+      padding:16px;box-shadow:0 1px 4px rgba(0,0,0,.04);
+    }
+    #hst-dashboard-panel .dash-card-title{
+      font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;
+      letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:14px;
+    }
+    #hst-dashboard-panel .dash-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+    #hst-dashboard-panel .dash-bar-label{
+      font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;
+      color:#0f172a;width:130px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    }
+    #hst-dashboard-panel .dash-bar-track{flex:1;height:14px;background:#f1f5f9;border-radius:20px;overflow:hidden;}
+    #hst-dashboard-panel .dash-bar-fill{height:100%;border-radius:20px;transition:width .6s ease;}
+    #hst-dashboard-panel .dash-bar-val{
+      font-family:'Courier New',monospace;font-size:11px;font-weight:700;
+      color:#64748b;width:52px;text-align:right;flex-shrink:0;
     }
     /* Encabezados ordenables */
     #historico-screen th.sortable{cursor:pointer;user-select:none;}
@@ -8038,6 +8142,7 @@ function siEnviar(){
         <span class="ac-icon">📊</span>
         <span class="ac-text">Exportar</span>
       </div>
+      <button class="hst-dash-btn" onclick="abrirDashboard()">📈 Dashboard</button>
       <button class="hst-btn" onclick="cerrarHistorico()">← Volver</button>
     </div>
   </div>
@@ -8075,7 +8180,7 @@ function siEnviar(){
             <th class="sortable" onclick="sortHistorico('hora')">Hora Fin<span class="sort-arrow"></span></th>
             <th class="sortable" onclick="sortHistorico('min')">Tiempo (min)<span class="sort-arrow"></span></th>
             <th class="sortable" onclick="sortHistorico('mecanico')">Mecánico<span class="sort-arrow"></span></th>
-            <th></th>
+            <th style="text-align:center;width:70px;">Acciones</th>
           </tr>
           <tr class="hst-col-filters">
             <td><input class="hst-col-input" id="hcf-num"      placeholder="Buscar..." oninput="renderHistorico()"></td>
@@ -8104,6 +8209,73 @@ function siEnviar(){
     <div class="dm-btns">
       <button class="dm-cancel" onclick="cerrarDelModal()">Cancelar</button>
       <button class="dm-confirm" onclick="confirmarEliminarRegistro()">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal editar registro histórico -->
+<div id="hst-edit-modal">
+  <div class="em-box">
+    <div class="em-title">✏️ Editar Registro</div>
+    <div class="em-grid">
+      <div>
+        <span class="em-label">Módulo</span>
+        <input type="text" id="hem-modulo" class="em-input" placeholder="Ej: M01">
+      </div>
+      <div>
+        <span class="em-label">Nombre Operaria</span>
+        <input type="text" id="hem-empleada" class="em-input" placeholder="Nombre">
+      </div>
+      <div>
+        <span class="em-label">Hora Inicio</span>
+        <input type="text" id="hem-inicio" class="em-input" placeholder="Ej: 9:00:00 a. m.">
+      </div>
+      <div>
+        <span class="em-label">Hora Fin</span>
+        <input type="text" id="hem-fin" class="em-input" placeholder="Ej: 9:30:00 a. m.">
+      </div>
+    </div>
+    <div>
+      <span class="em-label">Mecánico</span>
+      <input type="text" id="hem-mecanico" class="em-input" placeholder="Nombre mecánico">
+    </div>
+    <div class="em-btns">
+      <button class="em-cancel" onclick="cerrarEditModal()">Cancelar</button>
+      <button class="em-confirm" onclick="confirmarEditarRegistro()">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
+<!-- Panel Dashboard -->
+<div id="hst-dashboard-panel">
+  <div class="dash-topbar">
+    <div class="dash-title">📈 DASH<span style="color:#7c3aed;">BOARD</span></div>
+    <button class="hst-btn" style="border-color:#7c3aed;color:#7c3aed;" onclick="cerrarDashboard()">← Volver</button>
+  </div>
+  <div class="dash-body">
+    <!-- KPIs -->
+    <div class="dash-kpis" id="dash-kpis"></div>
+    <!-- Gráficas fila 1 -->
+    <div class="dash-row">
+      <div class="dash-card">
+        <div class="dash-card-title">⏱ Tiempo por Tipo (min)</div>
+        <div id="dash-chart-tipo"></div>
+      </div>
+      <div class="dash-card">
+        <div class="dash-card-title">🏭 Top Módulos Improductivos</div>
+        <div id="dash-chart-modulo"></div>
+      </div>
+    </div>
+    <!-- Gráficas fila 2 -->
+    <div class="dash-row">
+      <div class="dash-card">
+        <div class="dash-card-title">🔧 Tiempo por Mecánico (min)</div>
+        <div id="dash-chart-mecanico"></div>
+      </div>
+      <div class="dash-card">
+        <div class="dash-card-title">📦 Registros por Tipo</div>
+        <div id="dash-chart-conteo"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -8286,7 +8458,10 @@ function renderHistorico(){
       <td style="font-family:monospace;font-size:12px;color:#475569;">${r.hora||'—'}</td>
       <td><span class="hst-tiempo">${r.min.toFixed(2)}</span></td>
       <td style="font-family:'Nunito',sans-serif;font-size:13px;color:#0f172a;">${r.mecanico||'—'}</td>
-      <td><button class="hst-del-btn" onclick="abrirDelModal(${r._histIdx})" title="Eliminar">🗑</button></td>
+      <td style="text-align:center;white-space:nowrap;">
+        <button class="hst-edit-btn" onclick="abrirEditModal(${r._histIdx})" title="Editar">✏️</button>
+        <button class="hst-del-btn" onclick="abrirDelModal(${r._histIdx})" title="Eliminar">🗑</button>
+      </td>
     </tr>`;
   }).join('');
 }
@@ -8387,6 +8562,125 @@ function confirmarEliminarRegistro(){
     .then(r=>r.json())
     .then(()=>loadHistorialFromServer().then(()=>renderHistorico()))
     .catch(e=>{ console.error('Error eliminando registro:', e); renderHistorico(); });
+}
+
+// ── EDITAR REGISTRO ──────────────────────────────────────────────
+let _pendingEditIdx = null;
+
+function abrirEditModal(histIdx){
+  _pendingEditIdx = histIdx;
+  const hist = loadHistory();
+  const r = hist[histIdx];
+  if(!r) return;
+  document.getElementById('hem-modulo').value   = r.modulo||'';
+  document.getElementById('hem-empleada').value = r.empleada||'';
+  document.getElementById('hem-inicio').value   = r.horaInicio||'';
+  document.getElementById('hem-fin').value      = r.hora||'';
+  document.getElementById('hem-mecanico').value = r.mecanico||'';
+  document.getElementById('hst-edit-modal').classList.add('open');
+}
+
+function cerrarEditModal(){
+  _pendingEditIdx = null;
+  document.getElementById('hst-edit-modal').classList.remove('open');
+}
+
+function confirmarEditarRegistro(){
+  if(_pendingEditIdx === null) return;
+  const idx = _pendingEditIdx;
+  const cambios = {
+    modulo:     document.getElementById('hem-modulo').value.trim(),
+    empleada:   document.getElementById('hem-empleada').value.trim(),
+    horaInicio: document.getElementById('hem-inicio').value.trim(),
+    hora:       document.getElementById('hem-fin').value.trim(),
+    mecanico:   document.getElementById('hem-mecanico').value.trim(),
+  };
+  cerrarEditModal();
+  fetch('/api/historial/'+idx, {
+    method:'PATCH',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(cambios)
+  })
+    .then(r=>r.json())
+    .then(()=>loadHistorialFromServer().then(()=>renderHistorico()))
+    .catch(e=>{ console.error('Error editando registro:', e); renderHistorico(); });
+}
+
+// ── DASHBOARD ────────────────────────────────────────────────────
+function abrirDashboard(){
+  const panel = document.getElementById('hst-dashboard-panel');
+  if(!panel) return;
+  panel.classList.add('open');
+  renderDashboard();
+}
+
+function cerrarDashboard(){
+  document.getElementById('hst-dashboard-panel').classList.remove('open');
+}
+
+function renderDashboard(){
+  const hist = loadHistory();
+  const rows = hist.filter(r=>r.tipo && r.tipo!=='green');
+
+  // ── KPIs
+  const totalMin = rows.reduce((s,r)=>s+(r.durMinutos||0),0);
+  const totalReg = rows.length;
+  const modSet   = new Set(rows.map(r=>r.modulo));
+  const mecSet   = new Set(rows.filter(r=>r.mecanico).map(r=>r.mecanico));
+  document.getElementById('dash-kpis').innerHTML = `
+    <div class="dash-kpi"><div class="kpi-label">Total Registros</div><div class="kpi-val" style="color:#7c3aed;">${totalReg}</div><div class="kpi-sub">eventos registrados</div></div>
+    <div class="dash-kpi"><div class="kpi-label">Tiempo Improductivo</div><div class="kpi-val" style="color:#ef4444;">${totalMin.toFixed(0)}</div><div class="kpi-sub">minutos totales</div></div>
+    <div class="dash-kpi"><div class="kpi-label">Módulos Afectados</div><div class="kpi-val" style="color:#f97316;">${modSet.size}</div><div class="kpi-sub">módulos distintos</div></div>
+    <div class="dash-kpi"><div class="kpi-label">Mecánicos Activos</div><div class="kpi-val" style="color:#16a34a;">${mecSet.size}</div><div class="kpi-sub">con registros</div></div>
+  `;
+
+  // ── Helper barras
+  function renderBarras(containerId, datos, colores){
+    const max = Math.max(...datos.map(d=>d.val), 1);
+    document.getElementById(containerId).innerHTML = datos.length === 0
+      ? '<div style="color:#94a3b8;font-size:12px;padding:10px 0;">Sin datos</div>'
+      : datos.map((d,i)=>`
+        <div class="dash-bar-row">
+          <div class="dash-bar-label" title="${d.label}">${d.label}</div>
+          <div class="dash-bar-track"><div class="dash-bar-fill" style="width:${(d.val/max*100).toFixed(1)}%;background:${colores[i%colores.length]};"></div></div>
+          <div class="dash-bar-val">${typeof d.val==='number'?d.val.toFixed(1):d.val}</div>
+        </div>`).join('');
+  }
+
+  const COLORES_TIPO = ['#ef4444','#eab308','#f97316','#7c3aed','#3b82f6','#ec4899'];
+  const COLORES_MOD  = ['#2563eb','#0891b2','#059669','#7c3aed','#dc2626','#d97706'];
+
+  // ── Tiempo por tipo
+  const tipoMap = {};
+  rows.forEach(r=>{ tipoMap[r.tipo]=(tipoMap[r.tipo]||0)+(r.durMinutos||0); });
+  const tipoData = Object.entries(tipoMap)
+    .map(([k,v])=>({ label:(HST_TIPOS[k]?.label||k), val:v }))
+    .sort((a,b)=>b.val-a.val);
+  renderBarras('dash-chart-tipo', tipoData, COLORES_TIPO);
+
+  // ── Top módulos
+  const modMap = {};
+  rows.forEach(r=>{ modMap[r.modulo||'?']=(modMap[r.modulo||'?']||0)+(r.durMinutos||0); });
+  const modData = Object.entries(modMap)
+    .map(([k,v])=>({ label:k, val:v }))
+    .sort((a,b)=>b.val-a.val).slice(0,10);
+  renderBarras('dash-chart-modulo', modData, COLORES_MOD);
+
+  // ── Por mecánico
+  const mecMap = {};
+  rows.filter(r=>r.mecanico).forEach(r=>{ mecMap[r.mecanico]=(mecMap[r.mecanico]||0)+(r.durMinutos||0); });
+  const mecData = Object.entries(mecMap)
+    .map(([k,v])=>({ label:k, val:v }))
+    .sort((a,b)=>b.val-a.val).slice(0,8);
+  renderBarras('dash-chart-mecanico', mecData, ['#16a34a','#15803d','#166534','#4ade80','#86efac']);
+
+  // ── Conteo por tipo
+  const conteoMap = {};
+  rows.forEach(r=>{ conteoMap[r.tipo]=(conteoMap[r.tipo]||0)+1; });
+  const conteoData = Object.entries(conteoMap)
+    .map(([k,v])=>({ label:(HST_TIPOS[k]?.label||k), val:v }))
+    .sort((a,b)=>b.val-a.val);
+  renderBarras('dash-chart-conteo', conteoData, COLORES_TIPO);
 }
 </script>
 
