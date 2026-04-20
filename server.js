@@ -191,7 +191,8 @@ function logHistorial(id, prevState, newState, mecanico, empleada) {
   const ahora       = Date.now();
   const timerInicio = stateTimes[id] || ahora;
   const durMs       = ahora - timerInicio;
-  if (durMs < 1000) return;
+  // Solo descartar si la duración es negativa o cero (error de reloj)
+  if (durMs <= 0) return;
   const now        = new Date();
   const horaFin    = now.toLocaleTimeString('es-CO');
   const horaInicio = new Date(timerInicio).toLocaleTimeString('es-CO');
@@ -959,10 +960,10 @@ wss.on('connection', (ws, req) => {
         const prevState = states[msg.id];
 
         // Actualizar empleada y mecánico en memoria ANTES de logHistorial
-        // para que logHistorial tenga los datos más frescos
         if (msg.empleada) lastEmpleada[msg.id] = msg.empleada;
         if (msg.mecanico) lastMec[msg.id] = msg.mecanico;
 
+        console.log(`[HISTORIAL] ${msg.id}: ${prevState} → ${msg.state} | mec="${msg.mecanico||''}" emp="${msg.empleada||''}"`);
         logHistorial(msg.id, prevState, msg.state || 'green', msg.mecanico || lastMec[msg.id] || '', msg.empleada || lastEmpleada[msg.id] || '');
 
         states[msg.id]     = msg.state || 'green';
