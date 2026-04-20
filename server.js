@@ -214,10 +214,11 @@ function logHistorial(id, prevState, newState, mecanico, empleada) {
   let mecanicoFinal = '';
   let empleadaFinal = '';
   if(prevState === 'red'){
-    // Espera Mecánico: solo operaria
+    // Espera Mecánico: operaria + mecánico que llegó a atender (viene en el mensaje al pasar a amarillo)
     empleadaFinal = empleada || lastEmpleada[id] || '';
+    mecanicoFinal = mecanico || lastMec[id] || '';
   } else if(prevState === 'yellow'){
-    // Atención Mecánico: operaria y mecánico
+    // Atención Mecánico: operaria y mecánico que solucionó
     empleadaFinal = empleada || lastEmpleada[id] || '';
     mecanicoFinal = mecanico || lastMec[id] || '';
   } else if(prevState === 'pink'){
@@ -798,12 +799,6 @@ app.get('/api/historial', (req, res) => {
         reg.mecanico = '';
         modificado = true;
       }
-    } else if(tipo === 'red'){
-      // Espera Mecánico: solo operaria, sin mecánico
-      if(reg.mecanico){
-        reg.mecanico = '';
-        modificado = true;
-      }
     } else if(tipo === 'pink'){
       // Alistamiento: solo mecánico, sin operaria
       if(reg.empleada){
@@ -811,6 +806,7 @@ app.get('/api/historial', (req, res) => {
         modificado = true;
       }
     }
+    // red (Espera Mecánico): operaria y mecánico — no tocar
     // yellow (Atención Mecánico): operaria y mecánico — no tocar
 
     return reg;
