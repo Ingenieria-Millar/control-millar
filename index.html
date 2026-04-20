@@ -1762,61 +1762,26 @@ async function loadHistorialFromServer(){
   try{
     const r = await fetch('/api/historial');
     if(!r.ok) throw new Error('HTTP '+r.status);
-    _historialCache = await r.json();
-    if(!Array.isArray(_historialCache)) _historialCache = [];
+    let data = await r.json();
+    if(!Array.isArray(data)) data = [];
+
+    // Asignar número a registros que no lo tienen, agrupando por fecha
+    const contadorPorFecha = {};
+    data.forEach(reg => {
+      if(!reg.fechaISO) return;
+      if(!contadorPorFecha[reg.fechaISO]) contadorPorFecha[reg.fechaISO] = 0;
+      contadorPorFecha[reg.fechaISO]++;
+      if(!reg.num) reg.num = contadorPorFecha[reg.fechaISO];
+    });
+
+    _historialCache = data;
   }
   catch(e){ console.error('loadHistorial:',e); if(!_historialCache) _historialCache=[]; }
 }
+// El historial ahora lo guarda el servidor automáticamente en logHistorial.
+// logChange se mantiene vacío por compatibilidad con llamadas existentes.
 function logChange(modulo,prev,next,durMs,mecanico,limite,timerInicio){
-  // Solo loguear si hubo tiempo real en el estado anterior
-  if(!prev||prev==='green'||durMs<1000) return;
-  const h=loadHistory();
-  const now=new Date();
-  const horaFin = now.toLocaleTimeString('es-CO');
-  // Usar timerInicio si viene (hora exacta del servidor), si no calcular restando duración
-  const inicioMs = timerInicio || (now.getTime() - durMs);
-  const horaInicio = new Date(inicioMs).toLocaleTimeString('es-CO');
-  // Para estado blue: detectar si fue 30 o 60 min según el limite guardado
-  let tipoLabel = prev;
-  if(prev==='blue' && limite){
-    const minutos = Math.round((limite - (Date.now() - durMs)) / 60000);
-    if(minutos <= 35) tipoLabel = 'blue30';
-    else tipoLabel = 'blue60';
-  }
-  // Empleada: buscar según el tipo de estado
-  let empleada = '';
-  if(prev==='red' && window._lastEmpleada && window._lastEmpleada[modulo]){
-    // Alerta: tomar directamente
-    empleada = window._lastEmpleada[modulo];
-  } else if(prev==='yellow'||prev==='orange'||prev==='purple'||prev==='blue'||prev==='blue30'||prev==='blue60'){
-    // Para cualquier otro estado: primero revisar _lastEmpleada, luego buscar en historial
-    if(window._lastEmpleada && window._lastEmpleada[modulo]){
-      empleada = window._lastEmpleada[modulo];
-    } else {
-      // Buscar la última Alerta (red) del mismo módulo para heredar la operaria
-      for(let i=h.length-1; i>=0; i--){
-        if(h[i].modulo===modulo && (h[i].tipo==='red'||h[i].tipo==='yellow') && h[i].empleada){
-          empleada = h[i].empleada;
-          break;
-        }
-      }
-    }
-  }
-  h.push({
-    fecha:now.toLocaleDateString('es-CO'),
-    fechaISO:now.toISOString().split('T')[0],
-    horaInicio,
-    hora:horaFin,
-    modulo,
-    tipo:tipoLabel,
-    estadoAnterior:prev,
-    estadoNuevo:next,
-    durMinutos:parseFloat((durMs/60000).toFixed(2)),
-    mecanico:mecanico||'',
-    empleada
-  });
-  if(h.length>10000) h.splice(0,h.length-10000);
-  saveHistory(h);
+  // No hacer nada — el servidor guarda el historial
 }
 
 // ── SONIDO ALERTA (SIRENA AMBULANCIA) ────────────────────────────
