@@ -843,6 +843,19 @@ app.delete('/api/historial/:idx', (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+// ── EDITAR registro del historial ─────────────────────────────────
+app.patch('/api/historial/:idx', (req, res) => {
+  try {
+    const idx = parseInt(req.params.idx);
+    let h = readJSON(FILES.historial, []);
+    if(isNaN(idx) || idx < 0 || idx >= h.length) return res.status(404).json({ error: 'índice inválido' });
+    const campos = ['modulo','empleada','horaInicio','hora','mecanico'];
+    campos.forEach(c => { if(req.body[c] !== undefined) h[idx][c] = req.body[c]; });
+    writeJSON(FILES.historial, h);
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── #8 BUGFIX: broadcast disponible globalmente ────────────────────
 app.patch('/api/ia-record-obs', (req, res) => {
   const { id, obs } = req.body;
