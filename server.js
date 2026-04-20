@@ -191,13 +191,18 @@ function logHistorial(id, prevState, newState, mecanico, empleada) {
   const ahora       = Date.now();
   const timerInicio = stateTimes[id] || ahora;
   const durMs       = ahora - timerInicio;
-  // Solo descartar si la duración es negativa o cero (error de reloj)
   if (durMs <= 0) return;
+
   const now        = new Date();
-  const horaFin    = now.toLocaleTimeString('es-CO');
-  const horaInicio = new Date(timerInicio).toLocaleTimeString('es-CO');
-  const fecha      = now.toLocaleDateString('es-CO');
-  const fechaISO   = now.toISOString().split('T')[0];
+  const opts       = { timeZone: 'America/Bogota', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true };
+  const optsDate   = { timeZone: 'America/Bogota', year:'numeric', month:'2-digit', day:'2-digit' };
+  const horaFin    = now.toLocaleTimeString('es-CO', opts);
+  const horaInicio = new Date(timerInicio).toLocaleTimeString('es-CO', opts);
+  const fechaPartes = now.toLocaleDateString('es-CO', optsDate).split('/');
+  const fecha      = now.toLocaleDateString('es-CO', optsDate);
+  // fechaISO en zona Colombia
+  const bogota = new Date(now.toLocaleString('en-US', {timeZone:'America/Bogota'}));
+  const fechaISO = bogota.getFullYear()+'-'+String(bogota.getMonth()+1).padStart(2,'0')+'-'+String(bogota.getDate()).padStart(2,'0');
   const durMinutos = parseFloat((durMs / 60000).toFixed(2));
 
   // Calcular número de solicitud del día (reinicia cada día)
