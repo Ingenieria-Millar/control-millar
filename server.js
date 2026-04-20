@@ -824,8 +824,21 @@ app.delete('/api/historial/:idx', (req, res) => {
     const idx = parseInt(req.params.idx);
     let h = readJSON(FILES.historial, []);
     if(isNaN(idx) || idx < 0 || idx >= h.length) return res.status(404).json({ error: 'índice inválido' });
+    
+    const registro = h[idx];
+    const ciRequestId = registro ? registro.ciRequestId : null;
+    
     h.splice(idx, 1);
     writeJSON(FILES.historial, h);
+
+    // Si tiene ciRequestId, eliminar también de ci_requests
+    if(ciRequestId){
+      ciRequests = ciRequests.filter(r => r._id !== ciRequestId);
+      saveCiRequests();
+      // Notificar a todos los clientes
+      broadcast({ type:'ci_delete_request', reqId: ciRequestId });
+    }
+
     res.json({ success: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -1079,9 +1092,23 @@ wss.on('connection', (ws, req) => {
           if (states[modId] !== undefined) {
             states[modId]     = 'pink';
             stateTimes[modId] = Date.now();
-            if (msg.request.module) lastMec[modId] = msg.request.module; // nombre del mecánico
+            if (msg.request.module) lastMec[modId] = msg.request.module;
             saveFloorState();
             broadcast({ type:'change', id:modId, state:'pink', mecanico:msg.request.module||'', limite:null, empleada:lastEmpleada[modId]||'', stateTime:stateTimes[modId] });
+          }
+        }
+
+        // Vincular ci_request con historial — guardar ciRequestId en el registro más reciente del módulo
+        const modulo = msg.request.module || msg.request.moduloDestino;
+        if(modulo){
+          const h = readJSON(FILES.historial, []);
+          // Buscar el último registro del módulo sin ciRequestId
+          for(let i = h.length - 1; i >= 0; i--){
+            if(h[i].modulo === modulo && !h[i].ciRequestId){
+              h[i].ciRequestId = msg.request._id;
+              writeJSON(FILES.historial, h);
+              break;
+            }
           }
         }
       }
@@ -1113,13 +1140,24 @@ wss.on('connection', (ws, req) => {
       }
 
       else if (msg.type === 'ci_delete_request') {
+        let deletedId = null;
         if (msg.reqId) {
+          deletedId = msg.reqId;
           ciRequests = ciRequests.filter(r => r._id !== msg.reqId);
         } else if (typeof msg.idx === 'number') {
+          if(ciRequests[msg.idx]) deletedId = ciRequests[msg.idx]._id;
           ciRequests.splice(msg.idx, 1);
         } else { console.warn('WS ci_delete_request: sin reqId ni idx'); return; }
         saveCiRequests();
         broadcastLocal({ type:'ci_delete_request', idx:msg.idx, reqId:msg.reqId });
+
+        // Eliminar registro vinculado en historial
+        if(deletedId){
+          let h = readJSON(FILES.historial, []);
+          const antes = h.length;
+          h = h.filter(r => r.ciRequestId !== deletedId);
+          if(h.length !== antes) writeJSON(FILES.historial, h);
+        }
       }
 
       // ── Control de Asistencia ────────────────────────────────────
