@@ -8092,6 +8092,7 @@ function siEnviar(){
       <table>
         <thead>
           <tr>
+            <th class="sortable" onclick="sortHistorico('num')">#<span class="sort-arrow"></span></th>
             <th class="sortable" onclick="sortHistorico('mod')">Módulo<span class="sort-arrow"></span></th>
             <th class="sortable" onclick="sortHistorico('empleada')">Nombre Operaria<span class="sort-arrow"></span></th>
             <th class="sortable" onclick="sortHistorico('tipo')">Tipo de Improductivo<span class="sort-arrow"></span></th>
@@ -8102,6 +8103,7 @@ function siEnviar(){
             <th></th>
           </tr>
           <tr class="hst-col-filters">
+            <td><input class="hst-col-input" id="hcf-num"      placeholder="Buscar..." oninput="renderHistorico()"></td>
             <td><input class="hst-col-input" id="hcf-mod"      placeholder="Buscar..." oninput="renderHistorico()"></td>
             <td><input class="hst-col-input" id="hcf-empleada" placeholder="Buscar..." oninput="renderHistorico()"></td>
             <td><input class="hst-col-input" id="hcf-tipo"     placeholder="Buscar..." oninput="renderHistorico()"></td>
@@ -8238,6 +8240,7 @@ function renderHistorico(){
   const summary = document.getElementById('hst-summary');
 
   // Filtros por columna
+  const cfNum      = (document.getElementById('hcf-num')?.value||'').toLowerCase().trim();
   const cfMod      = (document.getElementById('hcf-mod')?.value||'').toLowerCase().trim();
   const cfEmpleada = (document.getElementById('hcf-empleada')?.value||'').toLowerCase().trim();
   const cfTipo     = (document.getElementById('hcf-tipo')?.value||'').toLowerCase().trim();
@@ -8256,6 +8259,7 @@ function renderHistorico(){
     if(hasta  && r.fechaISO && r.fechaISO > hasta) return;
     rows.push({
       _histIdx:   idx,
+      num:        r.num||'—',
       mod:        r.modulo||'—',
       empleada:   r.empleada||'',
       tipo:       r.tipo,
@@ -8268,6 +8272,7 @@ function renderHistorico(){
   });
 
   // Aplicar filtros por columna
+  if(cfNum)      rows = rows.filter(r=>String(r.num).includes(cfNum));
   if(cfMod)      rows = rows.filter(r=>r.mod.toLowerCase().includes(cfMod));
   if(cfEmpleada) rows = rows.filter(r=>r.empleada.toLowerCase().includes(cfEmpleada));
   if(cfTipo)     rows = rows.filter(r=>{ const t=HST_TIPOS[r.tipo]; return (t?t.label:r.tipo).toLowerCase().includes(cfTipo); });
@@ -8290,13 +8295,14 @@ function renderHistorico(){
 
   // Tabla
   if(rows.length === 0){
-    tbody.innerHTML = `<tr><td colspan="8" class="hst-empty">📊 No hay datos para el período seleccionado</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" class="hst-empty">📊 No hay datos para el período seleccionado</td></tr>`;
     return;
   }
 
   tbody.innerHTML = rows.map((r,i)=>{
     const t = HST_TIPOS[r.tipo] || { label:r.tipo, color:'#f8fafc', text:'#0f172a', border:'#e2e8f0', icon:'⚪' };
     return `<tr>
+      <td style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;color:#94a3b8;text-align:center;">${r.num}</td>
       <td><span class="hst-mod-badge">${r.mod}</span></td>
       <td style="font-family:'Nunito',sans-serif;font-size:13px;color:#0f172a;">${r.empleada||'—'}</td>
       <td><span class="hst-tipo-badge" style="background:${t.color};color:${t.text};border:1px solid ${t.border};">${t.icon} ${t.label}</span></td>
