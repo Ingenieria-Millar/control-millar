@@ -204,6 +204,22 @@ function logHistorial(id, prevState, newState, mecanico, empleada) {
   const registrosHoy = historial.filter(r => r.fechaISO === fechaISO);
   const numSolicitud = registrosHoy.length + 1;
 
+  // Solo incluir operaria y mecánico cuando corresponde al tipo de estado
+  let mecanicoFinal = '';
+  let empleadaFinal = '';
+  if(prevState === 'red'){
+    // Espera Mecánico: solo operaria
+    empleadaFinal = empleada || lastEmpleada[id] || '';
+  } else if(prevState === 'yellow'){
+    // Atención Mecánico: operaria y mecánico
+    empleadaFinal = empleada || lastEmpleada[id] || '';
+    mecanicoFinal = mecanico || lastMec[id] || '';
+  } else if(prevState === 'pink'){
+    // Alistamiento: solo mecánico
+    mecanicoFinal = mecanico || lastMec[id] || '';
+  }
+  // orange, purple, blue: ni operaria ni mecánico
+
   const registro = {
     num: numSolicitud,
     fecha, fechaISO, horaInicio,
@@ -213,8 +229,8 @@ function logHistorial(id, prevState, newState, mecanico, empleada) {
     estadoAnterior: prevState,
     estadoNuevo:    newState,
     durMinutos,
-    mecanico:  mecanico  || lastMec[id]      || '',
-    empleada:  empleada  || lastEmpleada[id] || ''
+    mecanico:  mecanicoFinal,
+    empleada:  empleadaFinal
   };
   historial.push(registro);
   if (historial.length > 10000) historial = historial.slice(-10000);
