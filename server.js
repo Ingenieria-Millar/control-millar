@@ -198,7 +198,14 @@ function logHistorial(id, prevState, newState, mecanico, empleada) {
   const fecha      = now.toLocaleDateString('es-CO');
   const fechaISO   = now.toISOString().split('T')[0];
   const durMinutos = parseFloat((durMs / 60000).toFixed(2));
+
+  // Calcular número de solicitud del día (reinicia cada día)
+  let historial = readJSON(FILES.historial, []);
+  const registrosHoy = historial.filter(r => r.fechaISO === fechaISO);
+  const numSolicitud = registrosHoy.length + 1;
+
   const registro = {
+    num: numSolicitud,
     fecha, fechaISO, horaInicio,
     hora: horaFin,
     modulo: id,
@@ -209,7 +216,6 @@ function logHistorial(id, prevState, newState, mecanico, empleada) {
     mecanico:  mecanico  || lastMec[id]      || '',
     empleada:  empleada  || lastEmpleada[id] || ''
   };
-  let historial = readJSON(FILES.historial, []);
   historial.push(registro);
   if (historial.length > 10000) historial = historial.slice(-10000);
   writeJSON(FILES.historial, historial);
