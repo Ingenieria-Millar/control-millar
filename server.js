@@ -992,9 +992,9 @@ wss.on('connection', (ws, req) => {
           stateTimes[msg.id]   = Date.now();
           lastEmpleada[msg.id] = '';
         }
+        if(msg.mecanico) lastMec[msg.id] = msg.mecanico;
         states[msg.id]     = 'pink';
         stateTimes[msg.id] = Date.now();
-        if (msg.mecanico) lastMec[msg.id] = msg.mecanico;
         saveFloorState();
         broadcast({ type:'change', id:msg.id, state:'pink', mecanico:msg.mecanico||'', limite:null, empleada:'', stateTime:stateTimes[msg.id] });
       }
