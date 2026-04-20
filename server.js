@@ -766,21 +766,50 @@ app.post('/api/turnos', (req, res) => {
 // Historial
 app.get('/api/historial', (req, res) => {
   let h = readJSON(FILES.historial, []);
-  // Asignar num a registros que no lo tienen (registros históricos anteriores al cambio)
   const contPorFecha = {};
   let modificado = false;
+
   h = h.map(r => {
-    if(!r.num){
-      const fecha = r.fechaISO || '?';
+    let reg = { ...r };
+
+    // 1. Asignar num a registros que no lo tienen
+    if(!reg.num){
+      const fecha = reg.fechaISO || '?';
       contPorFecha[fecha] = (contPorFecha[fecha] || 0) + 1;
+      reg.num = contPorFecha[fecha];
       modificado = true;
-      return { ...r, num: contPorFecha[fecha] };
+    } else {
+      const fecha = reg.fechaISO || '?';
+      if(!contPorFecha[fecha] || reg.num > contPorFecha[fecha]) contPorFecha[fecha] = reg.num;
     }
-    // También contar los que ya tienen num para no repetir
-    const fecha = r.fechaISO || '?';
-    if(!contPorFecha[fecha] || r.num > contPorFecha[fecha]) contPorFecha[fecha] = r.num;
-    return r;
+
+    // 2. Limpiar operaria/mecánico según tipo de estado
+    const tipo = reg.tipo || reg.estadoAnterior || '';
+    if(tipo === 'orange' || tipo === 'purple' || tipo === 'blue' || tipo === 'blue30' || tipo === 'blue60'){
+      // Espera Insumos, Espera Producción, Cambio Referencia: sin operaria ni mecánico
+      if(reg.empleada || reg.mecanico){
+        reg.empleada = '';
+        reg.mecanico = '';
+        modificado = true;
+      }
+    } else if(tipo === 'red'){
+      // Espera Mecánico: solo operaria, sin mecánico
+      if(reg.mecanico){
+        reg.mecanico = '';
+        modificado = true;
+      }
+    } else if(tipo === 'pink'){
+      // Alistamiento: solo mecánico, sin operaria
+      if(reg.empleada){
+        reg.empleada = '';
+        modificado = true;
+      }
+    }
+    // yellow (Atención Mecánico): operaria y mecánico — no tocar
+
+    return reg;
   });
+
   if(modificado) writeJSON(FILES.historial, h);
   res.json(h);
 });
