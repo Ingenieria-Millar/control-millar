@@ -748,7 +748,26 @@ app.post('/api/turnos', (req, res) => {
 });
 
 // Historial
-app.get('/api/historial',  (req, res) => res.json(readJSON(FILES.historial, [])));
+app.get('/api/historial', (req, res) => {
+  let h = readJSON(FILES.historial, []);
+  // Asignar num a registros que no lo tienen (registros históricos anteriores al cambio)
+  const contPorFecha = {};
+  let modificado = false;
+  h = h.map(r => {
+    if(!r.num){
+      const fecha = r.fechaISO || '?';
+      contPorFecha[fecha] = (contPorFecha[fecha] || 0) + 1;
+      modificado = true;
+      return { ...r, num: contPorFecha[fecha] };
+    }
+    // También contar los que ya tienen num para no repetir
+    const fecha = r.fechaISO || '?';
+    if(!contPorFecha[fecha] || r.num > contPorFecha[fecha]) contPorFecha[fecha] = r.num;
+    return r;
+  });
+  if(modificado) writeJSON(FILES.historial, h);
+  res.json(h);
+});
 app.post('/api/historial', (req, res) => {
   try { writeJSON(FILES.historial, req.body); res.json({ success: true }); }
   catch(e) { res.status(500).json({ error: e.message }); }
