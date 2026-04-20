@@ -816,8 +816,8 @@ app.get('/api/historial', (req, res) => {
   res.json(h);
 });
 app.post('/api/historial', (req, res) => {
-  try { writeJSON(FILES.historial, req.body); res.json({ success: true }); }
-  catch(e) { res.status(500).json({ error: e.message }); }
+  // Deshabilitado — el historial solo lo escribe el servidor internamente
+  res.status(405).json({ error: 'No permitido. El historial lo gestiona el servidor.' });
 });
 app.delete('/api/historial/:idx', (req, res) => {
   try {
