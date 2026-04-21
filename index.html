@@ -1620,7 +1620,8 @@ function connectWS(){
         if(msg.empleada) window._lastEmpleada[id]=msg.empleada;
         else if(s==='green') window._lastEmpleada[id]='';
         const esPlantaSnd=(currentUser==='Televisor'||currentUser==='Mecanicos');
-        if(s!=='green'&&s!=='yellow'&&!(esPlantaSnd&&s==='orange')&&!(esPlantaSnd&&s==='purple')&&esPlantaSnd){
+        // No sonar si el cambio viene de cierre de multi-improductivo (no es fallo nuevo)
+        if(s!=='green'&&s!=='yellow'&&!(esPlantaSnd&&s==='orange')&&!(esPlantaSnd&&s==='purple')&&esPlantaSnd&&!msg.fromMulti){
           playAlertSound();
         }
         updateStats();
