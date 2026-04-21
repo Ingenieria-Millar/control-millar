@@ -385,6 +385,15 @@ function connectWS(){
       if(msg.type === 'change'){
         const id = msg.id, s = msg.state;
         if(!states[id]) states[id] = 'green';
+        // Si hay multi-improductivos activos, el color lo gestiona _multiImp — no sobreescribir
+        const impsActivos = _multiImp[id] || [];
+        if(impsActivos.length > 0){
+          // Solo actualizar mecánico y empleada, no el estado ni el timer
+          if(msg.mecanico) lastMec[id] = msg.mecanico;
+          if(msg.empleada !== undefined) window._lastEmpleada[id] = msg.empleada;
+          if(id === selectedMod) renderBig();
+          return;
+        }
         states[id] = s;
         if(msg.stateTime) timers[id] = msg.stateTime;
         else timers[id] = Date.now();
