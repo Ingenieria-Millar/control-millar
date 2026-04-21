@@ -1170,7 +1170,7 @@ wss.on('connection', (ws, req) => {
               }
               saveFloorState();
               broadcast({ type:'multi_imp_change', action:'close', modId, impId:reqId, multiImp: multiImp[modId] });
-              broadcast({ type:'change', id:modId, state:states[modId], mecanico:lastMec[modId]||'', limite:null, empleada:lastEmpleada[modId]||'', stateTime:stateTimes[modId] });
+              broadcast({ type:'change', id:modId, state:states[modId], mecanico:lastMec[modId]||'', limite:null, empleada:lastEmpleada[modId]||'', stateTime:stateTimes[modId], fromMulti:true });
             } else if (states[modId] === 'orange' || states[modId] === 'purple') {
               // El reqId era del improductivo principal
               if (multiImp[modId].length > 0) {
@@ -1295,7 +1295,8 @@ wss.on('connection', (ws, req) => {
           }
           saveFloorState();
           broadcastLocal({ type:'multi_imp_change', action:'close', modId, impId:msg.imp.id, multiImp: multiImp[modId] });
-          broadcast({ type:'change', id:modId, state:states[modId], mecanico:lastMec[modId]||'', limite:null, empleada:lastEmpleada[modId]||'', stateTime:stateTimes[modId] });
+          // fromMulti:true indica que el cambio de color es por cierre de multi, no fallo nuevo
+          broadcast({ type:'change', id:modId, state:states[modId], mecanico:lastMec[modId]||'', limite:null, empleada:lastEmpleada[modId]||'', stateTime:stateTimes[modId], fromMulti:true });
         }
       }
 
