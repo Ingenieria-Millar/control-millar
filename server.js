@@ -1147,17 +1147,36 @@ wss.on('connection', (ws, req) => {
           }
         }
 
-        // Si fue aceptado (done) y hay multiImp activos con ese ciRequestId, cerrarlos
+        // Si fue aceptado (done), cerrar solo el improductivo con ese ciRequestId
         if (msg.request.status === 'done' && msg.request._id) {
-          const reqId  = msg.request._id;
-          const modId  = msg.request.module || msg.request.moduloDestino;
-          if (modId && multiImp[modId]) {
+          const reqId = msg.request._id;
+          const modId = msg.request.module || msg.request.moduloDestino;
+          if (modId) {
+            if (!multiImp[modId]) multiImp[modId] = [];
             const impIdx = multiImp[modId].findIndex(i => i.ciRequestId === reqId);
             if (impIdx !== -1) {
+              // Cerrar multi-improductivo específico
               multiImp[modId].splice(impIdx, 1);
               if (multiImp[modId].length > 0) {
                 const ultimo = multiImp[modId][multiImp[modId].length - 1];
-                states[modId]     = ultimo.tipo;
+                states[modId]     = ultimo.tipoActual || ultimo.tipo;
+                stateTimes[modId] = ultimo.inicio || Date.now();
+              } else if (states[modId] === 'orange' || states[modId] === 'purple') {
+                // No quedan multis — el principal era el CI, poner verde
+                states[modId]       = 'green';
+                stateTimes[modId]   = Date.now();
+                lastMec[modId]      = '';
+                lastEmpleada[modId] = '';
+              }
+              saveFloorState();
+              broadcast({ type:'multi_imp_change', action:'close', modId, impId:reqId, multiImp: multiImp[modId] });
+              broadcast({ type:'change', id:modId, state:states[modId], mecanico:lastMec[modId]||'', limite:null, empleada:lastEmpleada[modId]||'', stateTime:stateTimes[modId] });
+            } else if (states[modId] === 'orange' || states[modId] === 'purple') {
+              // El reqId era del improductivo principal
+              if (multiImp[modId].length > 0) {
+                // Quedan multis — tomar color del último
+                const ultimo = multiImp[modId][multiImp[modId].length - 1];
+                states[modId]     = ultimo.tipoActual || ultimo.tipo;
                 stateTimes[modId] = ultimo.inicio || Date.now();
               } else {
                 states[modId]       = 'green';
@@ -1166,7 +1185,6 @@ wss.on('connection', (ws, req) => {
                 lastEmpleada[modId] = '';
               }
               saveFloorState();
-              broadcast({ type:'multi_imp_change', action:'close', modId, impId:reqId, multiImp: multiImp[modId] });
               broadcast({ type:'change', id:modId, state:states[modId], mecanico:lastMec[modId]||'', limite:null, empleada:lastEmpleada[modId]||'', stateTime:stateTimes[modId] });
             }
           }
