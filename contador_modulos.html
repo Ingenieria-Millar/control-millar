@@ -63,8 +63,12 @@ header::after{
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   min-height:75vh;gap:24px;padding:24px 16px;
 }
-/* Fila de tarjetas (principal + multi) */
+/* Contenedor principal de improductivos */
 #imp-row{
+  display:flex;flex-direction:column;align-items:center;gap:14px;width:100%;
+}
+/* Fila de tarjetas */
+#imp-cards{
   display:flex;flex-direction:row;flex-wrap:wrap;
   gap:14px;justify-content:center;align-items:flex-start;
   width:100%;
@@ -174,7 +178,8 @@ header::after{
 <!-- MAIN: Tablero individual -->
 <div id="single-view">
   <div id="imp-row">
-    <!-- Las tarjetas se renderizan aquí: principal + multi + botón ➕ -->
+    <div id="imp-cards"><!-- tarjetas --></div>
+    <div id="imp-btn-row"><!-- botón ➕ --></div>
   </div>
 </div>
 
@@ -509,60 +514,64 @@ function buildImpCard(impId, color, label, inicio, lockBadge, empHtml, mecHtml, 
   </div>`;
 }
 
+// ── Helper: genera el HTML de badges para una tarjeta ────────────
+function buildBadges(color, empleada, mecanico){
+  let lb = '', mh = '', eh = '';
+  if(color==='orange') lb=`<span style="font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#9a3412;background:rgba(249,115,22,0.15);padding:3px 10px;border-radius:20px;margin-top:-8px;">🔒 Esperando CI</span>`;
+  if(color==='purple') lb=`<span style="font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#5b21b6;background:rgba(124,58,237,0.15);padding:3px 10px;border-radius:20px;margin-top:-8px;">🔒 Esperando CI</span>`;
+  if(color==='yellow' && mecanico) mh=`<span style="font-size:12px;font-weight:700;color:inherit;opacity:.8;margin-top:4px;">🔧 ${mecanico}</span>`;
+  if((color==='yellow'||color==='red') && empleada) eh=`<span style="font-size:12px;font-weight:700;color:inherit;opacity:.8;margin-top:2px;">👤 ${empleada}</span>`;
+  return { lb, mh, eh };
+}
+
+function tapHintFor(color){
+  if(color==='orange') return '⏳ Esperando confirmación de insumo';
+  if(color==='purple') return '🟣 Esperando respuesta del CI';
+  return 'Toca para cambiar estado';
+}
+
 // ── Render fila completa de improductivos ─────────────────────────
 function renderBig(){
   if(!selectedMod) return;
-  const row = document.getElementById('imp-row');
-  if(!row) return;
+  const cardsContainer = document.getElementById('imp-cards');
+  const btnContainer   = document.getElementById('imp-btn-row');
+  if(!cardsContainer) return;
 
   const s    = states[selectedMod] || 'green';
   const imps = _multiImp[selectedMod] || [];
 
-  // ── Tarjeta principal ──
-  const mecNombre = lastMec[selectedMod]||'';
-  const empNombre = (window._lastEmpleada&&window._lastEmpleada[selectedMod])||'';
-  let lockBadge = '', tapHint = 'Toca para cambiar estado';
-  if(s==='orange'){
-    tapHint   = '⏳ Esperando confirmación de insumo';
-    lockBadge = `<span style="font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#9a3412;background:rgba(249,115,22,0.15);padding:3px 10px;border-radius:20px;margin-top:-8px;">🔒 Bloqueado hasta confirmar recibo</span>`;
-  } else if(s==='purple'){
-    tapHint   = '🟣 Esperando respuesta del CI';
-    lockBadge = `<span style="font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#5b21b6;background:rgba(124,58,237,0.15);padding:3px 10px;border-radius:20px;margin-top:-8px;">🔒 Bloqueado hasta confirmar en CI</span>`;
-  }
-  const mecHtml = (s==='yellow') && mecNombre ? `<span style="font-size:12px;font-weight:700;color:inherit;opacity:.8;margin-top:4px;">🔧 ${mecNombre}</span>` : '';
-  const empHtml = (s==='yellow'||s==='red') && empNombre ? `<span style="font-size:12px;font-weight:700;color:inherit;opacity:.8;margin-top:2px;">👤 ${empNombre}</span>` : '';
-  const timerInicio = (s!=='green') ? (timers[selectedMod]||Date.now()) : 0;
+  let html = '';
 
-  let html = buildImpCard('principal', s, LABELS[s]||s, timerInicio, lockBadge, empHtml, mecHtml, tapHint, false);
-
-  // ── Tarjetas multi ──
-  imps.forEach(imp => {
-    const c = imp.tipoActual || imp.tipo;
-    let lb = '', th = 'Toca para cambiar estado';
-    if(c==='orange'){ lb=`<span style="font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#9a3412;background:rgba(249,115,22,0.15);padding:3px 10px;border-radius:20px;margin-top:-8px;">🔒 Esperando CI</span>`; th='⏳ Esperando confirmación de insumo'; }
-    if(c==='purple'){ lb=`<span style="font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#5b21b6;background:rgba(124,58,237,0.15);padding:3px 10px;border-radius:20px;margin-top:-8px;">🔒 Esperando CI</span>`; th='🟣 Esperando respuesta del CI'; }
-    // Mecánico solo en amarillo, empleada en rojo/amarillo
-    const mh = (c==='yellow') && imp.mecanico ? `<span style="font-size:12px;font-weight:700;color:inherit;opacity:.8;margin-top:4px;">🔧 ${imp.mecanico}</span>` : '';
-    const eh = (c==='yellow'||c==='red') && imp.empleada ? `<span style="font-size:12px;font-weight:700;color:inherit;opacity:.8;margin-top:2px;">👤 ${imp.empleada}</span>` : '';
-    html += buildImpCard(imp.id, c, LABELS[c]||c, imp.inicio, lb, eh, mh, th, true);
-  });
-
-  // ── Botón ➕ como última tarjeta ──
-  const tiposActivos = [s, ...imps.map(i => i.tipoActual||i.tipo)];
-  const TODOS_TIPOS  = ['red','yellow','orange','purple','blue','pink'];
-  const disponibles  = TODOS_TIPOS.filter(t => !tiposActivos.includes(t));
-  const totalActivos = 1 + imps.length; // principal + multis
-  const mostrarBtn   = s !== 'green' && totalActivos < 4 && disponibles.length > 0;
-  if(mostrarBtn){
-    html += `<div class="btn-nuevo-imp-card visible" onclick="abrirNuevoImproductivo()">
-      <span style="font-size:28px;">➕</span>
-      <span>Nuevo Improductivo</span>
-    </div>`;
+  if(imps.length === 0){
+    // ── Sin multis: una sola tarjeta principal, comportamiento original ──
+    const mecNombre = lastMec[selectedMod]||'';
+    const empNombre = (window._lastEmpleada&&window._lastEmpleada[selectedMod])||'';
+    const {lb, mh, eh} = buildBadges(s, empNombre, mecNombre);
+    const timerInicio  = s !== 'green' ? (timers[selectedMod]||Date.now()) : 0;
+    html = buildImpCard('principal', s, LABELS[s]||s, timerInicio, lb, eh, mh, tapHintFor(s), false);
+  } else {
+    // ── Con multis: SOLO renderizar las tarjetas de _multiImp, nada más ──
+    imps.forEach(imp => {
+      const c = imp.tipoActual || imp.tipo;
+      const {lb, mh, eh} = buildBadges(c, imp.empleada||'', imp.mecanico||'');
+      html += buildImpCard(imp.id, c, LABELS[c]||c, imp.inicio, lb, eh, mh, tapHintFor(c), true);
+    });
   }
 
-  row.innerHTML = html;
+  cardsContainer.innerHTML = html;
 
-  // Re-adjuntar click del principal (buildImpCard usa onclick inline para los multi)
+  // ── Botón ➕ debajo ──
+  const tiposEnUso  = imps.length === 0 ? [s] : imps.map(i => i.tipoActual||i.tipo);
+  const TODOS_TIPOS = ['red','yellow','orange','purple','blue','pink'];
+  const disponibles = TODOS_TIPOS.filter(t => !tiposEnUso.includes(t));
+  const mostrarBtn  = s !== 'green' && imps.length < 4 && disponibles.length > 0;
+  if(btnContainer){
+    btnContainer.innerHTML = mostrarBtn
+      ? `<button style="padding:10px 32px;border-radius:10px;border:2px dashed #94a3b8;background:rgba(255,255,255,.85);color:#475569;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;cursor:pointer;" onmouseenter="this.style.borderColor='#2563eb';this.style.color='#2563eb';this.style.background='#eff6ff';" onmouseleave="this.style.borderColor='#94a3b8';this.style.color='#475569';this.style.background='rgba(255,255,255,.85)';" onclick="abrirNuevoImproductivo()">➕ Nuevo Improductivo</button>`
+      : '';
+  }
+
+  // Re-adjuntar click del principal (solo cuando no hay multis)
   const cardPrincipal = document.getElementById('imp-card-principal');
   if(cardPrincipal){
     cardPrincipal.addEventListener('click', e=>{
@@ -625,12 +634,16 @@ function cancelImproductivo(){
 // ── NUEVO IMPRODUCTIVO (multi) ────────────────────────────────────
 function abrirNuevoImproductivo(){
   const imps = _multiImp[selectedMod] || [];
+  // Máximo 4 total: si imps ya tiene ≥3 (principal + 2 multis + 1 que vamos a abrir = 4)
   if(imps.length >= 4){ showToast('⚠ Máximo 4 improductivos simultáneos'); return; }
+  // Tipos ya activos: los del array + el estado actual (por si el principal aún no está en el array)
   const tiposActivos = imps.map(i => i.tipoActual || i.tipo);
   const estadoPrincipal = states[selectedMod] || 'green';
-  // Filtrar opciones del modal: quitar los que ya están activos y el estado actual del principal
+  if(!tiposActivos.includes(estadoPrincipal) && estadoPrincipal !== 'green'){
+    tiposActivos.push(estadoPrincipal);
+  }
   const todosLos = ['red','yellow','orange','purple','blue','pink'];
-  const disponibles = todosLos.filter(t => !tiposActivos.includes(t) && t !== estadoPrincipal);
+  const disponibles = todosLos.filter(t => !tiposActivos.includes(t));
   if(disponibles.length === 0){ showToast('⚠ No hay más tipos disponibles'); return; }
   // Marcar que es para multi y mostrar modal con opciones filtradas
   _pendingMultiImpMod = selectedMod;
@@ -664,8 +677,29 @@ function commitMultiImp(tipo, empleada, ciRequestId){
   const modId = selectedMod;
   if(!_multiImp[modId]) _multiImp[modId] = [];
   const imps = _multiImp[modId];
+
+  // Si es el primer multi, registrar el estado principal actual en _multiImp como primer elemento
+  if(imps.length === 0){
+    const estadoActual = states[modId] || 'green';
+    if(estadoActual !== 'green'){
+      const impPrincipal = {
+        id:          'principal-'+Date.now(),
+        tipo:        estadoActual,
+        tipoActual:  estadoActual,
+        inicio:      timers[modId] || Date.now(),
+        empleada:    (window._lastEmpleada&&window._lastEmpleada[modId])||'',
+        mecanico:    lastMec[modId]||'',
+        ciRequestId: null,
+        esPrincipal: true
+      };
+      imps.push(impPrincipal);
+      wsSend({ type:'multi_imp_change', action:'open', modId, imp:impPrincipal });
+    }
+  }
+
   if(imps.length >= 4){ showToast('⚠ Máximo 4 improductivos'); return; }
   if(imps.some(i => (i.tipoActual||i.tipo) === tipo)){ showToast('⚠ Ya hay un improductivo de ese tipo activo'); return; }
+
   const imp = {
     id:          Date.now()+'-'+Math.random().toString(36).slice(2),
     tipo,
@@ -676,10 +710,10 @@ function commitMultiImp(tipo, empleada, ciRequestId){
     ciRequestId: ciRequestId || null
   };
   imps.push(imp);
-  // Actualizar estado principal del tablero al nuevo (último)
-  states[selectedMod]  = tipo;
-  timers[selectedMod]  = imp.inicio;
-  if(empleada) window._lastEmpleada[selectedMod] = empleada;
+  // El color del tablero general = último improductivo (el nuevo)
+  states[modId] = tipo;
+  timers[modId] = imp.inicio;
+  if(empleada) window._lastEmpleada[modId] = empleada;
   renderBig();
   wsSend({ type:'multi_imp_change', action:'open', modId, imp });
   _pendingMultiImpMod  = null;
@@ -755,9 +789,9 @@ function updateMultiImpColor(impId, nuevoColor, mecanico){
 
 // ── onImpMec ─────────────────────────────────────────────────────
 function onImpMec(){
+  const esMulti = !!_pendingMultiImpMod; // guardar ANTES de cancelar
   cancelImproductivo();
   if(!selectedMod) return;
-  // Buscar operarias registradas HOY en este módulo
   const hoy = new Date().toISOString().split('T')[0];
   const iaRecs = window._iaRecords || [];
   const renamed = {};
@@ -770,6 +804,7 @@ function onImpMec(){
     showToast('⚠ No hay operarias registradas hoy en '+selectedMod+'. La supervisora debe registrar la asistencia.');
     return;
   }
+  if(esMulti) _pendingMultiImpMod = selectedMod; // restaurar para confirmarFalloMec
   abrirModalEmpleadaMec(selectedMod, empsHoy);
 }
 
@@ -816,24 +851,26 @@ function confirmarFalloMec(){
 
 // ── onImpRef ─────────────────────────────────────────────────────
 function onImpRef(){
-  if(_pendingMultiImpMod){
-    cancelImproductivo();
+  const esMulti = !!_pendingMultiImpMod; // guardar ANTES de cancelar
+  cancelImproductivo();
+  if(esMulti){
     commitMultiImp('blue', '', null);
   } else {
-    cancelImproductivo();
     commitChange(selectedMod,'blue',null);
   }
 }
 
 // ── onImpIns ─────────────────────────────────────────────────────
 function onImpIns(){
+  const esMulti = !!_pendingMultiImpMod; // guardar ANTES de cancelar
   cancelImproductivo();
+  if(esMulti) _pendingMultiImpMod = selectedMod; // restaurar para siEnviar
   siOpen();
-  // siEnviar detectará _pendingMultiImpMod para modo multi
 }
 
 // ── onImpProd ────────────────────────────────────────────────────
 function onImpProd(){
+  const esMulti = !!_pendingMultiImpMod; // guardar ANTES de cancelar
   cancelImproductivo();
   const now = new Date();
   const newReq = {
@@ -849,7 +886,7 @@ function onImpProd(){
     status:'alert', waitTime:null, resolvedAt:null, obs:'', alertStart:now.getTime(), esMecanico:false
   };
   wsSend({type:'ci_new_request', request:newReq});
-  if(_pendingMultiImpMod){
+  if(esMulti){
     commitMultiImp('purple', '', newReq._id);
   } else {
     commitChange(selectedMod,'purple',null);
