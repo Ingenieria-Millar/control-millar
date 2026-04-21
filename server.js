@@ -1223,7 +1223,8 @@ wss.on('connection', (ws, req) => {
           if (msg.imp.empleada) lastEmpleada[modId] = msg.imp.empleada;
           saveFloorState();
           broadcastLocal({ type:'multi_imp_change', action:'open', modId, imp:msg.imp, multiImp: multiImp[modId] });
-          broadcast({ type:'change', id:modId, state:states[modId], mecanico:lastMec[modId]||'', limite:null, empleada:lastEmpleada[modId]||'', stateTime:stateTimes[modId] });
+          // No hacer broadcast 'change' aquí — evita disparar alertas en tablero de mecánicos
+          // El tablero general actualiza su color via multi_imp_change
         }
 
         else if (msg.action === 'update') {
@@ -1240,7 +1241,7 @@ wss.on('connection', (ws, req) => {
           if (msg.imp.empleada) lastEmpleada[modId] = msg.imp.empleada;
           saveFloorState();
           broadcastLocal({ type:'multi_imp_change', action:'update', modId, imp:multiImp[modId][idx], multiImp: multiImp[modId] });
-          broadcast({ type:'change', id:modId, state:states[modId], mecanico:lastMec[modId]||'', limite:null, empleada:lastEmpleada[modId]||'', stateTime:stateTimes[modId] });
+          // No hacer broadcast 'change' — el color lo gestiona multi_imp_change
         }
 
         else if (msg.action === 'close') {
@@ -1284,7 +1285,7 @@ wss.on('connection', (ws, req) => {
           // Recalcular color: último restante, o green si no quedan
           if (multiImp[modId].length > 0) {
             const ultimo = multiImp[modId][multiImp[modId].length - 1];
-            states[modId]     = ultimo.tipo;
+            states[modId]     = ultimo.tipoActual || ultimo.tipo;
             stateTimes[modId] = ultimo.inicio || Date.now();
           } else {
             states[modId]     = 'green';
