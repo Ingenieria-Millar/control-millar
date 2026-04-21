@@ -166,14 +166,15 @@ const MODULES = [
   'M21','M22','M23','M24','M25','M26','M27'
 ];
 
-const floorDefault = { states: {}, lastMec: {}, stateTimes: {}, lastEmpleada: {} };
-MODULES.forEach(id => { floorDefault.states[id] = 'green'; floorDefault.lastMec[id] = ''; floorDefault.stateTimes[id] = Date.now(); floorDefault.lastEmpleada[id] = ''; });
+const floorDefault = { states: {}, lastMec: {}, stateTimes: {}, lastEmpleada: {}, multiImp: {} };
+MODULES.forEach(id => { floorDefault.states[id] = "green"; floorDefault.lastMec[id] = ""; floorDefault.stateTimes[id] = Date.now(); floorDefault.lastEmpleada[id] = ""; floorDefault.multiImp[id] = []; });
 
 const floorPersisted = readJSON(FILES.floor_state, floorDefault);
 const states        = floorPersisted.states        || { ...floorDefault.states     };
 const lastMec       = floorPersisted.lastMec       || { ...floorDefault.lastMec    };
 const stateTimes    = floorPersisted.stateTimes    || { ...floorDefault.stateTimes };
 const lastEmpleada  = floorPersisted.lastEmpleada  || { ...floorDefault.lastEmpleada };
+const multiImp      = floorPersisted.multiImp      || {};
 
 function getAllActiveModules() {
   const extra    = modulesConfig.extra    || [];
@@ -261,7 +262,7 @@ MODULES.forEach(id => {
 });
 
 function saveFloorState() {
-  writeJSON(FILES.floor_state, { states, lastMec, stateTimes, lastEmpleada });
+  writeJSON(FILES.floor_state, { states, lastMec, stateTimes, lastEmpleada, multiImp });
 }
 
 // ── Estado Tablero CI ──────────────────────────────────────────────
@@ -955,7 +956,8 @@ wss.on('connection', (ws, req) => {
     lastEmpleada:  { ...lastEmpleada },
     iaState:       iaState,
     iaRecords:     iaRecords,
-    modulesConfig: modulesConfig
+    modulesConfig: modulesConfig,
+    multiImp:      JSON.parse(JSON.stringify(multiImp))
   }));
 
   ws.on('message', (raw) => {
@@ -1144,6 +1146,31 @@ wss.on('connection', (ws, req) => {
             broadcast({ type:'change', id:modId, state:'green', mecanico:'', limite:null, empleada:'', stateTime:stateTimes[modId] });
           }
         }
+
+        // Si fue aceptado (done) y hay multiImp activos con ese ciRequestId, cerrarlos
+        if (msg.request.status === 'done' && msg.request._id) {
+          const reqId  = msg.request._id;
+          const modId  = msg.request.module || msg.request.moduloDestino;
+          if (modId && multiImp[modId]) {
+            const impIdx = multiImp[modId].findIndex(i => i.ciRequestId === reqId);
+            if (impIdx !== -1) {
+              multiImp[modId].splice(impIdx, 1);
+              if (multiImp[modId].length > 0) {
+                const ultimo = multiImp[modId][multiImp[modId].length - 1];
+                states[modId]     = ultimo.tipo;
+                stateTimes[modId] = ultimo.inicio || Date.now();
+              } else {
+                states[modId]       = 'green';
+                stateTimes[modId]   = Date.now();
+                lastMec[modId]      = '';
+                lastEmpleada[modId] = '';
+              }
+              saveFloorState();
+              broadcast({ type:'multi_imp_change', action:'close', modId, impId:reqId, multiImp: multiImp[modId] });
+              broadcast({ type:'change', id:modId, state:states[modId], mecanico:lastMec[modId]||'', limite:null, empleada:lastEmpleada[modId]||'', stateTime:stateTimes[modId] });
+            }
+          }
+        }
       }
 
       else if (msg.type === 'ci_reactivar_alerta') {
@@ -1151,6 +1178,108 @@ wss.on('connection', (ws, req) => {
         // Retransmitir a todos (incluyendo al emisor) para que CI reactive la alerta
         broadcast({ type:'ci_reactivar_alerta', reqId:msg.reqId });
       }
+
+      // ── Multi-Improductivo ──────────────────────────────────────
+      // msg: { type:'multi_imp_change', modId, action, imp }
+      // action: 'open' | 'update' | 'close'
+      // imp: { id, tipo, inicio, empleada, mecanico, ciRequestId }
+      else if (msg.type === 'multi_imp_change') {
+        if (!msg.modId || !msg.action || !msg.imp || !msg.imp.id) {
+          console.warn('WS multi_imp_change: payload incompleto'); return;
+        }
+        const modId = msg.modId;
+        if (!multiImp[modId]) multiImp[modId] = [];
+
+        if (msg.action === 'open') {
+          // Agregar nuevo improductivo al array (máx 4, sin repetir tipo)
+          const yaExiste = multiImp[modId].some(i => i.tipo === msg.imp.tipo);
+          if (yaExiste || multiImp[modId].length >= 4) return;
+          multiImp[modId].push(msg.imp);
+          // El color del tablero = tipo del último imp agregado
+          if (states[modId] === undefined) states[modId] = 'green';
+          const prevState = states[modId];
+          // logHistorial solo si el módulo ya estaba en un estado improductivo (cerrar el principal y abrir nuevo)
+          // No logueamos aquí — el cliente ya envió el 'change' correspondiente
+          states[modId]     = msg.imp.tipo === 'red' ? 'red' : msg.imp.tipo;
+          stateTimes[modId] = msg.imp.inicio || Date.now();
+          if (msg.imp.empleada) lastEmpleada[modId] = msg.imp.empleada;
+          saveFloorState();
+          broadcastLocal({ type:'multi_imp_change', action:'open', modId, imp:msg.imp, multiImp: multiImp[modId] });
+          broadcast({ type:'change', id:modId, state:states[modId], mecanico:lastMec[modId]||'', limite:null, empleada:lastEmpleada[modId]||'', stateTime:stateTimes[modId] });
+        }
+
+        else if (msg.action === 'update') {
+          // Actualizar estado de un improductivo existente (rojo→amarillo, etc.)
+          const idx = multiImp[modId].findIndex(i => i.id === msg.imp.id);
+          if (idx === -1) return;
+          const impPrev = { ...multiImp[modId][idx] };
+          Object.assign(multiImp[modId][idx], msg.imp);
+          // Recalcular color del tablero = tipo del último imp del array
+          const ultimo = multiImp[modId][multiImp[modId].length - 1];
+          states[modId]   = ultimo.tipo;
+          stateTimes[modId] = Date.now();
+          if (msg.imp.mecanico) lastMec[modId] = msg.imp.mecanico;
+          if (msg.imp.empleada) lastEmpleada[modId] = msg.imp.empleada;
+          saveFloorState();
+          broadcastLocal({ type:'multi_imp_change', action:'update', modId, imp:multiImp[modId][idx], multiImp: multiImp[modId] });
+          broadcast({ type:'change', id:modId, state:states[modId], mecanico:lastMec[modId]||'', limite:null, empleada:lastEmpleada[modId]||'', stateTime:stateTimes[modId] });
+        }
+
+        else if (msg.action === 'close') {
+          // Cerrar un improductivo: logear en historial y remover del array
+          const idx = multiImp[modId].findIndex(i => i.id === msg.imp.id);
+          if (idx === -1) return;
+          const imp = multiImp[modId][idx];
+
+          // Guardar en historial
+          const ahora = Date.now();
+          const durMs = ahora - (imp.inicio || ahora);
+          if (durMs > 0) {
+            const now      = new Date();
+            const opts     = { timeZone:'America/Bogota', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true };
+            const bogota   = new Date(now.toLocaleString('en-US', { timeZone:'America/Bogota' }));
+            const fechaISO = bogota.getFullYear()+'-'+String(bogota.getMonth()+1).padStart(2,'0')+'-'+String(bogota.getDate()).padStart(2,'0');
+            let historial  = readJSON(FILES.historial, []);
+            const regHoy   = historial.filter(r => r.fechaISO === fechaISO);
+            historial.push({
+              num:           regHoy.length + 1,
+              fecha:         now.toLocaleDateString('es-CO', { timeZone:'America/Bogota' }),
+              fechaISO,
+              horaInicio:    new Date(imp.inicio || ahora).toLocaleTimeString('es-CO', opts),
+              hora:          now.toLocaleTimeString('es-CO', opts),
+              modulo:        modId,
+              tipo:          imp.tipo,
+              estadoAnterior:imp.tipo,
+              estadoNuevo:   'green',
+              durMinutos:    parseFloat((durMs / 60000).toFixed(2)),
+              mecanico:      imp.mecanico || '',
+              empleada:      imp.empleada || '',
+              ciRequestId:   imp.ciRequestId || undefined
+            });
+            if (historial.length > 10000) historial = historial.slice(-10000);
+            writeJSON(FILES.historial, historial);
+          }
+
+          // Remover del array
+          multiImp[modId].splice(idx, 1);
+
+          // Recalcular color: último restante, o green si no quedan
+          if (multiImp[modId].length > 0) {
+            const ultimo = multiImp[modId][multiImp[modId].length - 1];
+            states[modId]     = ultimo.tipo;
+            stateTimes[modId] = ultimo.inicio || Date.now();
+          } else {
+            states[modId]     = 'green';
+            stateTimes[modId] = Date.now();
+            lastMec[modId]    = '';
+            lastEmpleada[modId] = '';
+          }
+          saveFloorState();
+          broadcastLocal({ type:'multi_imp_change', action:'close', modId, impId:msg.imp.id, multiImp: multiImp[modId] });
+          broadcast({ type:'change', id:modId, state:states[modId], mecanico:lastMec[modId]||'', limite:null, empleada:lastEmpleada[modId]||'', stateTime:stateTimes[modId] });
+        }
+      }
+
 
       else if (msg.type === 'ci_delete_request') {
         let deletedId = null;
