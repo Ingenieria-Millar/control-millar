@@ -1380,6 +1380,7 @@ function startTimers(){
 function setFilter(f){
   _filterStatus = f;
   renderCards();
+  actualizarMinutosCI();
 }
 
 function toggleFiltroModuloPanel(){
@@ -1416,6 +1417,7 @@ function aplicarFiltroModulo(){
   document.getElementById('filtro-modulo-panel').style.display = 'none';
   actualizarBtnModulo();
   renderCards();
+  actualizarMinutosCI();
 }
 
 function limpiarFiltroModulo(){
@@ -1424,6 +1426,7 @@ function limpiarFiltroModulo(){
   document.getElementById('filtro-modulo-panel').style.display = 'none';
   actualizarBtnModulo();
   renderCards();
+  actualizarMinutosCI();
 }
 
 function actualizarBtnModulo(){
@@ -2220,23 +2223,42 @@ function renderDashboard(){
         </div>`).join('')}
     </div>`).join('');
 
-  // ── Tabla detalle ──
-  document.getElementById('dash-tabla-body').innerHTML = data.length===0
-    ? `<tr><td colspan="3" style="text-align:center;padding:32px;color:#94a3b8;font-size:13px;">Sin solicitudes en el período</td></tr>`
-    : data.map(r=>{
-        const tipo = r.esMecanico?'Alistamiento':(r.categoria||'Falta de Insumos');
-        const tEsp = r.waitTime!=null&&r.waitTime>0 ? parseFloat(dashGetTiempo(r).toFixed(2)) : '—';
-        const colores = {'Falta de Insumos':'#fff7ed','Alistamiento':'#fdf2f8','Solicitud de Producción':'#f5f3ff'};
-        const textos  = {'Falta de Insumos':'#9a3412','Alistamiento':'#9d174d','Solicitud de Producción':'#5b21b6'};
+  // ── Tabla acumulada por módulo + tipo ──
+  const acumMap = {};
+  data.forEach(r=>{
+    const tipo = r.esMecanico?'Alistamiento':(r.categoria||'Falta de Insumos');
+    const key  = (r.module||'?') + '||' + tipo;
+    if(!acumMap[key]) acumMap[key] = { modulo:r.module||'?', tipo, total:0 };
+    if(r.waitTime!=null&&r.waitTime>0) acumMap[key].total += dashGetTiempo(r);
+  });
+  window._dashTablaRows = Object.values(acumMap).sort((a,b)=>a.modulo.localeCompare(b.modulo));
+  renderTablaAcumulada();
+}
+
+function renderTablaAcumulada(){
+  const rows = window._dashTablaRows || [];
+  const q = (document.getElementById('dash-tabla-filtro')?.value||'').toLowerCase().trim();
+  const filtered = q ? rows.filter(r=>r.modulo.toLowerCase().includes(q)||r.tipo.toLowerCase().includes(q)) : rows;
+  const colores = {
+    'Falta de Insumos':        ['#fff7ed','#9a3412'],
+    'Alistamiento':            ['#fdf2f8','#9d174d'],
+    'Solicitud de Producción': ['#f5f3ff','#5b21b6']
+  };
+  document.getElementById('dash-tabla-body').innerHTML = filtered.length===0
+    ? `<tr><td colspan="3" style="text-align:center;padding:32px;color:#94a3b8;font-size:13px;">Sin datos</td></tr>`
+    : filtered.map(r=>{
+        const [bg,tx] = colores[r.tipo]||['#f8fafc','#0f172a'];
         return `<tr style="border-bottom:1px solid #f1f5f9;">
-          <td style="padding:8px 12px;font-family:'Courier New',monospace;font-size:12px;font-weight:700;color:#1e40af;">${r.module||'—'}</td>
-          <td style="padding:8px 12px;">
-            <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${colores[tipo]||'#f8fafc'};color:${textos[tipo]||'#0f172a'};">${tipo}</span>
+          <td style="padding:9px 12px;font-family:'Courier New',monospace;font-size:12px;font-weight:700;color:#1e40af;text-align:center;">${r.modulo}</td>
+          <td style="padding:9px 12px;text-align:center;">
+            <span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${bg};color:${tx};">${r.tipo}</span>
           </td>
-          <td style="padding:8px 12px;text-align:right;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;color:${typeof tEsp==='number'&&tEsp>10?'#dc2626':typeof tEsp==='number'&&tEsp>5?'#d97706':'#15803d'};">${tEsp}</td>
+          <td style="padding:9px 12px;text-align:right;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;color:${r.total>20?'#dc2626':r.total>10?'#d97706':'#15803d'};">${r.total.toFixed(2)}</td>
         </tr>`;
       }).join('');
 }
+
+function filtrarTablaAcumulada(){ renderTablaAcumulada(); }
 
 function dashChart(id, type, labels, data, colors, options){
   if(_dashCharts[id]){ _dashCharts[id].destroy(); delete _dashCharts[id]; }
@@ -2265,14 +2287,18 @@ updateCIHeaderDate();
 // ── Minutos acumulados en stats bar ─────────────────────────────
 function actualizarMinutosCI(){
   let data = ciRequests.slice();
-  data = filtrarPorFecha(data); // siempre filtrar por fecha activa
+  // Respetar filtro de fecha
+  data = filtrarPorFecha(data);
+  // Respetar filtro de módulo
+  if(_filterMod) data = data.filter(r => r.module === _filterMod);
+  // Respetar filtro de estado
+  if(_filterStatus === 'alert')  data = data.filter(r => r.status === 'alert');
+  if(_filterStatus === 'done')   data = data.filter(r => r.status === 'done' || r.status === 'cumplido');
   const now = Date.now();
   const total = data.reduce((s,r)=>{
     if(r.waitTime!=null&&r.waitTime>0){
-      // Solicitud cerrada — usar waitTime
       return s + (r.waitTime<3600&&r.waitTime>0 ? r.waitTime/60 : r.waitTime/60000);
     } else if(r.status==='alert'&&r.alertStart){
-      // Solicitud activa — calcular tiempo transcurrido
       return s + (now - r.alertStart)/60000;
     }
     return s;
