@@ -466,12 +466,12 @@ input,select,textarea{ font-size:16px !important; }
   <!-- Header dashboard — igual a Control de Asistencia -->
   <div style="position:relative;background:#fff;border-bottom:1px solid #e2e8f0;padding:0 clamp(12px,2.5vw,24px);min-height:64px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:10;box-shadow:0 1px 6px rgba(0,0,0,.07);">
     <div style="display:flex;align-items:center;gap:10px;">
-      <div class="hd-logo"><img src="/logo.png" onerror="this.style.display='none'" alt="Logo"></div>
+      <div class="hd-logo"><img src="/logo.png" onerror="this.style.display='none'" alt="Millar" style="width:100%;height:100%;object-fit:contain;padding:3px;"></div>
       <div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:clamp(16px,2.2vw,22px);font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0f172a;line-height:1;">DASHBOARD <span style="color:#2563eb;">CI</span></div>
         <p id="dash-header-date" style="font-family:'Nunito',sans-serif;font-size:12px;color:#64748b;font-weight:600;margin:2px 0 0 0;"></p>
       </div>
-      <div id="dash-live-badge" style="padding:3px 10px;border-radius:20px;background:#f0fdf4;border:1px solid #86efac;font-family:'IBM Plex Sans',sans-serif;font-size:11px;font-weight:700;color:#15803d;">● En vivo</div>
+
     </div>
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
       <!-- Botón fecha con ventanita -->
@@ -544,10 +544,10 @@ input,select,textarea{ font-size:16px !important; }
 
     <!-- Tabla acumulada por módulo + tipo -->
     <div style="background:#fff;border-radius:12px;padding:20px;border:1px solid #e2e8f0;box-shadow:0 1px 4px rgba(0,0,0,.04);">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">Tiempo Acumulado por Módulo</div>
-        <input id="dash-tabla-filtro" type="text" placeholder="🔍 Filtrar..." oninput="filtrarTablaAcumulada()"
-          style="padding:6px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;outline:none;width:200px;"
+      <div style="margin-bottom:14px;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:8px;">Tiempo Acumulado por Módulo</div>
+        <input id="dash-tabla-filtro" type="text" placeholder="🔍 Filtrar por módulo o tipo..." oninput="filtrarTablaAcumulada()"
+          style="padding:7px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;outline:none;width:280px;"
           onfocus="this.style.borderColor='#7c3aed'" onblur="this.style.borderColor='#e2e8f0'">
       </div>
       <div style="overflow-x:auto;">
@@ -1098,6 +1098,7 @@ function aplicarFecha(){
   document.getElementById('fecha-panel').style.display = 'none';
   actualizarBtnFechaLbl();
   renderCards();
+  actualizarMinutosCI();
 }
 
 function limpiarFecha(){
@@ -1107,6 +1108,7 @@ function limpiarFecha(){
   document.getElementById('fecha-panel').style.display = 'none';
   actualizarBtnFechaLbl();
   renderCards();
+  actualizarMinutosCI();
 }
 
 function actualizarBtnFechaLbl(){
@@ -1144,6 +1146,7 @@ function arrancar(){
   initFechas();
   renderCards();
   startTimers();
+  setTimeout(actualizarMinutosCI, 500);
 }
 
 
@@ -1411,6 +1414,7 @@ function aplicarFiltroModulo(){
   const select = document.getElementById('ci-modulo-select');
   _filterMod = select.value;
   document.getElementById('filtro-modulo-panel').style.display = 'none';
+  actualizarBtnModulo();
   renderCards();
 }
 
@@ -1418,7 +1422,24 @@ function limpiarFiltroModulo(){
   _filterMod = '';
   document.getElementById('ci-modulo-select').value = '';
   document.getElementById('filtro-modulo-panel').style.display = 'none';
+  actualizarBtnModulo();
   renderCards();
+}
+
+function actualizarBtnModulo(){
+  const btn = document.getElementById('btn-modulo');
+  if(!btn) return;
+  if(_filterMod){
+    btn.textContent = '🏭 ' + _filterMod;
+    btn.style.background = '#eff6ff';
+    btn.style.borderColor = '#93c5fd';
+    btn.style.color = '#1e40af';
+  } else {
+    btn.textContent = '🏭 Módulo';
+    btn.style.background = '';
+    btn.style.borderColor = '';
+    btn.style.color = '';
+  }
 }
 
 // ── Marcar cumplido ──
@@ -2243,18 +2264,25 @@ updateCIHeaderDate();
 
 // ── Minutos acumulados en stats bar ─────────────────────────────
 function actualizarMinutosCI(){
-  const desde = document.getElementById('ci-fecha-desde')?.value || '';
-  const hasta  = document.getElementById('ci-fecha-hasta')?.value || '';
   let data = ciRequests.slice();
-  if(desde||hasta) data = filtrarPorFecha(data);
+  data = filtrarPorFecha(data); // siempre filtrar por fecha activa
+  const now = Date.now();
   const total = data.reduce((s,r)=>{
-    if(r.waitTime!=null&&r.waitTime>0) return s + (r.waitTime<3600&&r.waitTime>0 ? r.waitTime/60 : r.waitTime/60000);
+    if(r.waitTime!=null&&r.waitTime>0){
+      // Solicitud cerrada — usar waitTime
+      return s + (r.waitTime<3600&&r.waitTime>0 ? r.waitTime/60 : r.waitTime/60000);
+    } else if(r.status==='alert'&&r.alertStart){
+      // Solicitud activa — calcular tiempo transcurrido
+      return s + (now - r.alertStart)/60000;
+    }
     return s;
   },0);
   const el = document.getElementById('ci-total-min');
   if(el) el.textContent = total.toFixed(2)+' min';
 }
 document.addEventListener('ci-updated', actualizarMinutosCI);
+// Actualizar cada 10s para que los activos también se actualicen
+setInterval(actualizarMinutosCI, 10000);
 
 // ── Toggle panel fecha del dashboard ────────────────────────────
 function toggleDashFechaPanel(){
