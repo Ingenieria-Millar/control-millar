@@ -31,13 +31,13 @@ input,select,textarea{ font-size:16px !important; }
 }
 @keyframes spin{ to{ transform:rotate(360deg); } }
 
-/* ── TOPBAR ── */
+/* ── TOPBAR — igual a Control de Asistencia ── */
 #ci-topbar{
   position:sticky;top:0;z-index:100;background:#fff;
   border-bottom:1px solid var(--border);
   box-shadow:0 1px 6px rgba(0,0,0,.07);
   padding:0 clamp(12px,2.5vw,24px);
-  min-height:60px;
+  min-height:64px;
   display:flex;align-items:center;justify-content:space-between;gap:12px;
 }
 #ci-topbar::after{
@@ -47,9 +47,13 @@ input,select,textarea{ font-size:16px !important; }
 .ci-tb-left{ display:flex;align-items:center;gap:10px; }
 .ci-tb-title{
   font-family:'Barlow Condensed',sans-serif;font-size:clamp(16px,2.5vw,22px);
-  font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0f172a;line-height:1.1;
+  font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0f172a;line-height:1;margin:0;
 }
 .ci-tb-title span{ color:var(--accent); }
+.ci-tb-date{
+  font-family:'Nunito',sans-serif;font-size:12px;color:#64748b;
+  font-weight:600;margin:2px 0 0 0;letter-spacing:.2px;
+}
 .ci-tb-right{ display:flex;align-items:center;gap:8px; }
 .ci-conn-dot{
   width:9px;height:9px;border-radius:50%;background:#94a3b8;
@@ -377,6 +381,7 @@ input,select,textarea{ font-size:16px !important; }
       </div>
       <div>
         <div class="ci-tb-title">TABLERO <span>CI</span></div>
+        <p class="ci-tb-date" id="ci-header-date"></p>
       </div>
     </div>
     <div class="ci-tb-right">
@@ -415,8 +420,13 @@ input,select,textarea{ font-size:16px !important; }
       </div>
     </div>
     <div class="ci-stat-spacer"></div>
+    <!-- Minutos acumulados -->
+    <div style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:8px;border:1.5px solid #93c5fd;background:#eff6ff;height:34px;box-sizing:border-box;">
+      <span style="font-size:13px;">⏱</span>
+      <span style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:#1e40af;" id="ci-total-min">0 min</span>
+    </div>
     <div style="position:relative;" id="fecha-wrap">
-      <button class="hd-back-btn" onclick="toggleFechaPanel()" id="btn-fecha" style="display:flex;align-items:center;gap:6px;">
+      <button class="hd-back-btn" onclick="toggleFechaPanel()" id="btn-fecha" style="display:flex;align-items:center;gap:6px;background:#f8fafc;border-color:#cbd5e1;color:#475569;">
         📅 <span id="btn-fecha-lbl">Fecha</span>
       </button>
       <div id="fecha-panel" style="display:none;position:absolute;top:110%;right:0;z-index:300;background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:240px;">
@@ -431,7 +441,7 @@ input,select,textarea{ font-size:16px !important; }
       </div>
     </div>
     <div style="position:relative;" id="excel-wrap">
-      <button class="hd-back-btn" onclick="toggleExcelMenu()" style="background:#f0fdf4;border-color:#86efac;color:#15803d;">📥 Excel</button>
+      <button class="hd-back-btn" onclick="toggleExcelMenu()" style="background:#f0fdf4;border-color:#86efac;color:#15803d;display:flex;align-items:center;gap:5px;">📊 Excel</button>
       <div id="excel-menu" style="display:none;position:absolute;top:110%;right:0;z-index:300;background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:8px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:200px;">
         <button onclick="exportarExcel();toggleExcelMenu();" style="width:100%;padding:10px 14px;border:none;background:none;text-align:left;cursor:pointer;border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:#0f172a;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='none'">
           📋 <div><div style="font-weight:700;">Informe Detallado</div><div style="font-size:11px;color:#64748b;">Todas las columnas actuales</div></div>
@@ -441,8 +451,8 @@ input,select,textarea{ font-size:16px !important; }
         </button>
       </div>
     </div>
-    <button class="hd-back-btn" onclick="abrirDashboard()" style="background:#f0f4ff;border-color:#a5b4fc;color:#3730a3;">📊 Dashboard</button>
-    <button class="hd-back-btn" onclick="abrirConfig()" title="Configuración" style="padding:6px 10px;">⚙️</button>
+    <button class="hd-back-btn" onclick="abrirDashboard()" style="background:#f5f3ff;border-color:#c4b5fd;color:#6d28d9;display:flex;align-items:center;gap:5px;">📈 Dashboard</button>
+    <button class="hd-back-btn" onclick="abrirConfig()" title="Configuración" style="padding:6px 10px;background:#f8fafc;border-color:#cbd5e1;color:#475569;">⚙️</button>
   </div>
 
   <!-- CARDS -->
@@ -453,20 +463,32 @@ input,select,textarea{ font-size:16px !important; }
 <!-- ── DASHBOARD CI ── -->
 <div id="dash-overlay" style="display:none;position:fixed;inset:0;z-index:400;background:#f1f5f9;overflow-y:auto;">
 
-  <!-- Header dashboard -->
-  <div style="background:#fff;border-bottom:1px solid #e2e8f0;padding:0 clamp(12px,2.5vw,24px);min-height:56px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:10;box-shadow:0 1px 6px rgba(0,0,0,.07);">
-    <div style="display:flex;align-items:center;gap:12px;">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0f172a;">DASHBOARD <span style="color:#2563eb;">CI</span></div>
+  <!-- Header dashboard — igual a Control de Asistencia -->
+  <div style="position:relative;background:#fff;border-bottom:1px solid #e2e8f0;padding:0 clamp(12px,2.5vw,24px);min-height:64px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:10;box-shadow:0 1px 6px rgba(0,0,0,.07);">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="hd-logo"><img src="/logo.png" onerror="this.style.display='none'" alt="Logo"></div>
+      <div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:clamp(16px,2.2vw,22px);font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0f172a;line-height:1;">DASHBOARD <span style="color:#2563eb;">CI</span></div>
+        <p id="dash-header-date" style="font-family:'Nunito',sans-serif;font-size:12px;color:#64748b;font-weight:600;margin:2px 0 0 0;"></p>
+      </div>
       <div id="dash-live-badge" style="padding:3px 10px;border-radius:20px;background:#f0fdf4;border:1px solid #86efac;font-family:'IBM Plex Sans',sans-serif;font-size:11px;font-weight:700;color:#15803d;">● En vivo</div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-      <!-- Filtro fecha -->
-      <div style="display:flex;align-items:center;gap:6px;">
-        <span style="font-size:11px;font-weight:700;color:#64748b;">Desde</span>
-        <input type="date" id="dash-desde" style="padding:4px 8px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:12px;outline:none;" oninput="renderDashboard()">
-        <span style="font-size:11px;font-weight:700;color:#64748b;">Hasta</span>
-        <input type="date" id="dash-hasta" style="padding:4px 8px;border:1.5px solid #e2e8f0;border-radius:6px;font-size:12px;outline:none;" oninput="renderDashboard()">
-        <button onclick="dashHoy()" style="padding:4px 10px;border-radius:6px;border:1.5px solid #e2e8f0;background:#fff;font-size:11px;font-weight:700;cursor:pointer;color:#2563eb;">Hoy</button>
+      <!-- Botón fecha con ventanita -->
+      <div style="position:relative;" id="dash-fecha-wrap">
+        <button onclick="toggleDashFechaPanel()" style="padding:6px 14px;border-radius:8px;border:1.5px solid #cbd5e1;background:#f8fafc;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;color:#475569;display:flex;align-items:center;gap:6px;height:34px;">
+          📅 <span id="dash-fecha-lbl">Hoy</span>
+        </button>
+        <div id="dash-fecha-panel" style="display:none;position:absolute;top:110%;right:0;z-index:300;background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:240px;">
+          <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:8px;">Desde</div>
+          <input type="date" id="dash-desde" style="width:100%;padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;margin-bottom:10px;outline:none;" oninput="renderDashboard();actualizarLabelDashFecha();">
+          <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:8px;">Hasta</div>
+          <input type="date" id="dash-hasta" style="width:100%;padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;margin-bottom:14px;outline:none;" oninput="renderDashboard();actualizarLabelDashFecha();">
+          <div style="display:flex;gap:8px;">
+            <button onclick="dashHoy();toggleDashFechaPanel();" style="flex:1;padding:8px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:.5px;cursor:pointer;">Hoy</button>
+            <button onclick="document.getElementById('dash-desde').value='';document.getElementById('dash-hasta').value='';renderDashboard();actualizarLabelDashFecha();toggleDashFechaPanel();" style="flex:1;padding:8px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">Limpiar</button>
+          </div>
+        </div>
       </div>
       <div style="position:relative;" id="dash-dl-wrap">
         <button onclick="toggleDashDl()" style="padding:6px 14px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;color:#334155;display:flex;align-items:center;gap:5px;">⬇ Descargar</button>
@@ -520,16 +542,21 @@ input,select,textarea{ font-size:16px !important; }
     <!-- Rankings + Tabla -->
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:24px;" id="dash-rankings"></div>
 
-    <!-- Tabla detalle -->
+    <!-- Tabla acumulada por módulo + tipo -->
     <div style="background:#fff;border-radius:12px;padding:20px;border:1px solid #e2e8f0;box-shadow:0 1px 4px rgba(0,0,0,.04);">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:16px;">Detalle de Solicitudes</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">Tiempo Acumulado por Módulo</div>
+        <input id="dash-tabla-filtro" type="text" placeholder="🔍 Filtrar..." oninput="filtrarTablaAcumulada()"
+          style="padding:6px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;outline:none;width:200px;"
+          onfocus="this.style.borderColor='#7c3aed'" onblur="this.style.borderColor='#e2e8f0'">
+      </div>
       <div style="overflow-x:auto;">
         <table style="width:100%;border-collapse:collapse;font-size:13px;">
           <thead>
             <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0;">
-              <th style="padding:8px 12px;text-align:left;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#64748b;">Módulo</th>
-              <th style="padding:8px 12px;text-align:left;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#64748b;">Improductivo</th>
-              <th style="padding:8px 12px;text-align:right;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#64748b;">T. Espera (min)</th>
+              <th style="padding:10px 12px;text-align:center;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">Módulo</th>
+              <th style="padding:10px 12px;text-align:center;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">Tipo de Improductivo</th>
+              <th style="padding:10px 12px;text-align:right;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">T. Acumulado (min)</th>
             </tr>
           </thead>
           <tbody id="dash-tabla-body"></tbody>
@@ -2096,17 +2123,32 @@ function renderDashboard(){
   // ── Gráfica: Por Tipo ──
   const tipoCount = {};
   data.forEach(r=>{ const t = r.esMecanico?'Alistamiento':(r.categoria||'Falta de Insumos'); tipoCount[t]=(tipoCount[t]||0)+1; });
+  // Colores por tipo: naranja=insumos, morado=producción, rosado=alistamiento
+  const colorMap = {
+    'Falta de Insumos':       '#f97316',
+    'Solicitud de Producción':'#8b5cf6',
+    'Alistamiento':           '#ec4899',
+  };
+  const tipoLabels = Object.keys(tipoCount);
+  const tipoColors = tipoLabels.map(t => colorMap[t] || '#94a3b8');
   dashChart('dash-chart-tipo','doughnut',
-    Object.keys(tipoCount), Object.values(tipoCount),
-    ['#f97316','#8b5cf6','#2563eb','#ef4444','#22c55e'],
+    tipoLabels, Object.values(tipoCount),
+    tipoColors,
     {plugins:{legend:{position:'bottom',labels:{padding:10,font:{size:10}}}}}
   );
 
   // ── Gráfica: Por Hora ──
+  // La barra "7:00" representa el período 6:00-7:00 (el número es el cierre del período)
   const horaCount = {};
-  for(let h=6;h<=20;h++) horaCount[h+':00']=0;
+  for(let h=7;h<=20;h++) horaCount[h+':00']=0;
   data.forEach(r=>{
-    if(r.hora){ const h=parseInt(r.hora.split(':')[0]||0); const k=h+':00'; if(horaCount[k]!==undefined) horaCount[k]++; }
+    if(r.hora){
+      const h=parseInt(r.hora.split(':')[0]||0);
+      // Asignar al período de cierre: hora 6:xx → barra 7:00, hora 7:xx → barra 8:00
+      const cierre = h + 1;
+      const k = cierre+':00';
+      if(horaCount[k]!==undefined) horaCount[k]++;
+    }
   });
   dashChart('dash-chart-hora','bar',
     Object.keys(horaCount), Object.values(horaCount),
@@ -2186,6 +2228,54 @@ function dashChart(id, type, labels, data, colors, options){
     options:{ responsive:true, maintainAspectRatio:false, font:{family:"'IBM Plex Sans',sans-serif"}, color:'#64748b', ...options }
   });
 }
+
+// ── Fecha en headers ────────────────────────────────────────────
+function updateCIHeaderDate(){
+  const now = new Date();
+  const str = now.toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const el1 = document.getElementById('ci-header-date');
+  const el2 = document.getElementById('dash-header-date');
+  if(el1) el1.textContent = str;
+  if(el2) el2.textContent = str;
+}
+setInterval(updateCIHeaderDate, 60000);
+updateCIHeaderDate();
+
+// ── Minutos acumulados en stats bar ─────────────────────────────
+function actualizarMinutosCI(){
+  const desde = document.getElementById('ci-fecha-desde')?.value || '';
+  const hasta  = document.getElementById('ci-fecha-hasta')?.value || '';
+  let data = ciRequests.slice();
+  if(desde||hasta) data = filtrarPorFecha(data);
+  const total = data.reduce((s,r)=>{
+    if(r.waitTime!=null&&r.waitTime>0) return s + (r.waitTime<3600&&r.waitTime>0 ? r.waitTime/60 : r.waitTime/60000);
+    return s;
+  },0);
+  const el = document.getElementById('ci-total-min');
+  if(el) el.textContent = total.toFixed(2)+' min';
+}
+document.addEventListener('ci-updated', actualizarMinutosCI);
+
+// ── Toggle panel fecha del dashboard ────────────────────────────
+function toggleDashFechaPanel(){
+  const p = document.getElementById('dash-fecha-panel');
+  if(!p) return;
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+function actualizarLabelDashFecha(){
+  const d = document.getElementById('dash-desde')?.value || '';
+  const h = document.getElementById('dash-hasta')?.value || '';
+  const lbl = document.getElementById('dash-fecha-lbl');
+  if(!lbl) return;
+  if(!d && !h){ lbl.textContent='Hoy'; return; }
+  lbl.textContent = d===h ? d : (d||'?')+' → '+(h||'?');
+}
+document.addEventListener('click', e=>{
+  if(!e.target.closest('#dash-fecha-wrap')){
+    const p = document.getElementById('dash-fecha-panel');
+    if(p) p.style.display='none';
+  }
+});
 
 // Actualizar dashboard automáticamente con cada nueva solicitud
 const _origRenderCards = typeof renderCards === 'function' ? renderCards : null;
