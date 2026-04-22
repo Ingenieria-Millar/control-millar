@@ -153,6 +153,17 @@ header::after{
 /* ── RIPPLE ── */
 .ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,0.12);transform:scale(0);animation:rip 0.55s linear;pointer-events:none;}
 @keyframes rip{to{transform:scale(5);opacity:0;}}
+
+/* ── BOTÓN CIERRE FORZADO ── */
+.imp-close-x{
+  position:absolute;top:8px;right:8px;
+  width:22px;height:22px;border-radius:50%;
+  background:rgba(0,0,0,.08);border:none;
+  color:rgba(0,0,0,.35);font-size:13px;font-weight:700;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all .2s;line-height:1;z-index:5;
+}
+.imp-close-x:hover{background:rgba(239,68,68,.15);color:#dc2626;}
 </style>
 </head>
 <body>
@@ -309,6 +320,24 @@ header::after{
     <button onclick="siEnviar()" style="width:100%;padding:15px;border-radius:12px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;letter-spacing:2px;cursor:pointer;box-shadow:0 4px 16px rgba(37,99,235,.3);">
       📦 ENVIAR SOLICITUD
     </button>
+  </div>
+</div>
+
+<!-- Modal cierre forzado -->
+<div class="modal-overlay-cm" id="modal-forzar-cierre" style="display:none;">
+  <div class="modal-box-cm" style="max-width:320px;text-align:center;">
+    <div style="font-size:28px;">🔐</div>
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#dc2626;">Cerrar Improductivo</div>
+    <div style="font-size:13px;color:#64748b;">Ingresa la contraseña para forzar el cierre.</div>
+    <input type="password" id="forzar-pass" maxlength="20"
+      style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Courier New',monospace;font-size:22px;letter-spacing:8px;text-align:center;outline:none;"
+      onfocus="this.style.borderColor='#7c3aed'" onblur="this.style.borderColor='#e2e8f0'"
+      onkeydown="if(event.key==='Enter') confirmarForzarCierre()">
+    <div id="forzar-error" style="display:none;color:#ef4444;font-size:12px;font-weight:700;">Contraseña incorrecta</div>
+    <div style="display:flex;gap:10px;margin-top:4px;">
+      <button onclick="cerrarModalForzar()" style="flex:1;padding:11px;border-radius:10px;border:1.5px solid #e2e8f0;background:#f1f5f9;color:#64748b;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">Cancelar</button>
+      <button onclick="confirmarForzarCierre()" style="flex:1;padding:11px;border-radius:10px;border:none;background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">Cerrar</button>
+    </div>
   </div>
 </div>
 
@@ -513,7 +542,8 @@ setInterval(()=>{
 // ── buildImpCard — genera HTML de una tarjeta (mismo tamaño para todas) ──
 function buildImpCard(impId, color, label, inicio, lockBadge, empHtml, mecHtml, tapHint, isMulti){
   const onclickAttr = isMulti ? `onclick="applyChangeMulti('${impId}')"` : '';
-  return `<div class="big-wrap ${color}" id="imp-card-${impId}" style="min-width:220px;max-width:300px;flex:1;" ${onclickAttr}>
+  return `<div class="big-wrap ${color}" id="imp-card-${impId}" style="min-width:220px;max-width:300px;flex:1;position:relative;" ${onclickAttr}>
+    <button class="imp-close-x" onclick="event.stopPropagation();abrirModalForzar('${impId}','${isMulti?'multi':'principal'}')" title="Cerrar improductivo">✕</button>
     <span class="big-id">${selectedMod}</span>
     <div class="big-light"></div>
     <span class="big-status">${label}</span>
@@ -1267,6 +1297,57 @@ function showToast(msg){
   t.textContent=msg; t.classList.add('show');
   if(_toastTimer) clearTimeout(_toastTimer);
   _toastTimer=setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+// ── Cierre forzado de improductivo ───────────────────────────────
+let _pendingForzarImpId   = null;
+let _pendingForzarImpTipo = null; // 'principal' | 'multi'
+
+function abrirModalForzar(impId, tipo){
+  _pendingForzarImpId   = impId;
+  _pendingForzarImpTipo = tipo;
+  const inp = document.getElementById('forzar-pass');
+  inp.value = '';
+  inp.style.borderColor = '#e2e8f0';
+  document.getElementById('forzar-error').style.display = 'none';
+  document.getElementById('modal-forzar-cierre').style.display = 'flex';
+  setTimeout(()=>inp.focus(), 100);
+}
+
+function cerrarModalForzar(){
+  document.getElementById('modal-forzar-cierre').style.display = 'none';
+  _pendingForzarImpId   = null;
+  _pendingForzarImpTipo = null;
+}
+
+function confirmarForzarCierre(){
+  const inp = document.getElementById('forzar-pass');
+  const errEl = document.getElementById('forzar-error');
+  if(inp.value !== '2'){
+    inp.value = '';
+    inp.style.borderColor = '#ef4444';
+    errEl.style.display = 'block';
+    setTimeout(()=>{ inp.style.borderColor='#e2e8f0'; errEl.style.display='none'; inp.focus(); }, 1000);
+    return;
+  }
+  const impId = _pendingForzarImpId;
+  const tipo  = _pendingForzarImpTipo;
+  cerrarModalForzar();
+
+  if(tipo === 'multi'){
+    closeMultiImp(impId);
+  } else {
+    // Es la tarjeta principal
+    const imps = _multiImp[selectedMod] || [];
+    if(imps.length > 0){
+      // Si hay multis, cerrar el primero del array (que es el principal registrado)
+      closeMultiImp(impId);
+    } else {
+      // Sin multis: cerrar directamente pasando a verde
+      commitChange(selectedMod, 'green', null);
+    }
+  }
+  showToast('✅ Improductivo cerrado');
 }
 
 // ── Init: cargar iaRecords para validar operarias ────────────────
