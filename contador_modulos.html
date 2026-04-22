@@ -512,8 +512,8 @@ setInterval(()=>{
 
 // ── buildImpCard — genera HTML de una tarjeta (mismo tamaño para todas) ──
 function buildImpCard(impId, color, label, inicio, lockBadge, empHtml, mecHtml, tapHint, isMulti){
-  return `<div class="big-wrap ${color}" id="imp-card-${impId}" style="min-width:220px;max-width:300px;flex:1;"
-    onclick="${isMulti ? `applyChangeMulti('${impId}')` : `applyChange('${impId}')`}">
+  const onclickAttr = isMulti ? `onclick="applyChangeMulti('${impId}')"` : '';
+  return `<div class="big-wrap ${color}" id="imp-card-${impId}" style="min-width:220px;max-width:300px;flex:1;" ${onclickAttr}>
     <span class="big-id">${selectedMod}</span>
     <div class="big-light"></div>
     <span class="big-status">${label}</span>
@@ -581,13 +581,16 @@ function renderBig(){
   }
 
   // Re-adjuntar click del principal (solo cuando no hay multis)
-  const cardPrincipal = document.getElementById('imp-card-principal');
-  if(cardPrincipal){
-    cardPrincipal.addEventListener('click', e=>{
-      addRipple(cardPrincipal, e);
-      applyChange(selectedMod);
-    });
-  }
+  // setTimeout evita que el click que disparó renderBig se propague a la nueva tarjeta
+  setTimeout(()=>{
+    const cardPrincipal = document.getElementById('imp-card-principal');
+    if(cardPrincipal){
+      cardPrincipal.addEventListener('click', e=>{
+        addRipple(cardPrincipal, e);
+        applyChange(selectedMod);
+      });
+    }
+  }, 50);
 }
 
 // ── Ripple ───────────────────────────────────────────────────────
