@@ -8139,6 +8139,10 @@ function siEnviar(){
         <span class="ac-icon">📅</span>
         <span class="ac-text" id="hst-date-label-text">Hoy</span>
       </div>
+      <div style="display:flex;align-items:center;gap:6px;padding:7px 14px;background:#f5f3ff;border:1.5px solid #c4b5fd;border-radius:8px;height:36px;box-sizing:border-box;">
+        <span style="font-size:13px;">⏱</span>
+        <span style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:.5px;color:#5b21b6;" id="hst-total-min">0 min</span>
+      </div>
       <div class="hst-excel-card" onclick="exportarHistoricoExcel()">
         <span class="ac-icon">📊</span>
         <span class="ac-text">Exportar</span>
@@ -8445,6 +8449,8 @@ function renderHistorico(){
   // Tabla
   if(rows.length === 0){
     tbody.innerHTML = `<tr><td colspan="9" class="hst-empty">📊 No hay datos para el período seleccionado</td></tr>`;
+    const elTotal = document.getElementById('hst-total-min');
+    if(elTotal) elTotal.textContent = '0 min';
     return;
   }
 
@@ -8465,6 +8471,11 @@ function renderHistorico(){
       </td>
     </tr>`;
   }).join('');
+
+  // Actualizar cuadrito de minutos acumulados
+  const totalMin = rows.reduce((sum, r) => sum + (r.min || 0), 0);
+  const elTotal = document.getElementById('hst-total-min');
+  if(elTotal) elTotal.textContent = totalMin.toFixed(2) + ' min';
 }
 
 function exportarHistoricoExcel(){
