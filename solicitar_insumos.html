@@ -445,29 +445,29 @@ header::after{
 <div id="modal-overlay" onclick="cerrarModalSiFuera(event)">
   <div class="modal-sheet">
     <button class="modal-close" onclick="cerrarModal()">✕</button>
-    <div class="modal-title">📦 Solicitar Insumo</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;flex-wrap:wrap;">
+      <div class="modal-title" style="margin-bottom:0;">📦 Solicitar Insumo</div>
+      <span id="modal-num-badge" style="display:none;padding:3px 10px;border-radius:20px;background:#eff6ff;border:1.5px solid #93c5fd;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;color:#1e40af;letter-spacing:1px;"></span>
+    </div>
     <div class="modal-sub" id="modal-sub">Mecánico: <strong id="modal-mec-name"></strong></div>
 
-    <div class="field">
-      <label>1. Tipo</label>
-      <input type="text" id="modal-tipo-display" value="Alistamiento" readonly
-        style="background:#f1f5f9;color:var(--muted);cursor:default;">
-    </div>
+    <!-- Campo Tipo oculto — se sigue enviando pero no se muestra -->
+    <input type="hidden" id="modal-tipo-display" value="Alistamiento">
 
     <div class="field">
-      <label>2. Módulo <span style="color:#ef4444;">*</span></label>
+      <label>1. Módulo <span style="color:#ef4444;">*</span></label>
       <select id="modal-modulo">
         <option value="">— Seleccionar —</option>
       </select>
     </div>
 
     <div class="field">
-      <label>3. Referencia <span style="color:#ef4444;">*</span></label>
+      <label>2. Referencia <span style="color:#ef4444;">*</span></label>
       <input type="text" id="modal-ref" placeholder="">
     </div>
 
     <div class="field">
-      <label>4. Insumos <span style="color:#ef4444;">*</span> <span style="color:var(--muted);font-size:9px;font-weight:600;letter-spacing:.5px;text-transform:none;">(agrega uno o más)</span></label>
+      <label>3. Insumos <span style="color:#ef4444;">*</span> <span style="color:var(--muted);font-size:9px;font-weight:600;letter-spacing:.5px;text-transform:none;">(agrega uno o más)</span></label>
 
       <!-- Lista de insumos agregados -->
       <div id="modal-insumos-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
@@ -497,7 +497,9 @@ header::after{
     </div>
 
     <div id="modal-error"></div>
-    <button class="btn-primary" onclick="modalEnviar()">📦 ENVIAR SOLICITUD</button>
+    <button class="btn-primary" onclick="modalEnviar()" style="margin-top:8px;letter-spacing:1.5px;font-size:15px;">
+      📦 ENVIAR SOLICITUD
+    </button>
   </div>
 </div>
 
@@ -626,7 +628,7 @@ function connectWS(){
 
 function arrancar(){
   initFechasSI();
-  // Llenar select de tipos de insumo en modal
+  // Llenar select de tipos de insumo
   const sel=document.getElementById('modal-insumo-tipo');
   sel.innerHTML='<option value="">— Seleccionar —</option>';
   ciConfig.tipoInsumoList.forEach(t=>{
@@ -635,6 +637,38 @@ function arrancar(){
     sel.appendChild(o);
   });
   renderHistorial();
+}
+
+// Poblar módulos: usa moduleList del CI config (incluye módulos creados desde la app)
+// + fallback a /api/modules
+function poblarModalModulos(){
+  const modSel = document.getElementById('modal-modulo');
+  modSel.innerHTML = '<option value="">— Seleccionar —</option>';
+
+  // 1. Intentar con /api/modules (incluye extra + renamed)
+  fetch('/api/modules')
+    .then(r=>r.json())
+    .then(mods=>{
+      const lista = mods && mods.length > 0 ? mods : (ciConfig.moduleList||[]);
+      modSel.innerHTML = '<option value="">— Seleccionar —</option>';
+      lista.forEach(m=>{
+        const o=document.createElement('option');
+        o.value=m; o.textContent=m; modSel.appendChild(o);
+      });
+    })
+    .catch(()=>{
+      // Fallback a moduleList del CI config
+      const lista = ciConfig.moduleList && ciConfig.moduleList.length > 0
+        ? ciConfig.moduleList
+        : ['M01','M02','M03','M04','M05','M06','M07','M08','M09','M10',
+           'M11','M12','M13','M14','M15','M16','M17','M18','M19','M20',
+           'M21','M22','M23','M24','M25','M26','M27'];
+      modSel.innerHTML = '<option value="">— Seleccionar —</option>';
+      lista.forEach(m=>{
+        const o=document.createElement('option');
+        o.value=m; o.textContent=m; modSel.appendChild(o);
+      });
+    });
 }
 
 // ── Modal nueva solicitud ──
@@ -650,24 +684,8 @@ function abrirModal(){
   document.getElementById('modal-error').style.display='none';
   document.getElementById('modal-error').textContent='';
   document.getElementById('modal-mec-name').textContent = currentUser;
-  // Poblar módulos desde configuración del servidor (respeta renombres y deshabilitados)
-  const modSel = document.getElementById('modal-modulo');
-  modSel.innerHTML = '<option value="">— Cargando... —</option>';
-  fetch('/api/modules')
-    .then(r=>r.json())
-    .then(mods=>{
-      modSel.innerHTML = '<option value="">— Seleccionar —</option>';
-      (mods||[]).forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=m; modSel.appendChild(o); });
-    })
-    .catch(()=>{
-      // Fallback a módulos base si falla la API
-      modSel.innerHTML = '<option value="">— Seleccionar —</option>';
-      ['M01','M02','M03','M04','M05','M06','M07','M08','M09','M10',
-       'M11','M12','M13','M14','M15','M16','M17','M18','M19','M20',
-       'M21','M22','M23','M24','M25','M26','M27'].forEach(m=>{
-        const o=document.createElement('option'); o.value=m; o.textContent=m; modSel.appendChild(o);
-      });
-    });
+  // Poblar módulos (incluye módulos extra creados desde la app)
+  poblarModalModulos();
   modalRenderInsumosList();
   document.getElementById('modal-overlay').classList.add('open');
 }
