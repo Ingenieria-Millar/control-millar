@@ -507,31 +507,48 @@ header::after{
 
 <!-- DASHBOARD ADMINISTRADOR -->
 <div id="si-dash-overlay" style="display:none;position:fixed;inset:0;z-index:900;background:#f1f5f9;overflow-y:auto;">
-  <div style="position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid #e2e8f0;padding:0 clamp(12px,2.5vw,24px);min-height:64px;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 1px 6px rgba(0,0,0,.07);">
-    <div style="display:flex;align-items:center;gap:10px;">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:clamp(16px,2.2vw,22px);font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0f172a;line-height:1;">DASHBOARD <span style="color:#7c3aed;">INSUMOS</span></div>
+  <!-- Header dashboard -->
+  <div style="position:relative;position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid #e2e8f0;padding:0 clamp(12px,2.5vw,24px);min-height:64px;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 1px 6px rgba(0,0,0,.07);">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:clamp(16px,2.2vw,22px);font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0f172a;line-height:1;">DASHBOARD <span style="color:#7c3aed;">ALISTAMIENTOS</span></div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <!-- Filtro fecha -->
+      <div style="position:relative;" id="si-dash-fecha-wrap">
+        <button onclick="toggleSIDashFecha()" style="padding:6px 14px;border-radius:8px;border:1.5px solid #cbd5e1;background:#f8fafc;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;color:#475569;display:flex;align-items:center;gap:6px;height:34px;">
+          📅 <span id="si-dash-fecha-lbl">Hoy</span>
+        </button>
+        <div id="si-dash-fecha-panel" style="display:none;position:absolute;top:110%;right:0;z-index:300;background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:240px;">
+          <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:6px;">Desde</div>
+          <input type="date" id="si-dash-desde" style="width:100%;padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:'Nunito',sans-serif;font-size:13px;margin-bottom:10px;outline:none;" oninput="renderSIDashboard();actualizarSIDashFechaLbl()">
+          <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#64748b;margin-bottom:6px;">Hasta</div>
+          <input type="date" id="si-dash-hasta" style="width:100%;padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-family:'Nunito',sans-serif;font-size:13px;margin-bottom:12px;outline:none;" oninput="renderSIDashboard();actualizarSIDashFechaLbl()">
+          <div style="display:flex;gap:8px;">
+            <button onclick="siDashHoy()" style="flex:1;padding:8px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">Hoy</button>
+            <button onclick="siDashLimpiarFecha()" style="flex:1;padding:8px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">Limpiar</button>
+          </div>
+        </div>
+      </div>
+      <button onclick="cerrarSIDashboard()" style="padding:6px 16px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;color:#334155;">← Volver</button>
     </div>
-    <button onclick="cerrarSIDashboard()" style="padding:6px 16px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;color:#334155;">← Volver</button>
     <div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#1e3a8a,#2563eb,#7c3aed);"></div>
   </div>
+  <!-- Contenido -->
   <div style="padding:20px clamp(12px,2.5vw,24px);display:flex;flex-direction:column;gap:20px;">
     <!-- KPIs -->
-    <div id="si-dash-kpis" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;"></div>
-    <!-- Gráficas -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+    <div id="si-dash-kpis" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;"></div>
+    <!-- 3 tarjetas -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;" id="si-dash-grid">
       <div style="background:#fff;border-radius:12px;padding:20px;border:1px solid #e2e8f0;box-shadow:0 1px 4px rgba(0,0,0,.04);">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:14px;">Solicitudes por Mecánico</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:14px;">🔧 Alistamientos por Mecánico</div>
         <div id="si-dash-chart-mec" style="display:flex;flex-direction:column;gap:8px;"></div>
       </div>
       <div style="background:#fff;border-radius:12px;padding:20px;border:1px solid #e2e8f0;box-shadow:0 1px 4px rgba(0,0,0,.04);">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:14px;">Solicitudes por Módulo</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:14px;">⏱ Tiempo de Espera por Mecánico</div>
+        <div id="si-dash-chart-tiempo-mec" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+      <div style="background:#fff;border-radius:12px;padding:20px;border:1px solid #e2e8f0;box-shadow:0 1px 4px rgba(0,0,0,.04);">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:14px;">🏭 Alistamientos por Módulo</div>
         <div id="si-dash-chart-mod" style="display:flex;flex-direction:column;gap:8px;"></div>
       </div>
-    </div>
-    <!-- Tabla resumen -->
-    <div style="background:#fff;border-radius:12px;padding:20px;border:1px solid #e2e8f0;box-shadow:0 1px 4px rgba(0,0,0,.04);">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:10px;">Insumos más Solicitados</div>
-      <div id="si-dash-insumos" style="display:flex;flex-direction:column;gap:6px;"></div>
     </div>
   </div>
 </div>
@@ -1259,6 +1276,14 @@ function checkAdminDashboard(){
 // ── Dashboard ADMINISTRADOR ──────────────────────────────────────
 function abrirSIDashboard(){
   document.getElementById('si-dash-overlay').style.display = 'block';
+  // Inicializar con hoy si no tiene fecha
+  const desde = document.getElementById('si-dash-desde');
+  if(desde && !desde.value){
+    const hoy = new Date().toISOString().split('T')[0];
+    desde.value = hoy;
+    document.getElementById('si-dash-hasta').value = hoy;
+    actualizarSIDashFechaLbl();
+  }
   renderSIDashboard();
 }
 
@@ -1266,68 +1291,144 @@ function cerrarSIDashboard(){
   document.getElementById('si-dash-overlay').style.display = 'none';
 }
 
+// ── Helpers fecha dashboard ──────────────────────────────────────
+function siDashFiltrar(){
+  const hoy = new Date().toISOString().split('T')[0];
+  const desde = document.getElementById('si-dash-desde')?.value || hoy;
+  const hasta  = document.getElementById('si-dash-hasta')?.value  || hoy;
+  // Solo alistamientos (esMecanico:true o categoria='Alistamiento')
+  return ciRequests.filter(r=>{
+    const esAlist = r.esMecanico || r.categoria === 'Alistamiento';
+    if(!esAlist) return false;
+    // Filtro fecha por alertStart
+    if(r.alertStart){
+      const f = new Date(r.alertStart).toISOString().split('T')[0];
+      if(desde && f < desde) return false;
+      if(hasta  && f > hasta) return false;
+    }
+    return true;
+  });
+}
+
+function toggleSIDashFecha(){
+  const p = document.getElementById('si-dash-fecha-panel');
+  if(p) p.style.display = p.style.display==='none' ? 'block' : 'none';
+}
+
+function actualizarSIDashFechaLbl(){
+  const d = document.getElementById('si-dash-desde')?.value || '';
+  const h = document.getElementById('si-dash-hasta')?.value  || '';
+  const lbl = document.getElementById('si-dash-fecha-lbl');
+  if(!lbl) return;
+  if(!d && !h){ lbl.textContent='Hoy'; return; }
+  lbl.textContent = d===h ? d : (d||'?')+' → '+(h||'?');
+}
+
+function siDashHoy(){
+  const hoy = new Date().toISOString().split('T')[0];
+  document.getElementById('si-dash-desde').value = hoy;
+  document.getElementById('si-dash-hasta').value = hoy;
+  actualizarSIDashFechaLbl();
+  renderSIDashboard();
+  toggleSIDashFecha();
+}
+
+function siDashLimpiarFecha(){
+  document.getElementById('si-dash-desde').value = '';
+  document.getElementById('si-dash-hasta').value = '';
+  actualizarSIDashFechaLbl();
+  renderSIDashboard();
+  toggleSIDashFecha();
+}
+
+document.addEventListener('click', e=>{
+  if(!e.target.closest('#si-dash-fecha-wrap')){
+    const p = document.getElementById('si-dash-fecha-panel');
+    if(p) p.style.display = 'none';
+  }
+});
+
+function calcTiempoMin(r){
+  if(r.waitTime != null && r.waitTime > 0){
+    return r.waitTime < 3600 && r.waitTime > 0 ? r.waitTime/60 : r.waitTime/60000;
+  }
+  if(r.status==='alert' && r.alertStart){
+    return (Date.now() - r.alertStart)/60000;
+  }
+  return 0;
+}
+
 function renderSIDashboard(){
-  const data = ciRequests;
-  const total    = data.length;
+  const data = siDashFiltrar();
+  const total     = data.length;
   const entregadas = data.filter(r=>r.status==='done'||r.status==='cumplido').length;
   const pendientes = data.filter(r=>r.status==='alert').length;
 
-  // KPIs
+  // ── KPIs (solo alistamientos) ──
   const kpis = [
-    {icon:'📋', val:total,      label:'Total Solicitudes', color:'#2563eb', bg:'#eff6ff', border:'#bfdbfe'},
-    {icon:'✅', val:entregadas, label:'Entregadas',        color:'#15803d', bg:'#f0fdf4', border:'#86efac'},
-    {icon:'⏳', val:pendientes, label:'Pendientes',        color:'#dc2626', bg:'#fef2f2', border:'#fca5a5'},
+    {icon:'🔧', val:total,      label:'Total Alistamientos', color:'#7c3aed', bg:'#f5f3ff', border:'#c4b5fd'},
+    {icon:'✅', val:entregadas, label:'Entregados',           color:'#15803d', bg:'#f0fdf4', border:'#86efac'},
+    {icon:'⏳', val:pendientes, label:'Pendientes',           color:'#dc2626', bg:'#fef2f2', border:'#fca5a5'},
   ];
   document.getElementById('si-dash-kpis').innerHTML = kpis.map(k=>`
-    <div style="background:#fff;border-radius:12px;padding:16px;border:1px solid ${k.border};background:${k.bg};">
-      <div style="font-size:22px;margin-bottom:6px;">${k.icon}</div>
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:${k.color};line-height:1;">${k.val}</div>
+    <div style="background:${k.bg};border-radius:12px;padding:18px;border:1px solid ${k.border};">
+      <div style="font-size:24px;margin-bottom:6px;">${k.icon}</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:800;color:${k.color};line-height:1;">${k.val}</div>
       <div style="font-size:12px;color:#0f172a;font-weight:700;margin-top:4px;">${k.label}</div>
     </div>`).join('');
 
-  // Helper barras
-  function barras(containerId, map, color){
-    const sorted = Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,8);
-    const max = Math.max(...sorted.map(([,v])=>v), 1);
-    document.getElementById(containerId).innerHTML = sorted.length === 0
+  // ── Helper barras con valor en texto ──
+  function barras(containerId, entries, color, fmt){
+    const max = Math.max(...entries.map(([,v])=>v), 1);
+    document.getElementById(containerId).innerHTML = entries.length===0
       ? '<div style="color:#94a3b8;font-size:12px;">Sin datos</div>'
-      : sorted.map(([k,v])=>`
-        <div style="display:flex;align-items:center;gap:8px;">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:#0f172a;width:90px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${k}</div>
+      : entries.map(([k,v])=>`
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:#0f172a;width:100px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${k}">${k}</div>
           <div style="flex:1;height:12px;background:#f1f5f9;border-radius:20px;overflow:hidden;">
-            <div style="height:100%;border-radius:20px;background:${color};width:${(v/max*100).toFixed(1)}%;"></div>
+            <div style="height:100%;border-radius:20px;background:${color};width:${(v/max*100).toFixed(1)}%;transition:width .5s;"></div>
           </div>
-          <div style="font-family:'Courier New',monospace;font-size:11px;font-weight:700;color:#64748b;width:24px;text-align:right;">${v}</div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:800;color:#0f172a;white-space:nowrap;min-width:50px;text-align:right;">${fmt(v)}</div>
         </div>`).join('');
   }
 
-  // Por mecánico
-  const mecMap = {};
-  data.forEach(r=>{ const m=r.esMecanico?(r.module||'?'):(r.module||'?'); mecMap[r.module||'?']=(mecMap[r.module||'?']||0)+1; });
-  // Corrección: agrupar por mecánico (quién hizo la solicitud)
-  const mecMap2 = {};
-  data.forEach(r=>{ const k=r.module||'?'; mecMap2[k]=(mecMap2[k]||0)+1; });
-  barras('si-dash-chart-mec', mecMap2, '#2563eb');
+  // ── 1. Alistamientos por Mecánico (cantidad) ──
+  const mecCant = {};
+  data.forEach(r=>{ const k=r.module||'?'; mecCant[k]=(mecCant[k]||0)+1; });
+  barras('si-dash-chart-mec',
+    Object.entries(mecCant).sort((a,b)=>b[1]-a[1]).slice(0,10),
+    '#7c3aed', v=>v);
 
-  // Por módulo destino
-  const modMap = {};
-  data.forEach(r=>{ const k=r.module||'?'; modMap[k]=(modMap[k]||0)+1; });
-  barras('si-dash-chart-mod', modMap, '#7c3aed');
-
-  // Insumos más solicitados
-  const insMap = {};
+  // ── 2. Tiempo de espera por Mecánico (minutos) ──
+  const mecTiempo = {};
   data.forEach(r=>{
-    (r.insumos||[{tipo:r.tipo}]).forEach(i=>{
-      if(i.tipo){ insMap[i.tipo]=(insMap[i.tipo]||0)+1; }
-    });
+    const k = r.module||'?';
+    mecTiempo[k] = (mecTiempo[k]||0) + calcTiempoMin(r);
   });
-  const sorted = Object.entries(insMap).sort((a,b)=>b[1]-a[1]).slice(0,10);
-  document.getElementById('si-dash-insumos').innerHTML = sorted.length===0
-    ? '<div style="color:#94a3b8;font-size:12px;padding:8px 0;">Sin datos</div>'
-    : sorted.map(([k,v],i)=>`
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:${i%2===0?'#f8fafc':'#fff'};border-radius:8px;font-size:13px;">
-        <span style="font-weight:600;color:#0f172a;">${k}</span>
-        <span style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;color:#2563eb;">${v}</span>
+  barras('si-dash-chart-tiempo-mec',
+    Object.entries(mecTiempo).sort((a,b)=>b[1]-a[1]).slice(0,10),
+    '#f97316', v=>v.toFixed(0)+' min');
+
+  // ── 3. Alistamientos por Módulo (cantidad + tiempo) ──
+  const modData = {};
+  data.forEach(r=>{
+    // El módulo destino en alistamientos es moduloDestino
+    const k = r.moduloDestino || r.module || '?';
+    if(!modData[k]) modData[k] = {cant:0, tiempo:0};
+    modData[k].cant++;
+    modData[k].tiempo += calcTiempoMin(r);
+  });
+  const modEntries = Object.entries(modData).sort((a,b)=>b[1].cant-a[1].cant).slice(0,10);
+  const maxMod = Math.max(...modEntries.map(([,v])=>v.cant), 1);
+  document.getElementById('si-dash-chart-mod').innerHTML = modEntries.length===0
+    ? '<div style="color:#94a3b8;font-size:12px;">Sin datos</div>'
+    : modEntries.map(([k,v])=>`
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:#0f172a;width:40px;flex-shrink:0;">${k}</div>
+        <div style="flex:1;height:12px;background:#f1f5f9;border-radius:20px;overflow:hidden;">
+          <div style="height:100%;border-radius:20px;background:#2563eb;width:${(v.cant/maxMod*100).toFixed(1)}%;transition:width .5s;"></div>
+        </div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:800;color:#0f172a;white-space:nowrap;min-width:90px;text-align:right;">${v.cant} · ${v.tiempo.toFixed(0)} min</div>
       </div>`).join('');
 }
 
