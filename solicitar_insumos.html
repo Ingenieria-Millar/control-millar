@@ -26,7 +26,7 @@ header{
   display:flex;align-items:center;justify-content:space-between;gap:12px;
 }
 header::after{
-  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
   background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);
 }
 .hd-left{ display:flex;align-items:center;gap:12px; }
@@ -399,7 +399,7 @@ header::after{
       </div>
       <div>
         <div class="hd-title">SOLICITAR <span>INSUMOS</span></div>
-        <div class="hd-sub">Reportar faltante de insumos</div>
+        <p id="si-header-date" style="font-family:'Nunito',sans-serif;font-size:12px;color:#64748b;font-weight:600;margin:2px 0 0 0;letter-spacing:.2px;"></p>
       </div>
     </div>
     <div class="hd-right">
@@ -407,6 +407,7 @@ header::after{
         <div class="hd-user-dot"></div>
         <span id="hd-user-lbl"></span>
       </div>
+      <button id="btn-si-dashboard" class="hd-back-btn" onclick="abrirSIDashboard()" style="display:none;background:#f5f3ff;border-color:#c4b5fd;color:#6d28d9;">📈 Dashboard</button>
       <button class="hd-back-btn" onclick="volverInicio()">← Volver</button>
     </div>
   </header>
@@ -504,6 +505,37 @@ header::after{
 
 <div id="si-toast"></div>
 
+<!-- DASHBOARD ADMINISTRADOR -->
+<div id="si-dash-overlay" style="display:none;position:fixed;inset:0;z-index:900;background:#f1f5f9;overflow-y:auto;">
+  <div style="position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid #e2e8f0;padding:0 clamp(12px,2.5vw,24px);min-height:64px;display:flex;align-items:center;justify-content:space-between;gap:12px;box-shadow:0 1px 6px rgba(0,0,0,.07);">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:clamp(16px,2.2vw,22px);font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0f172a;line-height:1;">DASHBOARD <span style="color:#7c3aed;">INSUMOS</span></div>
+    </div>
+    <button onclick="cerrarSIDashboard()" style="padding:6px 16px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;color:#334155;">← Volver</button>
+    <div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#1e3a8a,#2563eb,#7c3aed);"></div>
+  </div>
+  <div style="padding:20px clamp(12px,2.5vw,24px);display:flex;flex-direction:column;gap:20px;">
+    <!-- KPIs -->
+    <div id="si-dash-kpis" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;"></div>
+    <!-- Gráficas -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div style="background:#fff;border-radius:12px;padding:20px;border:1px solid #e2e8f0;box-shadow:0 1px 4px rgba(0,0,0,.04);">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:14px;">Solicitudes por Mecánico</div>
+        <div id="si-dash-chart-mec" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+      <div style="background:#fff;border-radius:12px;padding:20px;border:1px solid #e2e8f0;box-shadow:0 1px 4px rgba(0,0,0,.04);">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:14px;">Solicitudes por Módulo</div>
+        <div id="si-dash-chart-mod" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+    </div>
+    <!-- Tabla resumen -->
+    <div style="background:#fff;border-radius:12px;padding:20px;border:1px solid #e2e8f0;box-shadow:0 1px 4px rgba(0,0,0,.04);">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:10px;">Insumos más Solicitados</div>
+      <div id="si-dash-insumos" style="display:flex;flex-direction:column;gap:6px;"></div>
+    </div>
+  </div>
+</div>
+
 <script>
 // ══════════════════════════════════════════════════════
 //  solicitar_insumos.html — Vista del mecánico
@@ -562,6 +594,7 @@ function seleccionarMecanico(nombre){
   document.getElementById('hd-user-lbl').textContent = nombre.toUpperCase();
   document.getElementById('modal-mec-name').textContent = nombre;
   document.getElementById('si-app').style.display = 'block';
+  checkAdminDashboard();
   connectWS();
 }
 
@@ -1146,8 +1179,15 @@ document.addEventListener('click', e=>{
 });
 
 function volverInicio(){
-  if(document.referrer && document.referrer!==window.location.href) window.history.back();
-  else window.location.href='/';
+  // Desde el header → volver al login del archivo
+  const app = document.getElementById('si-app');
+  if(app && app.style.display !== 'none'){
+    app.style.display = 'none';
+    mostrarLoginMecanico();
+  } else {
+    if(document.referrer && document.referrer!==window.location.href) window.history.back();
+    else window.location.href='/';
+  }
 }
 
 // ── Función de sonidos ──
@@ -1197,6 +1237,98 @@ function _playSoundById(id){
       }
     }
   } catch(e){ console.warn('Audio no disponible'); }
+}
+
+// ── Fecha en header ─────────────────────────────────────────────
+function updateSIHeaderDate(){
+  const el = document.getElementById('si-header-date');
+  if(el){
+    const now = new Date();
+    el.textContent = now.toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  }
+}
+setInterval(updateSIHeaderDate, 60000);
+updateSIHeaderDate();
+
+// ── Mostrar botón dashboard solo para ADMINISTRADOR ──────────────
+function checkAdminDashboard(){
+  const btn = document.getElementById('btn-si-dashboard');
+  if(btn) btn.style.display = currentUser === 'ADMINISTRADOR' ? 'flex' : 'none';
+}
+
+// ── Dashboard ADMINISTRADOR ──────────────────────────────────────
+function abrirSIDashboard(){
+  document.getElementById('si-dash-overlay').style.display = 'block';
+  renderSIDashboard();
+}
+
+function cerrarSIDashboard(){
+  document.getElementById('si-dash-overlay').style.display = 'none';
+}
+
+function renderSIDashboard(){
+  const data = ciRequests;
+  const total    = data.length;
+  const entregadas = data.filter(r=>r.status==='done'||r.status==='cumplido').length;
+  const pendientes = data.filter(r=>r.status==='alert').length;
+
+  // KPIs
+  const kpis = [
+    {icon:'📋', val:total,      label:'Total Solicitudes', color:'#2563eb', bg:'#eff6ff', border:'#bfdbfe'},
+    {icon:'✅', val:entregadas, label:'Entregadas',        color:'#15803d', bg:'#f0fdf4', border:'#86efac'},
+    {icon:'⏳', val:pendientes, label:'Pendientes',        color:'#dc2626', bg:'#fef2f2', border:'#fca5a5'},
+  ];
+  document.getElementById('si-dash-kpis').innerHTML = kpis.map(k=>`
+    <div style="background:#fff;border-radius:12px;padding:16px;border:1px solid ${k.border};background:${k.bg};">
+      <div style="font-size:22px;margin-bottom:6px;">${k.icon}</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:${k.color};line-height:1;">${k.val}</div>
+      <div style="font-size:12px;color:#0f172a;font-weight:700;margin-top:4px;">${k.label}</div>
+    </div>`).join('');
+
+  // Helper barras
+  function barras(containerId, map, color){
+    const sorted = Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    const max = Math.max(...sorted.map(([,v])=>v), 1);
+    document.getElementById(containerId).innerHTML = sorted.length === 0
+      ? '<div style="color:#94a3b8;font-size:12px;">Sin datos</div>'
+      : sorted.map(([k,v])=>`
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:#0f172a;width:90px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${k}</div>
+          <div style="flex:1;height:12px;background:#f1f5f9;border-radius:20px;overflow:hidden;">
+            <div style="height:100%;border-radius:20px;background:${color};width:${(v/max*100).toFixed(1)}%;"></div>
+          </div>
+          <div style="font-family:'Courier New',monospace;font-size:11px;font-weight:700;color:#64748b;width:24px;text-align:right;">${v}</div>
+        </div>`).join('');
+  }
+
+  // Por mecánico
+  const mecMap = {};
+  data.forEach(r=>{ const m=r.esMecanico?(r.module||'?'):(r.module||'?'); mecMap[r.module||'?']=(mecMap[r.module||'?']||0)+1; });
+  // Corrección: agrupar por mecánico (quién hizo la solicitud)
+  const mecMap2 = {};
+  data.forEach(r=>{ const k=r.module||'?'; mecMap2[k]=(mecMap2[k]||0)+1; });
+  barras('si-dash-chart-mec', mecMap2, '#2563eb');
+
+  // Por módulo destino
+  const modMap = {};
+  data.forEach(r=>{ const k=r.module||'?'; modMap[k]=(modMap[k]||0)+1; });
+  barras('si-dash-chart-mod', modMap, '#7c3aed');
+
+  // Insumos más solicitados
+  const insMap = {};
+  data.forEach(r=>{
+    (r.insumos||[{tipo:r.tipo}]).forEach(i=>{
+      if(i.tipo){ insMap[i.tipo]=(insMap[i.tipo]||0)+1; }
+    });
+  });
+  const sorted = Object.entries(insMap).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  document.getElementById('si-dash-insumos').innerHTML = sorted.length===0
+    ? '<div style="color:#94a3b8;font-size:12px;padding:8px 0;">Sin datos</div>'
+    : sorted.map(([k,v],i)=>`
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:${i%2===0?'#f8fafc':'#fff'};border-radius:8px;font-size:13px;">
+        <span style="font-weight:600;color:#0f172a;">${k}</span>
+        <span style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;color:#2563eb;">${v}</span>
+      </div>`).join('');
 }
 
 // ── Init ──
