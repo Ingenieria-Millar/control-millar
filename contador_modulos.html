@@ -523,6 +523,7 @@ connectWS();
 
 // ── Formato de tiempo ────────────────────────────────────────────
 function formatTime(ms){
+  if(!ms || ms <= 0) return '0s';
   const s=Math.floor(ms/1000),m=Math.floor(s/60),h=Math.floor(m/60);
   if(h>0) return `${h}h ${String(m%60).padStart(2,'0')}m`;
   if(m>0) return `${m}m ${String(s%60).padStart(2,'0')}s`;
@@ -678,13 +679,16 @@ function abrirNuevoImproductivo(){
   const imps = _multiImp[selectedMod] || [];
   // Máximo 4 total: si imps ya tiene ≥3 (principal + 2 multis + 1 que vamos a abrir = 4)
   if(imps.length >= 4){ showToast('⚠ Máximo 4 improductivos simultáneos'); return; }
-  // Tipos ya activos: los del array + el estado actual (por si el principal aún no está en el array)
+  // Tipos ya activos: los del array + el estado actual
   const tiposActivos = imps.map(i => i.tipoActual || i.tipo);
   const estadoPrincipal = states[selectedMod] || 'green';
   if(!tiposActivos.includes(estadoPrincipal) && estadoPrincipal !== 'green'){
     tiposActivos.push(estadoPrincipal);
   }
-  const todosLos = ['red','yellow','orange','purple','blue','pink'];
+  // yellow y red son el mismo slot (rojo que pasó a amarillo)
+  if(tiposActivos.includes('yellow') && !tiposActivos.includes('red')) tiposActivos.push('red');
+  if(tiposActivos.includes('red')    && !tiposActivos.includes('yellow')) tiposActivos.push('yellow');
+  const todosLos = ['red','orange','purple','blue','pink']; // yellow no es seleccionable directamente
   const disponibles = todosLos.filter(t => !tiposActivos.includes(t));
   if(disponibles.length === 0){ showToast('⚠ No hay más tipos disponibles'); return; }
   // Marcar que es para multi y mostrar modal con opciones filtradas
@@ -724,18 +728,22 @@ function commitMultiImp(tipo, empleada, ciRequestId){
   if(imps.length === 0){
     const estadoActual = states[modId] || 'green';
     if(estadoActual !== 'green'){
-      const impPrincipal = {
-        id:          'principal-'+Date.now(),
-        tipo:        estadoActual,
-        tipoActual:  estadoActual,
-        inicio:      timers[modId] || Date.now(),
-        empleada:    (window._lastEmpleada&&window._lastEmpleada[modId])||'',
-        mecanico:    lastMec[modId]||'',
-        ciRequestId: null,
-        esPrincipal: true
-      };
-      imps.push(impPrincipal);
-      wsSend({ type:'multi_imp_change', action:'open', modId, imp:impPrincipal });
+      // Verificar que no exista ya un principal (evita duplicados en reconexión)
+      const yaHayPrincipal = imps.some(i => i.esPrincipal);
+      if(!yaHayPrincipal){
+        const impPrincipal = {
+          id:          'principal-'+Date.now(),
+          tipo:        estadoActual,
+          tipoActual:  estadoActual,
+          inicio:      timers[modId] || Date.now(),
+          empleada:    (window._lastEmpleada&&window._lastEmpleada[modId])||'',
+          mecanico:    lastMec[modId]||'',
+          ciRequestId: null,
+          esPrincipal: true
+        };
+        imps.push(impPrincipal);
+        wsSend({ type:'multi_imp_change', action:'open', modId, imp:impPrincipal });
+      }
     }
   }
 
@@ -799,7 +807,6 @@ function closeMultiImp(impId){
   const imps  = _multiImp[modId] || [];
   const idx   = imps.findIndex(i => i.id === impId);
   if(idx === -1) return;
-  const imp = imps[idx];
   imps.splice(idx, 1);
   // Recalcular estado principal
   if(imps.length > 0){
@@ -807,8 +814,11 @@ function closeMultiImp(impId){
     states[modId] = ultimo.tipoActual || ultimo.tipo;
     timers[modId] = ultimo.inicio;
   } else {
+    // Sin más improductivos — limpiar todo
     states[modId] = 'green';
     timers[modId] = Date.now();
+    lastMec[modId] = '';
+    window._lastEmpleada[modId] = '';
   }
   renderBig();
   wsSend({ type:'multi_imp_change', action:'close', modId, imp:{ id:impId } });
@@ -978,10 +988,14 @@ function seleccionarMecanico(nombre){
       // Mecánico llegó → marcar amarillo en el mini
       updateMultiImpColor(impId, 'yellow', nombre);
     } else if(estado === 'green'){
-      // Mecánico resolvió → cerrar el mini
+      // Mecánico resolvió → actualizar mecánico en el imp y cerrar
       const imps = _multiImp[id] || [];
       const imp  = imps.find(i=>i.id===impId);
-      if(imp) imp.mecanico = nombre;
+      if(imp){
+        imp.mecanico = nombre;
+        // Enviar update antes de cerrar para que el servidor registre el mecánico
+        wsSend({ type:'multi_imp_change', action:'update', modId:id, imp:{ ...imp } });
+      }
       closeMultiImp(impId);
     }
   } else {
