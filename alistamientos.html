@@ -732,11 +732,31 @@ function startClock() {
 }
 
 async function loadConfig() {
-  // Módulos y mecánicos vienen de la config local de alistamientos
-  // Se configuran en ⚙️ Configuración > Módulos / Mecánicos
+  // Módulos y mecánicos: primero intentar desde servidor (compartido entre dispositivos)
+  // Fallback a localStorage si el servidor no responde
+  let modulos   = [];
+  let mecanicos = [];
+  try {
+    const r = await fetch('/api/app-config');
+    if (r.ok) {
+      const serverCfg = await r.json();
+      modulos   = serverCfg._alist_modulos   || [];
+      mecanicos = serverCfg._alist_mecanicos || [];
+    }
+  } catch(e) {}
+
+  // Si el servidor no tiene datos, usar localStorage
+  if (!modulos.length || !mecanicos.length) {
+    const localCfg = getCfgLocal();
+    if (!modulos.length)   modulos   = localCfg.modulos   || [];
+    if (!mecanicos.length) mecanicos = localCfg.mecanicos || [];
+  }
+
+  // Actualizar localStorage con lo del servidor para uso offline
   const localCfg = getCfgLocal();
-  const modulos   = localCfg.modulos   || [];
-  const mecanicos = localCfg.mecanicos || [];
+  if (modulos.length)   localCfg.modulos   = modulos;
+  if (mecanicos.length) localCfg.mecanicos = mecanicos;
+  localStorage.setItem(CFG_KEY, JSON.stringify(localCfg));
 
   // Máquinas desde el servidor
   let maquinas = [];
@@ -1228,16 +1248,40 @@ function getCfgLocal() {
 }
 
 function saveCfgLocal(cfg) {
+  // Guardar localmente
   localStorage.setItem(CFG_KEY, JSON.stringify(cfg));
+  // Sincronizar módulos y mecánicos en el servidor (compartido entre dispositivos)
+  fetch('/api/app-config', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ _alist_modulos: cfg.modulos || [], _alist_mecanicos: cfg.mecanicos || [] })
+  }).catch(e => console.warn('No se pudo sincronizar config:', e));
 }
 
 function abrirModalConfig() {
-  const cfg = getCfgLocal();
-  renderCfgList('cfgAgujaList',    cfg.agujas,    'aguja');
-  renderCfgList('cfgCalibreList',  cfg.calibres,  'calibre');
-  renderCfgList('cfgPppList',      cfg.ppps,      'ppp');
-  renderCfgList('cfgModuloList',   cfg.modulos,   'modulo');
-  renderCfgList('cfgMecanicoList', cfg.mecanicos, 'mecanico');
+  // Cargar datos frescos del servidor antes de mostrar
+  fetch('/api/app-config')
+    .then(r => r.ok ? r.json() : {})
+    .then(serverCfg => {
+      const cfg = getCfgLocal();
+      // Sincronizar módulos y mecánicos desde servidor
+      if (serverCfg._alist_modulos)   cfg.modulos   = serverCfg._alist_modulos;
+      if (serverCfg._alist_mecanicos) cfg.mecanicos = serverCfg._alist_mecanicos;
+      localStorage.setItem(CFG_KEY, JSON.stringify(cfg));
+      renderCfgList('cfgAgujaList',    cfg.agujas,    'aguja');
+      renderCfgList('cfgCalibreList',  cfg.calibres,  'calibre');
+      renderCfgList('cfgPppList',      cfg.ppps,      'ppp');
+      renderCfgList('cfgModuloList',   cfg.modulos,   'modulo');
+      renderCfgList('cfgMecanicoList', cfg.mecanicos, 'mecanico');
+    })
+    .catch(() => {
+      const cfg = getCfgLocal();
+      renderCfgList('cfgAgujaList',    cfg.agujas,    'aguja');
+      renderCfgList('cfgCalibreList',  cfg.calibres,  'calibre');
+      renderCfgList('cfgPppList',      cfg.ppps,      'ppp');
+      renderCfgList('cfgModuloList',   cfg.modulos,   'modulo');
+      renderCfgList('cfgMecanicoList', cfg.mecanicos, 'mecanico');
+    });
   switchCfgTab('alist');
   document.getElementById('modalConfig').classList.add('open');
 }
