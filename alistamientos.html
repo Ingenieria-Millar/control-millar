@@ -731,18 +731,33 @@ async function loadConfig() {
   const allMods   = [...BASE_MODS, ...extra].filter(m => !disabled.includes(m));
   const modLabels = allMods.map(m => renamed[m] || m);
 
-  // ── Mecánicos: usuarios del perfil Mecanicos desde localStorage ──
-  // ── Mecánicos: employees de iaState con cargo mecánico ──
+  // ── Mecánicos: desde millar_config_v1._mecanicos (lista directa) ──
+  // O desde employees con cargo mecánico en iaState
   let mecanicos = [];
-  const employees = state.employees || [];
-  const normCargo = c => (c||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
-  const mecEmps = employees.filter(e => !e.disabled && /^mecanico[s]?$/.test(normCargo(e.cargo)));
-  if (mecEmps.length) {
-    mecanicos = mecEmps.map(e => e.name).filter(Boolean);
-  } else {
-    // Fallback: cualquier employee activo con "mecanic" en el cargo
-    const mecFallback = employees.filter(e => !e.disabled && normCargo(e.cargo).includes('mecanic'));
-    mecanicos = mecFallback.map(e => e.name).filter(Boolean);
+
+  // Opción 1: lista directa en config (_mecanicos o mecanicos)
+  const mecDirectos = cfg._mecanicos || cfg.mecanicos || [];
+  if (Array.isArray(mecDirectos) && mecDirectos.length) {
+    mecanicos = mecDirectos.map(m => (typeof m === 'string' ? m : m.nombre || m.name || '')).filter(Boolean);
+  }
+
+  // Opción 2: employees con cargo mecánico en iaState
+  if (!mecanicos.length) {
+    const employees = state.employees || [];
+    const normCargo = c => (c||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+    // Amplio: acepta mecanico, mecanicos, mecánico, jefe mecanico, etc.
+    const mecEmps = employees.filter(e => !e.disabled && normCargo(e.cargo).includes('mecanic'));
+    mecanicos = mecEmps.map(e => e.name || e.nombre).filter(Boolean);
+  }
+
+  // Opción 3: usuarios con perfil Mecanicos desde millar_config_v1._usuarios
+  if (!mecanicos.length) {
+    const usuarios = cfg._usuarios || [];
+    const mecUsuarios = usuarios.filter(u => {
+      const rol = ((u.rol||u.perfil||u.role||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')).toLowerCase();
+      return rol.includes('mecanic');
+    });
+    mecanicos = mecUsuarios.map(u => u.nombre || u.name || u.usuario).filter(Boolean);
   }
 
   // ── Supervisoras: employees con cargo supervisora/supervisor ──
