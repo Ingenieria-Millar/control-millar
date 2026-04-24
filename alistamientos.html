@@ -574,12 +574,34 @@ tr:hover td{background:#f8fafc;}
         </div>
 
         <!-- PPP -->
-        <div style="margin-bottom:8px;">
+        <div style="margin-bottom:24px;">
           <div class="form-section-title" style="margin-bottom:12px;">📏 Puntadas por Pulgada (PPP)</div>
           <div id="cfgPppList" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;"></div>
           <div style="display:flex;gap:8px;margin-top:8px;">
             <input type="text" class="form-input" id="cfgPppInput" placeholder="Ej: 12, 14..." style="flex:1;" onkeydown="if(event.key==='Enter'){event.preventDefault();agregarCfgItem('ppp');}">
             <button class="btn btn-primary" style="padding:8px 16px;" onclick="agregarCfgItem('ppp')">+ Agregar</button>
+          </div>
+        </div>
+
+        <!-- MÓDULOS -->
+        <div style="margin-bottom:24px;border-top:1px solid var(--border);padding-top:20px;">
+          <div class="form-section-title" style="margin-bottom:12px;">🏭 Módulos</div>
+          <div id="cfgModuloList" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;"></div>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <input type="text" class="form-input" id="cfgModuloInput" placeholder="Ej: M01, M02..." style="flex:1;"
+              onkeydown="if(event.key==='Enter'){event.preventDefault();agregarCfgItem('modulo');}">
+            <button class="btn btn-primary" style="padding:8px 16px;" onclick="agregarCfgItem('modulo')">+ Agregar</button>
+          </div>
+        </div>
+
+        <!-- MECÁNICOS -->
+        <div style="margin-bottom:8px;">
+          <div class="form-section-title" style="margin-bottom:12px;">🔧 Mecánicos</div>
+          <div id="cfgMecanicoList" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;"></div>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <input type="text" class="form-input" id="cfgMecanicoInput" placeholder="Ej: Juan García..." style="flex:1;"
+              onkeydown="if(event.key==='Enter'){event.preventDefault();agregarCfgItem('mecanico');}">
+            <button class="btn btn-primary" style="padding:8px 16px;" onclick="agregarCfgItem('mecanico')">+ Agregar</button>
           </div>
         </div>
 
@@ -710,84 +732,22 @@ function startClock() {
 }
 
 async function loadConfig() {
-  // ── Leer config desde el servidor (igual que index.html) ──
-  // /api/app-config es global (no bajo /alistamiento/) — igual que index.html
-  let cfg = {};
-  try {
-    const r = await fetch('/api/app-config');
-    if (r.ok) cfg = await r.json();
-  } catch(e) {
-    try { cfg = JSON.parse(localStorage.getItem('millar_config_v1')||'{}'); } catch(e2){}
-  }
+  // Módulos y mecánicos vienen de la config local de alistamientos
+  // Se configuran en ⚙️ Configuración > Módulos / Mecánicos
+  const localCfg = getCfgLocal();
+  const modulos   = localCfg.modulos   || [];
+  const mecanicos = localCfg.mecanicos || [];
 
-  // Estado IA — no se necesita si los mecánicos vienen de _perfil_members
-  let state = {};
-
-  // ── Módulos: igual que index.html — base + extras, sin deshabilitados, con renombres ──
-  const BASE_MODS = ['M01','M02','M03','M04','M05','M06','M07','M08','M09','M10',
-    'M11','M12','M13','M14','M15','M16','M17','M18','M19','M20',
-    'M21','M22','M23','M24','M25','M26','M27'];
-  const disabled = cfg._modulos_disabled || [];
-  const extra    = cfg._modulos_extra    || [];
-  const renamed  = cfg._modulos_renamed  || {};
-  // También incluir módulos definidos en la tabla de módulos (_tabla_modulos)
-  const tablaModulos = (cfg._tabla_modulos || []).filter(m => !m.disabled).map(m => m.nombre || m.id || m);
-  const allFromExtra = [...extra, ...tablaModulos.filter(m => !BASE_MODS.includes(m))];
-  const allMods  = [...BASE_MODS, ...allFromExtra].filter(m => !disabled.includes(m));
-  // Deduplicar
-  const allModsUniq = [...new Set(allMods)];
-  const modLabels = allModsUniq.map(m => renamed[m] || m);
-
-  // ── Mecánicos: desde _perfil_members['Mecanicos'] en millar_config_v1 ──
-  // Exactamente igual a como lo hace index.html con getProfileMembers('Mecanicos')
-  let mecanicos = [];
-  const perfilMembers = cfg._perfil_members || {};
-  const mecMembers = perfilMembers['Mecanicos'] || [];
-  if (mecMembers.length) {
-    mecanicos = mecMembers
-      .filter(m => !m.disabled)
-      .map(m => typeof m === 'string' ? m : (m.nombre || m.name || ''))
-      .filter(Boolean);
-  }
-
-  // Fallback: employees con cargo mecánico en iaState
-  if (!mecanicos.length) {
-    const employees = state.employees || [];
-    const normC = c => (c||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
-    mecanicos = employees
-      .filter(e => !e.disabled && normC(e.cargo).includes('mecanic'))
-      .map(e => e.name || e.nombre).filter(Boolean);
-  }
-
-  // ── Supervisoras: employees con cargo supervisora/supervisor ──
-  const supEmps = employees.filter(e => !e.disabled && /^supervisor[a]?$/.test(normCargo(e.cargo)));
-  const supervisoras = supEmps.map((s,i) => ({id: s.id||i+1, nombre: s.name, modulos: [], rol:'Titular'}));
-
-  // ── Máquinas: leer desde config._maquinaria ──
-  const maquinasObj = cfg._maquinaria || [];
-  const maquinas = maquinasObj.filter(m=>!m.disabled).map(m=>m.tipo||m.modelo||m.codigo).filter(Boolean);
-  const maquinasUniq = [...new Set(maquinas)];
-
-  config = {
-    supervisoras,
-    mecanicos,
-    modulos: modLabels,
-    maquinas: maquinasUniq
-  };
-
-  // ── También intentar sincronizar con el servidor ──
+  // Máquinas desde el servidor
+  let maquinas = [];
   try {
     const r = await fetch(`${API}/api/config`);
-    if (r.ok) {
-      const serverCfg = await r.json();
-      // Fusionar: preferir localStorage para módulos/mecánicos, servidor para el resto
-      config.supervisoras = serverCfg.supervisoras || config.supervisoras;
-      // Mantener módulos y mecánicos de localStorage
-    }
-  } catch(e) {
-    // Sin servidor — usar solo localStorage (ok)
-  }
+    if (r.ok) { const sc = await r.json(); maquinas = sc.maquinas || []; }
+  } catch(e) {}
+
+  config = { supervisoras:[], mecanicos, modulos, maquinas };
 }
+
 
 function populateForms() {
   // Recargar config fresca desde localStorage en cada llamada
@@ -1258,7 +1218,8 @@ const DEFAULT_CFG = {
   agujas:    ['B27','B63','B64','UY 128','UY 113','UY 118','135 X 5','16 X 257'],
   calibres:  ['50','55','60','65','70','75','80','85','90'],
   ppps:      ['9','10','11','12','13','14','15','16','17','18','19','20'],
-  mecanicos_extra: []
+  modulos:   [],
+  mecanicos: []
 };
 
 function getCfgLocal() {
@@ -1272,9 +1233,11 @@ function saveCfgLocal(cfg) {
 
 function abrirModalConfig() {
   const cfg = getCfgLocal();
-  renderCfgList('cfgAgujaList',    cfg.agujas,   'aguja');
-  renderCfgList('cfgCalibreList',  cfg.calibres, 'calibre');
-  renderCfgList('cfgPppList',      cfg.ppps,     'ppp');
+  renderCfgList('cfgAgujaList',    cfg.agujas,    'aguja');
+  renderCfgList('cfgCalibreList',  cfg.calibres,  'calibre');
+  renderCfgList('cfgPppList',      cfg.ppps,      'ppp');
+  renderCfgList('cfgModuloList',   cfg.modulos,   'modulo');
+  renderCfgList('cfgMecanicoList', cfg.mecanicos, 'mecanico');
   switchCfgTab('alist');
   document.getElementById('modalConfig').classList.add('open');
 }
@@ -1294,17 +1257,18 @@ function renderCfgList(containerId, items, tipo) {
 }
 
 function agregarCfgItem(tipo) {
-  const inputId = { aguja:'cfgAgujaInput', calibre:'cfgCalibreInput', ppp:'cfgPppInput' }[tipo];
-  const input = document.getElementById(inputId);
+  const inputId  = { aguja:'cfgAgujaInput', calibre:'cfgCalibreInput', ppp:'cfgPppInput', modulo:'cfgModuloInput', mecanico:'cfgMecanicoInput' }[tipo];
+  const input    = document.getElementById(inputId);
   if (!input) return;
   const val = input.value.trim();
   if (!val) return;
   const cfg = getCfgLocal();
-  const key = { aguja:'agujas', calibre:'calibres', ppp:'ppps' }[tipo];
+  const key = { aguja:'agujas', calibre:'calibres', ppp:'ppps', modulo:'modulos', mecanico:'mecanicos' }[tipo];
+  if (!cfg[key]) cfg[key] = [];
   if (!cfg[key].includes(val)) {
     cfg[key].push(val);
     saveCfgLocal(cfg);
-    const listId = { aguja:'cfgAgujaList', calibre:'cfgCalibreList', ppp:'cfgPppList' }[tipo];
+    const listId = { aguja:'cfgAgujaList', calibre:'cfgCalibreList', ppp:'cfgPppList', modulo:'cfgModuloList', mecanico:'cfgMecanicoList' }[tipo];
     renderCfgList(listId, cfg[key], tipo);
   }
   input.value = '';
@@ -1312,11 +1276,12 @@ function agregarCfgItem(tipo) {
 }
 
 function eliminarCfgItem(tipo, index) {
-  const cfg = getCfgLocal();
-  const key = { aguja:'agujas', calibre:'calibres', ppp:'ppps' }[tipo];
+  const cfg  = getCfgLocal();
+  const key  = { aguja:'agujas', calibre:'calibres', ppp:'ppps', modulo:'modulos', mecanico:'mecanicos' }[tipo];
+  if (!cfg[key]) return;
   cfg[key].splice(index, 1);
   saveCfgLocal(cfg);
-  const listId = { aguja:'cfgAgujaList', calibre:'cfgCalibreList', ppp:'cfgPppList' }[tipo];
+  const listId = { aguja:'cfgAgujaList', calibre:'cfgCalibreList', ppp:'cfgPppList', modulo:'cfgModuloList', mecanico:'cfgMecanicoList' }[tipo];
   renderCfgList(listId, cfg[key], tipo);
 }
 
