@@ -710,16 +710,18 @@ function startClock() {
 }
 
 async function loadConfig() {
-  // ── Leer config desde localStorage (guardada por index.html) ──
-  function getLocalConfig() {
-    try { return JSON.parse(localStorage.getItem('millar_config_v1')||localStorage.getItem('millar_config')||'{}'); } catch(e){ return {}; }
-  }
-  function getLocalState() {
-    try { return JSON.parse(localStorage.getItem('millar_ia_state')||'{}'); } catch(e){ return {}; }
+  // ── Leer config desde el servidor (igual que index.html) ──
+  // /api/app-config es global (no bajo /alistamiento/) — igual que index.html
+  let cfg = {};
+  try {
+    const r = await fetch('/api/app-config');
+    if (r.ok) cfg = await r.json();
+  } catch(e) {
+    try { cfg = JSON.parse(localStorage.getItem('millar_config_v1')||'{}'); } catch(e2){}
   }
 
-  const cfg   = getLocalConfig();
-  const state = getLocalState();
+  // Estado IA — no se necesita si los mecánicos vienen de _perfil_members
+  let state = {};
 
   // ── Módulos: igual que index.html — base + extras, sin deshabilitados, con renombres ──
   const BASE_MODS = ['M01','M02','M03','M04','M05','M06','M07','M08','M09','M10',
