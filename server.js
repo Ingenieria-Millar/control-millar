@@ -166,15 +166,34 @@ const MODULES = [
   'M21','M22','M23','M24','M25','M26','M27'
 ];
 
-const floorDefault = { states: {}, lastMec: {}, stateTimes: {}, lastEmpleada: {}, multiImp: {} };
-MODULES.forEach(id => { floorDefault.states[id] = "green"; floorDefault.lastMec[id] = ""; floorDefault.stateTimes[id] = Date.now(); floorDefault.lastEmpleada[id] = ""; floorDefault.multiImp[id] = []; });
+const floorPersisted = readJSON(FILES.floor_state, {});
+const states       = floorPersisted.states      || {};
+const lastMec      = floorPersisted.lastMec     || {};
+const stateTimes   = floorPersisted.stateTimes  || {};
+const lastEmpleada = floorPersisted.lastEmpleada|| {};
+// slots: { [modId]: { R:null|{...}, N:null|{...}, M:null|{...} } }
+// Compatible con floor_state.json antiguo (con multiImp) — slots toma precedencia
+const slots = floorPersisted.slots || {};
+// Inicializar módulos que falten
+MODULES.forEach(id => {
+  if (!states[id])     states[id]     = 'green';
+  if (!lastMec[id])    lastMec[id]    = '';
+  if (!stateTimes[id]) stateTimes[id] = Date.now();
+  if (!lastEmpleada[id]) lastEmpleada[id] = '';
+  if (!slots[id])      slots[id]      = { R:null, N:null, M:null };
+});
 
-const floorPersisted = readJSON(FILES.floor_state, floorDefault);
-const states        = floorPersisted.states        || { ...floorDefault.states     };
-const lastMec       = floorPersisted.lastMec       || { ...floorDefault.lastMec    };
-const stateTimes    = floorPersisted.stateTimes    || { ...floorDefault.stateTimes };
-const lastEmpleada  = floorPersisted.lastEmpleada  || { ...floorDefault.lastEmpleada };
-const multiImp      = floorPersisted.multiImp      || {};
+// Helper: calcular color del módulo según slots activos
+function calcColorMod(modId) {
+  const s = slots[modId] || {};
+  const activos = [];
+  if (s.R) activos.push({ color: s.R.tipoActual || s.R.tipo, inicio: s.R.inicio });
+  if (s.N) activos.push({ color: 'orange', inicio: s.N.inicio });
+  if (s.M) activos.push({ color: 'purple', inicio: s.M.inicio });
+  if (!activos.length) return 'green';
+  activos.sort((a,b) => b.inicio - a.inicio);
+  return activos[0].color;
+}
 
 function getAllActiveModules() {
   const extra    = modulesConfig.extra    || [];
