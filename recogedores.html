@@ -359,7 +359,7 @@ async function cargarUsuarios(){
       const nombre = typeof m === 'string' ? m : (m.nombre||m.name||'');
       if(!nombre) return;
       const opt = document.createElement('option');
-      opt.value = JSON.stringify(m); // guardar objeto completo para detectar admin
+      opt.value = JSON.stringify(typeof m === 'string' ? { nombre: m, isAdmin: false } : m);
       opt.textContent = nombre;
       sel.appendChild(opt);
     });
@@ -375,9 +375,9 @@ async function hacerLogin(){
   let member;
   try{ member = JSON.parse(sel.value); } catch(e){ member = sel.value; }
   const nombre = typeof member === 'string' ? member : (member.nombre||member.name||'');
-  const rol    = typeof member === 'object' ? (member.rol||member.role||'') : '';
   currentUser  = nombre;
-  esAdmin      = rol.toLowerCase().includes('admin');
+  // El campo isAdmin viene del checkbox ADMIN en configuraciones
+  esAdmin      = typeof member === 'object' && (member.isAdmin === true || member.isAdmin === 'true');
 
   // Mostrar usuario en header
   document.getElementById('hd-user').textContent = nombre.toUpperCase();
