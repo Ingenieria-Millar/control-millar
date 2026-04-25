@@ -262,7 +262,7 @@ MODULES.forEach(id => {
 });
 
 function saveFloorState() {
-  writeJSON(FILES.floor_state, { states, lastMec, stateTimes, lastEmpleada, multiImp });
+  writeJSON(FILES.floor_state, { states, lastMec, stateTimes, lastEmpleada, slots });
 }
 
 // ── Estado Tablero CI ──────────────────────────────────────────────
@@ -957,7 +957,7 @@ wss.on('connection', (ws, req) => {
     iaState:       iaState,
     iaRecords:     iaRecords,
     modulesConfig: modulesConfig,
-    multiImp:      JSON.parse(JSON.stringify(multiImp))
+    slots:         JSON.parse(JSON.stringify(slots))
   }));
 
   ws.on('message', (raw) => {
@@ -1096,7 +1096,7 @@ wss.on('connection', (ws, req) => {
           }
           
           ciRequests.unshift(msg.request);
-          if (ciRequests.length > 500) ciRequests = ciRequests.slice(0, 500);
+          if (ciRequests.length > 50000) ciRequests = ciRequests.slice(0, 50000);
           saveCiRequests();
         }
         broadcastLocal({ type:'ci_new_request', request:msg.request });
@@ -1147,45 +1147,47 @@ wss.on('connection', (ws, req) => {
           }
         }
 
-        // Si fue aceptado (done), cerrar solo el improductivo con ese ciRequestId
+        // Si fue aceptado (done), cerrar el slot CI correspondiente
         if (msg.request.status === 'done' && msg.request._id) {
           const reqId = msg.request._id;
           const modId = msg.request.module || msg.request.moduloDestino;
-          if (modId) {
-            if (!multiImp[modId]) multiImp[modId] = [];
-            const impIdx = multiImp[modId].findIndex(i => i.ciRequestId === reqId);
-            if (impIdx !== -1) {
-              // Cerrar multi-improductivo específico
-              multiImp[modId].splice(impIdx, 1);
-              if (multiImp[modId].length > 0) {
-                const ultimo = multiImp[modId][multiImp[modId].length - 1];
-                states[modId]     = ultimo.tipoActual || ultimo.tipo;
-                stateTimes[modId] = ultimo.inicio || Date.now();
-              } else if (states[modId] === 'orange' || states[modId] === 'purple') {
-                // No quedan multis — el principal era el CI, poner verde
-                states[modId]       = 'green';
-                stateTimes[modId]   = Date.now();
-                lastMec[modId]      = '';
-                lastEmpleada[modId] = '';
+          if (modId && slots[modId]) {
+            // Buscar en slots N y M cuál tiene ese ciRequestId
+            let closedSlot = null;
+            if (slots[modId].N && slots[modId].N.ciRequestId === reqId) closedSlot = 'N';
+            else if (slots[modId].M && slots[modId].M.ciRequestId === reqId) closedSlot = 'M';
+
+            if (closedSlot) {
+              const imp = slots[modId][closedSlot];
+              // Registrar en historial
+              const ahora = Date.now();
+              const durMs = ahora - (imp.inicio || ahora);
+              if (durMs > 0) {
+                const now    = new Date();
+                const opts   = { timeZone:'America/Bogota', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true };
+                const bogota = new Date(now.toLocaleString('en-US', { timeZone:'America/Bogota' }));
+                const fechaISO = bogota.getFullYear()+'-'+String(bogota.getMonth()+1).padStart(2,'0')+'-'+String(bogota.getDate()).padStart(2,'0');
+                let historial = readJSON(FILES.historial, []);
+                const regHoy  = historial.filter(r => r.fechaISO === fechaISO);
+                historial.push({
+                  num: regHoy.length+1, fecha: now.toLocaleDateString('es-CO',{timeZone:'America/Bogota'}), fechaISO,
+                  horaInicio: new Date(imp.inicio||ahora).toLocaleTimeString('es-CO',opts),
+                  hora: now.toLocaleTimeString('es-CO',opts), modulo: modId,
+                  tipo: imp.tipo, estadoAnterior: imp.tipo, estadoNuevo: 'green',
+                  durMinutos: parseFloat((durMs/60000).toFixed(2)),
+                  mecanico: imp.mecanico||'', empleada: imp.empleada||'', ciRequestId: reqId
+                });
+                if (historial.length > 10000) historial = historial.slice(-10000);
+                writeJSON(FILES.historial, historial);
               }
+              // Cerrar slot
+              slots[modId][closedSlot] = null;
+              states[modId]    = calcColorMod(modId);
+              stateTimes[modId]= Date.now();
+              if (states[modId] === 'green') { lastMec[modId]=''; lastEmpleada[modId]=''; }
               saveFloorState();
-              broadcast({ type:'multi_imp_change', action:'close', modId, impId:reqId, multiImp: multiImp[modId] });
+              broadcast({ type:'slots_update', modId, slots: slots[modId] });
               broadcast({ type:'change', id:modId, state:states[modId], mecanico:lastMec[modId]||'', limite:null, empleada:lastEmpleada[modId]||'', stateTime:stateTimes[modId], fromMulti:true });
-            } else if (states[modId] === 'orange' || states[modId] === 'purple') {
-              // El reqId era del improductivo principal
-              if (multiImp[modId].length > 0) {
-                // Quedan multis — tomar color del último
-                const ultimo = multiImp[modId][multiImp[modId].length - 1];
-                states[modId]     = ultimo.tipoActual || ultimo.tipo;
-                stateTimes[modId] = ultimo.inicio || Date.now();
-              } else {
-                states[modId]       = 'green';
-                stateTimes[modId]   = Date.now();
-                lastMec[modId]      = '';
-                lastEmpleada[modId] = '';
-              }
-              saveFloorState();
-              broadcast({ type:'change', id:modId, state:states[modId], mecanico:lastMec[modId]||'', limite:null, empleada:lastEmpleada[modId]||'', stateTime:stateTimes[modId] });
             }
           }
         }
@@ -1198,68 +1200,74 @@ wss.on('connection', (ws, req) => {
       }
 
       // ── Multi-Improductivo ──────────────────────────────────────
-      // msg: { type:'multi_imp_change', modId, action, imp }
-      // action: 'open' | 'update' | 'close'
-      // imp: { id, tipo, inicio, empleada, mecanico, ciRequestId }
-      else if (msg.type === 'multi_imp_change') {
-        if (!msg.modId || !msg.action || !msg.imp || !msg.imp.id) {
-          console.warn('WS multi_imp_change: payload incompleto'); return;
-        }
-        const modId = msg.modId;
-        if (!multiImp[modId]) multiImp[modId] = [];
+      // ── SLOTS: 3 slots fijos R/N/M por módulo ──────────────────────
+      // msg: { type:'slot_change', modId, slot, action, data }
+      // slot: 'R'|'N'|'M'  action: 'open'|'update'|'close'
+      else if (msg.type === 'slot_change') {
+        const { modId, slot, action, data } = msg;
+        if (!modId || !slot || !action || !['R','N','M'].includes(slot)) return;
+        if (!slots[modId]) slots[modId] = { R:null, N:null, M:null };
 
-        if (msg.action === 'open') {
-          // Agregar nuevo improductivo al array (máx 4, sin repetir tipo)
-          const yaExiste = multiImp[modId].some(i => i.tipo === msg.imp.tipo);
-          if (yaExiste || multiImp[modId].length >= 4) return;
-          multiImp[modId].push(msg.imp);
-          // El color del tablero = tipo del último imp agregado
-          if (states[modId] === undefined) states[modId] = 'green';
-          const prevState = states[modId];
-          // logHistorial solo si el módulo ya estaba en un estado improductivo (cerrar el principal y abrir nuevo)
-          // No logueamos aquí — el cliente ya envió el 'change' correspondiente
-          states[modId]     = msg.imp.tipo === 'red' ? 'red' : msg.imp.tipo;
-          stateTimes[modId] = msg.imp.inicio || Date.now();
-          if (msg.imp.empleada) lastEmpleada[modId] = msg.imp.empleada;
+        if (action === 'open') {
+          if (slots[modId][slot]) return; // ya existe, ignorar
+          slots[modId][slot] = {
+            id:          data.id,
+            slot,
+            tipo:        data.tipo,
+            tipoActual:  data.tipo,
+            inicio:      data.inicio || Date.now(),
+            empleada:    data.empleada || '',
+            mecanico:    data.mecanico || '',
+            ciRequestId: data.ciRequestId || null
+          };
+          if (data.empleada) lastEmpleada[modId] = data.empleada;
+          states[modId]     = calcColorMod(modId);
+          stateTimes[modId] = slots[modId][slot].inicio;
           saveFloorState();
-          broadcastLocal({ type:'multi_imp_change', action:'open', modId, imp:msg.imp, multiImp: multiImp[modId] });
-          // No hacer broadcast 'change' aquí — evita disparar alertas en tablero de mecánicos
-          // El tablero general actualiza su color via multi_imp_change
+          // Broadcast a todos los clientes con el estado nuevo
+          broadcast({ type:'slots_update', modId, slots: slots[modId] });
+          // Para el tablero de mecánicos: si es slot R, emitir change con fromSlot
+          if (slot === 'R') {
+            broadcast({ type:'change', id:modId, state:slots[modId].R.tipoActual, mecanico:lastMec[modId]||'', limite:null, empleada:lastEmpleada[modId]||'', stateTime:stateTimes[modId], fromSlot:true });
+          } else {
+            // Para el tablero general actualizar color sin sonar en mecánicos
+            broadcast({ type:'change', id:modId, state:states[modId], mecanico:lastMec[modId]||'', limite:null, empleada:lastEmpleada[modId]||'', stateTime:stateTimes[modId], fromMulti:true });
+          }
         }
 
-        else if (msg.action === 'update') {
-          // Actualizar estado de un improductivo existente (rojo→amarillo, etc.)
-          const idx = multiImp[modId].findIndex(i => i.id === msg.imp.id);
-          if (idx === -1) return;
-          const impPrev = { ...multiImp[modId][idx] };
-          Object.assign(multiImp[modId][idx], msg.imp);
-          // Recalcular color del tablero = tipo del último imp del array
-          const ultimo = multiImp[modId][multiImp[modId].length - 1];
-          states[modId]   = ultimo.tipo;
+        else if (action === 'update') {
+          if (!slots[modId][slot]) return;
+          Object.assign(slots[modId][slot], data);
+          if (data.mecanico) lastMec[modId] = data.mecanico;
+          if (data.empleada) lastEmpleada[modId] = data.empleada;
+          states[modId]     = calcColorMod(modId);
           stateTimes[modId] = Date.now();
-          if (msg.imp.mecanico) lastMec[modId] = msg.imp.mecanico;
-          if (msg.imp.empleada) lastEmpleada[modId] = msg.imp.empleada;
           saveFloorState();
-          broadcastLocal({ type:'multi_imp_change', action:'update', modId, imp:multiImp[modId][idx], multiImp: multiImp[modId] });
-          // No hacer broadcast 'change' — el color lo gestiona multi_imp_change
+          broadcast({ type:'slots_update', modId, slots: slots[modId] });
+          // Tablero de mecánicos siempre recibe el estado real del slot R
+          if (slot === 'R') {
+            broadcast({ type:'change', id:modId, state:slots[modId].R.tipoActual, mecanico:lastMec[modId]||'', limite:null, empleada:lastEmpleada[modId]||'', stateTime:stateTimes[modId], fromSlot:true });
+          } else {
+            broadcast({ type:'change', id:modId, state:states[modId], mecanico:lastMec[modId]||'', limite:null, empleada:lastEmpleada[modId]||'', stateTime:stateTimes[modId], fromMulti:true });
+          }
         }
 
-        else if (msg.action === 'close') {
-          // Cerrar un improductivo: logear en historial y remover del array
-          const idx = multiImp[modId].findIndex(i => i.id === msg.imp.id);
-          if (idx === -1) return;
-          const imp = multiImp[modId][idx];
+        else if (action === 'close') {
+          if (!slots[modId][slot]) return;
+          const imp = slots[modId][slot];
 
           // Guardar en historial
           const ahora = Date.now();
           const durMs = ahora - (imp.inicio || ahora);
           if (durMs > 0) {
-            const now      = new Date();
-            const opts     = { timeZone:'America/Bogota', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true };
-            const bogota   = new Date(now.toLocaleString('en-US', { timeZone:'America/Bogota' }));
+            const now    = new Date();
+            const opts   = { timeZone:'America/Bogota', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true };
+            const bogota = new Date(now.toLocaleString('en-US', { timeZone:'America/Bogota' }));
             const fechaISO = bogota.getFullYear()+'-'+String(bogota.getMonth()+1).padStart(2,'0')+'-'+String(bogota.getDate()).padStart(2,'0');
-            let historial  = readJSON(FILES.historial, []);
-            const regHoy   = historial.filter(r => r.fechaISO === fechaISO);
+            let historial = readJSON(FILES.historial, []);
+            const regHoy  = historial.filter(r => r.fechaISO === fechaISO);
+            // Para slot R: usar tipoActual (puede ser yellow al momento de cerrar)
+            const tipoReal = imp.tipoActual || imp.tipo;
             historial.push({
               num:           regHoy.length + 1,
               fecha:         now.toLocaleDateString('es-CO', { timeZone:'America/Bogota' }),
@@ -1267,8 +1275,8 @@ wss.on('connection', (ws, req) => {
               horaInicio:    new Date(imp.inicio || ahora).toLocaleTimeString('es-CO', opts),
               hora:          now.toLocaleTimeString('es-CO', opts),
               modulo:        modId,
-              tipo:          imp.tipo,
-              estadoAnterior:imp.tipo,
+              tipo:          tipoReal,
+              estadoAnterior:tipoReal,
               estadoNuevo:   'green',
               durMinutos:    parseFloat((durMs / 60000).toFixed(2)),
               mecanico:      imp.mecanico || '',
@@ -1279,25 +1287,31 @@ wss.on('connection', (ws, req) => {
             writeJSON(FILES.historial, historial);
           }
 
-          // Remover del array
-          multiImp[modId].splice(idx, 1);
-
-          // Recalcular color: último restante, o green si no quedan
-          if (multiImp[modId].length > 0) {
-            const ultimo = multiImp[modId][multiImp[modId].length - 1];
-            states[modId]     = ultimo.tipoActual || ultimo.tipo;
-            stateTimes[modId] = ultimo.inicio || Date.now();
-          } else {
-            states[modId]     = 'green';
-            stateTimes[modId] = Date.now();
-            lastMec[modId]    = '';
-            lastEmpleada[modId] = '';
+          // Limpiar slot
+          slots[modId][slot] = null;
+          states[modId]      = calcColorMod(modId);
+          stateTimes[modId]  = Date.now();
+          if (states[modId] === 'green') {
+            lastMec[modId]       = '';
+            lastEmpleada[modId]  = '';
           }
           saveFloorState();
-          broadcastLocal({ type:'multi_imp_change', action:'close', modId, impId:msg.imp.id, multiImp: multiImp[modId] });
-          // fromMulti:true indica que el cambio de color es por cierre de multi, no fallo nuevo
+          broadcast({ type:'slots_update', modId, slots: slots[modId] });
           broadcast({ type:'change', id:modId, state:states[modId], mecanico:lastMec[modId]||'', limite:null, empleada:lastEmpleada[modId]||'', stateTime:stateTimes[modId], fromMulti:true });
         }
+      }
+
+      // ── LEGADO: multi_imp_change — mantener para compatibilidad ──
+      else if (msg.type === 'multi_imp_change') {
+        // Redirigir al nuevo sistema de slots
+        const modId = msg.modId;
+        if (!modId) return;
+        if (!slots[modId]) slots[modId] = { R:null, N:null, M:null };
+        // Detectar slot por tipo
+        const tipoSlot = { red:'R', yellow:'R', orange:'N', purple:'M', pink:'R', blue:'R' };
+        const slotKey  = tipoSlot[msg.imp?.tipo || msg.imp?.tipoActual] || 'R';
+        // Reenviar como slot_change
+        ws.emit && ws.emit('message', JSON.stringify({ type:'slot_change', modId, slot:slotKey, action:msg.action, data:msg.imp||{} }));
       }
 
 
