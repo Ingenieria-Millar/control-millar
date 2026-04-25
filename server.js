@@ -811,6 +811,27 @@ app.get('/api/modules', (req, res) => {
 });
 
 // Lista de mecánicos (supervisores activos, sin programador)
+// ── API Recogedores (lista de miembros del perfil) ───────────────
+app.get('/api/recogedores-lista', (req, res) => {
+  const appCfg = readJSON(FILES.app_config, {});
+  const pm = appCfg._perfil_members || {};
+  // Buscar el perfil sin importar mayúsculas
+  const key = Object.keys(pm).find(k => k.toLowerCase() === 'recogedores');
+  if (key && Array.isArray(pm[key])) {
+    const members = pm[key]
+      .filter(m => m && !m.disabled)
+      .map(m => {
+        const nombre = typeof m === 'string' ? m : (m.nombre || m.name || '');
+        const isAdmin = typeof m === 'object' && (m.isAdmin === true || m.isAdmin === 'true');
+        return { nombre, isAdmin };
+      })
+      .filter(m => m.nombre);
+    members.sort((a, b) => a.nombre.localeCompare(b.nombre));
+    return res.json(members);
+  }
+  res.json([]);
+});
+
 app.get('/api/mecanicos', (req, res) => {
   // Leer miembros del perfil "Mecanicos" desde app_config._perfil_members
   const appCfg = readJSON(FILES.app_config, {});
