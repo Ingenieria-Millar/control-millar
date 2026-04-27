@@ -349,9 +349,32 @@ setInterval(updateHeaderDate,60000); updateHeaderDate();
 // ════════════════════════════════════════════════════════════════
 async function cargarUsuarios(){
   try{
-    const r = await fetch('/api/recogedores-lista');
-    if(!r.ok) throw new Error('error');
-    const members = await r.json();
+    // Intentar primero el endpoint dedicado, fallback a app-config
+    let members = [];
+    try{
+      const r1 = await fetch('/api/recogedores-lista');
+      if(r1.ok) members = await r1.json();
+    } catch(e){}
+
+    // Fallback: leer directo de app-config (busca perfil sin importar mayúsculas)
+    if(!members.length){
+      const r2 = await fetch('/api/app-config');
+      if(r2.ok){
+        const cfg = await r2.json();
+        const pm = cfg._perfil_members || {};
+        const key = Object.keys(pm).find(k=>k.toLowerCase()==='recogedores');
+        if(key && Array.isArray(pm[key])){
+          members = pm[key]
+            .filter(m=>m&&!m.disabled)
+            .map(m=>({
+              nombre: typeof m==='string'?m:(m.nombre||m.name||''),
+              isAdmin: typeof m==='object'&&(m.isAdmin===true||m.isAdmin==='true')
+            }))
+            .filter(m=>m.nombre);
+        }
+      }
+    }
+
     const sel = document.getElementById('sel-usuario');
     sel.innerHTML = '<option value="">— Selecciona tu nombre —</option>';
     members.forEach(m=>{
@@ -363,6 +386,7 @@ async function cargarUsuarios(){
     sel.onchange = ()=>{
       document.getElementById('btn-continuar').disabled = !sel.value;
     };
+    if(!members.length) showToast('⚠ No hay recogedores registrados en configuraciones');
   } catch(e){ showToast('⚠ Error cargando usuarios'); }
 }
 
@@ -385,8 +409,20 @@ async function hacerLogin(){
     document.getElementById('btn-historico').style.display = 'flex';
     document.getElementById('th-acciones').style.display = '';
     // Poblar select de recogedores en filtros
-    const r2 = await fetch('/api/recogedores-lista');
-    const members2 = r2.ok ? await r2.json() : [];
+    let members2 = [];
+    try{
+      const rr = await fetch('/api/recogedores-lista');
+      if(rr.ok) members2 = await rr.json();
+      else throw new Error('fallback');
+    } catch(e){
+      const rr2 = await fetch('/api/app-config');
+      if(rr2.ok){
+        const cfg2 = await rr2.json();
+        const pm2 = cfg2._perfil_members || {};
+        const key2 = Object.keys(pm2).find(k=>k.toLowerCase()==='recogedores');
+        if(key2) members2 = (pm2[key2]||[]).filter(m=>m&&!m.disabled).map(m=>({nombre:typeof m==='string'?m:(m.nombre||m.name||'')})).filter(m=>m.nombre);
+      }
+    }
     const fltRec = document.getElementById('flt-recogedor');
     fltRec.innerHTML = '<option value="">Todos</option>';
     members2.forEach(m=>{
