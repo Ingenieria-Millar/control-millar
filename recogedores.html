@@ -348,46 +348,25 @@ setInterval(updateHeaderDate,60000); updateHeaderDate();
 // LOGIN
 // ════════════════════════════════════════════════════════════════
 async function cargarUsuarios(){
-  try{
-    // Intentar primero el endpoint dedicado, fallback a app-config
-    let members = [];
-    try{
-      const r1 = await fetch('/api/recogedores-lista');
-      if(r1.ok) members = await r1.json();
-    } catch(e){}
-
-    // Fallback: leer directo de app-config (busca perfil sin importar mayúsculas)
-    if(!members.length){
-      const r2 = await fetch('/api/app-config');
-      if(r2.ok){
-        const cfg = await r2.json();
-        const pm = cfg._perfil_members || {};
-        const key = Object.keys(pm).find(k=>k.toLowerCase()==='recogedores');
-        if(key && Array.isArray(pm[key])){
-          members = pm[key]
-            .filter(m=>m&&!m.disabled)
-            .map(m=>({
-              nombre: typeof m==='string'?m:(m.nombre||m.name||''),
-              isAdmin: typeof m==='object'&&(m.isAdmin===true||m.isAdmin==='true')
-            }))
-            .filter(m=>m.nombre);
-        }
-      }
-    }
-
-    const sel = document.getElementById('sel-usuario');
-    sel.innerHTML = '<option value="">— Selecciona tu nombre —</option>';
-    members.forEach(m=>{
-      const opt = document.createElement('option');
-      opt.value = JSON.stringify(m);
-      opt.textContent = m.nombre;
-      sel.appendChild(opt);
-    });
-    sel.onchange = ()=>{
-      document.getElementById('btn-continuar').disabled = !sel.value;
-    };
-    if(!members.length) showToast('⚠ No hay recogedores registrados en configuraciones');
-  } catch(e){ showToast('⚠ Error cargando usuarios'); }
+  // Hardcoded temporalmente — pendiente fix de API
+  const members = [
+    { nombre:'Julian Sanchez',     isAdmin:false },
+    { nombre:'Administrador',      isAdmin:true  },
+    { nombre:'Kevin Gonzales',     isAdmin:false },
+    { nombre:'Adriana Mesa',       isAdmin:false },
+    { nombre:'Adriana Hernandez',  isAdmin:false },
+  ];
+  const sel = document.getElementById('sel-usuario');
+  sel.innerHTML = '<option value="">— Selecciona tu nombre —</option>';
+  members.forEach(m=>{
+    const opt = document.createElement('option');
+    opt.value = JSON.stringify(m);
+    opt.textContent = m.nombre;
+    sel.appendChild(opt);
+  });
+  sel.onchange = ()=>{
+    document.getElementById('btn-continuar').disabled = !sel.value;
+  };
 }
 
 async function hacerLogin(){
