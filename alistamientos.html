@@ -214,6 +214,57 @@ tr:hover td{background:#f8fafc;}
   .section-header{flex-direction:column;align-items:flex-start;}
 }
 </style>
+<style>
+/* ── NAV MENÚ DESPLEGABLE ── */
+.millar-nav{display:flex;align-items:center;gap:2px;}
+.millar-nav-item{position:relative;}
+.millar-nav-btn{
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:6px 14px;border-radius:8px;border:none;background:transparent;
+  cursor:pointer;transition:background .15s;min-width:60px;
+}
+.millar-nav-btn:hover{background:#f1f5f9;}
+.millar-nav-btn.active{background:#eff6ff;}
+.millar-nav-btn svg{flex-shrink:0;opacity:.65;}
+.millar-nav-btn:hover svg,.millar-nav-btn.active svg{opacity:1;}
+.millar-nav-label{
+  font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;
+  letter-spacing:.5px;text-transform:uppercase;color:#475569;white-space:nowrap;
+}
+.millar-nav-btn:hover .millar-nav-label,.millar-nav-btn.active .millar-nav-label{color:#1e40af;}
+.millar-dropdown{
+  display:none;position:absolute;top:calc(100% + 4px);left:50%;transform:translateX(-50%);
+  min-width:200px;background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;
+  box-shadow:0 8px 24px rgba(0,0,0,.1);z-index:9999;overflow:visible;
+  animation:dropIn .15s ease;
+}
+@keyframes dropIn{from{opacity:0;transform:translateX(-50%) translateY(-6px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
+.millar-dropdown.open{display:block;}
+.millar-dd-inner{padding:6px;}
+.millar-dd-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:9px 12px;border-radius:8px;font-family:'Barlow Condensed',sans-serif;
+  font-size:13px;font-weight:700;letter-spacing:.3px;color:#0f172a;
+  cursor:pointer;transition:background .12s;text-decoration:none;
+  white-space:nowrap;
+}
+.millar-dd-item:hover{background:#f1f5f9;color:#1e40af;}
+.millar-dd-item.has-sub{position:relative;}
+.millar-dd-item.has-sub:hover .millar-sub{display:block;}
+.millar-sub{
+  display:none;position:absolute;left:100%;top:-6px;
+  min-width:180px;background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;
+  box-shadow:0 8px 24px rgba(0,0,0,.1);z-index:10000;padding:6px;
+}
+.millar-sub-item{
+  display:flex;align-items:center;gap:8px;
+  padding:9px 12px;border-radius:8px;font-family:'Barlow Condensed',sans-serif;
+  font-size:13px;font-weight:700;letter-spacing:.3px;color:#0f172a;
+  cursor:pointer;transition:background .12s;text-decoration:none;white-space:nowrap;
+}
+.millar-sub-item:hover{background:#f1f5f9;color:#1e40af;}
+.millar-dd-sep{height:1px;background:#f1f5f9;margin:4px 0;}
+</style>
 </head>
 <body>
 
@@ -226,6 +277,7 @@ tr:hover td{background:#f8fafc;}
       <p class="hd-date" id="alist-header-date"></p>
     </div>
   </div>
+  <div data-millar-nav></div>
   <div class="hd-right">
     <button class="btn-config" onclick="abrirModalConfig()">⚙️ Configuración</button>
     <button class="btn-volver" id="btn-volver" onclick="volverSeleccion()">← Volver</button>
@@ -1602,6 +1654,193 @@ function initGuiaAutocomplete(inputId, descId) {
 
 // ===== START =====
 init();
+</script>
+<script>
+// ── MILLAR NAV — navegación global ──────────────────────────────
+(function(){
+  // Detectar perfil desde URL o sessionStorage
+  function getNavPerfil(){
+    const p = new URLSearchParams(location.search).get('perfil') ||
+              sessionStorage.getItem('millar_nav_perfil') || '';
+    return p.toLowerCase();
+  }
+
+  // Rutas
+  const RUTAS = {
+    ordenes:        '/ordenes',
+    asistencia:     '/ingresos',
+    recogedores:    '/recogedores',
+    tableroGeneral: '/',
+    tableroMec:     '/?tablero=mecanicos',
+    tableroCI:      '/tablero-ci',
+    insumos:        '/solicitar-insumos',
+    alistamiento:   '/alistamiento?seccion=alistamiento',
+    mantenimiento:  '/alistamiento?seccion=mantenimiento',
+    contador:       '/contador-modulos',
+    informeCI:      '/tablero-ci?seccion=informe',
+    informeGeneral: '/?seccion=historico',
+    dashCI:         '/tablero-ci?seccion=dashboard',
+    dashPlanta:     '/dashboard-planta',
+  };
+
+  function ir(ruta){
+    const perfil = getNavPerfil();
+    const sep = ruta.includes('?') ? '&' : '?';
+    location.href = perfil ? ruta + sep + 'perfil=' + encodeURIComponent(perfil) : ruta;
+  }
+
+  // Permisos por perfil
+  const PERMISOS = {
+    programador:  ['produccion','tableros','mecanicos','modulos','informes'],
+    administrador:['produccion','tableros','mecanicos','modulos','informes'],
+    supervisora:  ['asistencia'],
+    mecanicos:    ['tableroMec','insumos','montajes'],
+    televisor:    ['tableroGeneral','tableroMec','tableroCI'],
+    recogedores:  ['recogedores'],
+  };
+
+  function tienePermiso(perfil, clave){
+    const p = perfil.toLowerCase();
+    const perms = PERMISOS[p] || PERMISOS['administrador'];
+    return perms.includes(clave) ||
+           perms.includes('produccion') || perms.includes('tableros') ||
+           perms.includes('mecanicos')  || perms.includes('modulos') ||
+           perms.includes('informes');
+  }
+
+  function esPerfil(perfil, ...claves){
+    const p = perfil.toLowerCase();
+    const perms = PERMISOS[p] || PERMISOS['administrador'];
+    return claves.some(k => perms.includes(k));
+  }
+
+  // Íconos SVG
+  const ICONS = {
+    produccion: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>',
+    tableros:   '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
+    mecanicos:  '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>',
+    modulos:    '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5.22 5.22l2.12 2.12M16.66 16.66l2.12 2.12M5.22 18.78l2.12-2.12M16.66 7.34l2.12-2.12"/></svg>',
+    informes:   '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>',
+  };
+
+  const FLECHA = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4.5 3l3 3-3 3"/></svg>';
+
+  function buildNav(){
+    const perfil = getNavPerfil();
+    const esAdmin = !perfil || ['programador','administrador'].includes(perfil);
+    const esMec   = perfil === 'mecanicos';
+    const esTV    = perfil === 'televisor';
+    const esSup   = perfil === 'supervisora';
+    const esRec   = perfil === 'recogedores';
+
+    let html = '<div class="millar-nav" id="millar-nav">';
+
+    // ── PRODUCCIÓN ──
+    const prodItems = [];
+    if(esAdmin) prodItems.push(`<a class="millar-dd-item" onclick="ir(RUTAS.ordenes)">📋 Órdenes</a>`);
+    if(esAdmin||esSup) prodItems.push(`<a class="millar-dd-item" onclick="ir(RUTAS.asistencia)">⏱ Control Asistencia</a>`);
+    if(esAdmin||esRec) prodItems.push(`<a class="millar-dd-item" onclick="ir(RUTAS.recogedores)">🧺 Conteo Recogedores</a>`);
+    if(prodItems.length){
+      html += buildBtn('produccion','Producción',prodItems);
+    }
+
+    // ── TABLEROS ──
+    const tabItems = [];
+    if(esAdmin||esTV) tabItems.push(`<a class="millar-dd-item" onclick="ir(RUTAS.tableroGeneral)">🏭 Tablero General</a>`);
+    if(esAdmin||esTV||esMec) tabItems.push(`<a class="millar-dd-item" onclick="ir(RUTAS.tableroMec)">🔧 Tablero Mecánicos</a>`);
+    if(esAdmin||esTV) tabItems.push(`<a class="millar-dd-item" onclick="ir(RUTAS.tableroCI)">📦 Tablero CI</a>`);
+    if(tabItems.length){
+      html += buildBtn('tableros','Tableros',tabItems);
+    }
+
+    // ── MECÁNICOS ──
+    const mecItems = [];
+    if(esAdmin||esMec) mecItems.push(`<a class="millar-dd-item" onclick="ir(RUTAS.insumos)">📦 Solicitar Insumos</a>`);
+    if(esAdmin||esMec){
+      mecItems.push(`
+        <div class="millar-dd-item has-sub">
+          🔩 Montajes ${FLECHA}
+          <div class="millar-sub">
+            <a class="millar-sub-item" onclick="ir(RUTAS.alistamiento)">⚙️ Alistamiento</a>
+            <a class="millar-sub-item" onclick="ir(RUTAS.mantenimiento)">🛠 Mantenimiento</a>
+          </div>
+        </div>`);
+    }
+    if(mecItems.length){
+      html += buildBtn('mecanicos','Mecánicos',mecItems);
+    }
+
+    // ── MÓDULOS ──
+    if(esAdmin){
+      html += buildBtn('modulos','Módulos',[
+        `<a class="millar-dd-item" onclick="ir(RUTAS.contador)">🟢 Contador Módulos</a>`
+      ]);
+    }
+
+    // ── INFORMES ──
+    if(esAdmin){
+      html += buildBtn('informes','Informes',[
+        `<div class="millar-dd-sep"></div>
+         <div style="padding:4px 12px;font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#94a3b8;">Informes</div>`,
+        `<a class="millar-dd-item" onclick="ir(RUTAS.informeGeneral)">📊 Informe General</a>`,
+        `<a class="millar-dd-item" onclick="ir(RUTAS.informeCI)">📋 Informe CI</a>`,
+        `<div class="millar-dd-sep"></div>
+         <div style="padding:4px 12px;font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#94a3b8;">Dashboard</div>`,
+        `<a class="millar-dd-item" onclick="ir(RUTAS.dashCI)">📈 Dashboard CI</a>`,
+        `<a class="millar-dd-item" onclick="ir(RUTAS.dashPlanta)">🏭 Dashboard Planta</a>`,
+      ]);
+    }
+
+    html += '</div>';
+    return html;
+  }
+
+  function buildBtn(key, label, items){
+    const ddId = 'millar-dd-' + key;
+    return `
+      <div class="millar-nav-item">
+        <button class="millar-nav-btn" onclick="millarNavToggle('${ddId}')">
+          ${ICONS[key]||''}
+          <span class="millar-nav-label">${label}</span>
+        </button>
+        <div class="millar-dropdown" id="${ddId}">
+          <div class="millar-dd-inner">
+            ${items.join('')}
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // Toggle dropdown
+  window.millarNavToggle = function(id){
+    const all = document.querySelectorAll('.millar-dropdown');
+    all.forEach(d=>{ if(d.id!==id) d.classList.remove('open'); });
+    document.getElementById(id)?.classList.toggle('open');
+  };
+
+  // Cerrar al click fuera
+  document.addEventListener('click', function(e){
+    if(!e.target.closest('.millar-nav-item')){
+      document.querySelectorAll('.millar-dropdown').forEach(d=>d.classList.remove('open'));
+    }
+  });
+
+  // Exponer ir() globalmente
+  window.RUTAS = RUTAS;
+  window.ir = ir;
+
+  // Inyectar cuando el DOM esté listo
+  function inject(){
+    const targets = document.querySelectorAll('[data-millar-nav]');
+    targets.forEach(el=>{ el.innerHTML = buildNav(); });
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', inject);
+  } else {
+    inject();
+  }
+})();
 </script>
 </body>
 </html>
