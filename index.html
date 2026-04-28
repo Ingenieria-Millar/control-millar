@@ -1675,7 +1675,9 @@ function connectWS(){
         else if(s==='green') window._lastEmpleada[id]='';
         const esPlantaSnd=(currentUser==='Televisor'||currentUser==='Mecanicos');
         // No sonar si el cambio viene de cierre de multi-improductivo (no es fallo nuevo)
-        if(s!=='green'&&s!=='yellow'&&!(esPlantaSnd&&s==='orange')&&!(esPlantaSnd&&s==='purple')&&esPlantaSnd&&!msg.fromMulti){
+        // No sonar si el módulo está oculto en este dispositivo
+        const modOculto = (typeof _hiddenModsSession !== 'undefined') && _hiddenModsSession.has(id);
+        if(s!=='green'&&s!=='yellow'&&!(esPlantaSnd&&s==='orange')&&!(esPlantaSnd&&s==='purple')&&esPlantaSnd&&!msg.fromMulti&&!modOculto){
           playAlertSound();
         }
         updateStats();
@@ -8890,34 +8892,41 @@ function confirmarFalloMec(){
 
     let html = '<div class="millar-nav" id="millar-nav">';
 
+    // Helper para construir href con perfil
+    function href(ruta){
+      const p = getNavPerfil();
+      const sep = ruta.includes('?') ? '&' : '?';
+      return p ? ruta + sep + 'perfil=' + encodeURIComponent(p) : ruta;
+    }
+
     // ── PRODUCCIÓN ──
     const prodItems = [];
-    if(esAdmin) prodItems.push(`<a class="millar-dd-item" onclick="ir(RUTAS.ordenes)">📋 Órdenes</a>`);
-    if(esAdmin||esSup) prodItems.push(`<a class="millar-dd-item" onclick="ir(RUTAS.asistencia)">⏱ Control Asistencia</a>`);
-    if(esAdmin||esRec) prodItems.push(`<a class="millar-dd-item" onclick="ir(RUTAS.recogedores)">🧺 Conteo Recogedores</a>`);
+    if(esAdmin) prodItems.push(`<a class="millar-dd-item" href="${href(RUTAS.ordenes)}">📋 Órdenes</a>`);
+    if(esAdmin||esSup) prodItems.push(`<a class="millar-dd-item" href="${href(RUTAS.asistencia)}">⏱ Control Asistencia</a>`);
+    if(esAdmin||esRec) prodItems.push(`<a class="millar-dd-item" href="${href(RUTAS.recogedores)}">🧺 Conteo Recogedores</a>`);
     if(prodItems.length){
       html += buildBtn('produccion','Producción',prodItems);
     }
 
     // ── TABLEROS ──
     const tabItems = [];
-    if(esAdmin||esTV) tabItems.push(`<a class="millar-dd-item" onclick="ir(RUTAS.tableroGeneral)">🏭 Tablero General</a>`);
-    if(esAdmin||esTV||esMec) tabItems.push(`<a class="millar-dd-item" onclick="ir(RUTAS.tableroMec)">🔧 Tablero Mecánicos</a>`);
-    if(esAdmin||esTV) tabItems.push(`<a class="millar-dd-item" onclick="ir(RUTAS.tableroCI)">📦 Tablero CI</a>`);
+    if(esAdmin||esTV) tabItems.push(`<a class="millar-dd-item" href="${href(RUTAS.tableroGeneral)}">🏭 Tablero General</a>`);
+    if(esAdmin||esTV||esMec) tabItems.push(`<a class="millar-dd-item" href="${href(RUTAS.tableroMec)}">🔧 Tablero Mecánicos</a>`);
+    if(esAdmin||esTV) tabItems.push(`<a class="millar-dd-item" href="${href(RUTAS.tableroCI)}">📦 Tablero CI</a>`);
     if(tabItems.length){
       html += buildBtn('tableros','Tableros',tabItems);
     }
 
     // ── MECÁNICOS ──
     const mecItems = [];
-    if(esAdmin||esMec) mecItems.push(`<a class="millar-dd-item" onclick="ir(RUTAS.insumos)">📦 Solicitar Insumos</a>`);
+    if(esAdmin||esMec) mecItems.push(`<a class="millar-dd-item" href="${href(RUTAS.insumos)}">📦 Solicitar Insumos</a>`);
     if(esAdmin||esMec){
       mecItems.push(`
         <div class="millar-dd-item has-sub">
           🔩 Montajes ${FLECHA}
           <div class="millar-sub">
-            <a class="millar-sub-item" onclick="ir(RUTAS.alistamiento)">⚙️ Alistamiento</a>
-            <a class="millar-sub-item" onclick="ir(RUTAS.mantenimiento)">🛠 Mantenimiento</a>
+            <a class="millar-sub-item" href="${href(RUTAS.alistamiento)}">⚙️ Alistamiento</a>
+            <a class="millar-sub-item" href="${href(RUTAS.mantenimiento)}">🛠 Mantenimiento</a>
           </div>
         </div>`);
     }
@@ -8928,7 +8937,7 @@ function confirmarFalloMec(){
     // ── MÓDULOS ──
     if(esAdmin){
       html += buildBtn('modulos','Módulos',[
-        `<a class="millar-dd-item" onclick="ir(RUTAS.contador)">🟢 Contador Módulos</a>`
+        `<a class="millar-dd-item" href="${href(RUTAS.contador)}">🟢 Contador Módulos</a>`
       ]);
     }
 
@@ -8937,12 +8946,12 @@ function confirmarFalloMec(){
       html += buildBtn('informes','Informes',[
         `<div class="millar-dd-sep"></div>
          <div style="padding:4px 12px;font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#94a3b8;">Informes</div>`,
-        `<a class="millar-dd-item" onclick="ir(RUTAS.informeGeneral)">📊 Informe General</a>`,
-        `<a class="millar-dd-item" onclick="ir(RUTAS.informeCI)">📋 Informe CI</a>`,
+        `<a class="millar-dd-item" href="${href(RUTAS.informeGeneral)}">📊 Informe General</a>`,
+        `<a class="millar-dd-item" href="${href(RUTAS.informeCI)}">📋 Informe CI</a>`,
         `<div class="millar-dd-sep"></div>
          <div style="padding:4px 12px;font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#94a3b8;">Dashboard</div>`,
-        `<a class="millar-dd-item" onclick="ir(RUTAS.dashCI)">📈 Dashboard CI</a>`,
-        `<a class="millar-dd-item" onclick="ir(RUTAS.dashPlanta)">🏭 Dashboard Planta</a>`,
+        `<a class="millar-dd-item" href="${href(RUTAS.dashCI)}">📈 Dashboard CI</a>`,
+        `<a class="millar-dd-item" href="${href(RUTAS.dashPlanta)}">🏭 Dashboard Planta</a>`,
       ]);
     }
 
