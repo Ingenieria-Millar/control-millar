@@ -235,15 +235,15 @@ function logHistorial(id, prevState, newState, mecanico, empleada) {
   let mecanicoFinal = '';
   let empleadaFinal = '';
   if(prevState === 'red'){
-    // Espera Mecánico: operaria + mecánico que llegó a atender (viene en el mensaje al pasar a amarillo)
     empleadaFinal = empleada || lastEmpleada[id] || '';
     mecanicoFinal = mecanico || lastMec[id] || '';
   } else if(prevState === 'yellow'){
-    // Atención Mecánico: operaria y mecánico que solucionó
     empleadaFinal = empleada || lastEmpleada[id] || '';
     mecanicoFinal = mecanico || lastMec[id] || '';
+  } else if(prevState === 'garnet'){
+    // Alistamiento Mecánico: solo mecánico, sin operaria
+    mecanicoFinal = mecanico || lastMec[id] || '';
   } else if(prevState === 'pink'){
-    // Alistamiento: solo mecánico
     mecanicoFinal = mecanico || lastMec[id] || '';
   }
   // orange, purple, blue: ni operaria ni mecánico
@@ -1341,6 +1341,7 @@ wss.on('connection', (ws, req) => {
           broadcast({ type:'slots_update', modId, slots: slots[modId] });
           // Para el tablero de mecánicos: si es slot R, emitir change con fromSlot
           if (slot === 'R') {
+            // garnet y red ambos notifican al tablero de mecánicos
             broadcast({ type:'change', id:modId, state:slots[modId].R.tipoActual, mecanico:lastMec[modId]||'', limite:null, empleada:lastEmpleada[modId]||'', stateTime:stateTimes[modId], fromSlot:true });
           } else {
             // Para el tablero general actualizar color sin sonar en mecánicos
@@ -1359,6 +1360,7 @@ wss.on('connection', (ws, req) => {
           broadcast({ type:'slots_update', modId, slots: slots[modId] });
           // Tablero de mecánicos siempre recibe el estado real del slot R
           if (slot === 'R') {
+            // garnet y red ambos notifican al tablero de mecánicos
             broadcast({ type:'change', id:modId, state:slots[modId].R.tipoActual, mecanico:lastMec[modId]||'', limite:null, empleada:lastEmpleada[modId]||'', stateTime:stateTimes[modId], fromSlot:true });
           } else {
             broadcast({ type:'change', id:modId, state:states[modId], mecanico:lastMec[modId]||'', limite:null, empleada:lastEmpleada[modId]||'', stateTime:stateTimes[modId], fromMulti:true });
