@@ -85,6 +85,9 @@ header::after{
 .big-wrap.purple .big-status,.big-wrap.purple .big-id,.big-wrap.purple .big-timer{color:#5b21b6;}
 .big-wrap.purple .big-light{background:radial-gradient(circle at 35% 35%,#c4b5fd,#6d28d9);box-shadow:0 0 55px rgba(124,58,237,0.8),0 0 110px rgba(124,58,237,0.4);}
 .big-wrap.orange .big-light{background:radial-gradient(circle at 35% 35%,#fdba74,#c2410c);box-shadow:0 0 55px rgba(249,115,22,0.8),0 0 110px rgba(249,115,22,0.4);animation:rb 1.2s ease-in-out infinite;}
+.big-wrap.garnet{background:#fff1f1;border-color:rgba(153,27,27,0.55);box-shadow:0 8px 60px rgba(153,27,27,0.25);}
+.big-wrap.garnet .big-status,.big-wrap.garnet .big-id,.big-wrap.garnet .big-timer{color:#7f1d1d;}
+.big-wrap.garnet .big-light{background:radial-gradient(circle at 35% 35%,#fca5a5,#7f1d1d);box-shadow:0 0 55px rgba(185,28,28,0.85),0 0 110px rgba(185,28,28,0.4);animation:rb .85s ease-in-out infinite;}
 .big-wrap.blue .big-light{background:radial-gradient(circle at 35% 35%,#93c5fd,#1d4ed8);box-shadow:0 0 55px rgba(37,99,235,0.8),0 0 110px rgba(37,99,235,0.4);}
 .big-wrap.blue .big-status,.big-wrap.blue .big-id,.big-wrap.blue .big-timer{color:#1e40af;}
 .big-wrap.orange .big-status,.big-wrap.orange .big-id,.big-wrap.orange .big-timer{color:#9a3412;}
@@ -235,6 +238,7 @@ header::after{
       <button class="mec-btn" onclick="onImpRef()" style="padding:12px 16px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer;text-align:left;border-left:4px solid #1d4ed8;">🔵 Cambio de Referencia</button>
       <button class="mec-btn" onclick="onImpIns()" style="padding:12px 16px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer;text-align:left;border-left:4px solid #ea580c;">🟠 Falta de Insumos</button>
       <button class="mec-btn" onclick="onImpProd()" style="padding:12px 16px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer;text-align:left;border-left:4px solid #7c3aed;">🟣 Solicitud de Producción</button>
+      <button class="mec-btn" onclick="onImpAlist()" style="padding:12px 16px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer;text-align:left;border-left:4px solid #991b1b;">🟥 Alistamiento</button>
     </div>
     <button onclick="cancelImproductivo()" style="background:none;border:none;color:#94a3b8;font-size:13px;cursor:pointer;font-family:Nunito,sans-serif;">✕ Cancelar</button>
   </div>
@@ -362,7 +366,7 @@ if(!selectedMod){
 }
 
 // ── Estado del tablero ────────────────────────────────────────────
-const LABELS = {green:'Operativo',yellow:'Atendiendo',red:'Alerta',blue:'Cambio Ref.',orange:'Espera CI',purple:'Prod. Solicitada',pink:'Alistamiento'};
+const LABELS = {green:'Operativo',yellow:'Atendiendo',red:'Alerta',blue:'Cambio Ref.',orange:'Espera CI',purple:'Prod. Solicitada',pink:'Alistamiento',garnet:'Alistamiento Mec.'};
 let states = {}, timers = {}, states2 = {}, timers2 = {}, cambioLimites = {}, cambioLimites2 = {};
 let lastMec = {}, lastMec2 = {};
 window._lastEmpleada = {};
@@ -647,6 +651,14 @@ function applyChange(id){
     pendingTransicion={id,estado:'yellow'};
     openMecanicoModal('¿Quién llegó a atender?','Mecánico que atendió el llamado'); return;
   }
+  if(prev==='garnet'){
+    pendingTransicion={id,estado:'yellow'};
+    openMecanicoModal('¿Quién llegó a atender?','Mecánico para el alistamiento'); return;
+  }
+  if(prev==='garnet'){
+    pendingTransicion={id,estado:'yellow'};
+    openMecanicoModal('¿Quién llegó a atender?','Mecánico que atendió el alistamiento'); return;
+  }
   if(prev==='yellow'){
     pendingTransicion={id,estado:'green'};
     openMecanicoModal('¿Quién solucionó la falla?','Mecánico que resolvió el problema'); return;
@@ -665,6 +677,18 @@ function commitChange(id, estado, mecanico){
   if(mecanico) lastMec[id] = mecanico;
   renderBig();
   wsSend({ type:'change', id, state:estado, mecanico:mecanico||lastMec[id]||'', limite:null, empleada:window._lastEmpleada[id]||'' });
+}
+
+function onImpAlist(){
+  const esSlot = !!_pendingSlotMod;
+  cancelImproductivo();
+  if(esSlot){
+    openSlot('R', 'garnet', '', null);
+    _pendingSlotMod = null;
+  } else {
+    pendingTransicion = { id: selectedMod, estado: 'garnet_pending' };
+    openMecanicoModal('¿Quién va a realizar el alistamiento?', 'Mecánico asignado');
+  }
 }
 
 // ── cancelImproductivo ───────────────────────────────────────────
@@ -696,7 +720,7 @@ function abrirNuevoImproductivo(){
   // Deshabilitar botones del modal según disponibles
   const modal = document.getElementById('modal-improductivo');
   const btns  = modal.querySelectorAll('.mec-btn');
-  const mapTipo = { 'red':'onImpMec', 'blue':'onImpRef', 'orange':'onImpIns', 'purple':'onImpProd' };
+  const mapTipo = { 'red':'onImpMec', 'blue':'onImpRef', 'orange':'onImpIns', 'purple':'onImpProd', 'garnet':'onImpAlist' };
   btns.forEach(btn => {
     const fn = btn.getAttribute('onclick')?.replace('()','');
     const tipo = Object.keys(mapTipo).find(k => mapTipo[k] === fn);
@@ -999,7 +1023,11 @@ function seleccionarMecanico(nombre){
       closeMultiImp(impId);
     }
   } else {
-    commitChange(id, estado, nombre);
+    if(estado==='garnet_pending'){
+      commitChange(id,'garnet',nombre);
+    } else {
+      commitChange(id, estado, nombre);
+    }
   }
 }
 
