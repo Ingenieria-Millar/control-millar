@@ -243,6 +243,11 @@ body.vista-edit #vista-edit-banner{display:flex;}
 .module.pink .light{background:radial-gradient(circle at 35% 35%,#f9a8d4,#be185d);box-shadow:0 0 16px rgba(236,72,153,0.7),0 0 32px rgba(236,72,153,0.3);animation:none;}
 .module.pink .mod-label{color:#9d174d;background:rgba(236,72,153,0.15);}
 .module.pink .mod-timer{color:#9d174d;background:rgba(236,72,153,0.12);}
+.module.garnet{background:#fff1f1;border-color:#991b1b;box-shadow:0 2px 16px rgba(153,27,27,0.22);}
+.module.garnet::before{background:#7f1d1d;}
+.module.garnet .light{background:radial-gradient(circle at 35% 35%,#fca5a5,#7f1d1d);box-shadow:0 0 16px rgba(185,28,28,0.8),0 0 32px rgba(185,28,28,0.3);animation:rb .85s ease-in-out infinite;}
+.module.garnet .mod-label{color:#7f1d1d;background:rgba(153,27,27,0.15);}
+.module.garnet .mod-timer{color:#7f1d1d;background:rgba(153,27,27,0.12);}
 .module.pink .mod-id{color:#9d174d;}
 .mod-id{font-family:'Courier New',monospace;font-size:12px;font-weight:700;letter-spacing:2px;color:#475569;align-self:flex-start;}
 .light{width:50px;height:50px;border-radius:50%;transition:background 0.4s,box-shadow 0.4s;position:relative;}
@@ -1079,6 +1084,7 @@ body { overflow-x: hidden; max-width: 100vw; }
     <div class="stat fg" id="stat-green"  onclick="toggleFilter('green')"><div class="sd g"></div><span id="cnt-g">0</span>&nbsp;Operativos</div>
     <div class="stat fy" id="stat-yellow" onclick="toggleFilter('yellow')"><div class="sd y"></div><span id="cnt-y">0</span>&nbsp;Atendiendo</div>
     <div class="stat fr" id="stat-red"    onclick="toggleFilter('red')"><div class="sd r"></div><span id="cnt-r">0</span>&nbsp;Alerta</div>
+    <div class="stat" id="stat-garnet" onclick="toggleFilter('garnet')" style="cursor:pointer;display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;border:1.5px solid transparent;font-size:12px;font-weight:700;color:#64748b;transition:all .2s;"><div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:#991b1b;box-shadow:0 0 6px rgba(153,27,27,0.7);"></div><span id="cnt-garnet">0</span>&nbsp;Alistamiento</div>
     <div class="stat fb" id="stat-blue"   onclick="toggleFilter('blue')"><div class="sd" style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:#3b82f6;box-shadow:0 0 6px rgba(59,130,246,0.7);"></div><span id="cnt-b">0</span>&nbsp;En Cambio</div>
     <div class="stat fo" id="stat-orange" onclick="toggleFilter('orange')"><div class="sd" style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:#f97316;box-shadow:0 0 6px rgba(249,115,22,0.7);"></div><span id="cnt-o">0</span>&nbsp;Espera CI</div>
   <div id="eye-wrap">
@@ -1534,7 +1540,7 @@ body { overflow-x: hidden; max-width: 100vw; }
 <!-- ══════════════════════════════════════════════════════════════ -->
 <script>
 const MODULES=['M01','M02','M03','M04','M05','M06','M07','M08','M09','M10','M11','M12','M13','M14','M15','M16','M17','M18','M19','M20','M21','M22','M23','M24','M25','M26','M27'];
-const LABELS={green:'Operativo',yellow:'Atendiendo',red:'Alerta',blue:'Cambio Ref.',orange:'Espera CI',purple:'Prod. Solicitada',pink:'Alistamiento'};
+const LABELS={green:'Operativo',yellow:'Atendiendo',red:'Alerta',blue:'Cambio Ref.',orange:'Espera CI',purple:'Prod. Solicitada',pink:'Alistamiento',garnet:'Alistamiento Mec.'};
 const NEXT={green:'red',red:'yellow',yellow:'green'};  // used only for mec flow
 const MECANICOS=[];
 
@@ -1677,7 +1683,10 @@ function connectWS(){
         // No sonar si el cambio viene de cierre de multi-improductivo (no es fallo nuevo)
         // No sonar si el módulo está oculto en este dispositivo
         const modOculto = (typeof _hiddenModsSession !== 'undefined') && _hiddenModsSession.has(id);
-        if(s!=='green'&&s!=='yellow'&&!(esPlantaSnd&&s==='orange')&&!(esPlantaSnd&&s==='purple')&&esPlantaSnd&&!msg.fromMulti&&!modOculto){
+        const esSonido = (s==='red'||s==='garnet'); // garnet suena igual que rojo
+        if(esSonido&&esPlantaSnd&&!msg.fromMulti&&!modOculto){
+          playAlertSound();
+        } else if(s!=='green'&&s!=='yellow'&&s!=='red'&&s!=='garnet'&&!(esPlantaSnd&&s==='orange')&&!(esPlantaSnd&&s==='purple')&&esPlantaSnd&&!msg.fromMulti&&!modOculto){
           playAlertSound();
         }
         updateStats();
@@ -3278,7 +3287,7 @@ function toggleHideModule(id, e){
 // ── Actualizar contadores de la barra de estadísticas ────────────────
 function updateStats(){
   const esPlanta=(currentUser==='Mecanicos'||currentUser==='Televisor');
-  let g=0,y=0,r=0,b=0,o=0;
+  let g=0,y=0,r=0,b=0,o=0,gn=0;
   Object.entries(states).forEach(([id,s])=>{
     // No contar módulos ocultos con el ojito
     if(typeof _hiddenModsSession!=='undefined' && _hiddenModsSession.has(id)) return;
@@ -3286,6 +3295,7 @@ function updateStats(){
     else if(s==='yellow')y++;
     else if(s==='red')r++;
     else if(s==='blue')b++;
+    else if(s==='garnet')gn++;
     else if(s==='orange'){ if(!(currentUser==='Televisor'||currentUser==='Mecanicos')) o++; }
   });
   document.getElementById('cnt-g').textContent=g;
@@ -3293,6 +3303,7 @@ function updateStats(){
   document.getElementById('cnt-r').textContent=r;
   const eb=document.getElementById('cnt-b');if(eb)eb.textContent=b;
   const eo=document.getElementById('cnt-o');if(eo)eo.textContent=o;
+  const egn=document.getElementById('cnt-garnet');if(egn)egn.textContent=gn;
   const statO=document.getElementById('stat-orange');
   if(statO) statO.style.display='';
 }
@@ -8345,6 +8356,7 @@ const HST_TIPOS = {
   blue60: { label:'Cambio Referencia 60min',color:'#dbeafe', text:'#1e3a8a', border:'#60a5fa', icon:'🔵' },
   blue:   { label:'Cambio Referencia',      color:'#eff6ff', text:'#1e40af', border:'#93c5fd', icon:'🔵' },
   pink:   { label:'Insumos Alistamiento',   color:'#fdf2f8', text:'#9d174d', border:'#f9a8d4', icon:'🔵' },
+  garnet: { label:'Alistamiento',            color:'#fdf2f2', text:'#7f1d1d', border:'#b91c1c', icon:'🟥' },
 };
 
 function fmtMinutos(min){
