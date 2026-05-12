@@ -1248,17 +1248,32 @@ async function mostrarOrdenesModulo(modulo){
   let ordenes = [];
   try { const r = await fetch('/api/ordenes'); ordenes = await r.json(); } catch(e) { ordenes = []; }
   const ordenesModulo = ordenes.filter(o => (o.modulo || '') === modulo);
-  if (ordenesModulo.length === 0) {
-    showToast('⚠ No hay órdenes asignadas para ' + modulo + '. Contacta al programador.');
-    setTimeout(() => volverInicio(), 2000);
-    return;
-  }
-  document.getElementById('orden-screen-title').textContent = 'Órdenes asignadas del módulo ' + modulo;
+
+  document.getElementById('orden-screen-title').textContent = 'Órdenes asignadas — Módulo ' + modulo;
   document.getElementById('orden-mod-badge').textContent = '🏭 ' + modulo;
   const lista    = document.getElementById('orden-lista');
   const buscarEl = document.getElementById('orden-buscar');
   lista.innerHTML = '';
   if (buscarEl) buscarEl.value = '';
+
+  if (ordenesModulo.length === 0) {
+    // Sin órdenes — bloquear con mensaje claro, sin redirigir
+    if (buscarEl) buscarEl.style.display = 'none';
+    lista.innerHTML = `
+      <div style="grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:60px 20px;text-align:center;">
+        <div style="font-size:52px;">📋</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;letter-spacing:1px;color:#0f172a;">Sin órdenes asignadas</div>
+        <div style="font-size:14px;color:#64748b;max-width:320px;line-height:1.6;">
+          El módulo <b style="color:#1e40af;">${modulo}</b> no tiene órdenes de producción asignadas.<br>
+          Contacta al programador o supervisor para que asigne una orden.
+        </div>
+        <button onclick="volverInicio()" style="margin-top:8px;padding:12px 32px;border-radius:10px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;cursor:pointer;">← Volver al inicio</button>
+      </div>`;
+    document.getElementById('orden-screen').style.display = 'flex';
+    return;
+  }
+
+  if (buscarEl) buscarEl.style.display = '';
   ordenesModulo.forEach(o => {
     const card = document.createElement('div');
     card.dataset.ref = o.referencia || '';
