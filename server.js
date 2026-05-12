@@ -162,28 +162,39 @@ const states       = floorPersisted.states      || {};
 const lastMec      = floorPersisted.lastMec     || {};
 const stateTimes   = floorPersisted.stateTimes  || {};
 const lastEmpleada = floorPersisted.lastEmpleada|| {};
-// slots: { [modId]: { R:null|{...}, N:null|{...}, M:null|{...} } }
-// Compatible con floor_state.json antiguo (con multiImp) — slots toma precedencia
-const slots = floorPersisted.slots || {};
+// multiImps: { [modId]: [ { id, tipo, tipoActual, inicio, empleada, mecanico, ciRequestId } ] }
+// Migración automática desde slots fijos anteriores (R/N/M) al nuevo array dinámico
+const _oldSlots = floorPersisted.slots || {};
+const multiImps = floorPersisted.multiImps || {};
+
+// Migrar slots viejos R/N/M al nuevo formato si no existe multiImps
+if (!floorPersisted.multiImps && Object.keys(_oldSlots).length > 0) {
+  Object.keys(_oldSlots).forEach(modId => {
+    const s = _oldSlots[modId] || {};
+    const arr = [];
+    ['R','N','M'].forEach(k => {
+      if (s[k]) arr.push({ ...s[k], id: s[k].id || (k+'-'+Date.now()) });
+    });
+    if (arr.length) multiImps[modId] = arr;
+  });
+}
+
 // Inicializar módulos que falten
 MODULES.forEach(id => {
-  if (!states[id])     states[id]     = 'green';
-  if (!lastMec[id])    lastMec[id]    = '';
-  if (!stateTimes[id]) stateTimes[id] = Date.now();
+  if (!states[id])       states[id]       = 'green';
+  if (!lastMec[id])      lastMec[id]      = '';
+  if (!stateTimes[id])   stateTimes[id]   = Date.now();
   if (!lastEmpleada[id]) lastEmpleada[id] = '';
-  if (!slots[id])      slots[id]      = { R:null, N:null, M:null };
+  if (!multiImps[id])    multiImps[id]    = [];
 });
 
-// Helper: calcular color del módulo según slots activos
+// Helper: calcular color del módulo según improductivos activos
+// El color mostrado es el del improductivo más reciente (último del array)
 function calcColorMod(modId) {
-  const s = slots[modId] || {};
-  const activos = [];
-  if (s.R) activos.push({ color: s.R.tipoActual || s.R.tipo, inicio: s.R.inicio });
-  if (s.N) activos.push({ color: 'orange', inicio: s.N.inicio });
-  if (s.M) activos.push({ color: 'purple', inicio: s.M.inicio });
-  if (!activos.length) return 'green';
-  activos.sort((a,b) => b.inicio - a.inicio);
-  return activos[0].color;
+  const imps = multiImps[modId] || [];
+  if (!imps.length) return 'green';
+  const ultimo = imps[imps.length - 1];
+  return ultimo.tipoActual || ultimo.tipo || 'green';
 }
 
 function getAllActiveModules() {
@@ -272,7 +283,7 @@ MODULES.forEach(id => {
 });
 
 function saveFloorState() {
-  writeJSON(FILES.floor_state, { states, lastMec, stateTimes, lastEmpleada, slots });
+  writeJSON(FILES.floor_state, { states, lastMec, stateTimes, lastEmpleada, multiImps });
 }
 
 // ── Estado Tablero CI ──────────────────────────────────────────────
@@ -1047,7 +1058,7 @@ wss.on('connection', (ws, req) => {
     iaState:       iaState,
     iaRecords:     iaRecords,
     modulesConfig: modulesConfig,
-    slots:         JSON.parse(JSON.stringify(slots))
+    multiImps:     JSON.parse(JSON.stringify(multiImps))
   }));
 
   ws.on('message', (raw) => {
@@ -1237,46 +1248,41 @@ wss.on('connection', (ws, req) => {
           }
         }
 
-        // Si fue aceptado (done), cerrar el slot CI correspondiente
+        // Si fue aceptado (done), cerrar el improductivo CI correspondiente en multiImps
         if (msg.request.status === 'done' && msg.request._id) {
           const reqId = msg.request._id;
           const modId = msg.request.module || msg.request.moduloDestino;
-          if (modId && slots[modId]) {
-            // Buscar en slots N y M cuál tiene ese ciRequestId
-            let closedSlot = null;
-            if (slots[modId].N && slots[modId].N.ciRequestId === reqId) closedSlot = 'N';
-            else if (slots[modId].M && slots[modId].M.ciRequestId === reqId) closedSlot = 'M';
-
-            if (closedSlot) {
-              const imp = slots[modId][closedSlot];
-              // Registrar en historial
+          if (modId && multiImps[modId]) {
+            const idx = multiImps[modId].findIndex(i => i.ciRequestId === reqId);
+            if (idx > -1) {
+              const imp   = multiImps[modId][idx];
               const ahora = Date.now();
               const durMs = ahora - (imp.inicio || ahora);
               if (durMs > 0) {
-                const now    = new Date();
-                const opts   = { timeZone:'America/Bogota', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true };
-                const bogota = new Date(now.toLocaleString('en-US', { timeZone:'America/Bogota' }));
+                const now      = new Date();
+                const opts     = { timeZone:'America/Bogota', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true };
+                const bogota   = new Date(now.toLocaleString('en-US', { timeZone:'America/Bogota' }));
                 const fechaISO = bogota.getFullYear()+'-'+String(bogota.getMonth()+1).padStart(2,'0')+'-'+String(bogota.getDate()).padStart(2,'0');
-                let historial = readJSON(FILES.historial, []);
-                const regHoy  = historial.filter(r => r.fechaISO === fechaISO);
+                let historial  = readJSON(FILES.historial, []);
+                const regHoy   = historial.filter(r => r.fechaISO === fechaISO);
                 historial.push({
                   num: regHoy.length+1, fecha: now.toLocaleDateString('es-CO',{timeZone:'America/Bogota'}), fechaISO,
                   horaInicio: new Date(imp.inicio||ahora).toLocaleTimeString('es-CO',opts),
                   hora: now.toLocaleTimeString('es-CO',opts), modulo: modId,
-                  tipo: imp.tipo, estadoAnterior: imp.tipo, estadoNuevo: 'green',
+                  tipo: imp.tipoActual||imp.tipo, estadoAnterior: imp.tipoActual||imp.tipo, estadoNuevo:'green',
                   durMinutos: parseFloat((durMs/60000).toFixed(2)),
                   mecanico: imp.mecanico||'', empleada: imp.empleada||'', ciRequestId: reqId
                 });
                 if (historial.length > 10000) historial = historial.slice(-10000);
                 writeJSON(FILES.historial, historial);
               }
-              // Cerrar slot
-              slots[modId][closedSlot] = null;
-              states[modId]    = calcColorMod(modId);
-              stateTimes[modId]= Date.now();
+              multiImps[modId].splice(idx, 1);
+              states[modId]     = calcColorMod(modId);
+              stateTimes[modId] = Date.now();
               if (states[modId] === 'green') { lastMec[modId]=''; lastEmpleada[modId]=''; }
               saveFloorState();
-              broadcast({ type:'slots_update', modId, slots: slots[modId] });
+              // Notificar al contador_modulos y tablero general
+              broadcastLocal({ type:'multi_imp_change', action:'close', modId, impId: imp.id });
               broadcast({ type:'change', id:modId, state:states[modId], mecanico:lastMec[modId]||'', limite:null, empleada:lastEmpleada[modId]||'', stateTime:stateTimes[modId], fromMulti:true });
             }
           }
@@ -1289,121 +1295,126 @@ wss.on('connection', (ws, req) => {
         broadcast({ type:'ci_reactivar_alerta', reqId:msg.reqId });
       }
 
-      // ── Multi-Improductivo ──────────────────────────────────────
-      // ── SLOTS: 3 slots fijos R/N/M por módulo ──────────────────────
-      // msg: { type:'slot_change', modId, slot, action, data }
-      // slot: 'R'|'N'|'M'  action: 'open'|'update'|'close'
-      else if (msg.type === 'slot_change') {
-        const { modId, slot, action, data } = msg;
-        if (!modId || !slot || !action || !['R','N','M'].includes(slot)) return;
-        if (!slots[modId]) slots[modId] = { R:null, N:null, M:null };
+      // ── Multi-Improductivo — sistema dinámico por array ────────────
+      // msg: { type:'multi_imp_change', modId, action, imp }
+      // action: 'open' | 'update' | 'close'
+      // imp: { id, tipo, tipoActual, inicio, empleada, mecanico, ciRequestId }
+      else if (msg.type === 'multi_imp_change') {
+        const modId = msg.modId;
+        if (!modId) return;
+        if (!multiImps[modId]) multiImps[modId] = [];
 
-        if (action === 'open') {
-          if (slots[modId][slot]) return; // ya existe, ignorar
-          slots[modId][slot] = {
-            id:          data.id,
-            slot,
-            tipo:        data.tipo,
-            tipoActual:  data.tipo,
-            inicio:      data.inicio || Date.now(),
-            empleada:    data.empleada || '',
-            mecanico:    data.mecanico || '',
-            ciRequestId: data.ciRequestId || null
-          };
-          if (data.empleada) lastEmpleada[modId] = data.empleada;
+        // ── OPEN ──────────────────────────────────────────────────
+        if (msg.action === 'open') {
+          const imp = msg.imp || {};
+          if (!imp.id) return;
+          // Evitar duplicados
+          if (multiImps[modId].find(i => i.id === imp.id)) return;
+          multiImps[modId].push({
+            id:          imp.id,
+            tipo:        imp.tipo,
+            tipoActual:  imp.tipoActual || imp.tipo,
+            inicio:      imp.inicio || Date.now(),
+            empleada:    imp.empleada || '',
+            mecanico:    imp.mecanico || '',
+            ciRequestId: imp.ciRequestId || null,
+            esPrincipal: imp.esPrincipal || false
+          });
+          if (imp.empleada) lastEmpleada[modId] = imp.empleada;
+          if (imp.mecanico) lastMec[modId]      = imp.mecanico;
           states[modId]     = calcColorMod(modId);
-          stateTimes[modId] = slots[modId][slot].inicio;
+          stateTimes[modId] = imp.inicio || Date.now();
           saveFloorState();
-          // Broadcast a todos los clientes con el estado nuevo
-          broadcast({ type:'slots_update', modId, slots: slots[modId] });
-          // Para el tablero de mecánicos: si es slot R, emitir change con fromSlot
-          if (slot === 'R') {
-            // garnet y red ambos notifican al tablero de mecánicos
-            broadcast({ type:'change', id:modId, state:slots[modId].R.tipoActual, mecanico:lastMec[modId]||'', limite:null, empleada:lastEmpleada[modId]||'', stateTime:stateTimes[modId], fromSlot:true });
-          } else {
-            // Para el tablero general actualizar color sin sonar en mecánicos
-            broadcast({ type:'change', id:modId, state:states[modId], mecanico:lastMec[modId]||'', limite:null, empleada:lastEmpleada[modId]||'', stateTime:stateTimes[modId], fromMulti:true });
-          }
+          broadcastLocal({ type:'multi_imp_change', action:'open', modId, imp: multiImps[modId][multiImps[modId].length-1] });
+          // Notificar tablero general y tablero mecánicos
+          const esRed = ['red','garnet','pink'].includes(imp.tipoActual || imp.tipo);
+          broadcast({
+            type:'change', id:modId, state:states[modId],
+            mecanico:lastMec[modId]||'', limite:null,
+            empleada:lastEmpleada[modId]||'', stateTime:stateTimes[modId],
+            fromMulti: !esRed,   // fromMulti=false → tablero mecánicos suena
+            fromSlot:  esRed
+          });
         }
 
-        else if (action === 'update') {
-          if (!slots[modId][slot]) return;
-          Object.assign(slots[modId][slot], data);
-          if (data.mecanico) lastMec[modId] = data.mecanico;
-          if (data.empleada) lastEmpleada[modId] = data.empleada;
+        // ── UPDATE ────────────────────────────────────────────────
+        else if (msg.action === 'update') {
+          const imp = msg.imp || {};
+          if (!imp.id) return;
+          const idx = multiImps[modId].findIndex(i => i.id === imp.id);
+          if (idx === -1) return;
+          Object.assign(multiImps[modId][idx], imp);
+          if (imp.mecanico) lastMec[modId]      = imp.mecanico;
+          if (imp.empleada) lastEmpleada[modId] = imp.empleada;
           states[modId]     = calcColorMod(modId);
           stateTimes[modId] = Date.now();
           saveFloorState();
-          broadcast({ type:'slots_update', modId, slots: slots[modId] });
-          // Tablero de mecánicos siempre recibe el estado real del slot R
-          if (slot === 'R') {
-            // garnet y red ambos notifican al tablero de mecánicos
-            broadcast({ type:'change', id:modId, state:slots[modId].R.tipoActual, mecanico:lastMec[modId]||'', limite:null, empleada:lastEmpleada[modId]||'', stateTime:stateTimes[modId], fromSlot:true });
-          } else {
-            broadcast({ type:'change', id:modId, state:states[modId], mecanico:lastMec[modId]||'', limite:null, empleada:lastEmpleada[modId]||'', stateTime:stateTimes[modId], fromMulti:true });
-          }
+          broadcastLocal({ type:'multi_imp_change', action:'update', modId, imp: multiImps[modId][idx] });
+          const esRed = ['red','yellow','garnet'].includes(multiImps[modId][idx].tipoActual || multiImps[modId][idx].tipo);
+          broadcast({
+            type:'change', id:modId, state:states[modId],
+            mecanico:lastMec[modId]||'', limite:null,
+            empleada:lastEmpleada[modId]||'', stateTime:stateTimes[modId],
+            fromMulti: !esRed, fromSlot: esRed
+          });
         }
 
-        else if (action === 'close') {
-          if (!slots[modId][slot]) return;
-          const imp = slots[modId][slot];
+        // ── CLOSE ─────────────────────────────────────────────────
+        else if (msg.action === 'close') {
+          const impId = msg.imp?.id || msg.impId;
+          if (!impId) return;
+          const idx = multiImps[modId].findIndex(i => i.id === impId);
+          if (idx === -1) return;
+          const imp = multiImps[modId][idx];
 
           // Guardar en historial
-          const ahora = Date.now();
-          const durMs = ahora - (imp.inicio || ahora);
+          const ahora  = Date.now();
+          const durMs  = ahora - (imp.inicio || ahora);
           if (durMs > 0) {
-            const now    = new Date();
-            const opts   = { timeZone:'America/Bogota', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true };
-            const bogota = new Date(now.toLocaleString('en-US', { timeZone:'America/Bogota' }));
+            const now      = new Date();
+            const opts     = { timeZone:'America/Bogota', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true };
+            const bogota   = new Date(now.toLocaleString('en-US', { timeZone:'America/Bogota' }));
             const fechaISO = bogota.getFullYear()+'-'+String(bogota.getMonth()+1).padStart(2,'0')+'-'+String(bogota.getDate()).padStart(2,'0');
-            let historial = readJSON(FILES.historial, []);
-            const regHoy  = historial.filter(r => r.fechaISO === fechaISO);
-            // Para slot R: usar tipoActual (puede ser yellow al momento de cerrar)
+            let historial  = readJSON(FILES.historial, []);
+            const regHoy   = historial.filter(r => r.fechaISO === fechaISO);
             const tipoReal = imp.tipoActual || imp.tipo;
             historial.push({
-              num:           regHoy.length + 1,
-              fecha:         now.toLocaleDateString('es-CO', { timeZone:'America/Bogota' }),
+              num:            regHoy.length + 1,
+              fecha:          now.toLocaleDateString('es-CO', { timeZone:'America/Bogota' }),
               fechaISO,
-              horaInicio:    new Date(imp.inicio || ahora).toLocaleTimeString('es-CO', opts),
-              hora:          now.toLocaleTimeString('es-CO', opts),
-              modulo:        modId,
-              tipo:          tipoReal,
-              estadoAnterior:tipoReal,
-              estadoNuevo:   'green',
-              durMinutos:    parseFloat((durMs / 60000).toFixed(2)),
-              mecanico:      imp.mecanico || '',
-              empleada:      imp.empleada || '',
-              ciRequestId:   imp.ciRequestId || undefined
+              horaInicio:     new Date(imp.inicio || ahora).toLocaleTimeString('es-CO', opts),
+              hora:           now.toLocaleTimeString('es-CO', opts),
+              modulo:         modId,
+              tipo:           tipoReal,
+              estadoAnterior: tipoReal,
+              estadoNuevo:    'green',
+              durMinutos:     parseFloat((durMs / 60000).toFixed(2)),
+              mecanico:       imp.mecanico || '',
+              empleada:       imp.empleada || '',
+              ciRequestId:    imp.ciRequestId || undefined
             });
             if (historial.length > 10000) historial = historial.slice(-10000);
             writeJSON(FILES.historial, historial);
           }
 
-          // Limpiar slot
-          slots[modId][slot] = null;
-          states[modId]      = calcColorMod(modId);
-          stateTimes[modId]  = Date.now();
+          // Quitar del array
+          multiImps[modId].splice(idx, 1);
+          states[modId]     = calcColorMod(modId);
+          stateTimes[modId] = Date.now();
           if (states[modId] === 'green') {
-            lastMec[modId]       = '';
-            lastEmpleada[modId]  = '';
+            lastMec[modId]      = '';
+            lastEmpleada[modId] = '';
           }
           saveFloorState();
-          broadcast({ type:'slots_update', modId, slots: slots[modId] });
-          broadcast({ type:'change', id:modId, state:states[modId], mecanico:lastMec[modId]||'', limite:null, empleada:lastEmpleada[modId]||'', stateTime:stateTimes[modId], fromMulti:true });
+          broadcastLocal({ type:'multi_imp_change', action:'close', modId, impId });
+          // Broadcast para actualizar tablero general
+          broadcast({
+            type:'change', id:modId, state:states[modId],
+            mecanico:lastMec[modId]||'', limite:null,
+            empleada:lastEmpleada[modId]||'', stateTime:stateTimes[modId],
+            fromMulti:true
+          });
         }
-      }
-
-      // ── LEGADO: multi_imp_change — mantener para compatibilidad ──
-      else if (msg.type === 'multi_imp_change') {
-        // Redirigir al nuevo sistema de slots
-        const modId = msg.modId;
-        if (!modId) return;
-        if (!slots[modId]) slots[modId] = { R:null, N:null, M:null };
-        // Detectar slot por tipo
-        const tipoSlot = { red:'R', yellow:'R', orange:'N', purple:'M', pink:'R', blue:'R' };
-        const slotKey  = tipoSlot[msg.imp?.tipo || msg.imp?.tipoActual] || 'R';
-        // Reenviar como slot_change
-        ws.emit && ws.emit('message', JSON.stringify({ type:'slot_change', modId, slot:slotKey, action:msg.action, data:msg.imp||{} }));
       }
 
 
