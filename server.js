@@ -134,16 +134,6 @@ function loadInitialState() {
   return ensureProgramador({ supervisors: [], employees: [] });
 }
 
-// ── Etiquetas de estado para el histórico ─────────────────────────
-const STATE_LABELS = {
-  red:    'Espera Mecánico',
-  yellow: 'Atención Mecánico',
-  blue:   'Cambio Referencia',
-  orange: 'Espera Insumos',
-  purple: 'Prod. Solicitada',
-  pink:   'Insumos Alistamiento'
-};
-
 let iaState       = readJSON(FILES.ia_state, null);
 let iaRecords     = readJSON(FILES.ia_records, []);
 let modulesConfig = readJSON(FILES.modules_config, { disabled:[], extra:[], renamed:{}, modPass:{} });
@@ -498,26 +488,13 @@ app.post('/api/ordenes', (req, res) => {
 
 const CI_PATH = path.join(__dirname, 'Tablero_CI.html');
 app.get('/ci', (req, res) => {
-  console.log('[CI] Solicitado /ci — buscando en:', CI_PATH);
-  console.log('[CI] Existe:', fs.existsSync(CI_PATH));
-  // Listar archivos HTML en __dirname para debug
-  try {
-    const files = fs.readdirSync(__dirname).filter(f => f.endsWith('.html'));
-    console.log('[CI] Archivos HTML en __dirname:', files);
-  } catch(e) { console.log('[CI] Error listando:', e.message); }
-  
   if (!fs.existsSync(CI_PATH)) {
-    // Intentar variantes del nombre
     const variants = ['tablero_ci.html','tablero-ci.html','TableroCI.html','tableroCI.html'];
     for (const v of variants) {
       const vpath = path.join(__dirname, v);
-      if (fs.existsSync(vpath)) {
-        console.log('[CI] Encontrado variante:', v);
-        return res.sendFile(vpath);
-      }
+      if (fs.existsSync(vpath)) return res.sendFile(vpath);
     }
-    console.error('[CI] Tablero_CI.html NO encontrado en:', CI_PATH);
-    return res.status(404).send('<h1>Tablero CI no encontrado</h1><p>CI_PATH: ' + CI_PATH + '</p><p>Archivos HTML disponibles: ' + fs.readdirSync(__dirname).filter(f=>f.endsWith('.html')).join(', ') + '</p>');
+    return res.status(404).send('<h1>Tablero CI no encontrado</h1>');
   }
   res.sendFile(CI_PATH);
 });
@@ -1517,7 +1494,7 @@ server.listen(PORT, () => {
   console.log(`✅ Confecciones Millar v4.0 — Puerto ${PORT}`);
   console.log(`   Control de Piso   : http://localhost:${PORT}/`);
   console.log(`   Control Ingresos  : http://localhost:${PORT}/ingresos`);
-  console.log(`   Alistamiento          : http://localhost:${PORT}/alistamiento`);
+  console.log(`   Alistamiento      : http://localhost:${PORT}/alistamiento`);
   console.log(`   Solicitar Insumos : http://localhost:${PORT}/solicitar-insumos`);
   console.log(`   Tablero CI        : http://localhost:${PORT}/ci`);
   console.log(`   Health check      : http://localhost:${PORT}/health`);
