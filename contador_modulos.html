@@ -5,168 +5,302 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Módulo — Confecciones Millar</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Nunito:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 *{ box-sizing:border-box; margin:0; padding:0; }
 body{ background:#f1f5f9; font-family:'Nunito',sans-serif; color:#0f172a; min-height:100vh; overflow-x:hidden; }
 input,select,textarea{ font-size:16px !important; }
 :root{
-  --green:#22c55e; --yellow:#eab308; --red:#ef4444;
-  --blue:#3b82f6; --orange:#f97316; --purple:#8b5cf6;
-  --accent:#2563eb; --accent2:#1e3a8a;
-  --text:#0f172a; --muted:#64748b; --border:#e2e8f0; --surface:#fff;
+  --green:#16a34a; --green-bg:#dcfce7; --green-bd:#bbf7d0; --green-glow:rgba(34,197,94,.22);
+  --red:#dc2626;   --red-bg:#fee2e2;   --red-bd:#fca5a5;   --red-glow:rgba(239,68,68,.28);
+  --yellow:#a16207;--yellow-bg:#fef9c3;--yellow-bd:#fde047;--yellow-glow:rgba(234,179,8,.22);
+  --orange:#9a3412;--orange-bg:#ffedd5;--orange-bd:#fb923c;--orange-glow:rgba(249,115,22,.22);
+  --purple:#5b21b6;--purple-bg:#f5f3ff;--purple-bd:#c4b5fd;--purple-glow:rgba(124,58,237,.18);
+  --blue:#1e40af;  --blue-bg:#dbeafe;  --blue-bd:#93c5fd;  --blue-glow:rgba(59,130,246,.18);
+  --garnet:#7f1d1d;--garnet-bg:#fff1f1;--garnet-bd:#fca5a5;
+  --pinkci:#831843;--pinkci-bg:#fdf2f8;--pinkci-bd:#f9a8d4;
+  --accent:#2563eb;--accent2:#1e3a8a;
+  --surface:#fff;--bg:#f1f5f9;--border:#e2e8f0;--text:#0f172a;--muted:#64748b;
 }
 
 /* ── HEADER ── */
 header{
   position:sticky;top:0;z-index:100;background:#fff;
   border-bottom:1px solid var(--border);
-  box-shadow:0 1px 6px rgba(0,0,0,.07);
-  padding:0 clamp(12px,2.5vw,24px);min-height:60px;
+  box-shadow:0 1px 6px rgba(0,0,0,.06);
+  padding:0 clamp(12px,2.5vw,24px);min-height:58px;
   display:flex;align-items:center;justify-content:space-between;gap:12px;
-  flex-wrap:wrap;
+  flex-wrap:wrap;position:relative;
 }
 header::after{
-  content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
+  content:'';position:absolute;bottom:0;left:0;right:0;height:2.5px;
   background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);
 }
-.hd-left{ display:flex;align-items:center;gap:12px; }
-.hd-logo{
-  width:36px;height:36px;border-radius:50%;background:#fff;
-  display:flex;align-items:center;justify-content:center;overflow:hidden;
-  box-shadow:0 0 0 2px #e2e8f0,0 2px 8px rgba(0,0,0,.08);flex-shrink:0;
+.hd-left{ display:flex;align-items:center;gap:10px; }
+.hd-badge{
+  background:linear-gradient(135deg,#1e3a8a,#2563eb);
+  color:#fff;font-family:'Barlow Condensed',sans-serif;
+  font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+  padding:3px 10px;border-radius:6px;flex-shrink:0;
 }
-.hd-logo img{ width:100%;height:100%;object-fit:contain;padding:3px; }
-.hd-title{
-  font-family:'Barlow Condensed',sans-serif;font-size:clamp(16px,2.5vw,20px);
-  font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0f172a;
+.hd-mod{
+  font-family:'Barlow Condensed',sans-serif;font-size:clamp(20px,3vw,26px);
+  font-weight:800;letter-spacing:3px;color:#0f172a;
 }
-.hd-title span{ color:var(--accent); }
+.hd-mod span{ color:var(--accent); }
 .hd-right{ display:flex;align-items:center;gap:8px;flex-wrap:wrap; }
+.hd-pill{
+  display:flex;align-items:center;gap:5px;
+  padding:4px 11px;border-radius:20px;border:1px solid var(--border);
+  background:#f8fafc;font-size:11px;font-weight:600;color:#334155;white-space:nowrap;
+}
+.hd-pill .dot{ width:7px;height:7px;border-radius:50%;background:#22c55e;flex-shrink:0; }
+.hd-pill .dot.off{ background:#94a3b8; }
 .btn-bar{
-  padding:6px 14px;border-radius:8px;border:1.5px solid var(--border);
+  padding:6px 13px;border-radius:8px;border:1px solid var(--border);
   background:#fff;color:var(--accent2);
   font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;
-  letter-spacing:.5px;cursor:pointer;transition:all .2s;white-space:nowrap;
+  letter-spacing:.5px;cursor:pointer;transition:background .15s;white-space:nowrap;
 }
 .btn-bar:hover{ background:#f1f5f9; }
-.hd-back-btn{
-  padding:6px 14px;border-radius:8px;border:1.5px solid var(--border);
-  background:#fff;color:#334155;
-  font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;
-  transition:all .2s;white-space:nowrap;
-}
-.hd-back-btn:hover{ background:#f1f5f9; }
 
-/* ── SINGLE VIEW ── */
+/* ── MAIN ── */
 #single-view{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  min-height:75vh;gap:24px;padding:24px 16px;
+  display:flex;flex-direction:column;align-items:center;
+  min-height:calc(100vh - 58px);gap:20px;padding:24px 16px;
 }
-/* Contenedor principal de improductivos */
-#imp-row{
-  display:flex;flex-direction:column;align-items:center;gap:14px;width:100%;
+
+/* ── CHIP ORDEN ── */
+.orden-chip{
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  background:#fff;border:1px solid var(--border);border-radius:12px;
+  padding:10px 18px;width:100%;max-width:640px;
 }
-/* Fila de tarjetas */
+.orden-chip-item{ display:flex;flex-direction:column;gap:2px; }
+.orden-chip-label{ font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted); }
+.orden-chip-val{ font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;color:#0f172a;letter-spacing:.5px; }
+.orden-sep{ width:1px;height:28px;background:var(--border); }
+
+/* ── FILA DE TARJETAS ── */
 #imp-cards{
   display:flex;flex-direction:row;flex-wrap:wrap;
   gap:14px;justify-content:center;align-items:flex-start;
-  width:100%;
+  width:100%;max-width:780px;
+}
+#imp-btn-row{ display:flex;justify-content:center;width:100%; }
+
+/* ── TARJETA IMPRODUCTIVO ── */
+.imp-card{
+  background:#fff;border-radius:20px;border:1.5px solid var(--border);
+  display:flex;flex-direction:column;align-items:center;
+  padding:26px 30px 20px;gap:0;
+  min-width:220px;max-width:300px;flex:1;
+  position:relative;cursor:pointer;
+  transition:transform .15s,box-shadow .2s;
+  user-select:none;
+}
+.imp-card:active{ transform:scale(0.98); }
+/* Barra lateral de color */
+.imp-card::before{
+  content:'';position:absolute;left:0;top:16px;bottom:16px;
+  width:4px;border-radius:0 3px 3px 0;
+}
+/* Estados */
+.imp-card.green{ background:var(--green-bg);border-color:var(--green-bd);box-shadow:0 4px 28px var(--green-glow); }
+.imp-card.green::before{ background:var(--green); }
+.imp-card.red{ background:var(--red-bg);border-color:var(--red-bd);box-shadow:0 4px 36px var(--red-glow); }
+.imp-card.red::before{ background:var(--red); }
+.imp-card.yellow{ background:var(--yellow-bg);border-color:var(--yellow-bd);box-shadow:0 4px 28px var(--yellow-glow); }
+.imp-card.yellow::before{ background:#eab308; }
+.imp-card.orange{ background:var(--orange-bg);border-color:var(--orange-bd);box-shadow:0 4px 28px var(--orange-glow); }
+.imp-card.orange::before{ background:#f97316; }
+.imp-card.purple{ background:var(--purple-bg);border-color:var(--purple-bd);box-shadow:0 4px 28px var(--purple-glow); }
+.imp-card.purple::before{ background:#7c3aed; }
+.imp-card.blue{ background:var(--blue-bg);border-color:var(--blue-bd);box-shadow:0 4px 28px var(--blue-glow); }
+.imp-card.blue::before{ background:#3b82f6; }
+.imp-card.garnet{ background:var(--garnet-bg);border-color:var(--garnet-bd);box-shadow:0 4px 36px rgba(127,29,29,.22); }
+.imp-card.garnet::before{ background:#991b1b; }
+.imp-card.pink{ background:var(--pinkci-bg);border-color:var(--pinkci-bd);box-shadow:0 4px 28px rgba(131,24,67,.15); }
+.imp-card.pink::before{ background:#db2777; }
+
+/* Botón cerrar */
+.card-x{
+  position:absolute;top:10px;right:10px;
+  width:24px;height:24px;border-radius:50%;border:none;
+  background:rgba(0,0,0,.06);color:rgba(0,0,0,.3);
+  font-size:12px;font-weight:700;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .15s;line-height:1;z-index:5;
+}
+.card-x:hover{ background:rgba(239,68,68,.12);color:#dc2626; }
+
+/* Módulo ID */
+.card-id{
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:42px;font-weight:800;letter-spacing:5px;
+  color:#0f172a;margin-bottom:16px;margin-top:2px;line-height:1;
+}
+.imp-card.green  .card-id{ color:var(--green); }
+.imp-card.red    .card-id{ color:var(--red); }
+.imp-card.yellow .card-id{ color:var(--yellow); }
+.imp-card.orange .card-id{ color:var(--orange); }
+.imp-card.purple .card-id{ color:var(--purple); }
+.imp-card.blue   .card-id{ color:var(--blue); }
+.imp-card.garnet .card-id{ color:var(--garnet); }
+.imp-card.pink   .card-id{ color:var(--pinkci); }
+
+/* Semáforo */
+.light-wrap{
+  width:96px;height:96px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:14px;position:relative;flex-shrink:0;
+}
+.light-inner{
+  width:80px;height:80px;border-radius:50%;
+  background:#e2e8f0;position:relative;
+}
+.light-shine{
+  position:absolute;top:11px;left:16px;
+  width:26px;height:15px;border-radius:50%;
+  background:rgba(255,255,255,.25);transform:rotate(-30deg);
+}
+.imp-card.green  .light-wrap{ background:rgba(34,197,94,.1); }
+.imp-card.green  .light-inner{ background:radial-gradient(circle at 35% 35%,#4ade80,#15803d); }
+.imp-card.red    .light-wrap{ background:rgba(239,68,68,.1); }
+.imp-card.red    .light-inner{ background:radial-gradient(circle at 35% 35%,#f87171,#991b1b); }
+.imp-card.yellow .light-wrap{ background:rgba(234,179,8,.1); }
+.imp-card.yellow .light-inner{ background:radial-gradient(circle at 35% 35%,#fde047,#a16207); }
+.imp-card.orange .light-wrap{ background:rgba(249,115,22,.1); }
+.imp-card.orange .light-inner{ background:radial-gradient(circle at 35% 35%,#fdba74,#c2410c); }
+.imp-card.purple .light-wrap{ background:rgba(124,58,237,.1); }
+.imp-card.purple .light-inner{ background:radial-gradient(circle at 35% 35%,#c4b5fd,#6d28d9); }
+.imp-card.blue   .light-wrap{ background:rgba(59,130,246,.1); }
+.imp-card.blue   .light-inner{ background:radial-gradient(circle at 35% 35%,#93c5fd,#1d4ed8); }
+.imp-card.garnet .light-wrap{ background:rgba(153,27,27,.1); }
+.imp-card.garnet .light-inner{ background:radial-gradient(circle at 35% 35%,#fca5a5,#7f1d1d); }
+.imp-card.pink   .light-wrap{ background:rgba(219,39,119,.1); }
+.imp-card.pink   .light-inner{ background:radial-gradient(circle at 35% 35%,#fbcfe8,#9d174d); }
+
+/* Animaciones de luz */
+@keyframes yb{0%,100%{opacity:1;}50%{opacity:.6;}}
+@keyframes rb{0%,100%{opacity:1;}50%{opacity:.55;}}
+.imp-card.red    .light-inner{ animation:rb .85s ease-in-out infinite; }
+.imp-card.yellow .light-inner{ animation:yb 1.6s ease-in-out infinite; }
+.imp-card.orange .light-inner{ animation:rb 1.2s ease-in-out infinite; }
+.imp-card.garnet .light-inner{ animation:rb .85s ease-in-out infinite; }
+
+/* Status */
+.card-status{
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:15px;font-weight:700;letter-spacing:3px;text-transform:uppercase;
+  margin-bottom:8px;color:var(--muted);text-align:center;
+}
+.imp-card.green  .card-status{ color:var(--green); }
+.imp-card.red    .card-status{ color:var(--red); }
+.imp-card.yellow .card-status{ color:var(--yellow); }
+.imp-card.orange .card-status{ color:var(--orange); }
+.imp-card.purple .card-status{ color:var(--purple); }
+.imp-card.blue   .card-status{ color:var(--blue); }
+.imp-card.garnet .card-status{ color:var(--garnet); }
+.imp-card.pink   .card-status{ color:var(--pinkci); }
+
+/* Timer */
+.card-timer{
+  font-family:'Barlow Condensed',monospace;
+  font-size:26px;font-weight:800;letter-spacing:2px;
+  margin-bottom:12px;color:#334155;min-height:32px;
+}
+.imp-card.green  .card-timer{ visibility:hidden; }
+.imp-card.red    .card-timer{ color:var(--red); }
+.imp-card.yellow .card-timer{ color:var(--yellow); }
+.imp-card.orange .card-timer{ color:var(--orange); }
+.imp-card.purple .card-timer{ color:var(--purple); }
+.imp-card.blue   .card-timer{ color:var(--blue); }
+.imp-card.garnet .card-timer{ color:var(--garnet); }
+.imp-card.pink   .card-timer{ color:var(--pinkci); }
+
+/* Badges */
+.badges{ display:flex;flex-direction:column;gap:5px;align-items:center;width:100%;margin-bottom:4px; }
+.badge{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 11px;border-radius:20px;
+  font-size:11px;font-weight:600;white-space:nowrap;
+}
+.badge-mec{ background:rgba(30,64,175,.08);color:#1e40af; }
+.badge-emp{ background:rgba(15,23,42,.06);color:#334155; }
+.badge-lock-o{ background:rgba(249,115,22,.1);color:#9a3412; }
+.badge-lock-p{ background:rgba(124,58,237,.1);color:#5b21b6; }
+
+/* Hint */
+.card-hint{
+  font-size:10px;color:var(--muted);
+  letter-spacing:1.5px;text-transform:uppercase;
+  margin-top:8px;text-align:center;line-height:1.5;
+}
+.green-hint{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  margin-top:10px;
+}
+.green-hint-icon{ font-size:26px;color:var(--green); }
+.green-hint-text{
+  font-family:'Barlow Condensed',sans-serif;font-size:11px;
+  font-weight:700;letter-spacing:2px;text-transform:uppercase;
+  color:var(--green);opacity:.75;
 }
 
-/* ── BIG WRAP ── */
-.big-wrap{display:flex;flex-direction:column;align-items:center;gap:22px;padding:48px 68px;background:#dbeafe;border-radius:20px;border:1.5px solid #93c5fd;cursor:pointer;min-width:280px;transition:transform 0.18s,box-shadow 0.4s,border-color 0.4s;user-select:none;box-shadow:0 4px 20px rgba(0,0,0,.07);}
-.big-wrap.green{background:#dcfce7;border-color:rgba(34,197,94,0.35);box-shadow:0 8px 50px rgba(34,197,94,0.15);}
-.big-wrap.red{background:#fee2e2;border-color:rgba(239,68,68,0.45);box-shadow:0 8px 60px rgba(239,68,68,0.25);}
-.big-wrap.yellow{background:#fef9c3;border-color:rgba(234,179,8,0.35);box-shadow:0 8px 50px rgba(234,179,8,0.15);}
-.big-wrap.blue{background:#dbeafe;border-color:#60a5fa;}
-.big-wrap.orange{background:#ffedd5;border-color:#fb923c;}
-.big-wrap.purple{background:#f5f3ff;border-color:#a78bfa;box-shadow:0 8px 50px rgba(124,58,237,0.15);}
-.big-wrap.purple .big-status,.big-wrap.purple .big-id,.big-wrap.purple .big-timer{color:#5b21b6;}
-.big-wrap.purple .big-light{background:radial-gradient(circle at 35% 35%,#c4b5fd,#6d28d9);box-shadow:0 0 55px rgba(124,58,237,0.8),0 0 110px rgba(124,58,237,0.4);}
-.big-wrap.orange .big-light{background:radial-gradient(circle at 35% 35%,#fdba74,#c2410c);box-shadow:0 0 55px rgba(249,115,22,0.8),0 0 110px rgba(249,115,22,0.4);animation:rb 1.2s ease-in-out infinite;}
-.big-wrap.garnet{background:#fff1f1;border-color:rgba(153,27,27,0.55);box-shadow:0 8px 60px rgba(153,27,27,0.25);}
-.big-wrap.garnet .big-status,.big-wrap.garnet .big-id,.big-wrap.garnet .big-timer{color:#7f1d1d;}
-.big-wrap.garnet .big-light{background:radial-gradient(circle at 35% 35%,#fca5a5,#7f1d1d);box-shadow:0 0 55px rgba(185,28,28,0.85),0 0 110px rgba(185,28,28,0.4);animation:rb .85s ease-in-out infinite;}
-.big-wrap.blue .big-light{background:radial-gradient(circle at 35% 35%,#93c5fd,#1d4ed8);box-shadow:0 0 55px rgba(37,99,235,0.8),0 0 110px rgba(37,99,235,0.4);}
-.big-wrap.blue .big-status,.big-wrap.blue .big-id,.big-wrap.blue .big-timer{color:#1e40af;}
-.big-wrap.orange .big-status,.big-wrap.orange .big-id,.big-wrap.orange .big-timer{color:#9a3412;}
-.big-wrap:active{transform:scale(0.97);}
-.big-id{font-family:'Barlow Condensed',sans-serif;font-size:52px;font-weight:800;letter-spacing:6px;color:#334155;}
-.big-light{width:148px;height:148px;border-radius:50%;transition:background 0.4s,box-shadow 0.4s;position:relative;}
-.big-light::after{content:'';position:absolute;top:24px;left:30px;width:44px;height:26px;border-radius:50%;background:rgba(255,255,255,0.2);transform:rotate(-30deg);}
-.big-wrap.green .big-light{background:radial-gradient(circle at 35% 35%,#4ade80,#15803d);box-shadow:0 0 55px rgba(34,197,94,0.8),0 0 110px rgba(34,197,94,0.4);}
-.big-wrap.yellow .big-light{background:radial-gradient(circle at 35% 35%,#fde047,#a16207);box-shadow:0 0 55px rgba(234,179,8,0.8);animation:yb 1.6s ease-in-out infinite;}
-.big-wrap.red .big-light{background:radial-gradient(circle at 35% 35%,#f87171,#991b1b);box-shadow:0 0 65px rgba(239,68,68,0.9),0 0 130px rgba(239,68,68,0.5);animation:rb 0.85s ease-in-out infinite;}
-.big-status{font-size:24px;font-weight:700;letter-spacing:4px;text-transform:uppercase;}
-.big-wrap.green .big-status{color:#16a34a;}.big-wrap.yellow .big-status{color:#a16207;}.big-wrap.red .big-status{color:#dc2626;}
-.big-timer{font-family:'Courier New',monospace;font-size:15px;font-weight:700;padding:5px 16px;border-radius:6px;letter-spacing:2px;min-height:30px;}
-.big-wrap.red .big-timer{color:#dc2626;background:rgba(239,68,68,0.1);}
-.big-wrap.yellow .big-timer{color:#a16207;background:rgba(234,179,8,0.08);}
-.big-wrap.green .big-timer{visibility:hidden;}
-.tap-hint{font-size:12px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;font-family:'Nunito',sans-serif;}
-@keyframes yb{0%,100%{box-shadow:0 0 55px rgba(234,179,8,0.8);}50%{box-shadow:0 0 80px rgba(234,179,8,1),0 0 160px rgba(234,179,8,0.6);}}
-@keyframes rb{0%,100%{box-shadow:0 0 65px rgba(239,68,68,0.9);}50%{box-shadow:0 0 100px rgba(239,68,68,1),0 0 200px rgba(239,68,68,0.6);}}
-@keyframes slup{from{transform:translateY(20px);opacity:0;}to{transform:none;opacity:1;}}
-@keyframes spin{to{transform:rotate(360deg);}}
+/* ── BOTÓN NUEVO IMP ── */
+.btn-nuevo-imp{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:6px;min-width:160px;max-width:200px;
+  border:2px dashed #cbd5e1;border-radius:20px;
+  background:rgba(255,255,255,.8);cursor:pointer;
+  padding:22px 16px;transition:all .2s;color:#64748b;
+  font-family:'Barlow Condensed',sans-serif;font-size:14px;
+  font-weight:700;letter-spacing:1px;text-transform:uppercase;
+  flex:0 0 auto;
+}
+.btn-nuevo-imp:hover{ border-color:#2563eb;color:#2563eb;background:#eff6ff; }
+.btn-nuevo-imp-icon{ font-size:24px; }
 
-/* ── MODAL OVERLAY ── */
+/* ── RIPPLE ── */
+.ripple{
+  position:absolute;border-radius:50%;
+  background:rgba(255,255,255,.15);transform:scale(0);
+  animation:rip .55s linear;pointer-events:none;
+}
+@keyframes rip{ to{ transform:scale(5);opacity:0; } }
+
+/* ── TOAST ── */
+#cm-toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:#0f172a;color:#fff;padding:11px 22px;border-radius:12px;
+  font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;
+  z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.2);
+  opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap;
+}
+#cm-toast.show{ opacity:1; }
+
+/* ── MODALES ── */
 .modal-overlay-cm{
   display:none;position:fixed;inset:0;z-index:500;
-  background:rgba(15,23,42,.5);backdrop-filter:blur(4px);
+  background:rgba(15,23,42,.48);backdrop-filter:blur(4px);
   align-items:center;justify-content:center;padding:16px;
 }
 .modal-overlay-cm.open{ display:flex; }
 .modal-box-cm{
-  background:#fff;border-radius:18px;padding:28px 24px 22px;
-  width:100%;max-width:380px;box-shadow:0 24px 60px rgba(15,23,42,.2);
-  animation:slup .22s ease;display:flex;flex-direction:column;gap:14px;
+  background:#fff;border-radius:18px;padding:26px 22px 20px;
+  width:100%;max-width:380px;
+  box-shadow:0 24px 60px rgba(15,23,42,.2);
+  animation:slup .22s ease;display:flex;flex-direction:column;gap:12px;
 }
+@keyframes slup{ from{ transform:translateY(18px);opacity:0; } to{ transform:none;opacity:1; } }
+@keyframes spin{ to{ transform:rotate(360deg); } }
 
 /* ── PANTALLA ÓRDENES ── */
 #orden-screen{
   display:none;position:fixed;inset:0;z-index:490;
   background:#f1f5f9;flex-direction:column;
 }
-
-/* ── MULTI-IMPRODUCTIVO ── */
-/* El botón ➕ se renderiza dentro de #imp-row como última tarjeta */
-.btn-nuevo-imp-card{
-  display:none;
-  flex-direction:column;align-items:center;justify-content:center;gap:8px;
-  padding:22px 20px;min-width:200px;max-width:260px;flex:1;
-  border:2px dashed #94a3b8;border-radius:20px;background:rgba(255,255,255,.7);
-  cursor:pointer;transition:all .2s;user-select:none;
-  font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;
-  letter-spacing:1px;color:#475569;
-}
-.btn-nuevo-imp-card:hover{border-color:#2563eb;color:#2563eb;background:#eff6ff;}
-.btn-nuevo-imp-card.visible{display:flex;}
-
-/* ── TOAST ── */
-#cm-toast{
-  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
-  background:#0f172a;color:#fff;padding:12px 24px;border-radius:12px;
-  font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;
-  z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.2);
-  opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap;
-}
-#cm-toast.show{ opacity:1; }
-
-/* ── RIPPLE ── */
-.ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,0.12);transform:scale(0);animation:rip 0.55s linear;pointer-events:none;}
-@keyframes rip{to{transform:scale(5);opacity:0;}}
-
-/* ── BOTÓN CIERRE FORZADO ── */
-.imp-close-x{
-  position:absolute;top:8px;right:8px;
-  width:22px;height:22px;border-radius:50%;
-  background:rgba(0,0,0,.08);border:none;
-  color:rgba(0,0,0,.35);font-size:13px;font-weight:700;
-  cursor:pointer;display:flex;align-items:center;justify-content:center;
-  transition:all .2s;line-height:1;z-index:5;
-}
-.imp-close-x:hover{background:rgba(239,68,68,.15);color:#dc2626;}
 </style>
 </head>
 <body>
@@ -174,49 +308,59 @@ header::after{
 <!-- HEADER -->
 <header>
   <div class="hd-left">
-    <div class="hd-logo">
-      <img src="/logo.png" onerror="this.style.display='none'">
+    <div style="width:34px;height:34px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 0 0 2px #e2e8f0,0 2px 8px rgba(0,0,0,.07);flex-shrink:0;">
+      <img src="/logo.png" onerror="this.style.display='none'" style="width:100%;height:100%;object-fit:contain;padding:3px;">
     </div>
-    <div class="hd-title">CONFECCIONES <span>MILLAR</span></div>
+    <div class="hd-badge">CONFECCIONES MILLAR</div>
+    <div class="hd-mod" id="hd-mod-label">MÓD <span id="hd-mod-id">—</span></div>
   </div>
   <div class="hd-right">
-    <button class="btn-bar" onclick="cambiarModulo()">📱 Cambiar Módulo</button>
-    <div id="nav-orden-info" style="display:none;display:flex;gap:6px;align-items:center;margin-left:auto;">
-      <span id="nav-orden-ref" style="padding:4px 10px;border-radius:6px;background:#f0fdf4;border:1.5px solid #86efac;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;color:#15803d;white-space:nowrap;"></span>
-      <span id="nav-orden-op" style="padding:4px 10px;border-radius:6px;background:#eff6ff;border:1.5px solid #93c5fd;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;color:#1e40af;white-space:nowrap;"></span>
+    <div class="hd-pill" id="hd-conn"><div class="dot off" id="hd-dot"></div><span id="hd-conn-text">Conectando…</span></div>
+    <div id="nav-orden-info" style="display:none;align-items:center;gap:6px;">
+      <span id="nav-orden-ref" style="padding:3px 10px;border-radius:6px;background:#f0fdf4;border:1px solid #86efac;font-size:11px;font-weight:700;color:#15803d;white-space:nowrap;"></span>
+      <span id="nav-orden-op"  style="padding:3px 10px;border-radius:6px;background:#eff6ff;border:1px solid #93c5fd;font-size:11px;font-weight:700;color:#1e40af;white-space:nowrap;"></span>
     </div>
-    <button class="hd-back-btn" onclick="volverInicio()">← Volver</button>
+    <button class="btn-bar" onclick="cambiarModulo()">📱 Cambiar Módulo</button>
+    <button class="btn-bar" onclick="volverInicio()">← Volver</button>
   </div>
 </header>
 
-<!-- MAIN: Tablero individual -->
+<!-- MAIN -->
 <div id="single-view">
-  <div id="imp-row">
-    <div id="imp-cards"><!-- tarjetas --></div>
-    <div id="imp-btn-row"><!-- botón ➕ --></div>
+  <!-- Chip orden -->
+  <div class="orden-chip" id="orden-chip" style="display:none;">
+    <div class="orden-chip-item"><div class="orden-chip-label">Referencia</div><div class="orden-chip-val" id="chip-ref">—</div></div>
+    <div class="orden-sep"></div>
+    <div class="orden-chip-item"><div class="orden-chip-label">OP / OC</div><div class="orden-chip-val" id="chip-op">—</div></div>
+    <div class="orden-sep"></div>
+    <div class="orden-chip-item"><div class="orden-chip-label">Módulo</div><div class="orden-chip-val" id="chip-mod">—</div></div>
   </div>
+
+  <!-- Tarjetas -->
+  <div id="imp-cards"></div>
+  <div id="imp-btn-row"></div>
 </div>
 
-<!-- PANTALLA: SELECCIÓN DE ORDEN -->
+<!-- PANTALLA ÓRDENES -->
 <div id="orden-screen">
-  <div style="background:#fff;border-bottom:1px solid #e2e8f0;padding:0 clamp(12px,2.5vw,24px);min-height:60px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:relative;">
-    <div style="display:flex;align-items:center;gap:12px;">
+  <div style="background:#fff;border-bottom:1px solid #e2e8f0;padding:0 clamp(12px,2.5vw,24px);min-height:58px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:relative;">
+    <div style="display:flex;align-items:center;gap:10px;">
       <div style="width:32px;height:32px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 0 0 2px #e2e8f0;">
         <img src="/logo.png" onerror="this.style.display='none'" style="width:100%;height:100%;object-fit:contain;padding:3px;">
       </div>
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0f172a;">CONFECCIONES <span style="color:#2563eb;">MILLAR</span></div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;letter-spacing:2px;text-transform:uppercase;">CONFECCIONES <span style="color:#2563eb;">MILLAR</span></div>
     </div>
     <div style="display:flex;align-items:center;gap:10px;">
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;" id="orden-mod-badge"></div>
-      <button onclick="volverInicio()" style="padding:6px 14px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#1e3a8a;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">← Atrás</button>
+      <button onclick="volverInicio()" style="padding:6px 13px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;color:#1e3a8a;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">← Atrás</button>
     </div>
-    <div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);"></div>
+    <div style="position:absolute;bottom:0;left:0;right:0;height:2.5px;background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);"></div>
   </div>
   <div style="flex:1;overflow-y:auto;padding:24px clamp(12px,3vw,40px);">
     <div style="margin-bottom:20px;">
       <input id="orden-buscar" type="text" placeholder="🔍  Buscar por referencia o OP / OC..."
         oninput="filtrarOrdenLista()"
-        style="margin-top:0;width:100%;max-width:420px;padding:10px 16px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;background:#fff;outline:none;box-shadow:0 1px 4px rgba(0,0,0,.05);"
+        style="width:100%;max-width:420px;padding:10px 16px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;background:#fff;outline:none;"
         onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:clamp(20px,3vw,26px);font-weight:800;letter-spacing:1px;color:#0f172a;margin-top:14px;" id="orden-screen-title">Órdenes asignadas</div>
       <div style="font-size:13px;color:#64748b;margin-top:2px;">Selecciona la orden con la que vas a trabajar hoy</div>
@@ -229,28 +373,28 @@ header::after{
 </div>
 
 <!-- MODAL: Tipo de improductivo -->
-<div class="modal-overlay-cm open" id="modal-improductivo" style="display:none;">
+<div class="modal-overlay-cm" id="modal-improductivo" style="display:none;">
   <div class="modal-box-cm" style="max-width:340px;text-align:center;">
     <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;letter-spacing:2px;color:#0f172a;">Tipo de improductivo</div>
-    <div style="font-size:13px;color:#64748b;">Selecciona la causa</div>
-    <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px;">
-      <button class="mec-btn" onclick="onImpMec()" style="padding:12px 16px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer;text-align:left;border-left:4px solid #dc2626;">🔴 Fallo Mecánico</button>
-      <button class="mec-btn" onclick="onImpRef()" style="padding:12px 16px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer;text-align:left;border-left:4px solid #1d4ed8;">🔵 Cambio de Referencia</button>
-      <button class="mec-btn" onclick="onImpIns()" style="padding:12px 16px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer;text-align:left;border-left:4px solid #ea580c;">🟠 Falta de Insumos</button>
-      <button class="mec-btn" onclick="onImpProd()" style="padding:12px 16px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer;text-align:left;border-left:4px solid #7c3aed;">🟣 Solicitud de Producción</button>
-      <button class="mec-btn" onclick="onImpAlist()" style="padding:12px 16px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer;text-align:left;border-left:4px solid #991b1b;">🟥 Alistamiento</button>
+    <div style="font-size:13px;color:#64748b;margin-top:-4px;">Selecciona la causa</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">
+      <button class="mec-btn" onclick="onImpMec()"   style="padding:11px 14px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer;text-align:left;border-left:4px solid #dc2626;">🔴 Fallo Mecánico</button>
+      <button class="mec-btn" onclick="onImpRef()"   style="padding:11px 14px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer;text-align:left;border-left:4px solid #1d4ed8;">🔵 Cambio de Referencia</button>
+      <button class="mec-btn" onclick="onImpIns()"   style="padding:11px 14px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer;text-align:left;border-left:4px solid #ea580c;">🟠 Falta de Insumos</button>
+      <button class="mec-btn" onclick="onImpProd()"  style="padding:11px 14px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer;text-align:left;border-left:4px solid #7c3aed;">🟣 Solicitud de Producción</button>
+      <button class="mec-btn" onclick="onImpAlist()" style="padding:11px 14px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer;text-align:left;border-left:4px solid #991b1b;">🟥 Alistamiento</button>
     </div>
-    <button onclick="cancelImproductivo()" style="background:none;border:none;color:#94a3b8;font-size:13px;cursor:pointer;font-family:Nunito,sans-serif;">✕ Cancelar</button>
+    <button onclick="cancelImproductivo()" style="background:none;border:none;color:#94a3b8;font-size:13px;cursor:pointer;font-family:'Nunito',sans-serif;padding:4px;">✕ Cancelar</button>
   </div>
 </div>
 
 <!-- MODAL: Selección de mecánico -->
 <div class="modal-overlay-cm" id="modal-mecanico" style="display:none;">
   <div class="modal-box-cm" style="max-width:360px;">
-    <div style="font-size:32px;text-align:center;">🔧</div>
+    <div style="font-size:30px;text-align:center;">🔧</div>
     <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:2px;text-transform:uppercase;text-align:center;" id="mec-title">¿Quién atendió?</div>
     <div style="font-size:13px;color:#64748b;text-align:center;" id="mec-sub">Selecciona el mecánico</div>
-    <div style="display:flex;flex-direction:column;gap:8px;max-height:320px;overflow-y:auto;" id="mec-list"></div>
+    <div style="display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto;" id="mec-list"></div>
     <button onclick="cancelMecanico()" style="padding:10px;border-radius:10px;border:1.5px solid #e2e8f0;background:#f1f5f9;color:#64748b;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">Cancelar</button>
   </div>
 </div>
@@ -259,78 +403,81 @@ header::after{
 <div class="modal-overlay-cm" id="modal-empleada-mec" style="display:none;">
   <div class="modal-box-cm" style="max-width:380px;">
     <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#dc2626;">🔴 Fallo Mecánico</div>
-    <div id="modal-emp-mec-sub" style="font-size:13px;color:#64748b;margin-top:-8px;"></div>
+    <div id="modal-emp-mec-sub" style="font-size:13px;color:#64748b;margin-top:-6px;"></div>
     <div style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#64748b;margin-bottom:4px;">Empleada en el módulo <span style="color:#ef4444;">*</span></div>
     <select id="modal-emp-mec-sel" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;background:#f8fafc;outline:none;">
       <option value="">— Seleccionar —</option>
     </select>
     <div id="modal-emp-mec-error" style="display:none;color:#ef4444;font-size:12px;font-weight:700;">Debes seleccionar una empleada</div>
-    <div style="display:flex;gap:10px;">
-      <button onclick="cerrarModalEmpleadaMec()" style="flex:1;padding:11px;border-radius:10px;border:1.5px solid #e2e8f0;background:#f1f5f9;color:#64748b;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">Cancelar</button>
-      <button onclick="confirmarFalloMec()" style="flex:1;padding:11px;border-radius:10px;border:none;background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">Confirmar Fallo</button>
+    <div style="display:flex;gap:10px;margin-top:4px;">
+      <button onclick="cerrarModalEmpleadaMec()" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid #e2e8f0;background:#f1f5f9;color:#64748b;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">Cancelar</button>
+      <button onclick="confirmarFalloMec()" style="flex:1;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">Confirmar</button>
     </div>
   </div>
 </div>
 
-<!-- MODAL: Confirmar recepción CI -->
-<div id="ci-confirm-overlay" style="display:none;position:fixed;inset:0;z-index:9100;background:rgba(15,23,42,.6);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:16px;"></div>
-
 <!-- MODAL: Solicitar Insumos -->
-<div id="si-overlay" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:16px;">
-  <div style="background:#f0f6ff;border-radius:20px;padding:28px 24px 24px;width:100%;max-width:440px;max-height:92vh;overflow-y:auto;box-shadow:0 24px 60px rgba(15,23,42,.25);animation:slup .22s ease;position:relative;">
-    <button onclick="siClose()" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:20px;color:#94a3b8;cursor:pointer;line-height:1;">✕</button>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;flex-wrap:wrap;">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#1e3a8a;">Solicitar Insumo</div>
-      <div id="si-ref-info" style="display:none;background:#e0f2fe;border:1.5px solid #7dd3fc;border-radius:20px;padding:3px 14px;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;color:#0369a1;letter-spacing:.5px;"></div>
+<div class="modal-overlay-cm" id="si-overlay" style="display:none;">
+  <div class="modal-box-cm" style="max-width:400px;max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#ea580c;">🟠 Solicitar Insumos</div>
+      <div style="font-size:11px;font-weight:700;color:#2563eb;background:#eff6ff;padding:3px 10px;border-radius:6px;" id="si-modulo-lbl"></div>
     </div>
-    <div id="si-modulo-lbl" style="font-size:12px;color:#64748b;margin-bottom:20px;"></div>
-    <div style="display:none;">
-      <input type="text" value="Falta de Insumos" readonly id="si-tipo-display">
-      <input id="si-ref" type="text">
-      <input id="si-opoc" type="text">
+    <div id="si-ref-info-wrap" style="display:none;padding:8px 12px;background:#f0fdf4;border-radius:8px;border:1px solid #86efac;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#15803d;margin-bottom:2px;">Referencia activa</div>
+      <div style="font-size:14px;font-weight:700;color:#15803d;" id="si-ref-info"></div>
     </div>
-    <div style="font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#0f172a;margin-bottom:10px;">1. INSUMOS <span style="color:#ef4444;">*</span></div>
-    <div id="si-insumos-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"></div>
-    <div style="background:#fff;border:1.5px solid #0f172a;border-radius:14px;padding:16px;margin-bottom:14px;">
-      <div style="margin-bottom:12px;">
-        <div style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#0f172a;margin-bottom:6px;">TIPO DE INSUMO <span style="color:#ef4444;">*</span></div>
-        <select id="si-tipo" onchange="siOnTipoChange()" style="width:100%;padding:11px 14px;border:1.5px solid #0f172a;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;background:#fff;outline:none;">
+    <div>
+      <div style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#64748b;margin-bottom:6px;">Referencia</div>
+      <input id="si-ref" type="text" placeholder="Ej: PANTALONETA-23B" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;outline:none;">
+    </div>
+    <div>
+      <div style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#64748b;margin-bottom:6px;">OP / OC</div>
+      <input id="si-opoc" type="text" placeholder="Ej: OP-1042" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;outline:none;">
+    </div>
+    <div style="border-top:1px solid #f1f5f9;padding-top:12px;">
+      <div style="font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#0f172a;margin-bottom:8px;">1. INSUMO(S) <span style="color:#ef4444;">*</span></div>
+      <div id="si-insumos-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"></div>
+      <div style="margin-bottom:8px;">
+        <div style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#64748b;margin-bottom:5px;">Tipo de insumo</div>
+        <select id="si-tipo" onchange="siOnTipoChange()" style="width:100%;padding:10px 14px;border:1.5px solid #0f172a;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;outline:none;background:#fff;">
           <option value="">— Seleccionar —</option>
         </select>
       </div>
-      <div style="margin-bottom:12px;">
-        <div style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#0f172a;margin-bottom:6px;">CANTIDAD <span style="color:#ef4444;">*</span></div>
-        <input id="si-qty" type="number" min="1" placeholder="" style="width:100%;padding:11px 14px;border:1.5px solid #0f172a;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;background:#fff;outline:none;">
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <div style="flex:1;">
+          <div style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#64748b;margin-bottom:5px;">Cantidad</div>
+          <input id="si-qty" type="number" min="1" style="width:100%;padding:10px 14px;border:1.5px solid #0f172a;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;outline:none;">
+        </div>
+        <div style="flex:1;" id="si-talla-wrap">
+          <div style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#64748b;margin-bottom:5px;">Talla o Color</div>
+          <input id="si-talla" type="text" style="width:100%;padding:10px 14px;border:1.5px solid #0f172a;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;outline:none;">
+        </div>
       </div>
-      <div id="si-talla-wrap" style="display:block;margin-bottom:12px;">
-        <div style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#0f172a;margin-bottom:6px;">TALLA O COLOR</div>
-        <input id="si-talla" type="text" placeholder="" style="width:100%;padding:11px 14px;border:1.5px solid #0f172a;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;background:#fff;outline:none;">
-      </div>
-      <button onclick="siAgregarInsumo()" style="width:100%;padding:11px;border-radius:10px;border:1.5px dashed #3b82f6;background:#eff6ff;color:#1d4ed8;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all .2s;">
-        ＋ AGREGAR INSUMO A LA LISTA
-      </button>
+      <button onclick="siAgregarInsumo()" style="width:100%;padding:10px;border-radius:10px;border:1.5px dashed #3b82f6;background:#eff6ff;color:#1d4ed8;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;cursor:pointer;">＋ AGREGAR A LA LISTA</button>
     </div>
-    <div style="margin-bottom:16px;">
+    <div>
       <div style="font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#0f172a;margin-bottom:8px;">2. OBSERVACIÓN <span style="color:#ef4444;">*</span></div>
       <div style="position:relative;" id="si-obs-wrap">
-        <button type="button" onclick="siToggleObsMenu()" style="width:100%;padding:11px 14px;border:1.5px solid #0f172a;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;background:#fff;outline:none;text-align:left;cursor:pointer;display:flex;align-items:center;justify-content:space-between;" id="si-obs-btn">
+        <button type="button" onclick="siToggleObsMenu()" style="width:100%;padding:10px 14px;border:1.5px solid #0f172a;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;background:#fff;outline:none;text-align:left;cursor:pointer;display:flex;align-items:center;justify-content:space-between;" id="si-obs-btn">
           <span id="si-obs-label" style="color:#94a3b8;">— Seleccionar —</span>
           <span style="color:#94a3b8;">▾</span>
         </button>
-        <div id="si-obs-menu" style="display:none;position:absolute;bottom:110%;left:0;right:0;z-index:200;background:#fff;border:1.5px solid #0f172a;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.1);padding:4px 0;max-height:180px;overflow-y:auto;"></div>
+        <div id="si-obs-menu" style="display:none;position:absolute;bottom:110%;left:0;right:0;z-index:200;background:#fff;border:1.5px solid #0f172a;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.1);padding:4px 0;max-height:160px;overflow-y:auto;"></div>
       </div>
     </div>
-    <div id="si-error" style="color:#ef4444;font-size:12px;font-weight:700;margin-bottom:10px;display:none;text-align:center;"></div>
-    <button onclick="siEnviar()" style="width:100%;padding:15px;border-radius:12px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;letter-spacing:2px;cursor:pointer;box-shadow:0 4px 16px rgba(37,99,235,.3);">
-      📦 ENVIAR SOLICITUD
-    </button>
+    <div id="si-error" style="color:#ef4444;font-size:12px;font-weight:700;display:none;text-align:center;"></div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="siClose()" style="flex:0 0 auto;padding:14px 18px;border-radius:12px;border:1.5px solid #e2e8f0;background:#f1f5f9;color:#64748b;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer;">Cancelar</button>
+      <button onclick="siEnviar()" style="flex:1;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:2px;cursor:pointer;">📦 ENVIAR SOLICITUD</button>
+    </div>
   </div>
 </div>
 
-<!-- Modal cierre forzado -->
+<!-- MODAL: Cierre forzado -->
 <div class="modal-overlay-cm" id="modal-forzar-cierre" style="display:none;">
   <div class="modal-box-cm" style="max-width:320px;text-align:center;">
-    <div style="font-size:28px;">🔐</div>
+    <div style="font-size:26px;">🔐</div>
     <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#dc2626;">Cerrar Improductivo</div>
     <div style="font-size:13px;color:#64748b;">Ingresa la contraseña para forzar el cierre.</div>
     <input type="password" id="forzar-pass" maxlength="20"
@@ -345,437 +492,425 @@ header::after{
   </div>
 </div>
 
+<!-- MODAL: CI confirmación de recepción -->
+<div class="modal-overlay-cm" id="ci-confirm-overlay" style="display:none;"></div>
+
 <div id="cm-toast"></div>
 
 <script>
 // ══════════════════════════════════════════════════════════════════
-//  CONTADOR MÓDULOS — Script principal
+//  CONTADOR MÓDULOS v5.0 — bugs multi-imp corregidos + rediseño
 // ══════════════════════════════════════════════════════════════════
 
-// ── Leer parámetros de URL ────────────────────────────────────────
+// ── Parámetros URL ────────────────────────────────────────────────
 const _params = new URLSearchParams(location.search);
 let selectedMod = _params.get('modulo') || '';
 let _ordenSeleccionadaStr = _params.get('orden') || '';
 let _ordenSeleccionada = null;
-
 try { _ordenSeleccionada = _ordenSeleccionadaStr ? JSON.parse(decodeURIComponent(_ordenSeleccionadaStr)) : null; } catch(e){}
 
-// Si no hay módulo, redirigir al login
-if(!selectedMod){
-  location.href = '/';
-}
+if (!selectedMod) { location.href = '/'; }
 
-// ── Estado del tablero ────────────────────────────────────────────
-const LABELS = {green:'Operativo',yellow:'Atendiendo',red:'Alerta',blue:'Cambio Ref.',orange:'Espera CI',purple:'Prod. Solicitada',pink:'Alistamiento',garnet:'Alistamiento Mec.'};
-let states = {}, timers = {}, states2 = {}, timers2 = {}, cambioLimites = {}, cambioLimites2 = {};
-let lastMec = {}, lastMec2 = {};
+// ── Estado ────────────────────────────────────────────────────────
+const LABELS = {
+  green:'Operativo', red:'Espera Mecánico', yellow:'Atendiendo',
+  blue:'Cambio Ref.', orange:'Espera Insumos', purple:'Prod. Solicitada',
+  pink:'Alistamiento', garnet:'Alistamiento Mec.'
+};
+let states = {}, timers = {};
+let lastMec = {};
 window._lastEmpleada = {};
-let pendingTransicion = null;
-let _pendingFalloModId = null;
-let _extraMod = null;
-let _siInsumosTemp = [];
-window._siObsList = [];
-window._siObsSelected = '';
-window._siMecanicoNombre = '';
-// Multi-Improductivo
-let _multiImp = {}; // { [modId]: [ { id, tipo, inicio, empleada, mecanico, ciRequestId, tipoActual } ] }
-let _pendingMultiImpTipo = null; // tipo seleccionado para el nuevo improductivo
-let _pendingMultiImpMod  = null;
 
-// ── WebSocket ────────────────────────────────────────────────────
+// _multiImp: array de improductivos activos por módulo
+// [{ id, tipo, tipoActual, inicio, empleada, mecanico, ciRequestId, esPrincipal }]
+let _multiImp = {};
+
+let pendingTransicion    = null;
+let _pendingFalloModId   = null;
+let _pendingMultiImpMod  = null;
+let _pendingSlotMod      = null;  // FIX: declarado correctamente
+let _siInsumosTemp       = [];
+window._siObsList        = [];
+window._siObsSelected    = '';
+
+// ── Header — módulo ───────────────────────────────────────────────
+document.getElementById('hd-mod-id').textContent = selectedMod;
+
+// ── WebSocket ─────────────────────────────────────────────────────
 let ws = null, wsReady = false, reconnectTimer = null, reconnectDelay = 1000;
+
+function setConnStatus(ok){
+  const dot  = document.getElementById('hd-dot');
+  const txt  = document.getElementById('hd-conn-text');
+  if (!dot || !txt) return;
+  dot.classList.toggle('off', !ok);
+  txt.textContent = ok ? 'Conectado' : 'Sin conexión';
+}
 
 function connectWS(){
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-  const url = `${proto}://${location.host}`;
-  ws = new WebSocket(url);
+  ws = new WebSocket(`${proto}://${location.host}`);
 
   ws.onopen = () => {
     wsReady = true;
     reconnectDelay = 1000;
     clearTimeout(reconnectTimer);
+    setConnStatus(true);
   };
 
   ws.onmessage = (e) => {
-    try{
+    try {
       const msg = JSON.parse(e.data);
 
-      if(msg.type === 'server_reset'){
-        location.reload(); return;
-      }
+      if (msg.type === 'server_reset') { location.reload(); return; }
 
-      if(msg.type === 'init'){
-        // Cargar estados del servidor
-        if(msg.states)  Object.assign(states, msg.states);
-        if(msg.timers)  Object.assign(timers, msg.timers);
-        if(msg.lastMec) Object.assign(lastMec, msg.lastMec);
-        if(msg.lastEmpleada) Object.assign(window._lastEmpleada, msg.lastEmpleada);
-        if(msg.multiImp) Object.assign(_multiImp, msg.multiImp);
+      if (msg.type === 'init') {
+        if (msg.states)     Object.assign(states, msg.states);
+        if (msg.lastMec)    Object.assign(lastMec, msg.lastMec);
+        if (msg.lastEmpleada) Object.assign(window._lastEmpleada, msg.lastEmpleada);
+        // Restaurar multiImps desde el servidor
+        if (msg.multiImps) Object.assign(_multiImp, msg.multiImps);
         renderBig();
         return;
       }
 
-      if(msg.type === 'change'){
+      if (msg.type === 'change') {
         const id = msg.id, s = msg.state;
-        if(!states[id]) states[id] = 'green';
-        // Si hay multi-improductivos activos, el color lo gestiona _multiImp — no sobreescribir
+        if (!states[id]) states[id] = 'green';
+        // Si hay improductivos activos locales, no sobreescribir el estado
         const impsActivos = _multiImp[id] || [];
-        if(impsActivos.length > 0){
-          // Solo actualizar mecánico y empleada, no el estado ni el timer
-          if(msg.mecanico) lastMec[id] = msg.mecanico;
-          if(msg.empleada !== undefined) window._lastEmpleada[id] = msg.empleada;
-          if(id === selectedMod) renderBig();
+        if (impsActivos.length > 0) {
+          if (msg.mecanico) lastMec[id] = msg.mecanico;
+          if (msg.empleada !== undefined) window._lastEmpleada[id] = msg.empleada;
+          if (id === selectedMod) renderBig();
           return;
         }
         states[id] = s;
-        if(msg.stateTime) timers[id] = msg.stateTime;
-        else timers[id] = Date.now();
-        if(msg.mecanico) lastMec[id] = msg.mecanico;
-        if(msg.empleada !== undefined) window._lastEmpleada[id] = msg.empleada;
-        if(id === selectedMod) renderBig();
+        timers[id]  = msg.stateTime || Date.now();
+        if (msg.mecanico) lastMec[id] = msg.mecanico;
+        if (msg.empleada !== undefined) window._lastEmpleada[id] = msg.empleada;
+        if (id === selectedMod) renderBig();
         return;
       }
 
-      if(msg.type === 'ci_cumplido_request'){
-        const req = msg.request;
-        if(!window._ciRequests) window._ciRequests = [];
-        const idx = window._ciRequests.findIndex(r=>r._id===req._id);
-        if(idx>-1) window._ciRequests[idx]=req; else window._ciRequests.unshift(req);
-        if(req && req.module && (req.module === selectedMod)){
-          showCiCumplidoModal(req);
-        }
-        return;
-      }
-
-      if(msg.type === 'ci_update_request'){
-        const req = msg.request;
-        if(req){
-          if(!window._ciRequests) window._ciRequests=[];
-          const idx = window._ciRequests.findIndex(r=>r._id===req._id);
-          if(idx>-1) window._ciRequests[idx]=req; else window._ciRequests.unshift(req);
-          if(req.status==='done' && req.module === selectedMod){
-            const imps = _multiImp[selectedMod] || [];
-            const mIdx = imps.findIndex(i=>i.ciRequestId===req._id);
-            if(mIdx > -1){
-              // Cierra un multi-improductivo específico
-              imps.splice(mIdx,1);
-              _multiImp[selectedMod] = imps;
-              if(imps.length > 0){
-                const ultimo = imps[imps.length-1];
-                states[selectedMod] = ultimo.tipoActual || ultimo.tipo;
-                timers[selectedMod] = ultimo.inicio;
-              } else if(states[selectedMod]==='orange'||states[selectedMod]==='purple'){
-                states[selectedMod]='green'; timers[selectedMod]=Date.now();
-              }
-            } else if(states[selectedMod]==='orange'||states[selectedMod]==='purple'){
-              // Cierra el improductivo principal — solo verde si no hay multis
-              if(imps.length === 0){
-                states[selectedMod]='green'; timers[selectedMod]=Date.now();
-              } else {
-                const ultimo = imps[imps.length-1];
-                states[selectedMod] = ultimo.tipoActual || ultimo.tipo;
-                timers[selectedMod] = ultimo.inicio;
-              }
-            }
-            renderBig();
-          }
-        }
-        return;
-      }
-
-      if(msg.type === 'ci_reactivar_alerta'){
-        // CI volvió a alerta, no hacemos nada en el módulo
-        return;
-      }
-
-      if(msg.type === 'multi_imp_change'){
+      // ── multi_imp_change desde el servidor (otro dispositivo) ─────
+      if (msg.type === 'multi_imp_change') {
         const modId = msg.modId;
-        if(!modId) return;
-        if(!_multiImp[modId]) _multiImp[modId] = [];
-        if(msg.action === 'open'){
-          // Solo agregar si no existe ya (evitar duplicados por el broadcastLocal)
-          if(!_multiImp[modId].find(i=>i.id===msg.imp.id)){
-            _multiImp[modId].push(msg.imp);
+        if (!modId) return;
+        if (!_multiImp[modId]) _multiImp[modId] = [];
+
+        if (msg.action === 'open') {
+          const imp = msg.imp;
+          if (!imp || !imp.id) return;
+          if (!_multiImp[modId].find(i => i.id === imp.id)) {
+            _multiImp[modId].push(imp);
           }
-        } else if(msg.action === 'update'){
-          const idx = _multiImp[modId].findIndex(i=>i.id===msg.imp.id);
-          if(idx>-1) Object.assign(_multiImp[modId][idx], msg.imp);
-        } else if(msg.action === 'close'){
-          _multiImp[modId] = _multiImp[modId].filter(i=>i.id!==msg.impId);
+          states[modId] = calcColorLocal(modId);
+          if (modId === selectedMod) renderBig();
+          return;
         }
-        if(modId === selectedMod) renderBig();
+        if (msg.action === 'update') {
+          const imp = msg.imp;
+          if (!imp || !imp.id) return;
+          const idx = _multiImp[modId].findIndex(i => i.id === imp.id);
+          if (idx > -1) Object.assign(_multiImp[modId][idx], imp);
+          states[modId] = calcColorLocal(modId);
+          if (modId === selectedMod) renderBig();
+          return;
+        }
+        if (msg.action === 'close') {
+          const impId = msg.impId || msg.imp?.id;
+          if (impId) _multiImp[modId] = _multiImp[modId].filter(i => i.id !== impId);
+          states[modId] = calcColorLocal(modId);
+          if (states[modId] === 'green') {
+            lastMec[modId] = '';
+            window._lastEmpleada[modId] = '';
+          }
+          if (modId === selectedMod) renderBig();
+          return;
+        }
         return;
       }
 
-    } catch(err){ console.error('WS parse error:', err); }
+      if (msg.type === 'ci_cumplido_request') {
+        const req = msg.request;
+        if (!window._ciRequests) window._ciRequests = [];
+        const idx = window._ciRequests.findIndex(r => r._id === req._id);
+        if (idx > -1) window._ciRequests[idx] = req; else window._ciRequests.unshift(req);
+        if (req && req.module === selectedMod) showCiCumplidoModal(req);
+        return;
+      }
+
+      if (msg.type === 'ci_update_request') {
+        const req = msg.request;
+        if (!req) return;
+        if (!window._ciRequests) window._ciRequests = [];
+        const idx = window._ciRequests.findIndex(r => r._id === req._id);
+        if (idx > -1) window._ciRequests[idx] = req; else window._ciRequests.unshift(req);
+        // Si el servidor ya cerró el improductivo, sincronizar localmente
+        if (req.status === 'done' && req.module === selectedMod) {
+          const imps = _multiImp[selectedMod] || [];
+          const mIdx = imps.findIndex(i => i.ciRequestId === req._id);
+          if (mIdx > -1) {
+            imps.splice(mIdx, 1);
+            _multiImp[selectedMod] = imps;
+          } else if (states[selectedMod] === 'orange' || states[selectedMod] === 'purple') {
+            if (imps.length === 0) { states[selectedMod] = 'green'; timers[selectedMod] = Date.now(); }
+          }
+          renderBig();
+        }
+        return;
+      }
+
+      if (msg.type === 'ci_reactivar_alerta') { return; }
+
+    } catch(err) { console.error('WS error:', err); }
   };
 
   ws.onclose = () => {
     wsReady = false;
-    reconnectTimer = setTimeout(()=>{ reconnectDelay = Math.min(reconnectDelay*1.5, 15000); connectWS(); }, reconnectDelay);
+    setConnStatus(false);
+    reconnectTimer = setTimeout(() => {
+      reconnectDelay = Math.min(reconnectDelay * 1.5, 15000);
+      connectWS();
+    }, reconnectDelay);
   };
   ws.onerror = () => ws.close();
 }
 
 function wsSend(payload){
-  if(ws && ws.readyState === WebSocket.OPEN){
-    ws.send(JSON.stringify(payload));
-  }
+  if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(payload));
 }
 
 connectWS();
 
-// ── Formato de tiempo ────────────────────────────────────────────
+// ── Color local desde _multiImp ───────────────────────────────────
+function calcColorLocal(modId){
+  const imps = _multiImp[modId] || [];
+  if (!imps.length) return 'green';
+  return imps[imps.length - 1].tipoActual || imps[imps.length - 1].tipo || 'green';
+}
+
+// ── Formato de tiempo ─────────────────────────────────────────────
 function formatTime(ms){
-  if(!ms || ms <= 0) return '0s';
-  const s=Math.floor(ms/1000),m=Math.floor(s/60),h=Math.floor(m/60);
-  if(h>0) return `${h}h ${String(m%60).padStart(2,'0')}m`;
-  if(m>0) return `${m}m ${String(s%60).padStart(2,'0')}s`;
+  if (!ms || ms <= 0) return '0s';
+  const s = Math.floor(ms / 1000), m = Math.floor(s / 60), h = Math.floor(m / 60);
+  if (h > 0) return `${h}h ${String(m % 60).padStart(2,'0')}m`;
+  if (m > 0) return `${m}m ${String(s % 60).padStart(2,'0')}s`;
   return `${s}s`;
 }
 
-// ── Timer — actualiza todos los cronómetros visibles ─────────────
-setInterval(()=>{
+// Timer global
+setInterval(() => {
   const now = Date.now();
-  // Timer de cada tarjeta en imp-row (principal + multis)
   document.querySelectorAll('[data-imp-timer]').forEach(el => {
     const inicio = parseInt(el.dataset.impTimer);
-    if(inicio) el.textContent = '⏱ '+formatTime(now - inicio);
+    if (inicio) el.textContent = formatTime(now - inicio);
   });
 }, 1000);
 
-// ── buildImpCard — genera HTML de una tarjeta (mismo tamaño para todas) ──
-function buildImpCard(impId, color, label, inicio, lockBadge, empHtml, mecHtml, tapHint, isMulti){
+// ── buildImpCard ──────────────────────────────────────────────────
+function buildImpCard(impId, color, label, inicio, empNombre, mecNombre, isMulti, ciLock){
+  const closeBtn = isMulti
+    ? `<button class="card-x" onclick="event.stopPropagation();abrirModalForzar('${impId}','multi')" title="Cerrar">✕</button>`
+    : `<button class="card-x" onclick="event.stopPropagation();abrirModalForzar('${impId}','principal')" title="Cerrar">✕</button>`;
+
+  let badgesHtml = '';
+  if (empNombre) badgesHtml += `<div class="badge badge-emp">👤 ${empNombre}</div>`;
+  if (mecNombre) badgesHtml += `<div class="badge badge-mec">🔧 ${mecNombre}</div>`;
+  if (ciLock === 'orange') badgesHtml += `<div class="badge badge-lock-o">🔒 Esperando CI</div>`;
+  if (ciLock === 'purple') badgesHtml += `<div class="badge badge-lock-p">🔒 Esperando CI</div>`;
+
+  const timerHtml = color !== 'green'
+    ? `<div class="card-timer" data-imp-timer="${inicio}">${formatTime(Date.now() - inicio)}</div>`
+    : `<div class="card-timer" style="visibility:hidden;">0s</div>`;
+
+  const hintHtml = color === 'green'
+    ? `<div class="green-hint"><div class="green-hint-icon">＋</div><div class="green-hint-text">Reportar improductivo</div></div>`
+    : (ciLock
+        ? `<div class="card-hint">⏳ Esperando confirmación del CI</div>`
+        : `<div class="card-hint">Toca para cambiar estado</div>`);
+
   const onclickAttr = isMulti ? `onclick="applyChangeMulti('${impId}')"` : '';
-  return `<div class="big-wrap ${color}" id="imp-card-${impId}" style="min-width:220px;max-width:300px;flex:1;position:relative;" ${onclickAttr}>
-    <button class="imp-close-x" onclick="event.stopPropagation();abrirModalForzar('${impId}','${isMulti?'multi':'principal'}')" title="Cerrar improductivo">✕</button>
-    <span class="big-id">${selectedMod}</span>
-    <div class="big-light"></div>
-    <span class="big-status">${label}</span>
-    <span class="big-timer" data-imp-timer="${inicio}">⏱ ${formatTime(Date.now()-inicio)}</span>
-    ${lockBadge}${empHtml}${mecHtml}
-    <span class="tap-hint">${tapHint}</span>
+
+  return `<div class="imp-card ${color}" id="imp-card-${impId}" style="position:relative;" ${onclickAttr}>
+    ${closeBtn}
+    <div class="card-id">${selectedMod}</div>
+    <div class="light-wrap"><div class="light-inner"></div><div class="light-shine"></div></div>
+    <div class="card-status">${LABELS[color] || color}</div>
+    ${timerHtml}
+    <div class="badges">${badgesHtml}</div>
+    ${hintHtml}
   </div>`;
 }
 
-// ── Helper: genera el HTML de badges para una tarjeta ────────────
-function buildBadges(color, empleada, mecanico){
-  let lb = '', mh = '', eh = '';
-  if(color==='orange') lb=`<span style="font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#9a3412;background:rgba(249,115,22,0.15);padding:3px 10px;border-radius:20px;margin-top:-8px;">🔒 Esperando CI</span>`;
-  if(color==='purple') lb=`<span style="font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#5b21b6;background:rgba(124,58,237,0.15);padding:3px 10px;border-radius:20px;margin-top:-8px;">🔒 Esperando CI</span>`;
-  if(color==='yellow' && mecanico) mh=`<span style="font-size:12px;font-weight:700;color:inherit;opacity:.8;margin-top:4px;">🔧 ${mecanico}</span>`;
-  if((color==='yellow'||color==='red') && empleada) eh=`<span style="font-size:12px;font-weight:700;color:inherit;opacity:.8;margin-top:2px;">👤 ${empleada}</span>`;
-  return { lb, mh, eh };
-}
-
-function tapHintFor(color){
-  if(color==='orange') return '⏳ Esperando confirmación de insumo';
-  if(color==='purple') return '🟣 Esperando respuesta del CI';
-  return 'Toca para cambiar estado';
-}
-
-// ── Render fila completa de improductivos ─────────────────────────
+// ── renderBig ─────────────────────────────────────────────────────
 function renderBig(){
-  if(!selectedMod) return;
+  if (!selectedMod) return;
   const cardsContainer = document.getElementById('imp-cards');
   const btnContainer   = document.getElementById('imp-btn-row');
-  if(!cardsContainer) return;
+  if (!cardsContainer) return;
 
   const s    = states[selectedMod] || 'green';
   const imps = _multiImp[selectedMod] || [];
-
   let html = '';
 
-  if(imps.length === 0){
-    // ── Sin multis: una sola tarjeta principal, comportamiento original ──
-    const mecNombre = lastMec[selectedMod]||'';
-    const empNombre = (window._lastEmpleada&&window._lastEmpleada[selectedMod])||'';
-    const {lb, mh, eh} = buildBadges(s, empNombre, mecNombre);
-    const timerInicio  = s !== 'green' ? (timers[selectedMod]||Date.now()) : 0;
-    html = buildImpCard('principal', s, LABELS[s]||s, timerInicio, lb, eh, mh, tapHintFor(s), false);
+  if (imps.length === 0) {
+    // Sin multis: tarjeta principal
+    const mec = lastMec[selectedMod] || '';
+    const emp = (window._lastEmpleada && window._lastEmpleada[selectedMod]) || '';
+    const inicio = s !== 'green' ? (timers[selectedMod] || Date.now()) : 0;
+    const ciLock = s === 'orange' ? 'orange' : s === 'purple' ? 'purple' : '';
+    html = buildImpCard('principal', s, LABELS[s] || s, inicio, emp, mec, false, ciLock);
   } else {
-    // ── Con multis: SOLO renderizar las tarjetas de _multiImp, nada más ──
+    // Con multis: una tarjeta por improductivo
     imps.forEach(imp => {
-      const c = imp.tipoActual || imp.tipo;
-      const {lb, mh, eh} = buildBadges(c, imp.empleada||'', imp.mecanico||'');
-      html += buildImpCard(imp.id, c, LABELS[c]||c, imp.inicio, lb, eh, mh, tapHintFor(c), true);
+      const c      = imp.tipoActual || imp.tipo;
+      const ciLock = c === 'orange' ? 'orange' : c === 'purple' ? 'purple' : '';
+      html += buildImpCard(imp.id, c, LABELS[c] || c, imp.inicio, imp.empleada || '', imp.mecanico || '', true, ciLock);
     });
   }
 
   cardsContainer.innerHTML = html;
 
-  // ── Botón ➕ debajo ──
-  const tiposEnUso  = imps.length === 0 ? [s] : imps.map(i => i.tipoActual||i.tipo);
+  // Botón ➕
+  const tiposEnUso  = imps.length === 0 ? [s] : imps.map(i => i.tipoActual || i.tipo);
   const TODOS_TIPOS = ['red','yellow','orange','purple','blue','pink'];
   const disponibles = TODOS_TIPOS.filter(t => !tiposEnUso.includes(t));
   const mostrarBtn  = s !== 'green' && imps.length < 4 && disponibles.length > 0;
-  if(btnContainer){
+  if (btnContainer) {
     btnContainer.innerHTML = mostrarBtn
-      ? `<button style="padding:10px 32px;border-radius:10px;border:2px dashed #94a3b8;background:rgba(255,255,255,.85);color:#475569;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;cursor:pointer;" onmouseenter="this.style.borderColor='#2563eb';this.style.color='#2563eb';this.style.background='#eff6ff';" onmouseleave="this.style.borderColor='#94a3b8';this.style.color='#475569';this.style.background='rgba(255,255,255,.85)';" onclick="abrirNuevoImproductivo()">➕ Nuevo Improductivo</button>`
+      ? `<button class="btn-nuevo-imp" onclick="abrirNuevoImproductivo()">
+           <div class="btn-nuevo-imp-icon">＋</div>Nuevo Improductivo
+         </button>`
       : '';
   }
 
-  // Re-adjuntar click del principal (solo cuando no hay multis)
-  // setTimeout evita que el click que disparó renderBig se propague a la nueva tarjeta
-  setTimeout(()=>{
-    const cardPrincipal = document.getElementById('imp-card-principal');
-    if(cardPrincipal){
-      cardPrincipal.addEventListener('click', e=>{
-        addRipple(cardPrincipal, e);
+  // Click en tarjeta principal (sin multis)
+  setTimeout(() => {
+    const card = document.getElementById('imp-card-principal');
+    if (card) {
+      card.addEventListener('click', e => {
+        addRipple(card, e);
         applyChange(selectedMod);
       });
     }
   }, 50);
 }
 
-// ── Ripple ───────────────────────────────────────────────────────
+// ── Ripple ────────────────────────────────────────────────────────
 function addRipple(el, e){
-  const r=document.createElement('span'); r.className='ripple';
-  const rect=el.getBoundingClientRect();
-  const size=Math.max(rect.width,rect.height);
-  r.style.cssText=`width:${size}px;height:${size}px;left:${e.clientX-rect.left-size/2}px;top:${e.clientY-rect.top-size/2}px;`;
-  el.appendChild(r); setTimeout(()=>r.remove(),600);
+  const r    = document.createElement('span');
+  r.className = 'ripple';
+  const rect = el.getBoundingClientRect();
+  const size = Math.max(rect.width, rect.height);
+  r.style.cssText = `width:${size}px;height:${size}px;left:${e.clientX - rect.left - size/2}px;top:${e.clientY - rect.top - size/2}px;`;
+  el.appendChild(r);
+  setTimeout(() => r.remove(), 600);
 }
 
-// ── applyChange ──────────────────────────────────────────────────
+// ── applyChange — tarjeta principal (sin multis) ──────────────────
 function applyChange(id){
   const prev = states[id] || 'green';
-  if(prev==='orange'){
-    showToast('⏳ Debes confirmar el insumo antes de cambiar estado'); return;
+  if (prev === 'orange') { showToast('⏳ Debes confirmar el insumo antes de cambiar estado'); return; }
+  if (prev === 'purple') { showToast('🟣 Esperando respuesta del CI'); return; }
+  if (prev === 'blue')   { commitChange(id, 'green', null); return; }
+  if (prev === 'red') {
+    pendingTransicion = { id, estado:'yellow' };
+    openMecanicoModal('¿Quién llegó a atender?', 'Mecánico que atendió el llamado'); return;
   }
-  if(prev==='purple'){
-    showToast('🟣 Esperando respuesta del CI — Solicitud de Producción'); return;
+  // FIX: bloque garnet unificado (sin duplicado)
+  if (prev === 'garnet') {
+    pendingTransicion = { id, estado:'yellow' };
+    openMecanicoModal('¿Quién llegó a atender?', 'Mecánico para el alistamiento'); return;
   }
-  if(prev==='blue'){ commitChange(id,'green',null); return; }
-  if(prev==='red'){
-    pendingTransicion={id,estado:'yellow'};
-    openMecanicoModal('¿Quién llegó a atender?','Mecánico que atendió el llamado'); return;
+  if (prev === 'yellow') {
+    pendingTransicion = { id, estado:'green' };
+    openMecanicoModal('¿Quién solucionó la falla?', 'Mecánico que resolvió el problema'); return;
   }
-  if(prev==='garnet'){
-    pendingTransicion={id,estado:'yellow'};
-    openMecanicoModal('¿Quién llegó a atender?','Mecánico para el alistamiento'); return;
-  }
-  if(prev==='garnet'){
-    pendingTransicion={id,estado:'yellow'};
-    openMecanicoModal('¿Quién llegó a atender?','Mecánico que atendió el alistamiento'); return;
-  }
-  if(prev==='yellow'){
-    pendingTransicion={id,estado:'green'};
-    openMecanicoModal('¿Quién solucionó la falla?','Mecánico que resolvió el problema'); return;
-  }
-  if(prev==='green'){
-    document.getElementById('modal-improductivo').style.display='flex';
+  if (prev === 'green') {
+    document.getElementById('modal-improductivo').style.display = 'flex';
     return;
   }
-  commitChange(id,'green',null);
+  commitChange(id, 'green', null);
 }
 
-// ── commitChange ─────────────────────────────────────────────────
+// ── commitChange ──────────────────────────────────────────────────
 function commitChange(id, estado, mecanico){
   states[id] = estado;
-  timers[id] = Date.now();
-  if(mecanico) lastMec[id] = mecanico;
+  timers[id]  = Date.now();
+  if (mecanico) lastMec[id] = mecanico;
   renderBig();
-  wsSend({ type:'change', id, state:estado, mecanico:mecanico||lastMec[id]||'', limite:null, empleada:window._lastEmpleada[id]||'' });
+  wsSend({ type:'change', id, state:estado, mecanico:mecanico || lastMec[id] || '', limite:null, empleada:window._lastEmpleada[id] || '' });
 }
 
-function onImpAlist(){
-  const esSlot = !!_pendingSlotMod;
-  cancelImproductivo();
-  if(esSlot){
-    openSlot('R', 'garnet', '', null);
-    _pendingSlotMod = null;
-  } else {
-    pendingTransicion = { id: selectedMod, estado: 'garnet_pending' };
-    openMecanicoModal('¿Quién va a realizar el alistamiento?', 'Mecánico asignado');
-  }
-}
-
-// ── cancelImproductivo ───────────────────────────────────────────
+// ── Modal improductivo ────────────────────────────────────────────
 function cancelImproductivo(){
-  document.getElementById('modal-improductivo').style.display='none';
-  _pendingMultiImpTipo = null;
-  _pendingMultiImpMod  = null;
+  document.getElementById('modal-improductivo').style.display = 'none';
+  _pendingMultiImpMod = null;
 }
 
-// ── NUEVO IMPRODUCTIVO (multi) ────────────────────────────────────
 function abrirNuevoImproductivo(){
   const imps = _multiImp[selectedMod] || [];
-  // Máximo 4 total: si imps ya tiene ≥3 (principal + 2 multis + 1 que vamos a abrir = 4)
-  if(imps.length >= 4){ showToast('⚠ Máximo 4 improductivos simultáneos'); return; }
-  // Tipos ya activos: los del array + el estado actual
+  if (imps.length >= 4) { showToast('⚠ Máximo 4 improductivos simultáneos'); return; }
   const tiposActivos = imps.map(i => i.tipoActual || i.tipo);
-  const estadoPrincipal = states[selectedMod] || 'green';
-  if(!tiposActivos.includes(estadoPrincipal) && estadoPrincipal !== 'green'){
-    tiposActivos.push(estadoPrincipal);
-  }
-  // yellow y red son el mismo slot (rojo que pasó a amarillo)
-  if(tiposActivos.includes('yellow') && !tiposActivos.includes('red')) tiposActivos.push('red');
-  if(tiposActivos.includes('red')    && !tiposActivos.includes('yellow')) tiposActivos.push('yellow');
-  const todosLos = ['red','orange','purple','blue','pink']; // yellow no es seleccionable directamente
-  const disponibles = todosLos.filter(t => !tiposActivos.includes(t));
-  if(disponibles.length === 0){ showToast('⚠ No hay más tipos disponibles'); return; }
-  // Marcar que es para multi y mostrar modal con opciones filtradas
+  const estadoActual = states[selectedMod] || 'green';
+  if (!tiposActivos.includes(estadoActual) && estadoActual !== 'green') tiposActivos.push(estadoActual);
+  if (tiposActivos.includes('yellow') && !tiposActivos.includes('red')) tiposActivos.push('red');
+  if (tiposActivos.includes('red')    && !tiposActivos.includes('yellow')) tiposActivos.push('yellow');
+  const disponibles = ['red','orange','purple','blue','pink'].filter(t => !tiposActivos.includes(t));
+  if (disponibles.length === 0) { showToast('⚠ No hay más tipos disponibles'); return; }
   _pendingMultiImpMod = selectedMod;
   // Deshabilitar botones del modal según disponibles
-  const modal = document.getElementById('modal-improductivo');
-  const btns  = modal.querySelectorAll('.mec-btn');
-  const mapTipo = { 'red':'onImpMec', 'blue':'onImpRef', 'orange':'onImpIns', 'purple':'onImpProd', 'garnet':'onImpAlist' };
-  btns.forEach(btn => {
-    const fn = btn.getAttribute('onclick')?.replace('()','');
+  const modal    = document.getElementById('modal-improductivo');
+  const mapTipo  = { red:'onImpMec', blue:'onImpRef', orange:'onImpIns', purple:'onImpProd', garnet:'onImpAlist' };
+  modal.querySelectorAll('.mec-btn').forEach(btn => {
+    const fn   = (btn.getAttribute('onclick') || '').replace('()','');
     const tipo = Object.keys(mapTipo).find(k => mapTipo[k] === fn);
-    if(tipo && !disponibles.includes(tipo)){
-      btn.style.opacity = '.35';
-      btn.style.pointerEvents = 'none';
-    } else {
-      btn.style.opacity = '';
-      btn.style.pointerEvents = '';
-    }
+    const off  = tipo && !disponibles.includes(tipo);
+    btn.style.opacity       = off ? '.3' : '';
+    btn.style.pointerEvents = off ? 'none' : '';
   });
   modal.style.display = 'flex';
 }
 
 function cerrarModalNuevoImp(){
-  _pendingMultiImpMod  = null;
-  _pendingMultiImpTipo = null;
-  const btns = document.querySelectorAll('#modal-improductivo .mec-btn');
-  btns.forEach(btn => { btn.style.opacity=''; btn.style.pointerEvents=''; });
+  _pendingMultiImpMod = null;
+  document.querySelectorAll('#modal-improductivo .mec-btn').forEach(btn => {
+    btn.style.opacity = ''; btn.style.pointerEvents = '';
+  });
 }
 
-// Abrir un improductivo adicional (llamado desde los handlers del modal cuando _pendingMultiImpMod está activo)
+// ── commitMultiImp ────────────────────────────────────────────────
 function commitMultiImp(tipo, empleada, ciRequestId){
   const modId = selectedMod;
-  if(!_multiImp[modId]) _multiImp[modId] = [];
+  if (!_multiImp[modId]) _multiImp[modId] = [];
   const imps = _multiImp[modId];
 
-  // Si es el primer multi, registrar el estado principal actual en _multiImp como primer elemento
-  if(imps.length === 0){
+  // Si es el primer multi, convertir el estado actual en el primer elemento del array
+  if (imps.length === 0) {
     const estadoActual = states[modId] || 'green';
-    if(estadoActual !== 'green'){
-      // Verificar que no exista ya un principal (evita duplicados en reconexión)
-      const yaHayPrincipal = imps.some(i => i.esPrincipal);
-      if(!yaHayPrincipal){
-        const impPrincipal = {
-          id:          'principal-'+Date.now(),
-          tipo:        estadoActual,
-          tipoActual:  estadoActual,
-          inicio:      timers[modId] || Date.now(),
-          empleada:    (window._lastEmpleada&&window._lastEmpleada[modId])||'',
-          mecanico:    lastMec[modId]||'',
-          ciRequestId: null,
-          esPrincipal: true
-        };
-        imps.push(impPrincipal);
-        wsSend({ type:'multi_imp_change', action:'open', modId, imp:impPrincipal });
-      }
+    if (estadoActual !== 'green') {
+      const impPrincipal = {
+        id:          'principal-' + Date.now(),
+        tipo:        estadoActual,
+        tipoActual:  estadoActual,
+        inicio:      timers[modId] || Date.now(),
+        empleada:    (window._lastEmpleada && window._lastEmpleada[modId]) || '',
+        mecanico:    lastMec[modId] || '',
+        ciRequestId: null,
+        esPrincipal: true
+      };
+      imps.push(impPrincipal);
+      wsSend({ type:'multi_imp_change', action:'open', modId, imp:impPrincipal });
     }
   }
 
-  if(imps.length >= 4){ showToast('⚠ Máximo 4 improductivos'); return; }
-  if(imps.some(i => (i.tipoActual||i.tipo) === tipo)){ showToast('⚠ Ya hay un improductivo de ese tipo activo'); return; }
+  if (imps.length >= 4) { showToast('⚠ Máximo 4 improductivos'); return; }
+  if (imps.some(i => (i.tipoActual || i.tipo) === tipo)) { showToast('⚠ Ya hay uno de ese tipo activo'); return; }
 
   const imp = {
-    id:          Date.now()+'-'+Math.random().toString(36).slice(2),
+    id:          Date.now() + '-' + Math.random().toString(36).slice(2),
     tipo,
     tipoActual:  tipo,
     inicio:      Date.now(),
@@ -784,45 +919,32 @@ function commitMultiImp(tipo, empleada, ciRequestId){
     ciRequestId: ciRequestId || null
   };
   imps.push(imp);
-  // El color del tablero general = último improductivo (el nuevo)
-  states[modId] = tipo;
+  states[modId] = calcColorLocal(modId);
   timers[modId] = imp.inicio;
-  if(empleada) window._lastEmpleada[modId] = empleada;
+  if (empleada) window._lastEmpleada[modId] = empleada;
   renderBig();
   wsSend({ type:'multi_imp_change', action:'open', modId, imp });
-  _pendingMultiImpMod  = null;
-  _pendingMultiImpTipo = null;
   cerrarModalNuevoImp();
 }
 
-// ── applyChangeMulti — clic en un mini-recuadro ────────────────────
+// ── applyChangeMulti ──────────────────────────────────────────────
 function applyChangeMulti(impId){
   const modId = selectedMod;
   const imps  = _multiImp[modId] || [];
   const imp   = imps.find(i => i.id === impId);
-  if(!imp) return;
-  const colorActual = imp.tipoActual || imp.tipo;
-
-  if(colorActual === 'orange' || colorActual === 'purple'){
-    showToast('⏳ Esperando confirmación del CI antes de cambiar'); return;
-  }
-  if(colorActual === 'blue'){
-    // Cambio de ref → cerrar directamente
-    closeMultiImp(impId); return;
-  }
-  if(colorActual === 'red'){
-    // Llega mecánico → amarillo
+  if (!imp) return;
+  const c = imp.tipoActual || imp.tipo;
+  if (c === 'orange' || c === 'purple') { showToast('⏳ Esperando confirmación del CI'); return; }
+  if (c === 'blue') { closeMultiImp(impId); return; }
+  if (c === 'red') {
     pendingTransicion = { id:modId, estado:'yellow', impId };
-    openMecanicoModal('¿Quién llegó a atender?','Mecánico que atendió el llamado'); return;
+    openMecanicoModal('¿Quién llegó a atender?', 'Mecánico que atendió el llamado'); return;
   }
-  if(colorActual === 'yellow'){
-    // Mecánico resuelve → cerrar
+  if (c === 'yellow') {
     pendingTransicion = { id:modId, estado:'green', impId };
-    openMecanicoModal('¿Quién solucionó la falla?','Mecánico que resolvió el problema'); return;
+    openMecanicoModal('¿Quién solucionó la falla?', 'Mecánico que resolvió el problema'); return;
   }
-  if(colorActual === 'pink'){
-    closeMultiImp(impId); return;
-  }
+  if (c === 'pink') { closeMultiImp(impId); return; }
   closeMultiImp(impId);
 }
 
@@ -830,20 +952,11 @@ function closeMultiImp(impId){
   const modId = selectedMod;
   const imps  = _multiImp[modId] || [];
   const idx   = imps.findIndex(i => i.id === impId);
-  if(idx === -1) return;
+  if (idx === -1) return;
   imps.splice(idx, 1);
-  // Recalcular estado principal
-  if(imps.length > 0){
-    const ultimo = imps[imps.length-1];
-    states[modId] = ultimo.tipoActual || ultimo.tipo;
-    timers[modId] = ultimo.inicio;
-  } else {
-    // Sin más improductivos — limpiar todo
-    states[modId] = 'green';
-    timers[modId] = Date.now();
-    lastMec[modId] = '';
-    window._lastEmpleada[modId] = '';
-  }
+  states[modId] = calcColorLocal(modId);
+  timers[modId] = Date.now();
+  if (states[modId] === 'green') { lastMec[modId] = ''; window._lastEmpleada[modId] = ''; }
   renderBig();
   wsSend({ type:'multi_imp_change', action:'close', modId, imp:{ id:impId } });
 }
@@ -852,571 +965,579 @@ function updateMultiImpColor(impId, nuevoColor, mecanico){
   const modId = selectedMod;
   const imps  = _multiImp[modId] || [];
   const imp   = imps.find(i => i.id === impId);
-  if(!imp) return;
+  if (!imp) return;
   imp.tipoActual = nuevoColor;
-  if(mecanico) imp.mecanico = mecanico;
-  // Recalcular estado principal = último del array
-  const ultimo = imps[imps.length-1];
-  states[modId] = ultimo.tipoActual || ultimo.tipo;
-  timers[modId] = Date.now();
+  if (mecanico) imp.mecanico = mecanico;
+  states[modId] = calcColorLocal(modId);
   renderBig();
   wsSend({ type:'multi_imp_change', action:'update', modId, imp:{ ...imp } });
 }
 
-// ── onImpMec ─────────────────────────────────────────────────────
+// ── Handlers del modal de improductivo ───────────────────────────
 function onImpMec(){
-  const esMulti = !!_pendingMultiImpMod; // guardar ANTES de cancelar
+  const esMulti = !!_pendingMultiImpMod;
   cancelImproductivo();
-  if(!selectedMod) return;
-  const hoy = new Date().toISOString().split('T')[0];
-  const iaRecs = window._iaRecords || [];
-  const renamed = {};
-  const displayName = renamed[selectedMod] || selectedMod;
-  const empsHoy = iaRecs.filter(r =>
-    r.status==='presente' && r.date===hoy && (r.area===selectedMod||r.area===displayName)
-  ).map(r=>({name:r.empName,nombre:r.empName}));
-
-  if(empsHoy.length===0){
-    showToast('⚠ No hay operarias registradas hoy en '+selectedMod+'. La supervisora debe registrar la asistencia.');
+  if (!selectedMod) return;
+  const hoy     = new Date().toISOString().split('T')[0];
+  const iaRecs  = window._iaRecords || [];
+  const empsHoy = iaRecs
+    .filter(r => r.status === 'presente' && r.date === hoy && r.area === selectedMod)
+    .map(r => ({ name:r.empName }));
+  if (empsHoy.length === 0) {
+    showToast('⚠ No hay operarias registradas hoy en ' + selectedMod);
     return;
   }
-  if(esMulti) _pendingMultiImpMod = selectedMod; // restaurar para confirmarFalloMec
+  if (esMulti) _pendingMultiImpMod = selectedMod;
   abrirModalEmpleadaMec(selectedMod, empsHoy);
 }
 
-function abrirModalEmpleadaMec(modId, emps){
-  _pendingFalloModId = modId;
-  const sub = document.getElementById('modal-emp-mec-sub');
-  if(sub) sub.textContent = 'Módulo: '+modId;
-  const sel = document.getElementById('modal-emp-mec-sel');
-  if(sel){
-    sel.innerHTML = '<option value="">— Seleccionar —</option>';
-    emps.forEach(e=>{ const o=document.createElement('option'); o.value=e.name||e.nombre||''; o.textContent=e.name||e.nombre||''; sel.appendChild(o); });
-    sel.value=''; sel.style.borderColor='#e2e8f0';
-  }
-  const errEl = document.getElementById('modal-emp-mec-error');
-  if(errEl) errEl.style.display='none';
-  document.getElementById('modal-empleada-mec').style.display='flex';
-}
-
-function cerrarModalEmpleadaMec(){
-  document.getElementById('modal-empleada-mec').style.display='none';
-  _pendingFalloModId=null;
-}
-
-function confirmarFalloMec(){
-  const id = _pendingFalloModId; if(!id) return;
-  const sel = document.getElementById('modal-emp-mec-sel');
-  const errEl = document.getElementById('modal-emp-mec-error');
-  const empleada = sel ? sel.value.trim() : '';
-  if(!empleada){
-    if(sel) sel.style.borderColor='#ef4444';
-    if(errEl) errEl.style.display='block';
-    return;
-  }
-  if(sel) sel.style.borderColor='#e2e8f0';
-  if(errEl) errEl.style.display='none';
-  window._lastEmpleada[id] = empleada;
-  cerrarModalEmpleadaMec();
-  if(_pendingMultiImpMod){
-    commitMultiImp('red', empleada, null);
-  } else {
-    commitChange(id,'red',null);
-  }
-}
-
-// ── onImpRef ─────────────────────────────────────────────────────
 function onImpRef(){
-  const esMulti = !!_pendingMultiImpMod; // guardar ANTES de cancelar
+  const esMulti = !!_pendingMultiImpMod;
   cancelImproductivo();
-  if(esMulti){
-    commitMultiImp('blue', '', null);
-  } else {
-    commitChange(selectedMod,'blue',null);
-  }
+  if (esMulti) { commitMultiImp('blue', '', null); } else { commitChange(selectedMod, 'blue', null); }
 }
 
-// ── onImpIns ─────────────────────────────────────────────────────
 function onImpIns(){
-  const esMulti = !!_pendingMultiImpMod; // guardar ANTES de cancelar
+  const esMulti = !!_pendingMultiImpMod;
   cancelImproductivo();
-  if(esMulti) _pendingMultiImpMod = selectedMod; // restaurar para siEnviar
+  if (esMulti) _pendingMultiImpMod = selectedMod;
   siOpen();
 }
 
-// ── onImpProd ────────────────────────────────────────────────────
 function onImpProd(){
-  const esMulti = !!_pendingMultiImpMod; // guardar ANTES de cancelar
+  const esMulti = !!_pendingMultiImpMod;
   cancelImproductivo();
-  const now = new Date();
+  const now    = new Date();
   const newReq = {
-    _id: Date.now()+'-'+Math.random().toString(36).slice(2),
-    n: Date.now(), module: selectedMod,
-    ref:  (_ordenSeleccionada&&_ordenSeleccionada.referencia)||'',
-    op:   (_ordenSeleccionada&&_ordenSeleccionada.opoc)||'',
-    opoc: (_ordenSeleccionada&&_ordenSeleccionada.opoc)||'',
+    _id: Date.now() + '-' + Math.random().toString(36).slice(2),
+    n:   Date.now(), module:selectedMod,
+    ref:  (_ordenSeleccionada && _ordenSeleccionada.referencia) || '',
+    op:   (_ordenSeleccionada && _ordenSeleccionada.opoc) || '',
+    opoc: (_ordenSeleccionada && _ordenSeleccionada.opoc) || '',
     tipo:'Solicitud de Producción', qty:'1',
     categoria:'Solicitud de Producción',
     fecha:now.toLocaleDateString('es-CO'), hora:now.toLocaleTimeString('es-CO'),
-    datetime:now.toLocaleDateString('es-CO')+' '+now.toLocaleTimeString('es-CO'),
+    datetime:now.toLocaleDateString('es-CO') + ' ' + now.toLocaleTimeString('es-CO'),
     status:'alert', waitTime:null, resolvedAt:null, obs:'', alertStart:now.getTime(), esMecanico:false
   };
-  wsSend({type:'ci_new_request', request:newReq});
-  if(esMulti){
+  wsSend({ type:'ci_new_request', request:newReq });
+  if (esMulti) {
     commitMultiImp('purple', '', newReq._id);
   } else {
-    commitChange(selectedMod,'purple',null);
+    commitChange(selectedMod, 'purple', null);
     showToast('🟣 Solicitud de producción enviada al CI');
   }
 }
 
-// ── Modal mecánico ───────────────────────────────────────────────
-function openMecanicoModal(title, sub){
-  document.getElementById('mec-title').textContent = title;
-  document.getElementById('mec-sub').textContent = sub;
-  // Cargar mecánicos
-  const list = document.getElementById('mec-list');
-  list.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:8px;">Cargando...</div>';
-  fetch('/api/mecanicos').then(r=>r.json()).then(mecs=>{
-    list.innerHTML='';
-    if(!mecs||mecs.length===0){ list.innerHTML='<div style="color:#94a3b8;font-size:13px;padding:8px;">Sin mecánicos registrados</div>'; return; }
-    mecs.forEach(m=>{
-      const nombre = typeof m === 'string' ? m : (m.name || m.nombre || '');
-      if(!nombre) return;
-      const btn=document.createElement('button');
-      btn.textContent=nombre;
-      btn.style.cssText='padding:12px 16px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;font-family:Nunito,sans-serif;font-size:14px;font-weight:600;cursor:pointer;text-align:left;transition:background .15s;';
-      btn.onmouseenter=()=>btn.style.background='#f0f7ff';
-      btn.onmouseleave=()=>btn.style.background='#fff';
-      btn.onclick=()=>{ seleccionarMecanico(nombre); };
-      list.appendChild(btn);
-    });
-  }).catch(()=>{ list.innerHTML='<div style="color:#ef4444;font-size:13px;padding:8px;">Error al cargar mecánicos</div>'; });
-  document.getElementById('modal-mecanico').style.display='flex';
-}
-
-function cancelMecanico(){
-  document.getElementById('modal-mecanico').style.display='none';
-  pendingTransicion=null;
-}
-
-function seleccionarMecanico(nombre){
-  document.getElementById('modal-mecanico').style.display='none';
-  if(!pendingTransicion) return;
-  const {id, estado, impId} = pendingTransicion;
-  pendingTransicion=null;
-  lastMec[id]=nombre;
-  if(impId){
-    // Es un mini-improductivo
-    if(estado === 'yellow'){
-      // Mecánico llegó → marcar amarillo en el mini
-      updateMultiImpColor(impId, 'yellow', nombre);
-    } else if(estado === 'green'){
-      // Mecánico resolvió → actualizar mecánico en el imp y cerrar
-      const imps = _multiImp[id] || [];
-      const imp  = imps.find(i=>i.id===impId);
-      if(imp){
-        imp.mecanico = nombre;
-        // Enviar update antes de cerrar para que el servidor registre el mecánico
-        wsSend({ type:'multi_imp_change', action:'update', modId:id, imp:{ ...imp } });
-      }
-      closeMultiImp(impId);
-    }
+function onImpAlist(){
+  const esMulti = !!_pendingMultiImpMod;
+  cancelImproductivo();
+  if (esMulti) {
+    _pendingMultiImpMod = selectedMod;
+    _pendingSlotMod     = selectedMod;
+    pendingTransicion   = { id:selectedMod, estado:'garnet_pending_multi' };
+    openMecanicoModal('¿Quién va a realizar el alistamiento?', 'Mecánico asignado');
   } else {
-    if(estado==='garnet_pending'){
-      commitChange(id,'garnet',nombre);
-    } else {
-      commitChange(id, estado, nombre);
-    }
+    pendingTransicion = { id:selectedMod, estado:'garnet_pending' };
+    openMecanicoModal('¿Quién va a realizar el alistamiento?', 'Mecánico asignado');
   }
 }
 
-// ── CI: modal de confirmación ────────────────────────────────────
+// ── Modal empleada mecánico ───────────────────────────────────────
+function abrirModalEmpleadaMec(modId, emps){
+  _pendingFalloModId = modId;
+  const sub = document.getElementById('modal-emp-mec-sub');
+  if (sub) sub.textContent = 'Módulo: ' + modId;
+  const sel = document.getElementById('modal-emp-mec-sel');
+  if (sel) {
+    sel.innerHTML = '<option value="">— Seleccionar —</option>';
+    emps.forEach(e => {
+      const o = document.createElement('option');
+      o.value = e.name || e.nombre || '';
+      o.textContent = o.value;
+      sel.appendChild(o);
+    });
+    sel.value = ''; sel.style.borderColor = '#e2e8f0';
+  }
+  const err = document.getElementById('modal-emp-mec-error');
+  if (err) err.style.display = 'none';
+  document.getElementById('modal-empleada-mec').style.display = 'flex';
+}
+
+function cerrarModalEmpleadaMec(){
+  document.getElementById('modal-empleada-mec').style.display = 'none';
+  _pendingFalloModId = null;
+}
+
+function confirmarFalloMec(){
+  const id  = _pendingFalloModId; if (!id) return;
+  const sel = document.getElementById('modal-emp-mec-sel');
+  const err = document.getElementById('modal-emp-mec-error');
+  const emp = sel ? sel.value.trim() : '';
+  if (!emp) {
+    if (sel) sel.style.borderColor = '#ef4444';
+    if (err) err.style.display = 'block';
+    return;
+  }
+  if (sel) sel.style.borderColor = '#e2e8f0';
+  if (err) err.style.display = 'none';
+  window._lastEmpleada[id] = emp;
+  cerrarModalEmpleadaMec();
+  if (_pendingMultiImpMod) {
+    commitMultiImp('red', emp, null);
+  } else {
+    commitChange(id, 'red', null);
+  }
+}
+
+// ── Modal mecánico ────────────────────────────────────────────────
+function openMecanicoModal(title, sub){
+  document.getElementById('mec-title').textContent = title;
+  document.getElementById('mec-sub').textContent   = sub;
+  const list = document.getElementById('mec-list');
+  list.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:8px;">Cargando...</div>';
+  fetch('/api/mecanicos').then(r => r.json()).then(mecs => {
+    list.innerHTML = '';
+    if (!mecs || mecs.length === 0) {
+      list.innerHTML = '<div style="color:#94a3b8;font-size:13px;padding:8px;">Sin mecánicos registrados</div>';
+      return;
+    }
+    mecs.forEach(m => {
+      const nombre = typeof m === 'string' ? m : (m.name || m.nombre || '');
+      if (!nombre) return;
+      const btn = document.createElement('button');
+      btn.textContent = nombre;
+      btn.style.cssText = 'padding:11px 14px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;font-family:"Nunito",sans-serif;font-size:14px;font-weight:600;cursor:pointer;text-align:left;transition:background .15s;';
+      btn.onmouseenter = () => btn.style.background = '#f0f7ff';
+      btn.onmouseleave = () => btn.style.background = '#fff';
+      btn.onclick = () => seleccionarMecanico(nombre);
+      list.appendChild(btn);
+    });
+  }).catch(() => {
+    list.innerHTML = '<div style="color:#ef4444;font-size:13px;padding:8px;">Error al cargar mecánicos</div>';
+  });
+  document.getElementById('modal-mecanico').style.display = 'flex';
+}
+
+function cancelMecanico(){
+  document.getElementById('modal-mecanico').style.display = 'none';
+  pendingTransicion = null;
+}
+
+function seleccionarMecanico(nombre){
+  document.getElementById('modal-mecanico').style.display = 'none';
+  if (!pendingTransicion) return;
+  const { id, estado, impId } = pendingTransicion;
+  pendingTransicion = null;
+  lastMec[id] = nombre;
+
+  if (impId) {
+    if (estado === 'yellow') {
+      updateMultiImpColor(impId, 'yellow', nombre);
+    } else if (estado === 'green') {
+      const imps = _multiImp[id] || [];
+      const imp  = imps.find(i => i.id === impId);
+      if (imp) { imp.mecanico = nombre; wsSend({ type:'multi_imp_change', action:'update', modId:id, imp:{ ...imp } }); }
+      closeMultiImp(impId);
+    }
+  } else if (estado === 'garnet_pending') {
+    commitChange(id, 'garnet', nombre);
+  } else if (estado === 'garnet_pending_multi') {
+    commitMultiImp('garnet', '', null);
+    _pendingSlotMod = null;
+  } else {
+    commitChange(id, estado, nombre);
+  }
+}
+
+// ── CI: modal confirmación ────────────────────────────────────────
 function showCiCumplidoModal(req){
   playCiAlertSound();
-  let ov = document.getElementById('ci-confirm-overlay');
-  ov.innerHTML=`
-    <div style="background:#fff;border-radius:18px;padding:32px 28px 24px;width:100%;max-width:380px;box-shadow:0 24px 60px rgba(15,23,42,.25);animation:slup .22s ease;text-align:center;">
-      <div style="font-size:48px;margin-bottom:12px;">${(req.categoria==='Solicitud de Producción'||req.tipo==='Solicitud de Producción')?'🟣':'📦'}</div>
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;letter-spacing:2px;color:#1e3a8a;margin-bottom:8px;">${(req.categoria==='Solicitud de Producción'||req.tipo==='Solicitud de Producción')?'¡PRODUCCIÓN LISTA!':'¡INSUMO LISTO!'}</div>
-      <div style="font-size:14px;color:#64748b;margin-bottom:20px;">El CI confirma que fue atendido.<br>¿Confirmas que lo recibiste?</div>
-      <div style="background:#f8fafc;border-radius:10px;padding:12px;margin-bottom:20px;text-align:left;font-size:13px;">
-        <div><b>Tipo:</b> ${req.tipo||req.categoria||'—'}</div>
-        <div><b>Referencia:</b> ${req.ref||'—'}</div>
-        <div><b>OP / OC:</b> ${req.opoc||req.op||'—'}</div>
+  const ov = document.getElementById('ci-confirm-overlay');
+  const esProd = req.categoria === 'Solicitud de Producción' || req.tipo === 'Solicitud de Producción';
+  ov.innerHTML = `
+    <div style="background:#fff;border-radius:18px;padding:30px 26px 22px;width:100%;max-width:380px;box-shadow:0 24px 60px rgba(15,23,42,.25);animation:slup .22s ease;text-align:center;">
+      <div style="font-size:44px;margin-bottom:10px;">${esProd ? '🟣' : '📦'}</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;letter-spacing:2px;color:#1e3a8a;margin-bottom:6px;">${esProd ? '¡PRODUCCIÓN LISTA!' : '¡INSUMO LISTO!'}</div>
+      <div style="font-size:13px;color:#64748b;margin-bottom:16px;">El CI confirma que fue atendido.<br>¿Confirmas que lo recibiste?</div>
+      <div style="background:#f8fafc;border-radius:10px;padding:12px;margin-bottom:18px;text-align:left;font-size:13px;">
+        <div><b>Tipo:</b> ${req.tipo || req.categoria || '—'}</div>
+        <div><b>Referencia:</b> ${req.ref || '—'}</div>
+        <div><b>OP / OC:</b> ${req.opoc || req.op || '—'}</div>
       </div>
       <div style="display:flex;gap:10px;">
-        <button onclick="ciConfirmarRecepcion('${req._id}',true)" style="flex:1;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,#15803d,#22c55e);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;cursor:pointer;">✅ SÍ, RECIBÍ</button>
-        <button onclick="ciConfirmarRecepcion('${req._id}',false)" style="flex:1;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,#991b1b,#ef4444);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;cursor:pointer;">✖ NO RECIBÍ</button>
+        <button onclick="ciConfirmarRecepcion('${req._id}',true)"  style="flex:1;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,#15803d,#22c55e);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer;">✅ SÍ, RECIBÍ</button>
+        <button onclick="ciConfirmarRecepcion('${req._id}',false)" style="flex:1;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,#991b1b,#ef4444);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer;">✖ NO RECIBÍ</button>
       </div>
     </div>`;
-  ov.style.display='flex';
+  ov.style.display = 'flex';
 }
 
 function ciConfirmarRecepcion(reqId, accepted){
   const ov = document.getElementById('ci-confirm-overlay');
-  if(ov) ov.style.display='none';
-  if(accepted){
-    const existing=(window._ciRequests||[]).find(r=>r._id===reqId);
-    const req=Object.assign({},existing||{_id:reqId},{
-      status:'done', resolvedAt:new Date().toLocaleTimeString('es-CO'),
-      waitTime:existing&&existing.alertStart?(Date.now()-existing.alertStart):0
+  if (ov) ov.style.display = 'none';
+  if (accepted) {
+    const existing = (window._ciRequests || []).find(r => r._id === reqId);
+    const req = Object.assign({}, existing || { _id:reqId }, {
+      status:'done',
+      resolvedAt: new Date().toLocaleTimeString('es-CO'),
+      waitTime:   existing && existing.alertStart ? (Date.now() - existing.alertStart) : 0
     });
-    wsSend({type:'ci_update_request',request:req});
-    const modId=req.module;
-    if(modId){
-      // Buscar si este reqId pertenece a un multi-improductivo
+    wsSend({ type:'ci_update_request', request:req });
+    // Cerrar improductivo localmente también
+    const modId = req.module || selectedMod;
+    if (modId) {
       const imps = _multiImp[modId] || [];
-      const mIdx = imps.findIndex(i=>i.ciRequestId===req._id);
-      if(mIdx > -1){
-        // Cerrar solo ese improductivo
-        imps.splice(mIdx,1);
+      const mIdx = imps.findIndex(i => i.ciRequestId === req._id);
+      if (mIdx > -1) {
+        imps.splice(mIdx, 1);
         _multiImp[modId] = imps;
-        if(imps.length > 0){
-          const ultimo = imps[imps.length-1];
-          states[modId] = ultimo.tipoActual || ultimo.tipo;
-          timers[modId] = ultimo.inicio;
-        } else if(states[modId]==='orange'||states[modId]==='purple'){
-          // El principal era el orange/purple — ¿hay otros activos? No, entonces verde
-          states[modId]='green'; timers[modId]=Date.now();
-        }
-      } else if(states[modId]==='orange'||states[modId]==='purple'){
-        // Es el improductivo principal — solo poner verde si no hay multis activos
-        if(imps.length === 0){
-          states[modId]='green'; timers[modId]=Date.now();
-        } else {
-          // Quedan multis activos — tomar el color del último
-          const ultimo = imps[imps.length-1];
-          states[modId] = ultimo.tipoActual || ultimo.tipo;
-          timers[modId] = ultimo.inicio;
-        }
+      } else if (states[modId] === 'orange' || states[modId] === 'purple') {
+        if (imps.length === 0) { states[modId] = 'green'; timers[modId] = Date.now(); }
       }
+      states[modId] = calcColorLocal(modId);
       renderBig();
     }
     showToast('✅ Insumo confirmado como recibido');
   } else {
-    const existing=(window._ciRequests||[]).find(r=>r._id===reqId);
-    const req=Object.assign({},existing||{_id:reqId},{status:'alert',waitTime:null});
-    wsSend({type:'ci_update_request',request:req});
-    wsSend({type:'ci_reactivar_alerta',reqId:reqId});
+    const existing = (window._ciRequests || []).find(r => r._id === reqId);
+    const req = Object.assign({}, existing || { _id:reqId }, { status:'alert', waitTime:null });
+    wsSend({ type:'ci_update_request', request:req });
+    wsSend({ type:'ci_reactivar_alerta', reqId });
     showToast('⚠ No recibido — solicitud reactivada en el CI');
   }
 }
 
 function playCiAlertSound(){
-  try{
-    const ctx=new(window.AudioContext||window.webkitAudioContext)();
-    [{f:880,t:0},{f:1100,t:0.18},{f:880,t:0.36}].forEach(({f,t})=>{
-      const o=ctx.createOscillator(),g=ctx.createGain();
-      o.connect(g);g.connect(ctx.destination);
-      o.frequency.value=f;o.type='sine';
-      g.gain.setValueAtTime(0,ctx.currentTime+t);
-      g.gain.linearRampToValueAtTime(0.5,ctx.currentTime+t+0.04);
-      g.gain.linearRampToValueAtTime(0,ctx.currentTime+t+0.14);
-      o.start(ctx.currentTime+t);o.stop(ctx.currentTime+t+0.15);
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [{ f:880, t:0 }, { f:1100, t:.18 }, { f:880, t:.36 }].forEach(({ f, t }) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value = f; o.type = 'sine';
+      g.gain.setValueAtTime(0, ctx.currentTime + t);
+      g.gain.linearRampToValueAtTime(.5, ctx.currentTime + t + .04);
+      g.gain.linearRampToValueAtTime(0, ctx.currentTime + t + .14);
+      o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + .15);
     });
-  }catch(e){}
+  } catch(e) {}
 }
 
-// ── Solicitar Insumos ────────────────────────────────────────────
+// ── Solicitar Insumos ─────────────────────────────────────────────
 function siOpen(){
-  document.getElementById('si-ref').value='';
-  document.getElementById('si-qty').value='';
-  document.getElementById('si-talla').value='';
-  document.getElementById('si-opoc').value='';
-  document.getElementById('si-error').style.display='none';
-  window._siInsumosTemp=[];
+  document.getElementById('si-ref').value  = '';
+  document.getElementById('si-qty').value  = '';
+  document.getElementById('si-talla').value = '';
+  document.getElementById('si-opoc').value = '';
+  document.getElementById('si-error').style.display = 'none';
+  window._siInsumosTemp = [];
   siRenderInsumosList();
-  const refInfoEl=document.getElementById('si-ref-info');
-  if(_ordenSeleccionada){
-    document.getElementById('si-ref').value=_ordenSeleccionada.referencia||'';
-    document.getElementById('si-opoc').value=_ordenSeleccionada.opoc||'';
-    if(refInfoEl){ refInfoEl.textContent=_ordenSeleccionada.referencia||''; refInfoEl.style.display='inline-block'; }
+  const refInfoEl   = document.getElementById('si-ref-info');
+  const refInfoWrap = document.getElementById('si-ref-info-wrap');
+  if (_ordenSeleccionada) {
+    document.getElementById('si-ref').value  = _ordenSeleccionada.referencia || '';
+    document.getElementById('si-opoc').value = _ordenSeleccionada.opoc || '';
+    if (refInfoEl) refInfoEl.textContent = _ordenSeleccionada.referencia || '';
+    if (refInfoWrap) refInfoWrap.style.display = 'block';
   } else {
-    if(refInfoEl) refInfoEl.style.display='none';
+    if (refInfoWrap) refInfoWrap.style.display = 'none';
   }
-  document.getElementById('si-modulo-lbl').textContent='Módulo: '+selectedMod;
-  // Cargar tipos de insumo
-  const tipoSel=document.getElementById('si-tipo');
-  tipoSel.innerHTML='<option value="">— Cargando... —</option>';
-  fetch('/api/ci-config').then(r=>r.json()).then(data=>{
-    tipoSel.innerHTML='<option value="">— Seleccionar —</option>';
-    if(data.tipoInsumoList) data.tipoInsumoList.forEach(t=>{ const o=document.createElement('option'); o.value=t.name; o.dataset.flow=t.flow||'qty_only'; o.textContent=t.name; tipoSel.appendChild(o); });
-    window._siElasticoList=data.elasticoList||[];
-    window._siObsList=data.obsList&&data.obsList.length?data.obsList:['Pérdida','Faltante','Defectos'];
-  }).catch(()=>{ tipoSel.innerHTML='<option value="">— Error al cargar —</option>'; });
-  window._siObsSelected='';
-  const obsLbl=document.getElementById('si-obs-label');
-  if(obsLbl){ obsLbl.textContent='— Seleccionar —'; obsLbl.style.color='#94a3b8'; }
-  document.getElementById('si-overlay').style.display='flex';
+  document.getElementById('si-modulo-lbl').textContent = 'Módulo: ' + selectedMod;
+  const tipoSel = document.getElementById('si-tipo');
+  tipoSel.innerHTML = '<option value="">— Cargando… —</option>';
+  fetch('/api/ci-config').then(r => r.json()).then(data => {
+    tipoSel.innerHTML = '<option value="">— Seleccionar —</option>';
+    if (data.tipoInsumoList) data.tipoInsumoList.forEach(t => {
+      const o = document.createElement('option');
+      o.value = t.name; o.dataset.flow = t.flow || 'qty_only'; o.textContent = t.name;
+      tipoSel.appendChild(o);
+    });
+    window._siElasticoList = data.elasticoList || [];
+    window._siObsList = data.obsList && data.obsList.length ? data.obsList : ['Pérdida','Faltante','Defectos'];
+  }).catch(() => { tipoSel.innerHTML = '<option value="">— Error al cargar —</option>'; });
+  window._siObsSelected = '';
+  const obsLbl = document.getElementById('si-obs-label');
+  if (obsLbl) { obsLbl.textContent = '— Seleccionar —'; obsLbl.style.color = '#94a3b8'; }
+  document.getElementById('si-overlay').style.display = 'flex';
 }
 
 function siClose(){
-  document.getElementById('si-overlay').style.display='none';
-  window._siInsumosTemp=[];
+  document.getElementById('si-overlay').style.display = 'none';
+  window._siInsumosTemp = [];
   siRenderInsumosList();
 }
 
-function siOnTipoChange(){
-  const tw=document.getElementById('si-talla-wrap');
-  if(tw) tw.style.display='block';
-}
+function siOnTipoChange(){}
 
 function siAgregarInsumo(){
-  const tipoSel=document.getElementById('si-tipo');
-  const tipo=tipoSel.value.trim();
-  const flow=tipoSel.options[tipoSel.selectedIndex]?.dataset?.flow||'';
-  const qty=document.getElementById('si-qty').value.trim();
-  const talla=document.getElementById('si-talla').value.trim();
-  const errEl=document.getElementById('si-error');
-  if(!tipo){ errEl.textContent='Selecciona el tipo de insumo'; errEl.style.display='block'; return; }
-  if(!qty){ errEl.textContent='Ingresa la cantidad'; errEl.style.display='block'; return; }
-  errEl.style.display='none';
-  const tipoFinal=flow==='elastico'?tipo+' · '+talla:tipo;
-  window._siInsumosTemp.push({tipo:tipoFinal,qty,talla:talla||''});
-  tipoSel.value=''; document.getElementById('si-qty').value=''; document.getElementById('si-talla').value='';
+  const tipoSel = document.getElementById('si-tipo');
+  const tipo    = tipoSel.value.trim();
+  const flow    = tipoSel.options[tipoSel.selectedIndex]?.dataset?.flow || '';
+  const qty     = document.getElementById('si-qty').value.trim();
+  const talla   = document.getElementById('si-talla').value.trim();
+  const errEl   = document.getElementById('si-error');
+  if (!tipo) { errEl.textContent = 'Selecciona el tipo de insumo'; errEl.style.display = 'block'; return; }
+  if (!qty)  { errEl.textContent = 'Ingresa la cantidad'; errEl.style.display = 'block'; return; }
+  errEl.style.display = 'none';
+  const tipoFinal = flow === 'elastico' ? tipo + ' · ' + talla : tipo;
+  window._siInsumosTemp.push({ tipo:tipoFinal, qty, talla:talla || '' });
+  tipoSel.value = ''; document.getElementById('si-qty').value = ''; document.getElementById('si-talla').value = '';
   siRenderInsumosList();
 }
 
 function siRenderInsumosList(){
-  const list=document.getElementById('si-insumos-list'); if(!list) return;
-  list.innerHTML='';
-  window._siInsumosTemp.forEach((ins,i)=>{
-    const row=document.createElement('div');
-    row.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;font-size:13px;gap:8px;';
-    row.innerHTML=`<span style="flex:1;">${ins.tipo}${ins.talla?' · '+ins.talla:''}</span><span style="font-weight:700;color:#2563eb;">${ins.qty}</span><button onclick="siEliminarInsumo(${i})" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:16px;padding:0 4px;">✕</button>`;
+  const list = document.getElementById('si-insumos-list'); if (!list) return;
+  list.innerHTML = '';
+  window._siInsumosTemp.forEach((ins, i) => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:7px 11px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;font-size:13px;gap:8px;';
+    row.innerHTML = `<span style="flex:1;">${ins.tipo}${ins.talla ? ' · ' + ins.talla : ''}</span><span style="font-weight:700;color:#2563eb;">${ins.qty}</span><button onclick="siEliminarInsumo(${i})" style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:15px;padding:0 4px;">✕</button>`;
     list.appendChild(row);
   });
 }
 
-function siEliminarInsumo(i){ window._siInsumosTemp.splice(i,1); siRenderInsumosList(); }
+function siEliminarInsumo(i){ window._siInsumosTemp.splice(i, 1); siRenderInsumosList(); }
 
 function siToggleObsMenu(){
-  const menu=document.getElementById('si-obs-menu'); if(!menu) return;
-  const isOpen=menu.style.display==='block';
-  menu.style.display=isOpen?'none':'block';
-  if(!isOpen) siRenderObsMenu(menu);
+  const menu   = document.getElementById('si-obs-menu'); if (!menu) return;
+  const isOpen = menu.style.display === 'block';
+  menu.style.display = isOpen ? 'none' : 'block';
+  if (!isOpen) siRenderObsMenu(menu);
 }
 
 function siRenderObsMenu(menu){
-  menu.innerHTML='';
-  const items=window._siObsList&&window._siObsList.length?window._siObsList:['Pérdida','Faltante','Defectos'];
-  items.forEach(obs=>{
-    const div=document.createElement('div');
-    div.style.cssText='padding:10px 16px;cursor:pointer;font-family:Nunito,sans-serif;font-size:13px;transition:background .15s;';
-    div.textContent=obs;
-    div.onmouseenter=()=>div.style.background='#f1f5f9';
-    div.onmouseleave=()=>div.style.background='';
-    div.onclick=()=>siSeleccionarObs(obs);
+  menu.innerHTML = '';
+  const items = window._siObsList && window._siObsList.length ? window._siObsList : ['Pérdida','Faltante','Defectos'];
+  items.forEach(obs => {
+    const div = document.createElement('div');
+    div.style.cssText = 'padding:9px 14px;cursor:pointer;font-family:"Nunito",sans-serif;font-size:13px;transition:background .12s;';
+    div.textContent = obs;
+    div.onmouseenter = () => div.style.background = '#f1f5f9';
+    div.onmouseleave = () => div.style.background = '';
+    div.onclick = () => siSeleccionarObs(obs);
     menu.appendChild(div);
   });
-  const sep=document.createElement('div'); sep.style.cssText='height:1px;background:#f1f5f9;margin:4px 0;'; menu.appendChild(sep);
-  const clear=document.createElement('div');
-  clear.style.cssText='padding:10px 16px;cursor:pointer;font-family:Nunito,sans-serif;font-size:13px;color:#94a3b8;';
-  clear.textContent='✕ Sin observación';
-  clear.onclick=()=>siSeleccionarObs('');
+  const sep = document.createElement('div'); sep.style.cssText = 'height:1px;background:#f1f5f9;margin:4px 0;'; menu.appendChild(sep);
+  const clear = document.createElement('div');
+  clear.style.cssText = 'padding:9px 14px;cursor:pointer;font-family:"Nunito",sans-serif;font-size:13px;color:#94a3b8;';
+  clear.textContent = '✕ Sin observación';
+  clear.onclick = () => siSeleccionarObs('');
   menu.appendChild(clear);
 }
 
 function siSeleccionarObs(obs){
-  window._siObsSelected=obs;
-  const menu=document.getElementById('si-obs-menu'); if(menu) menu.style.display='none';
-  const lbl=document.getElementById('si-obs-label');
-  if(lbl){ lbl.textContent=obs||'— Seleccionar —'; lbl.style.color=obs?'#0f172a':'#94a3b8'; }
-  const btn=document.getElementById('si-obs-btn'); if(btn) btn.style.borderColor='#e2e8f0';
+  window._siObsSelected = obs;
+  const menu = document.getElementById('si-obs-menu'); if (menu) menu.style.display = 'none';
+  const lbl  = document.getElementById('si-obs-label');
+  if (lbl) { lbl.textContent = obs || '— Seleccionar —'; lbl.style.color = obs ? '#0f172a' : '#94a3b8'; }
+  const btn = document.getElementById('si-obs-btn'); if (btn) btn.style.borderColor = '#e2e8f0';
 }
 
-document.addEventListener('click',e=>{ if(!e.target.closest('#si-obs-wrap')){ const m=document.getElementById('si-obs-menu'); if(m) m.style.display='none'; } });
+document.addEventListener('click', e => {
+  if (!e.target.closest('#si-obs-wrap')) {
+    const m = document.getElementById('si-obs-menu'); if (m) m.style.display = 'none';
+  }
+});
 
 function siEnviar(){
-  const ref=(_ordenSeleccionada&&_ordenSeleccionada.referencia)||document.getElementById('si-ref').value.trim();
-  const opoc=(_ordenSeleccionada&&_ordenSeleccionada.opoc)||document.getElementById('si-opoc').value.trim();
-  const errEl=document.getElementById('si-error');
-  // Agregar insumo pendiente si tiene datos
-  const tipoSel=document.getElementById('si-tipo');
-  const tipoVal=tipoSel.value.trim();
-  const qtyVal=document.getElementById('si-qty').value.trim();
-  const tallaVal=document.getElementById('si-talla').value.trim();
-  const flowVal=tipoSel.options[tipoSel.selectedIndex]?.dataset?.flow||'';
-  if(tipoVal&&qtyVal){ const tf=flowVal==='elastico'?tipoVal+' · '+tallaVal:tipoVal; window._siInsumosTemp.push({tipo:tf,qty:qtyVal,talla:tallaVal||''}); tipoSel.value=''; document.getElementById('si-qty').value=''; document.getElementById('si-talla').value=''; siRenderInsumosList(); }
-  if(window._siInsumosTemp.length===0){ errEl.textContent='Agrega al menos un insumo a la lista'; errEl.style.display='block'; return; }
-  if(!window._siObsSelected){ errEl.textContent='La Observación es obligatoria'; errEl.style.display='block'; const btn=document.getElementById('si-obs-btn'); if(btn) btn.style.borderColor='#ef4444'; return; }
-  errEl.style.display='none';
-  const now=new Date();
-  const primerIns=window._siInsumosTemp[0];
-  const newReq={
-    _id:Date.now()+'-'+Math.random().toString(36).slice(2), n:Date.now(),
-    module:selectedMod, categoria:'Falta de Insumos',
-    ref, opoc, tipo:primerIns.tipo, qty:primerIns.qty, talla:primerIns.talla,
+  const ref  = (_ordenSeleccionada && _ordenSeleccionada.referencia) || document.getElementById('si-ref').value.trim();
+  const opoc = (_ordenSeleccionada && _ordenSeleccionada.opoc) || document.getElementById('si-opoc').value.trim();
+  const errEl = document.getElementById('si-error');
+  // Auto-agregar insumo si tiene datos
+  const tipoSel = document.getElementById('si-tipo');
+  const tipoVal = tipoSel.value.trim();
+  const qtyVal  = document.getElementById('si-qty').value.trim();
+  const tallaVal = document.getElementById('si-talla').value.trim();
+  const flowVal  = tipoSel.options[tipoSel.selectedIndex]?.dataset?.flow || '';
+  if (tipoVal && qtyVal) {
+    const tf = flowVal === 'elastico' ? tipoVal + ' · ' + tallaVal : tipoVal;
+    window._siInsumosTemp.push({ tipo:tf, qty:qtyVal, talla:tallaVal || '' });
+    tipoSel.value = ''; document.getElementById('si-qty').value = ''; document.getElementById('si-talla').value = '';
+    siRenderInsumosList();
+  }
+  if (window._siInsumosTemp.length === 0) { errEl.textContent = 'Agrega al menos un insumo'; errEl.style.display = 'block'; return; }
+  if (!window._siObsSelected) {
+    errEl.textContent = 'La Observación es obligatoria'; errEl.style.display = 'block';
+    const btn = document.getElementById('si-obs-btn'); if (btn) btn.style.borderColor = '#ef4444';
+    return;
+  }
+  errEl.style.display = 'none';
+  const now       = new Date();
+  const primerIns = window._siInsumosTemp[0];
+  const newReq    = {
+    _id: Date.now() + '-' + Math.random().toString(36).slice(2),
+    n:   Date.now(), module:selectedMod,
+    categoria:'Falta de Insumos',
+    ref, opoc,
+    tipo:primerIns.tipo, qty:primerIns.qty, talla:primerIns.talla,
     insumos:window._siInsumosTemp.slice(),
     fecha:now.toLocaleDateString('es-CO'), hora:now.toLocaleTimeString('es-CO'),
-    datetime:now.toLocaleDateString('es-CO')+' '+now.toLocaleTimeString('es-CO'),
-    status:'alert', waitTime:null, resolvedAt:null, obs:window._siObsSelected||'', alertStart:now.getTime()
+    datetime:now.toLocaleDateString('es-CO') + ' ' + now.toLocaleTimeString('es-CO'),
+    status:'alert', waitTime:null, resolvedAt:null,
+    obs:window._siObsSelected || '', alertStart:now.getTime()
   };
-  wsSend({type:'ci_new_request',request:newReq});
-  if(_pendingMultiImpMod){
+  wsSend({ type:'ci_new_request', request:newReq });
+  if (_pendingMultiImpMod) {
     commitMultiImp('orange', '', newReq._id);
     siClose();
   } else {
-    commitChange(selectedMod,'orange',null);
+    commitChange(selectedMod, 'orange', null);
     siClose();
-    showToast(`✅ Solicitud enviada (${newReq.insumos.length} insumo${newReq.insumos.length>1?'s':''})`);
-  };
+    showToast(`✅ Solicitud enviada (${newReq.insumos.length} insumo${newReq.insumos.length > 1 ? 's' : ''})`);
+  }
 }
 
-// ── Pantalla de órdenes ──────────────────────────────────────────
+// ── Pantalla de órdenes ───────────────────────────────────────────
 async function mostrarOrdenesModulo(modulo){
-  let ordenes=[];
-  try{ const r=await fetch('/api/ordenes'); ordenes=await r.json(); } catch(e){ ordenes=[]; }
-  const ordenesModulo=ordenes.filter(o=>(o.modulo||'')===modulo);
-  if(ordenesModulo.length===0){
-    showToast('⚠ No hay órdenes asignadas para '+modulo+'. Contacta al programador.');
-    setTimeout(()=>volverInicio(),2000);
+  let ordenes = [];
+  try { const r = await fetch('/api/ordenes'); ordenes = await r.json(); } catch(e) { ordenes = []; }
+  const ordenesModulo = ordenes.filter(o => (o.modulo || '') === modulo);
+  if (ordenesModulo.length === 0) {
+    showToast('⚠ No hay órdenes asignadas para ' + modulo + '. Contacta al programador.');
+    setTimeout(() => volverInicio(), 2000);
     return;
   }
-  const titleEl=document.getElementById('orden-screen-title');
-  if(titleEl) titleEl.textContent='Órdenes asignadas del módulo '+modulo;
-  const badgeEl=document.getElementById('orden-mod-badge');
-  if(badgeEl) badgeEl.textContent='🏭 '+modulo;
-  const lista=document.getElementById('orden-lista');
-  lista.innerHTML='';
-  const buscarEl=document.getElementById('orden-buscar');
-  if(buscarEl) buscarEl.value='';
-  ordenesModulo.forEach(o=>{
-    const card=document.createElement('div');
-    card.dataset.ref=o.referencia||'';
-    card.dataset.op=o.opoc||'';
-    card.style.cssText='background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;padding:14px 16px;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;gap:6px;';
-    card.innerHTML=`
+  document.getElementById('orden-screen-title').textContent = 'Órdenes asignadas del módulo ' + modulo;
+  document.getElementById('orden-mod-badge').textContent = '🏭 ' + modulo;
+  const lista    = document.getElementById('orden-lista');
+  const buscarEl = document.getElementById('orden-buscar');
+  lista.innerHTML = '';
+  if (buscarEl) buscarEl.value = '';
+  ordenesModulo.forEach(o => {
+    const card = document.createElement('div');
+    card.dataset.ref = o.referencia || '';
+    card.dataset.op  = o.opoc || '';
+    card.style.cssText = 'background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;padding:14px 16px;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;gap:6px;';
+    card.innerHTML = `
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
-        <span style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;color:#1e3a8a;">${o.referencia||'—'}</span>
-        <span style="font-family:'Courier New',monospace;font-size:13px;font-weight:800;color:#2563eb;background:#eff6ff;padding:3px 10px;border-radius:5px;">${o.opoc||'—'}</span>
+        <span style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;color:#1e3a8a;">${o.referencia || '—'}</span>
+        <span style="font-family:'Courier New',monospace;font-size:13px;font-weight:800;color:#2563eb;background:#eff6ff;padding:3px 10px;border-radius:5px;">${o.opoc || '—'}</span>
       </div>
-      <div style="font-size:11px;color:#64748b;">Cantidad: <b style="color:#0f172a;">${o.cantidad||'—'}</b></div>
-      <button style="margin-top:6px;width:100%;padding:8px;border-radius:8px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Trabajar →</button>`;
-    card.querySelector('button').addEventListener('click',()=>seleccionarOrden(o));
-    card.addEventListener('mouseenter',()=>{ card.style.borderColor='#2563eb'; card.style.boxShadow='0 4px 16px rgba(37,99,235,.15)'; });
-    card.addEventListener('mouseleave',()=>{ card.style.borderColor='#e2e8f0'; card.style.boxShadow='none'; });
+      <div style="font-size:11px;color:#64748b;">Cantidad: <b style="color:#0f172a;">${o.cantidad || '—'}</b></div>
+      <button style="margin-top:4px;width:100%;padding:8px;border-radius:8px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Trabajar →</button>`;
+    card.querySelector('button').addEventListener('click', () => seleccionarOrden(o));
+    card.addEventListener('mouseenter', () => { card.style.borderColor = '#2563eb'; card.style.boxShadow = '0 4px 16px rgba(37,99,235,.15)'; });
+    card.addEventListener('mouseleave', () => { card.style.borderColor = '#e2e8f0'; card.style.boxShadow = 'none'; });
     lista.appendChild(card);
   });
-  document.getElementById('orden-screen').style.display='flex';
+  document.getElementById('orden-screen').style.display = 'flex';
 }
 
 function seleccionarOrden(orden){
-  _ordenSeleccionada=orden;
-  const infoEl=document.getElementById('nav-orden-info');
-  const refEl=document.getElementById('nav-orden-ref');
-  const opEl=document.getElementById('nav-orden-op');
-  if(infoEl) infoEl.style.display='flex';
-  if(refEl) refEl.textContent='📋 Ref: '+(orden.referencia||'—');
-  if(opEl){ if(orden.opoc){ opEl.textContent='OP: '+orden.opoc; opEl.style.display=''; } else opEl.style.display='none'; }
-  document.getElementById('orden-screen').style.display='none';
+  _ordenSeleccionada = orden;
+  // Actualizar chip de orden
+  const chip  = document.getElementById('orden-chip');
+  const ref   = document.getElementById('chip-ref');
+  const op    = document.getElementById('chip-op');
+  const mod   = document.getElementById('chip-mod');
+  if (chip) chip.style.display = 'flex';
+  if (ref)  ref.textContent  = orden.referencia || '—';
+  if (op)   op.textContent   = orden.opoc || '—';
+  if (mod)  mod.textContent  = selectedMod;
+  // También nav header
+  const infoEl = document.getElementById('nav-orden-info');
+  const refEl  = document.getElementById('nav-orden-ref');
+  const opEl   = document.getElementById('nav-orden-op');
+  if (infoEl) infoEl.style.display = 'flex';
+  if (refEl)  refEl.textContent = '📋 ' + (orden.referencia || '—');
+  if (opEl)   { if (orden.opoc) { opEl.textContent = 'OP: ' + orden.opoc; opEl.style.display = ''; } else opEl.style.display = 'none'; }
+  document.getElementById('orden-screen').style.display = 'none';
   renderBig();
 }
 
 function filtrarOrdenLista(){
-  const q=(document.getElementById('orden-buscar')?.value||'').toLowerCase().trim();
-  document.querySelectorAll('#orden-lista > div').forEach(card=>{
-    const ref=(card.dataset.ref||'').toLowerCase();
-    const op=(card.dataset.op||'').toLowerCase();
-    card.style.display=(!q||ref.includes(q)||op.includes(q))?'':'none';
+  const q = (document.getElementById('orden-buscar')?.value || '').toLowerCase().trim();
+  document.querySelectorAll('#orden-lista > div').forEach(card => {
+    const ref = (card.dataset.ref || '').toLowerCase();
+    const op  = (card.dataset.op  || '').toLowerCase();
+    card.style.display = (!q || ref.includes(q) || op.includes(q)) ? '' : 'none';
   });
 }
 
-// ── Navegación ───────────────────────────────────────────────────
-function cambiarModulo(){
-  location.href = '/';
-}
-
-function volverInicio(){
-  location.href = '/';
-}
-
-// ── Toast ────────────────────────────────────────────────────────
-let _toastTimer=null;
-function showToast(msg){
-  const t=document.getElementById('cm-toast');
-  t.textContent=msg; t.classList.add('show');
-  if(_toastTimer) clearTimeout(_toastTimer);
-  _toastTimer=setTimeout(()=>t.classList.remove('show'),2800);
-}
-
-// ── Cierre forzado de improductivo ───────────────────────────────
+// ── Cierre forzado ────────────────────────────────────────────────
 let _pendingForzarImpId   = null;
-let _pendingForzarImpTipo = null; // 'principal' | 'multi'
+let _pendingForzarImpTipo = null;
 
 function abrirModalForzar(impId, tipo){
   _pendingForzarImpId   = impId;
   _pendingForzarImpTipo = tipo;
   const inp = document.getElementById('forzar-pass');
-  inp.value = '';
-  inp.style.borderColor = '#e2e8f0';
+  inp.value = ''; inp.style.borderColor = '#e2e8f0';
   document.getElementById('forzar-error').style.display = 'none';
   document.getElementById('modal-forzar-cierre').style.display = 'flex';
-  setTimeout(()=>inp.focus(), 100);
+  setTimeout(() => inp.focus(), 100);
 }
 
 function cerrarModalForzar(){
   document.getElementById('modal-forzar-cierre').style.display = 'none';
-  _pendingForzarImpId   = null;
-  _pendingForzarImpTipo = null;
+  _pendingForzarImpId = null; _pendingForzarImpTipo = null;
 }
 
 function confirmarForzarCierre(){
-  const inp = document.getElementById('forzar-pass');
+  const inp   = document.getElementById('forzar-pass');
   const errEl = document.getElementById('forzar-error');
-  if(inp.value !== '2'){
-    inp.value = '';
-    inp.style.borderColor = '#ef4444';
-    errEl.style.display = 'block';
-    setTimeout(()=>{ inp.style.borderColor='#e2e8f0'; errEl.style.display='none'; inp.focus(); }, 1000);
+  if (inp.value !== '2') {
+    inp.value = ''; inp.style.borderColor = '#ef4444'; errEl.style.display = 'block';
+    setTimeout(() => { inp.style.borderColor = '#e2e8f0'; errEl.style.display = 'none'; inp.focus(); }, 1200);
     return;
   }
   const impId = _pendingForzarImpId;
   const tipo  = _pendingForzarImpTipo;
   cerrarModalForzar();
-
-  if(tipo === 'multi'){
+  if (tipo === 'multi') {
     closeMultiImp(impId);
   } else {
-    // Es la tarjeta principal
     const imps = _multiImp[selectedMod] || [];
-    if(imps.length > 0){
-      // Si hay multis, cerrar el primero del array (que es el principal registrado)
+    if (imps.length > 0) {
       closeMultiImp(impId);
     } else {
-      // Sin multis: cerrar directamente pasando a verde
       commitChange(selectedMod, 'green', null);
     }
   }
   showToast('✅ Improductivo cerrado');
 }
 
-// ── Init: cargar iaRecords para validar operarias ────────────────
-async function loadIaRecords(){
-  try{
-    const r=await fetch('/api/ia-records');
-    if(r.ok){ window._iaRecords=await r.json(); }
-  } catch(e){ window._iaRecords=[]; }
+// ── Toast ─────────────────────────────────────────────────────────
+let _toastTimer = null;
+function showToast(msg){
+  const t = document.getElementById('cm-toast');
+  t.textContent = msg; t.classList.add('show');
+  if (_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
 }
 
-// ── Arranque ─────────────────────────────────────────────────────
+// ── Navegación ────────────────────────────────────────────────────
+function cambiarModulo(){ location.href = '/'; }
+function volverInicio(){  location.href = '/'; }
+
+// ── Init ──────────────────────────────────────────────────────────
+async function loadIaRecords(){
+  try { const r = await fetch('/api/ia-records'); if (r.ok) window._iaRecords = await r.json(); }
+  catch(e) { window._iaRecords = []; }
+}
+
 (async function init(){
   await loadIaRecords();
-  // Inicializar estado del módulo
   states[selectedMod] = 'green';
   timers[selectedMod] = Date.now();
-  // Si hay orden en URL, ir directo al tablero
-  if(_ordenSeleccionada){
-    const refEl=document.getElementById('nav-orden-ref');
-    const opEl=document.getElementById('nav-orden-op');
-    const infoEl=document.getElementById('nav-orden-info');
-    if(infoEl) infoEl.style.display='flex';
-    if(refEl) refEl.textContent='📋 Ref: '+(_ordenSeleccionada.referencia||'—');
-    if(opEl){ if(_ordenSeleccionada.opoc){ opEl.textContent='OP: '+_ordenSeleccionada.opoc; opEl.style.display=''; } else opEl.style.display='none'; }
+  // Mostrar chip de orden si viene en URL
+  if (_ordenSeleccionada) {
+    const chip = document.getElementById('orden-chip');
+    const ref  = document.getElementById('chip-ref');
+    const op   = document.getElementById('chip-op');
+    const mod  = document.getElementById('chip-mod');
+    if (chip) chip.style.display = 'flex';
+    if (ref)  ref.textContent = _ordenSeleccionada.referencia || '—';
+    if (op)   op.textContent  = _ordenSeleccionada.opoc || '—';
+    if (mod)  mod.textContent = selectedMod;
+    const infoEl = document.getElementById('nav-orden-info');
+    const refEl  = document.getElementById('nav-orden-ref');
+    const opEl   = document.getElementById('nav-orden-op');
+    if (infoEl) infoEl.style.display = 'flex';
+    if (refEl)  refEl.textContent = '📋 Ref: ' + (_ordenSeleccionada.referencia || '—');
+    if (opEl)   { if (_ordenSeleccionada.opoc) { opEl.textContent = 'OP: ' + _ordenSeleccionada.opoc; opEl.style.display = ''; } else opEl.style.display = 'none'; }
     renderBig();
   } else {
-    // Mostrar pantalla de selección de órdenes
     await mostrarOrdenesModulo(selectedMod);
   }
 })();
