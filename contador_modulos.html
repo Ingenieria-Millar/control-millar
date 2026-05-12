@@ -5,302 +5,174 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Módulo — Confecciones Millar</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Nunito:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 *{ box-sizing:border-box; margin:0; padding:0; }
 body{ background:#f1f5f9; font-family:'Nunito',sans-serif; color:#0f172a; min-height:100vh; overflow-x:hidden; }
 input,select,textarea{ font-size:16px !important; }
 :root{
-  --green:#16a34a; --green-bg:#dcfce7; --green-bd:#bbf7d0; --green-glow:rgba(34,197,94,.22);
-  --red:#dc2626;   --red-bg:#fee2e2;   --red-bd:#fca5a5;   --red-glow:rgba(239,68,68,.28);
-  --yellow:#a16207;--yellow-bg:#fef9c3;--yellow-bd:#fde047;--yellow-glow:rgba(234,179,8,.22);
-  --orange:#9a3412;--orange-bg:#ffedd5;--orange-bd:#fb923c;--orange-glow:rgba(249,115,22,.22);
-  --purple:#5b21b6;--purple-bg:#f5f3ff;--purple-bd:#c4b5fd;--purple-glow:rgba(124,58,237,.18);
-  --blue:#1e40af;  --blue-bg:#dbeafe;  --blue-bd:#93c5fd;  --blue-glow:rgba(59,130,246,.18);
-  --garnet:#7f1d1d;--garnet-bg:#fff1f1;--garnet-bd:#fca5a5;
-  --pinkci:#831843;--pinkci-bg:#fdf2f8;--pinkci-bd:#f9a8d4;
-  --accent:#2563eb;--accent2:#1e3a8a;
-  --surface:#fff;--bg:#f1f5f9;--border:#e2e8f0;--text:#0f172a;--muted:#64748b;
+  --green:#22c55e; --yellow:#eab308; --red:#ef4444;
+  --blue:#3b82f6; --orange:#f97316; --purple:#8b5cf6;
+  --accent:#2563eb; --accent2:#1e3a8a;
+  --text:#0f172a; --muted:#64748b; --border:#e2e8f0; --surface:#fff;
 }
 
 /* ── HEADER ── */
 header{
   position:sticky;top:0;z-index:100;background:#fff;
   border-bottom:1px solid var(--border);
-  box-shadow:0 1px 6px rgba(0,0,0,.06);
-  padding:0 clamp(12px,2.5vw,24px);min-height:58px;
+  box-shadow:0 1px 6px rgba(0,0,0,.07);
+  padding:0 clamp(12px,2.5vw,24px);min-height:68px;
   display:flex;align-items:center;justify-content:space-between;gap:12px;
-  flex-wrap:wrap;position:relative;
+  flex-wrap:wrap;
 }
 header::after{
-  content:'';position:absolute;bottom:0;left:0;right:0;height:2.5px;
+  content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
   background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);
 }
-.hd-left{ display:flex;align-items:center;gap:10px; }
-.hd-badge{
-  background:linear-gradient(135deg,#1e3a8a,#2563eb);
-  color:#fff;font-family:'Barlow Condensed',sans-serif;
-  font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
-  padding:3px 10px;border-radius:6px;flex-shrink:0;
+.hd-left{ display:flex;align-items:center;gap:14px; }
+.hd-logo{
+  width:46px;height:46px;border-radius:50%;background:#fff;
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
+  box-shadow:0 0 0 2px #e2e8f0,0 2px 8px rgba(0,0,0,.1);flex-shrink:0;
 }
-.hd-mod{
-  font-family:'Barlow Condensed',sans-serif;font-size:clamp(20px,3vw,26px);
-  font-weight:800;letter-spacing:3px;color:#0f172a;
+.hd-logo img{ width:100%;height:100%;object-fit:contain;padding:3px; }
+.hd-title-wrap{ display:flex;flex-direction:column;gap:1px; }
+.hd-title{
+  font-family:'Barlow Condensed',sans-serif;font-size:clamp(20px,2.5vw,26px);
+  font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0f172a;
+  line-height:1.1;
 }
-.hd-mod span{ color:var(--accent); }
+.hd-title span{ color:var(--accent); }
+.hd-fecha{
+  font-family:'Nunito',sans-serif;font-size:12px;font-weight:500;
+  color:var(--muted);letter-spacing:.3px;
+}
 .hd-right{ display:flex;align-items:center;gap:8px;flex-wrap:wrap; }
-.hd-pill{
-  display:flex;align-items:center;gap:5px;
-  padding:4px 11px;border-radius:20px;border:1px solid var(--border);
-  background:#f8fafc;font-size:11px;font-weight:600;color:#334155;white-space:nowrap;
-}
-.hd-pill .dot{ width:7px;height:7px;border-radius:50%;background:#22c55e;flex-shrink:0; }
-.hd-pill .dot.off{ background:#94a3b8; }
 .btn-bar{
-  padding:6px 13px;border-radius:8px;border:1px solid var(--border);
+  padding:6px 14px;border-radius:8px;border:1.5px solid var(--border);
   background:#fff;color:var(--accent2);
   font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;
-  letter-spacing:.5px;cursor:pointer;transition:background .15s;white-space:nowrap;
+  letter-spacing:.5px;cursor:pointer;transition:all .2s;white-space:nowrap;
 }
 .btn-bar:hover{ background:#f1f5f9; }
+.hd-back-btn{
+  padding:6px 14px;border-radius:8px;border:1.5px solid var(--border);
+  background:#fff;color:#334155;
+  font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;
+  transition:all .2s;white-space:nowrap;
+}
+.hd-back-btn:hover{ background:#f1f5f9; }
 
-/* ── MAIN ── */
+/* ── SINGLE VIEW ── */
 #single-view{
-  display:flex;flex-direction:column;align-items:center;
-  min-height:calc(100vh - 58px);gap:20px;padding:24px 16px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:calc(100vh - 68px);gap:20px;padding:20px 16px;
 }
-
-/* ── CHIP ORDEN ── */
-.orden-chip{
-  display:flex;align-items:center;gap:14px;flex-wrap:wrap;
-  background:#fff;border:1px solid var(--border);border-radius:12px;
-  padding:10px 18px;width:100%;max-width:640px;
+/* Contenedor principal de improductivos */
+#imp-row{
+  display:flex;flex-direction:column;align-items:center;gap:14px;width:100%;
 }
-.orden-chip-item{ display:flex;flex-direction:column;gap:2px; }
-.orden-chip-label{ font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted); }
-.orden-chip-val{ font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;color:#0f172a;letter-spacing:.5px; }
-.orden-sep{ width:1px;height:28px;background:var(--border); }
-
-/* ── FILA DE TARJETAS ── */
+/* Fila de tarjetas */
 #imp-cards{
   display:flex;flex-direction:row;flex-wrap:wrap;
   gap:14px;justify-content:center;align-items:flex-start;
-  width:100%;max-width:780px;
-}
-#imp-btn-row{ display:flex;justify-content:center;width:100%; }
-
-/* ── TARJETA IMPRODUCTIVO ── */
-.imp-card{
-  background:#fff;border-radius:20px;border:1.5px solid var(--border);
-  display:flex;flex-direction:column;align-items:center;
-  padding:26px 30px 20px;gap:0;
-  min-width:220px;max-width:300px;flex:1;
-  position:relative;cursor:pointer;
-  transition:transform .15s,box-shadow .2s;
-  user-select:none;
-}
-.imp-card:active{ transform:scale(0.98); }
-/* Barra lateral de color */
-.imp-card::before{
-  content:'';position:absolute;left:0;top:16px;bottom:16px;
-  width:4px;border-radius:0 3px 3px 0;
-}
-/* Estados */
-.imp-card.green{ background:var(--green-bg);border-color:var(--green-bd);box-shadow:0 4px 28px var(--green-glow); }
-.imp-card.green::before{ background:var(--green); }
-.imp-card.red{ background:var(--red-bg);border-color:var(--red-bd);box-shadow:0 4px 36px var(--red-glow); }
-.imp-card.red::before{ background:var(--red); }
-.imp-card.yellow{ background:var(--yellow-bg);border-color:var(--yellow-bd);box-shadow:0 4px 28px var(--yellow-glow); }
-.imp-card.yellow::before{ background:#eab308; }
-.imp-card.orange{ background:var(--orange-bg);border-color:var(--orange-bd);box-shadow:0 4px 28px var(--orange-glow); }
-.imp-card.orange::before{ background:#f97316; }
-.imp-card.purple{ background:var(--purple-bg);border-color:var(--purple-bd);box-shadow:0 4px 28px var(--purple-glow); }
-.imp-card.purple::before{ background:#7c3aed; }
-.imp-card.blue{ background:var(--blue-bg);border-color:var(--blue-bd);box-shadow:0 4px 28px var(--blue-glow); }
-.imp-card.blue::before{ background:#3b82f6; }
-.imp-card.garnet{ background:var(--garnet-bg);border-color:var(--garnet-bd);box-shadow:0 4px 36px rgba(127,29,29,.22); }
-.imp-card.garnet::before{ background:#991b1b; }
-.imp-card.pink{ background:var(--pinkci-bg);border-color:var(--pinkci-bd);box-shadow:0 4px 28px rgba(131,24,67,.15); }
-.imp-card.pink::before{ background:#db2777; }
-
-/* Botón cerrar */
-.card-x{
-  position:absolute;top:10px;right:10px;
-  width:24px;height:24px;border-radius:50%;border:none;
-  background:rgba(0,0,0,.06);color:rgba(0,0,0,.3);
-  font-size:12px;font-weight:700;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  transition:all .15s;line-height:1;z-index:5;
-}
-.card-x:hover{ background:rgba(239,68,68,.12);color:#dc2626; }
-
-/* Módulo ID */
-.card-id{
-  font-family:'Barlow Condensed',sans-serif;
-  font-size:42px;font-weight:800;letter-spacing:5px;
-  color:#0f172a;margin-bottom:16px;margin-top:2px;line-height:1;
-}
-.imp-card.green  .card-id{ color:var(--green); }
-.imp-card.red    .card-id{ color:var(--red); }
-.imp-card.yellow .card-id{ color:var(--yellow); }
-.imp-card.orange .card-id{ color:var(--orange); }
-.imp-card.purple .card-id{ color:var(--purple); }
-.imp-card.blue   .card-id{ color:var(--blue); }
-.imp-card.garnet .card-id{ color:var(--garnet); }
-.imp-card.pink   .card-id{ color:var(--pinkci); }
-
-/* Semáforo */
-.light-wrap{
-  width:96px;height:96px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  margin-bottom:14px;position:relative;flex-shrink:0;
-}
-.light-inner{
-  width:80px;height:80px;border-radius:50%;
-  background:#e2e8f0;position:relative;
-}
-.light-shine{
-  position:absolute;top:11px;left:16px;
-  width:26px;height:15px;border-radius:50%;
-  background:rgba(255,255,255,.25);transform:rotate(-30deg);
-}
-.imp-card.green  .light-wrap{ background:rgba(34,197,94,.1); }
-.imp-card.green  .light-inner{ background:radial-gradient(circle at 35% 35%,#4ade80,#15803d); }
-.imp-card.red    .light-wrap{ background:rgba(239,68,68,.1); }
-.imp-card.red    .light-inner{ background:radial-gradient(circle at 35% 35%,#f87171,#991b1b); }
-.imp-card.yellow .light-wrap{ background:rgba(234,179,8,.1); }
-.imp-card.yellow .light-inner{ background:radial-gradient(circle at 35% 35%,#fde047,#a16207); }
-.imp-card.orange .light-wrap{ background:rgba(249,115,22,.1); }
-.imp-card.orange .light-inner{ background:radial-gradient(circle at 35% 35%,#fdba74,#c2410c); }
-.imp-card.purple .light-wrap{ background:rgba(124,58,237,.1); }
-.imp-card.purple .light-inner{ background:radial-gradient(circle at 35% 35%,#c4b5fd,#6d28d9); }
-.imp-card.blue   .light-wrap{ background:rgba(59,130,246,.1); }
-.imp-card.blue   .light-inner{ background:radial-gradient(circle at 35% 35%,#93c5fd,#1d4ed8); }
-.imp-card.garnet .light-wrap{ background:rgba(153,27,27,.1); }
-.imp-card.garnet .light-inner{ background:radial-gradient(circle at 35% 35%,#fca5a5,#7f1d1d); }
-.imp-card.pink   .light-wrap{ background:rgba(219,39,119,.1); }
-.imp-card.pink   .light-inner{ background:radial-gradient(circle at 35% 35%,#fbcfe8,#9d174d); }
-
-/* Animaciones de luz */
-@keyframes yb{0%,100%{opacity:1;}50%{opacity:.6;}}
-@keyframes rb{0%,100%{opacity:1;}50%{opacity:.55;}}
-.imp-card.red    .light-inner{ animation:rb .85s ease-in-out infinite; }
-.imp-card.yellow .light-inner{ animation:yb 1.6s ease-in-out infinite; }
-.imp-card.orange .light-inner{ animation:rb 1.2s ease-in-out infinite; }
-.imp-card.garnet .light-inner{ animation:rb .85s ease-in-out infinite; }
-
-/* Status */
-.card-status{
-  font-family:'Barlow Condensed',sans-serif;
-  font-size:15px;font-weight:700;letter-spacing:3px;text-transform:uppercase;
-  margin-bottom:8px;color:var(--muted);text-align:center;
-}
-.imp-card.green  .card-status{ color:var(--green); }
-.imp-card.red    .card-status{ color:var(--red); }
-.imp-card.yellow .card-status{ color:var(--yellow); }
-.imp-card.orange .card-status{ color:var(--orange); }
-.imp-card.purple .card-status{ color:var(--purple); }
-.imp-card.blue   .card-status{ color:var(--blue); }
-.imp-card.garnet .card-status{ color:var(--garnet); }
-.imp-card.pink   .card-status{ color:var(--pinkci); }
-
-/* Timer */
-.card-timer{
-  font-family:'Barlow Condensed',monospace;
-  font-size:26px;font-weight:800;letter-spacing:2px;
-  margin-bottom:12px;color:#334155;min-height:32px;
-}
-.imp-card.green  .card-timer{ visibility:hidden; }
-.imp-card.red    .card-timer{ color:var(--red); }
-.imp-card.yellow .card-timer{ color:var(--yellow); }
-.imp-card.orange .card-timer{ color:var(--orange); }
-.imp-card.purple .card-timer{ color:var(--purple); }
-.imp-card.blue   .card-timer{ color:var(--blue); }
-.imp-card.garnet .card-timer{ color:var(--garnet); }
-.imp-card.pink   .card-timer{ color:var(--pinkci); }
-
-/* Badges */
-.badges{ display:flex;flex-direction:column;gap:5px;align-items:center;width:100%;margin-bottom:4px; }
-.badge{
-  display:inline-flex;align-items:center;gap:4px;
-  padding:3px 11px;border-radius:20px;
-  font-size:11px;font-weight:600;white-space:nowrap;
-}
-.badge-mec{ background:rgba(30,64,175,.08);color:#1e40af; }
-.badge-emp{ background:rgba(15,23,42,.06);color:#334155; }
-.badge-lock-o{ background:rgba(249,115,22,.1);color:#9a3412; }
-.badge-lock-p{ background:rgba(124,58,237,.1);color:#5b21b6; }
-
-/* Hint */
-.card-hint{
-  font-size:10px;color:var(--muted);
-  letter-spacing:1.5px;text-transform:uppercase;
-  margin-top:8px;text-align:center;line-height:1.5;
-}
-.green-hint{
-  display:flex;flex-direction:column;align-items:center;gap:4px;
-  margin-top:10px;
-}
-.green-hint-icon{ font-size:26px;color:var(--green); }
-.green-hint-text{
-  font-family:'Barlow Condensed',sans-serif;font-size:11px;
-  font-weight:700;letter-spacing:2px;text-transform:uppercase;
-  color:var(--green);opacity:.75;
+  width:100%;
 }
 
-/* ── BOTÓN NUEVO IMP ── */
-.btn-nuevo-imp{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:6px;min-width:160px;max-width:200px;
-  border:2px dashed #cbd5e1;border-radius:20px;
-  background:rgba(255,255,255,.8);cursor:pointer;
-  padding:22px 16px;transition:all .2s;color:#64748b;
-  font-family:'Barlow Condensed',sans-serif;font-size:14px;
-  font-weight:700;letter-spacing:1px;text-transform:uppercase;
-  flex:0 0 auto;
-}
-.btn-nuevo-imp:hover{ border-color:#2563eb;color:#2563eb;background:#eff6ff; }
-.btn-nuevo-imp-icon{ font-size:24px; }
+/* ── BIG WRAP ── */
+.big-wrap{display:flex;flex-direction:column;align-items:center;gap:24px;padding:56px 80px;background:#dbeafe;border-radius:20px;border:1.5px solid #93c5fd;cursor:pointer;min-width:300px;transition:transform 0.18s,box-shadow 0.4s,border-color 0.4s;user-select:none;box-shadow:0 4px 20px rgba(0,0,0,.07);}
+.big-wrap.green{background:#dcfce7;border-color:rgba(34,197,94,0.35);box-shadow:0 8px 50px rgba(34,197,94,0.15);}
+.big-wrap.red{background:#fee2e2;border-color:rgba(239,68,68,0.45);box-shadow:0 8px 60px rgba(239,68,68,0.25);}
+.big-wrap.yellow{background:#fef9c3;border-color:rgba(234,179,8,0.35);box-shadow:0 8px 50px rgba(234,179,8,0.15);}
+.big-wrap.blue{background:#dbeafe;border-color:#60a5fa;}
+.big-wrap.orange{background:#ffedd5;border-color:#fb923c;}
+.big-wrap.purple{background:#f5f3ff;border-color:#a78bfa;box-shadow:0 8px 50px rgba(124,58,237,0.15);}
+.big-wrap.purple .big-status,.big-wrap.purple .big-id,.big-wrap.purple .big-timer{color:#5b21b6;}
+.big-wrap.purple .big-light{background:radial-gradient(circle at 35% 35%,#c4b5fd,#6d28d9);box-shadow:0 0 55px rgba(124,58,237,0.8),0 0 110px rgba(124,58,237,0.4);}
+.big-wrap.orange .big-light{background:radial-gradient(circle at 35% 35%,#fdba74,#c2410c);box-shadow:0 0 55px rgba(249,115,22,0.8),0 0 110px rgba(249,115,22,0.4);animation:rb 1.2s ease-in-out infinite;}
+.big-wrap.garnet{background:#fff1f1;border-color:rgba(153,27,27,0.55);box-shadow:0 8px 60px rgba(153,27,27,0.25);}
+.big-wrap.garnet .big-status,.big-wrap.garnet .big-id,.big-wrap.garnet .big-timer{color:#7f1d1d;}
+.big-wrap.garnet .big-light{background:radial-gradient(circle at 35% 35%,#fca5a5,#7f1d1d);box-shadow:0 0 55px rgba(185,28,28,0.85),0 0 110px rgba(185,28,28,0.4);animation:rb .85s ease-in-out infinite;}
+.big-wrap.blue .big-light{background:radial-gradient(circle at 35% 35%,#93c5fd,#1d4ed8);box-shadow:0 0 55px rgba(37,99,235,0.8),0 0 110px rgba(37,99,235,0.4);}
+.big-wrap.blue .big-status,.big-wrap.blue .big-id,.big-wrap.blue .big-timer{color:#1e40af;}
+.big-wrap.orange .big-status,.big-wrap.orange .big-id,.big-wrap.orange .big-timer{color:#9a3412;}
+.big-wrap:active{transform:scale(0.97);}
+.big-id{font-family:'Barlow Condensed',sans-serif;font-size:64px;font-weight:800;letter-spacing:6px;color:#334155;}
+.big-light{width:180px;height:180px;border-radius:50%;transition:background 0.4s,box-shadow 0.4s;position:relative;}
+.big-light::after{content:'';position:absolute;top:28px;left:36px;width:54px;height:32px;border-radius:50%;background:rgba(255,255,255,0.2);transform:rotate(-30deg);}
+.big-wrap.green .big-light{background:radial-gradient(circle at 35% 35%,#4ade80,#15803d);box-shadow:0 0 65px rgba(34,197,94,0.8),0 0 130px rgba(34,197,94,0.4);}
+.big-wrap.yellow .big-light{background:radial-gradient(circle at 35% 35%,#fde047,#a16207);box-shadow:0 0 65px rgba(234,179,8,0.8);animation:yb 1.6s ease-in-out infinite;}
+.big-wrap.red .big-light{background:radial-gradient(circle at 35% 35%,#f87171,#991b1b);box-shadow:0 0 75px rgba(239,68,68,0.9),0 0 150px rgba(239,68,68,0.5);animation:rb 0.85s ease-in-out infinite;}
+.big-status{font-size:26px;font-weight:700;letter-spacing:4px;text-transform:uppercase;}
+.big-wrap.green .big-status{color:#16a34a;}.big-wrap.yellow .big-status{color:#a16207;}.big-wrap.red .big-status{color:#dc2626;}
+.big-timer{font-family:'Courier New',monospace;font-size:16px;font-weight:700;padding:5px 16px;border-radius:6px;letter-spacing:2px;min-height:30px;}
+.big-wrap.red .big-timer{color:#dc2626;background:rgba(239,68,68,0.1);}
+.big-wrap.yellow .big-timer{color:#a16207;background:rgba(234,179,8,0.08);}
+.big-wrap.green .big-timer{visibility:hidden;}
+.tap-hint{font-size:12px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;font-family:'Nunito',sans-serif;}
+@keyframes yb{0%,100%{box-shadow:0 0 55px rgba(234,179,8,0.8);}50%{box-shadow:0 0 80px rgba(234,179,8,1),0 0 160px rgba(234,179,8,0.6);}}
+@keyframes rb{0%,100%{box-shadow:0 0 65px rgba(239,68,68,0.9);}50%{box-shadow:0 0 100px rgba(239,68,68,1),0 0 200px rgba(239,68,68,0.6);}}
+@keyframes slup{from{transform:translateY(20px);opacity:0;}to{transform:none;opacity:1;}}
+@keyframes spin{to{transform:rotate(360deg);}}
 
-/* ── RIPPLE ── */
-.ripple{
-  position:absolute;border-radius:50%;
-  background:rgba(255,255,255,.15);transform:scale(0);
-  animation:rip .55s linear;pointer-events:none;
-}
-@keyframes rip{ to{ transform:scale(5);opacity:0; } }
-
-/* ── TOAST ── */
-#cm-toast{
-  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
-  background:#0f172a;color:#fff;padding:11px 22px;border-radius:12px;
-  font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;
-  z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.2);
-  opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap;
-}
-#cm-toast.show{ opacity:1; }
-
-/* ── MODALES ── */
+/* ── MODAL OVERLAY ── */
 .modal-overlay-cm{
   display:none;position:fixed;inset:0;z-index:500;
-  background:rgba(15,23,42,.48);backdrop-filter:blur(4px);
+  background:rgba(15,23,42,.5);backdrop-filter:blur(4px);
   align-items:center;justify-content:center;padding:16px;
 }
 .modal-overlay-cm.open{ display:flex; }
 .modal-box-cm{
-  background:#fff;border-radius:18px;padding:26px 22px 20px;
-  width:100%;max-width:380px;
-  box-shadow:0 24px 60px rgba(15,23,42,.2);
-  animation:slup .22s ease;display:flex;flex-direction:column;gap:12px;
+  background:#fff;border-radius:18px;padding:28px 24px 22px;
+  width:100%;max-width:380px;box-shadow:0 24px 60px rgba(15,23,42,.2);
+  animation:slup .22s ease;display:flex;flex-direction:column;gap:14px;
 }
-@keyframes slup{ from{ transform:translateY(18px);opacity:0; } to{ transform:none;opacity:1; } }
-@keyframes spin{ to{ transform:rotate(360deg); } }
 
 /* ── PANTALLA ÓRDENES ── */
 #orden-screen{
   display:none;position:fixed;inset:0;z-index:490;
   background:#f1f5f9;flex-direction:column;
 }
+
+/* ── MULTI-IMPRODUCTIVO ── */
+/* El botón ➕ se renderiza dentro de #imp-row como última tarjeta */
+.btn-nuevo-imp-card{
+  display:none;
+  flex-direction:column;align-items:center;justify-content:center;gap:8px;
+  padding:22px 20px;min-width:200px;max-width:260px;flex:1;
+  border:2px dashed #94a3b8;border-radius:20px;background:rgba(255,255,255,.7);
+  cursor:pointer;transition:all .2s;user-select:none;
+  font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;
+  letter-spacing:1px;color:#475569;
+}
+.btn-nuevo-imp-card:hover{border-color:#2563eb;color:#2563eb;background:#eff6ff;}
+.btn-nuevo-imp-card.visible{display:flex;}
+
+/* ── TOAST ── */
+#cm-toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:#0f172a;color:#fff;padding:12px 24px;border-radius:12px;
+  font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;
+  z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.2);
+  opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap;
+}
+#cm-toast.show{ opacity:1; }
+
+/* ── RIPPLE ── */
+.ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,0.12);transform:scale(0);animation:rip 0.55s linear;pointer-events:none;}
+@keyframes rip{to{transform:scale(5);opacity:0;}}
+
+/* ── BOTÓN CIERRE FORZADO ── */
+.imp-close-x{
+  position:absolute;top:8px;right:8px;
+  width:22px;height:22px;border-radius:50%;
+  background:rgba(0,0,0,.08);border:none;
+  color:rgba(0,0,0,.35);font-size:13px;font-weight:700;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all .2s;line-height:1;z-index:5;
+}
+.imp-close-x:hover{background:rgba(239,68,68,.15);color:#dc2626;}
 </style>
 </head>
 <body>
@@ -308,59 +180,65 @@ header::after{
 <!-- HEADER -->
 <header>
   <div class="hd-left">
-    <div style="width:34px;height:34px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 0 0 2px #e2e8f0,0 2px 8px rgba(0,0,0,.07);flex-shrink:0;">
-      <img src="/logo.png" onerror="this.style.display='none'" style="width:100%;height:100%;object-fit:contain;padding:3px;">
+    <div class="hd-logo">
+      <img src="/logo.png" onerror="this.style.display='none'">
     </div>
-    <div class="hd-badge">CONFECCIONES MILLAR</div>
-    <div class="hd-mod" id="hd-mod-label">MÓD <span id="hd-mod-id">—</span></div>
+    <div class="hd-title-wrap">
+      <div class="hd-title">CONFECCIONES <span>MILLAR</span></div>
+      <div class="hd-fecha" id="hd-fecha"></div>
+    </div>
   </div>
   <div class="hd-right">
-    <div class="hd-pill" id="hd-conn"><div class="dot off" id="hd-dot"></div><span id="hd-conn-text">Conectando…</span></div>
-    <div id="nav-orden-info" style="display:none;align-items:center;gap:6px;">
-      <span id="nav-orden-ref" style="padding:3px 10px;border-radius:6px;background:#f0fdf4;border:1px solid #86efac;font-size:11px;font-weight:700;color:#15803d;white-space:nowrap;"></span>
-      <span id="nav-orden-op"  style="padding:3px 10px;border-radius:6px;background:#eff6ff;border:1px solid #93c5fd;font-size:11px;font-weight:700;color:#1e40af;white-space:nowrap;"></span>
-    </div>
     <button class="btn-bar" onclick="cambiarModulo()">📱 Cambiar Módulo</button>
-    <button class="btn-bar" onclick="volverInicio()">← Volver</button>
+    <button class="hd-back-btn" onclick="volverInicio()">← Volver</button>
   </div>
 </header>
 
-<!-- MAIN -->
+<!-- MAIN: Tablero individual -->
 <div id="single-view">
-  <!-- Chip orden -->
-  <div class="orden-chip" id="orden-chip" style="display:none;">
-    <div class="orden-chip-item"><div class="orden-chip-label">Referencia</div><div class="orden-chip-val" id="chip-ref">—</div></div>
-    <div class="orden-sep"></div>
-    <div class="orden-chip-item"><div class="orden-chip-label">OP / OC</div><div class="orden-chip-val" id="chip-op">—</div></div>
-    <div class="orden-sep"></div>
-    <div class="orden-chip-item"><div class="orden-chip-label">Módulo</div><div class="orden-chip-val" id="chip-mod">—</div></div>
+  <!-- Chip orden (se muestra cuando hay orden seleccionada) -->
+  <div id="orden-chip" style="display:none;align-items:center;justify-content:center;gap:20px;flex-wrap:wrap;background:#fff;border:1px solid var(--border);border-radius:12px;padding:10px 24px;width:100%;max-width:520px;text-align:center;">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);">Referencia</div>
+      <div id="chip-ref" style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:#0f172a;letter-spacing:.5px;">—</div>
+    </div>
+    <div style="width:1px;height:28px;background:var(--border);"></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);">OP / OC</div>
+      <div id="chip-op" style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:#0f172a;letter-spacing:.5px;">—</div>
+    </div>
+    <div style="width:1px;height:28px;background:var(--border);"></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);">Módulo</div>
+      <div id="chip-mod" style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:#0f172a;letter-spacing:.5px;">—</div>
+    </div>
   </div>
-
-  <!-- Tarjetas -->
-  <div id="imp-cards"></div>
-  <div id="imp-btn-row"></div>
+  <div id="imp-row">
+    <div id="imp-cards"><!-- tarjetas --></div>
+    <div id="imp-btn-row"><!-- botón ➕ --></div>
+  </div>
 </div>
 
-<!-- PANTALLA ÓRDENES -->
+<!-- PANTALLA: SELECCIÓN DE ORDEN -->
 <div id="orden-screen">
-  <div style="background:#fff;border-bottom:1px solid #e2e8f0;padding:0 clamp(12px,2.5vw,24px);min-height:58px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:relative;">
-    <div style="display:flex;align-items:center;gap:10px;">
+  <div style="background:#fff;border-bottom:1px solid #e2e8f0;padding:0 clamp(12px,2.5vw,24px);min-height:60px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:relative;">
+    <div style="display:flex;align-items:center;gap:12px;">
       <div style="width:32px;height:32px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 0 0 2px #e2e8f0;">
         <img src="/logo.png" onerror="this.style.display='none'" style="width:100%;height:100%;object-fit:contain;padding:3px;">
       </div>
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;letter-spacing:2px;text-transform:uppercase;">CONFECCIONES <span style="color:#2563eb;">MILLAR</span></div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0f172a;">CONFECCIONES <span style="color:#2563eb;">MILLAR</span></div>
     </div>
     <div style="display:flex;align-items:center;gap:10px;">
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;" id="orden-mod-badge"></div>
-      <button onclick="volverInicio()" style="padding:6px 13px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;color:#1e3a8a;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">← Atrás</button>
+      <button onclick="volverInicio()" style="padding:6px 14px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#1e3a8a;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">← Atrás</button>
     </div>
-    <div style="position:absolute;bottom:0;left:0;right:0;height:2.5px;background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);"></div>
+    <div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);"></div>
   </div>
   <div style="flex:1;overflow-y:auto;padding:24px clamp(12px,3vw,40px);">
     <div style="margin-bottom:20px;">
       <input id="orden-buscar" type="text" placeholder="🔍  Buscar por referencia o OP / OC..."
         oninput="filtrarOrdenLista()"
-        style="width:100%;max-width:420px;padding:10px 16px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;background:#fff;outline:none;"
+        style="margin-top:0;width:100%;max-width:420px;padding:10px 16px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;background:#fff;outline:none;box-shadow:0 1px 4px rgba(0,0,0,.05);"
         onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:clamp(20px,3vw,26px);font-weight:800;letter-spacing:1px;color:#0f172a;margin-top:14px;" id="orden-screen-title">Órdenes asignadas</div>
       <div style="font-size:13px;color:#64748b;margin-top:2px;">Selecciona la orden con la que vas a trabajar hoy</div>
@@ -373,28 +251,28 @@ header::after{
 </div>
 
 <!-- MODAL: Tipo de improductivo -->
-<div class="modal-overlay-cm" id="modal-improductivo" style="display:none;">
+<div class="modal-overlay-cm open" id="modal-improductivo" style="display:none;">
   <div class="modal-box-cm" style="max-width:340px;text-align:center;">
     <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;letter-spacing:2px;color:#0f172a;">Tipo de improductivo</div>
-    <div style="font-size:13px;color:#64748b;margin-top:-4px;">Selecciona la causa</div>
-    <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">
-      <button class="mec-btn" onclick="onImpMec()"   style="padding:11px 14px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer;text-align:left;border-left:4px solid #dc2626;">🔴 Fallo Mecánico</button>
-      <button class="mec-btn" onclick="onImpRef()"   style="padding:11px 14px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer;text-align:left;border-left:4px solid #1d4ed8;">🔵 Cambio de Referencia</button>
-      <button class="mec-btn" onclick="onImpIns()"   style="padding:11px 14px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer;text-align:left;border-left:4px solid #ea580c;">🟠 Falta de Insumos</button>
-      <button class="mec-btn" onclick="onImpProd()"  style="padding:11px 14px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer;text-align:left;border-left:4px solid #7c3aed;">🟣 Solicitud de Producción</button>
-      <button class="mec-btn" onclick="onImpAlist()" style="padding:11px 14px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer;text-align:left;border-left:4px solid #991b1b;">🟥 Alistamiento</button>
+    <div style="font-size:13px;color:#64748b;">Selecciona la causa</div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px;">
+      <button class="mec-btn" onclick="onImpMec()" style="padding:12px 16px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;font-family:'Nunito',sans-serif;font-size:15px;font-weight:600;cursor:pointer;text-align:left;border-left:4px solid #dc2626;color:#dc2626;">● Fallo Mecánico</button>
+      <button class="mec-btn" onclick="onImpRef()" style="padding:12px 16px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;font-family:'Nunito',sans-serif;font-size:15px;font-weight:600;cursor:pointer;text-align:left;border-left:4px solid #1d4ed8;color:#1d4ed8;">● Cambio de Referencia</button>
+      <button class="mec-btn" onclick="onImpIns()" style="padding:12px 16px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;font-family:'Nunito',sans-serif;font-size:15px;font-weight:600;cursor:pointer;text-align:left;border-left:4px solid #ea580c;color:#ea580c;">● Falta de Insumos</button>
+      <button class="mec-btn" onclick="onImpProd()" style="padding:12px 16px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;font-family:'Nunito',sans-serif;font-size:15px;font-weight:600;cursor:pointer;text-align:left;border-left:4px solid #7c3aed;color:#7c3aed;">● Solicitud de Producción</button>
+      <button class="mec-btn" onclick="onImpAlist()" style="padding:12px 16px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;font-family:'Nunito',sans-serif;font-size:15px;font-weight:600;cursor:pointer;text-align:left;border-left:4px solid #991b1b;color:#991b1b;">● Alistamiento</button>
     </div>
-    <button onclick="cancelImproductivo()" style="background:none;border:none;color:#94a3b8;font-size:13px;cursor:pointer;font-family:'Nunito',sans-serif;padding:4px;">✕ Cancelar</button>
+    <button onclick="cancelImproductivo()" style="background:none;border:none;color:#94a3b8;font-size:13px;cursor:pointer;font-family:Nunito,sans-serif;">✕ Cancelar</button>
   </div>
 </div>
 
 <!-- MODAL: Selección de mecánico -->
 <div class="modal-overlay-cm" id="modal-mecanico" style="display:none;">
   <div class="modal-box-cm" style="max-width:360px;">
-    <div style="font-size:30px;text-align:center;">🔧</div>
+    <div style="font-size:32px;text-align:center;">🔧</div>
     <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:2px;text-transform:uppercase;text-align:center;" id="mec-title">¿Quién atendió?</div>
     <div style="font-size:13px;color:#64748b;text-align:center;" id="mec-sub">Selecciona el mecánico</div>
-    <div style="display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto;" id="mec-list"></div>
+    <div style="display:flex;flex-direction:column;gap:8px;max-height:320px;overflow-y:auto;" id="mec-list"></div>
     <button onclick="cancelMecanico()" style="padding:10px;border-radius:10px;border:1.5px solid #e2e8f0;background:#f1f5f9;color:#64748b;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">Cancelar</button>
   </div>
 </div>
@@ -403,81 +281,78 @@ header::after{
 <div class="modal-overlay-cm" id="modal-empleada-mec" style="display:none;">
   <div class="modal-box-cm" style="max-width:380px;">
     <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#dc2626;">🔴 Fallo Mecánico</div>
-    <div id="modal-emp-mec-sub" style="font-size:13px;color:#64748b;margin-top:-6px;"></div>
+    <div id="modal-emp-mec-sub" style="font-size:13px;color:#64748b;margin-top:-8px;"></div>
     <div style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#64748b;margin-bottom:4px;">Empleada en el módulo <span style="color:#ef4444;">*</span></div>
     <select id="modal-emp-mec-sel" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;background:#f8fafc;outline:none;">
       <option value="">— Seleccionar —</option>
     </select>
     <div id="modal-emp-mec-error" style="display:none;color:#ef4444;font-size:12px;font-weight:700;">Debes seleccionar una empleada</div>
-    <div style="display:flex;gap:10px;margin-top:4px;">
-      <button onclick="cerrarModalEmpleadaMec()" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid #e2e8f0;background:#f1f5f9;color:#64748b;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">Cancelar</button>
-      <button onclick="confirmarFalloMec()" style="flex:1;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">Confirmar</button>
+    <div style="display:flex;gap:10px;">
+      <button onclick="cerrarModalEmpleadaMec()" style="flex:1;padding:11px;border-radius:10px;border:1.5px solid #e2e8f0;background:#f1f5f9;color:#64748b;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">Cancelar</button>
+      <button onclick="confirmarFalloMec()" style="flex:1;padding:11px;border-radius:10px;border:none;background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">Confirmar Fallo</button>
     </div>
   </div>
 </div>
 
+<!-- MODAL: Confirmar recepción CI -->
+<div id="ci-confirm-overlay" style="display:none;position:fixed;inset:0;z-index:9100;background:rgba(15,23,42,.6);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;padding:16px;"></div>
+
 <!-- MODAL: Solicitar Insumos -->
-<div class="modal-overlay-cm" id="si-overlay" style="display:none;">
-  <div class="modal-box-cm" style="max-width:400px;max-height:90vh;overflow-y:auto;">
-    <div style="display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#ea580c;">🟠 Solicitar Insumos</div>
-      <div style="font-size:11px;font-weight:700;color:#2563eb;background:#eff6ff;padding:3px 10px;border-radius:6px;" id="si-modulo-lbl"></div>
+<div id="si-overlay" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#f0f6ff;border-radius:20px;padding:28px 24px 24px;width:100%;max-width:440px;max-height:92vh;overflow-y:auto;box-shadow:0 24px 60px rgba(15,23,42,.25);animation:slup .22s ease;position:relative;">
+    <button onclick="siClose()" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:20px;color:#94a3b8;cursor:pointer;line-height:1;">✕</button>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;flex-wrap:wrap;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#1e3a8a;">Solicitar Insumo</div>
+      <div id="si-ref-info" style="display:none;background:#e0f2fe;border:1.5px solid #7dd3fc;border-radius:20px;padding:3px 14px;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;color:#0369a1;letter-spacing:.5px;"></div>
     </div>
-    <div id="si-ref-info-wrap" style="display:none;padding:8px 12px;background:#f0fdf4;border-radius:8px;border:1px solid #86efac;">
-      <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#15803d;margin-bottom:2px;">Referencia activa</div>
-      <div style="font-size:14px;font-weight:700;color:#15803d;" id="si-ref-info"></div>
+    <div id="si-modulo-lbl" style="font-size:12px;color:#64748b;margin-bottom:20px;"></div>
+    <div style="display:none;">
+      <input type="text" value="Falta de Insumos" readonly id="si-tipo-display">
+      <input id="si-ref" type="text">
+      <input id="si-opoc" type="text">
     </div>
-    <div>
-      <div style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#64748b;margin-bottom:6px;">Referencia</div>
-      <input id="si-ref" type="text" placeholder="Ej: PANTALONETA-23B" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;outline:none;">
-    </div>
-    <div>
-      <div style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#64748b;margin-bottom:6px;">OP / OC</div>
-      <input id="si-opoc" type="text" placeholder="Ej: OP-1042" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;outline:none;">
-    </div>
-    <div style="border-top:1px solid #f1f5f9;padding-top:12px;">
-      <div style="font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#0f172a;margin-bottom:8px;">1. INSUMO(S) <span style="color:#ef4444;">*</span></div>
-      <div id="si-insumos-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"></div>
-      <div style="margin-bottom:8px;">
-        <div style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#64748b;margin-bottom:5px;">Tipo de insumo</div>
-        <select id="si-tipo" onchange="siOnTipoChange()" style="width:100%;padding:10px 14px;border:1.5px solid #0f172a;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;outline:none;background:#fff;">
+    <div style="font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#0f172a;margin-bottom:10px;">1. INSUMOS <span style="color:#ef4444;">*</span></div>
+    <div id="si-insumos-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"></div>
+    <div style="background:#fff;border:1.5px solid #0f172a;border-radius:14px;padding:16px;margin-bottom:14px;">
+      <div style="margin-bottom:12px;">
+        <div style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#0f172a;margin-bottom:6px;">TIPO DE INSUMO <span style="color:#ef4444;">*</span></div>
+        <select id="si-tipo" onchange="siOnTipoChange()" style="width:100%;padding:11px 14px;border:1.5px solid #0f172a;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;background:#fff;outline:none;">
           <option value="">— Seleccionar —</option>
         </select>
       </div>
-      <div style="display:flex;gap:8px;margin-bottom:8px;">
-        <div style="flex:1;">
-          <div style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#64748b;margin-bottom:5px;">Cantidad</div>
-          <input id="si-qty" type="number" min="1" style="width:100%;padding:10px 14px;border:1.5px solid #0f172a;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;outline:none;">
-        </div>
-        <div style="flex:1;" id="si-talla-wrap">
-          <div style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#64748b;margin-bottom:5px;">Talla o Color</div>
-          <input id="si-talla" type="text" style="width:100%;padding:10px 14px;border:1.5px solid #0f172a;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;outline:none;">
-        </div>
+      <div style="margin-bottom:12px;">
+        <div style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#0f172a;margin-bottom:6px;">CANTIDAD <span style="color:#ef4444;">*</span></div>
+        <input id="si-qty" type="number" min="1" placeholder="" style="width:100%;padding:11px 14px;border:1.5px solid #0f172a;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;background:#fff;outline:none;">
       </div>
-      <button onclick="siAgregarInsumo()" style="width:100%;padding:10px;border-radius:10px;border:1.5px dashed #3b82f6;background:#eff6ff;color:#1d4ed8;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;cursor:pointer;">＋ AGREGAR A LA LISTA</button>
+      <div id="si-talla-wrap" style="display:block;margin-bottom:12px;">
+        <div style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#0f172a;margin-bottom:6px;">TALLA O COLOR</div>
+        <input id="si-talla" type="text" placeholder="" style="width:100%;padding:11px 14px;border:1.5px solid #0f172a;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;color:#0f172a;background:#fff;outline:none;">
+      </div>
+      <button onclick="siAgregarInsumo()" style="width:100%;padding:11px;border-radius:10px;border:1.5px dashed #3b82f6;background:#eff6ff;color:#1d4ed8;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all .2s;">
+        ＋ AGREGAR INSUMO A LA LISTA
+      </button>
     </div>
-    <div>
+    <div style="margin-bottom:16px;">
       <div style="font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#0f172a;margin-bottom:8px;">2. OBSERVACIÓN <span style="color:#ef4444;">*</span></div>
       <div style="position:relative;" id="si-obs-wrap">
-        <button type="button" onclick="siToggleObsMenu()" style="width:100%;padding:10px 14px;border:1.5px solid #0f172a;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;background:#fff;outline:none;text-align:left;cursor:pointer;display:flex;align-items:center;justify-content:space-between;" id="si-obs-btn">
+        <button type="button" onclick="siToggleObsMenu()" style="width:100%;padding:11px 14px;border:1.5px solid #0f172a;border-radius:10px;font-family:'Nunito',sans-serif;font-size:14px;background:#fff;outline:none;text-align:left;cursor:pointer;display:flex;align-items:center;justify-content:space-between;" id="si-obs-btn">
           <span id="si-obs-label" style="color:#94a3b8;">— Seleccionar —</span>
           <span style="color:#94a3b8;">▾</span>
         </button>
-        <div id="si-obs-menu" style="display:none;position:absolute;bottom:110%;left:0;right:0;z-index:200;background:#fff;border:1.5px solid #0f172a;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.1);padding:4px 0;max-height:160px;overflow-y:auto;"></div>
+        <div id="si-obs-menu" style="display:none;position:absolute;bottom:110%;left:0;right:0;z-index:200;background:#fff;border:1.5px solid #0f172a;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.1);padding:4px 0;max-height:180px;overflow-y:auto;"></div>
       </div>
     </div>
-    <div id="si-error" style="color:#ef4444;font-size:12px;font-weight:700;display:none;text-align:center;"></div>
-    <div style="display:flex;gap:10px;">
-      <button onclick="siClose()" style="flex:0 0 auto;padding:14px 18px;border-radius:12px;border:1.5px solid #e2e8f0;background:#f1f5f9;color:#64748b;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer;">Cancelar</button>
-      <button onclick="siEnviar()" style="flex:1;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:2px;cursor:pointer;">📦 ENVIAR SOLICITUD</button>
-    </div>
+    <div id="si-error" style="color:#ef4444;font-size:12px;font-weight:700;margin-bottom:10px;display:none;text-align:center;"></div>
+    <button onclick="siEnviar()" style="width:100%;padding:15px;border-radius:12px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;letter-spacing:2px;cursor:pointer;box-shadow:0 4px 16px rgba(37,99,235,.3);">
+      📦 ENVIAR SOLICITUD
+    </button>
   </div>
 </div>
 
-<!-- MODAL: Cierre forzado -->
+<!-- Modal cierre forzado -->
 <div class="modal-overlay-cm" id="modal-forzar-cierre" style="display:none;">
   <div class="modal-box-cm" style="max-width:320px;text-align:center;">
-    <div style="font-size:26px;">🔐</div>
+    <div style="font-size:28px;">🔐</div>
     <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#dc2626;">Cerrar Improductivo</div>
     <div style="font-size:13px;color:#64748b;">Ingresa la contraseña para forzar el cierre.</div>
     <input type="password" id="forzar-pass" maxlength="20"
@@ -491,9 +366,6 @@ header::after{
     </div>
   </div>
 </div>
-
-<!-- MODAL: CI confirmación de recepción -->
-<div class="modal-overlay-cm" id="ci-confirm-overlay" style="display:none;"></div>
 
 <div id="cm-toast"></div>
 
@@ -539,13 +411,7 @@ document.getElementById('hd-mod-id').textContent = selectedMod;
 // ── WebSocket ─────────────────────────────────────────────────────
 let ws = null, wsReady = false, reconnectTimer = null, reconnectDelay = 1000;
 
-function setConnStatus(ok){
-  const dot  = document.getElementById('hd-dot');
-  const txt  = document.getElementById('hd-conn-text');
-  if (!dot || !txt) return;
-  dot.classList.toggle('off', !ok);
-  txt.textContent = ok ? 'Conectado' : 'Sin conexión';
-}
+function setConnStatus(ok){ /* indicador eliminado del header */ }
 
 function connectWS(){
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
@@ -709,39 +575,34 @@ setInterval(() => {
   });
 }, 1000);
 
-// ── buildImpCard ──────────────────────────────────────────────────
-function buildImpCard(impId, color, label, inicio, empNombre, mecNombre, isMulti, ciLock){
-  const closeBtn = isMulti
-    ? `<button class="card-x" onclick="event.stopPropagation();abrirModalForzar('${impId}','multi')" title="Cerrar">✕</button>`
-    : `<button class="card-x" onclick="event.stopPropagation();abrirModalForzar('${impId}','principal')" title="Cerrar">✕</button>`;
-
-  let badgesHtml = '';
-  if (empNombre) badgesHtml += `<div class="badge badge-emp">👤 ${empNombre}</div>`;
-  if (mecNombre) badgesHtml += `<div class="badge badge-mec">🔧 ${mecNombre}</div>`;
-  if (ciLock === 'orange') badgesHtml += `<div class="badge badge-lock-o">🔒 Esperando CI</div>`;
-  if (ciLock === 'purple') badgesHtml += `<div class="badge badge-lock-p">🔒 Esperando CI</div>`;
-
-  const timerHtml = color !== 'green'
-    ? `<div class="card-timer" data-imp-timer="${inicio}">${formatTime(Date.now() - inicio)}</div>`
-    : `<div class="card-timer" style="visibility:hidden;">0s</div>`;
-
-  const hintHtml = color === 'green'
-    ? `<div class="green-hint"><div class="green-hint-icon">＋</div><div class="green-hint-text">Reportar improductivo</div></div>`
-    : (ciLock
-        ? `<div class="card-hint">⏳ Esperando confirmación del CI</div>`
-        : `<div class="card-hint">Toca para cambiar estado</div>`);
-
+// ── buildImpCard — genera HTML de una tarjeta con diseño original ──
+function buildImpCard(impId, color, label, inicio, lockBadge, empHtml, mecHtml, tapHint, isMulti){
   const onclickAttr = isMulti ? `onclick="applyChangeMulti('${impId}')"` : '';
-
-  return `<div class="imp-card ${color}" id="imp-card-${impId}" style="position:relative;" ${onclickAttr}>
-    ${closeBtn}
-    <div class="card-id">${selectedMod}</div>
-    <div class="light-wrap"><div class="light-inner"></div><div class="light-shine"></div></div>
-    <div class="card-status">${LABELS[color] || color}</div>
-    ${timerHtml}
-    <div class="badges">${badgesHtml}</div>
-    ${hintHtml}
+  return `<div class="big-wrap ${color}" id="imp-card-${impId}" style="min-width:220px;max-width:300px;flex:1;position:relative;" ${onclickAttr}>
+    <button class="imp-close-x" onclick="event.stopPropagation();abrirModalForzar('${impId}','${isMulti?'multi':'principal'}')" title="Cerrar improductivo">✕</button>
+    <span class="big-id">${selectedMod}</span>
+    <div class="big-light"></div>
+    <span class="big-status">${label}</span>
+    <span class="big-timer" data-imp-timer="${inicio}">⏱ ${formatTime(Date.now()-inicio)}</span>
+    ${lockBadge}${empHtml}${mecHtml}
+    <span class="tap-hint">${tapHint}</span>
   </div>`;
+}
+
+// ── buildBadges — genera badges de empleada, mecánico y lock ─────
+function buildBadges(color, empleada, mecanico){
+  let lb = '', mh = '', eh = '';
+  if(color==='orange') lb=`<span style="font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#9a3412;background:rgba(249,115,22,0.15);padding:3px 10px;border-radius:20px;margin-top:-8px;">🔒 Esperando CI</span>`;
+  if(color==='purple') lb=`<span style="font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#5b21b6;background:rgba(124,58,237,0.15);padding:3px 10px;border-radius:20px;margin-top:-8px;">🔒 Esperando CI</span>`;
+  if(color==='yellow' && mecanico) mh=`<span style="font-size:12px;font-weight:700;color:inherit;opacity:.8;margin-top:4px;">🔧 ${mecanico}</span>`;
+  if((color==='yellow'||color==='red') && empleada) eh=`<span style="font-size:12px;font-weight:700;color:inherit;opacity:.8;margin-top:2px;">👤 ${empleada}</span>`;
+  return { lb, mh, eh };
+}
+
+function tapHintFor(color){
+  if(color==='orange') return '⏳ Esperando confirmación de insumo';
+  if(color==='purple') return '🟣 Esperando respuesta del CI';
+  return 'Toca para cambiar estado';
 }
 
 // ── renderBig ─────────────────────────────────────────────────────
@@ -756,42 +617,40 @@ function renderBig(){
   let html = '';
 
   if (imps.length === 0) {
-    // Sin multis: tarjeta principal
-    const mec = lastMec[selectedMod] || '';
-    const emp = (window._lastEmpleada && window._lastEmpleada[selectedMod]) || '';
-    const inicio = s !== 'green' ? (timers[selectedMod] || Date.now()) : 0;
-    const ciLock = s === 'orange' ? 'orange' : s === 'purple' ? 'purple' : '';
-    html = buildImpCard('principal', s, LABELS[s] || s, inicio, emp, mec, false, ciLock);
+    // Sin multis: tarjeta principal original
+    const mecNombre = lastMec[selectedMod] || '';
+    const empNombre = (window._lastEmpleada && window._lastEmpleada[selectedMod]) || '';
+    const {lb, mh, eh} = buildBadges(s, empNombre, mecNombre);
+    const timerInicio = s !== 'green' ? (timers[selectedMod] || Date.now()) : 0;
+    html = buildImpCard('principal', s, LABELS[s]||s, timerInicio, lb, eh, mh, tapHintFor(s), false);
   } else {
     // Con multis: una tarjeta por improductivo
     imps.forEach(imp => {
-      const c      = imp.tipoActual || imp.tipo;
-      const ciLock = c === 'orange' ? 'orange' : c === 'purple' ? 'purple' : '';
-      html += buildImpCard(imp.id, c, LABELS[c] || c, imp.inicio, imp.empleada || '', imp.mecanico || '', true, ciLock);
+      const c = imp.tipoActual || imp.tipo;
+      const {lb, mh, eh} = buildBadges(c, imp.empleada||'', imp.mecanico||'');
+      html += buildImpCard(imp.id, c, LABELS[c]||c, imp.inicio, lb, eh, mh, tapHintFor(c), true);
     });
   }
 
   cardsContainer.innerHTML = html;
 
   // Botón ➕
-  const tiposEnUso  = imps.length === 0 ? [s] : imps.map(i => i.tipoActual || i.tipo);
+  const tiposEnUso  = imps.length === 0 ? [s] : imps.map(i => i.tipoActual||i.tipo);
   const TODOS_TIPOS = ['red','yellow','orange','purple','blue','pink'];
   const disponibles = TODOS_TIPOS.filter(t => !tiposEnUso.includes(t));
   const mostrarBtn  = s !== 'green' && imps.length < 4 && disponibles.length > 0;
   if (btnContainer) {
     btnContainer.innerHTML = mostrarBtn
-      ? `<button class="btn-nuevo-imp" onclick="abrirNuevoImproductivo()">
-           <div class="btn-nuevo-imp-icon">＋</div>Nuevo Improductivo
-         </button>`
+      ? `<button style="padding:10px 32px;border-radius:10px;border:2px dashed #94a3b8;background:rgba(255,255,255,.85);color:#475569;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;cursor:pointer;" onmouseenter="this.style.borderColor='#2563eb';this.style.color='#2563eb';this.style.background='#eff6ff';" onmouseleave="this.style.borderColor='#94a3b8';this.style.color='#475569';this.style.background='rgba(255,255,255,.85)';" onclick="abrirNuevoImproductivo()">➕ Nuevo Improductivo</button>`
       : '';
   }
 
-  // Click en tarjeta principal (sin multis)
+  // Re-adjuntar click del principal (solo cuando no hay multis)
   setTimeout(() => {
-    const card = document.getElementById('imp-card-principal');
-    if (card) {
-      card.addEventListener('click', e => {
-        addRipple(card, e);
+    const cardPrincipal = document.getElementById('imp-card-principal');
+    if (cardPrincipal) {
+      cardPrincipal.addEventListener('click', e => {
+        addRipple(cardPrincipal, e);
         applyChange(selectedMod);
       });
     }
@@ -819,10 +678,10 @@ function applyChange(id){
     pendingTransicion = { id, estado:'yellow' };
     openMecanicoModal('¿Quién llegó a atender?', 'Mecánico que atendió el llamado'); return;
   }
-  // FIX: bloque garnet unificado (sin duplicado)
+  // FIX: bloque garnet — mecánico llega al alistamiento
   if (prev === 'garnet') {
     pendingTransicion = { id, estado:'yellow' };
-    openMecanicoModal('¿Quién llegó a atender?', 'Mecánico para el alistamiento'); return;
+    openMecanicoModal('¿Quién va a realizar el alistamiento?', 'Mecánico que llegó al alistamiento'); return;
   }
   if (prev === 'yellow') {
     pendingTransicion = { id, estado:'green' };
@@ -1033,13 +892,10 @@ function onImpAlist(){
   const esMulti = !!_pendingMultiImpMod;
   cancelImproductivo();
   if (esMulti) {
-    _pendingMultiImpMod = selectedMod;
-    _pendingSlotMod     = selectedMod;
-    pendingTransicion   = { id:selectedMod, estado:'garnet_pending_multi' };
-    openMecanicoModal('¿Quién va a realizar el alistamiento?', 'Mecánico asignado');
+    commitMultiImp('garnet', '', null);
   } else {
-    pendingTransicion = { id:selectedMod, estado:'garnet_pending' };
-    openMecanicoModal('¿Quién va a realizar el alistamiento?', 'Mecánico asignado');
+    // Directo a granate — el mecánico se pide cuando toquen la tarjeta granate
+    commitChange(selectedMod, 'garnet', null);
   }
 }
 
@@ -1434,13 +1290,6 @@ function seleccionarOrden(orden){
   if (ref)  ref.textContent  = orden.referencia || '—';
   if (op)   op.textContent   = orden.opoc || '—';
   if (mod)  mod.textContent  = selectedMod;
-  // También nav header
-  const infoEl = document.getElementById('nav-orden-info');
-  const refEl  = document.getElementById('nav-orden-ref');
-  const opEl   = document.getElementById('nav-orden-op');
-  if (infoEl) infoEl.style.display = 'flex';
-  if (refEl)  refEl.textContent = '📋 ' + (orden.referencia || '—');
-  if (opEl)   { if (orden.opoc) { opEl.textContent = 'OP: ' + orden.opoc; opEl.style.display = ''; } else opEl.style.display = 'none'; }
   document.getElementById('orden-screen').style.display = 'none';
   renderBig();
 }
@@ -1530,15 +1379,18 @@ async function loadIaRecords(){
     if (ref)  ref.textContent = _ordenSeleccionada.referencia || '—';
     if (op)   op.textContent  = _ordenSeleccionada.opoc || '—';
     if (mod)  mod.textContent = selectedMod;
-    const infoEl = document.getElementById('nav-orden-info');
-    const refEl  = document.getElementById('nav-orden-ref');
-    const opEl   = document.getElementById('nav-orden-op');
-    if (infoEl) infoEl.style.display = 'flex';
-    if (refEl)  refEl.textContent = '📋 Ref: ' + (_ordenSeleccionada.referencia || '—');
-    if (opEl)   { if (_ordenSeleccionada.opoc) { opEl.textContent = 'OP: ' + _ordenSeleccionada.opoc; opEl.style.display = ''; } else opEl.style.display = 'none'; }
     renderBig();
   } else {
     await mostrarOrdenesModulo(selectedMod);
+  }
+  // Fecha en header
+  const fechaEl = document.getElementById('hd-fecha');
+  if (fechaEl) {
+    const ahora = new Date();
+    fechaEl.textContent = ahora.toLocaleDateString('es-CO', {
+      weekday:'long', year:'numeric', month:'long', day:'numeric',
+      timeZone:'America/Bogota'
+    });
   }
 })();
 </script>
