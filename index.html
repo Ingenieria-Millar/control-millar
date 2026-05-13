@@ -2078,8 +2078,7 @@ window.addEventListener('DOMContentLoaded', async ()=>{
           entrarTablero();
         } else if(_ir === 'mecanicos'){
           document.getElementById('area-screen').classList.add('hidden');
-          currentUser = currentUser || 'Mecanicos';
-          entrarTablero();
+          entrarTablero(true);
         } else if(_ir === 'modulos'){
           document.getElementById('area-screen').classList.add('hidden');
           abrirModtable();
@@ -2711,8 +2710,9 @@ function ocultarTodo(){
   currentView=null;
 }
 // ── Entrar al tablero general (activa modo blanco en header) ─────────
-function entrarTablero(){
-  const nombre = (currentUser==='Mecanicos'||currentUser==='Televisor') ? 'Tablero Mecanicos' : 'Tablero General';
+function entrarTablero(forzarMec){
+  const esMec = forzarMec || currentUser==='Mecanicos' || currentUser==='Televisor';
+  const nombre = esMec ? 'Tablero Mecanicos' : 'Tablero General';
   const h1 = document.getElementById('main-header-title');
   if(h1){
     const partes = nombre.split(' ');
@@ -2726,9 +2726,7 @@ function entrarTablero(){
   // ── Ocultar "Espera CI" en Tablero Mecánicos ──
   const estatOrange = document.getElementById('stat-orange');
   if(estatOrange){
-    const esMecView = currentUser==='Mecanicos' || currentUser==='Televisor' ||
-                      (currentUserRol||'').toLowerCase()==='mecanicos';
-    estatOrange.style.display = esMecView ? 'none' : '';
+    estatOrange.style.display = esMec ? 'none' : '';
   }
   
   // Limpiar filtros al entrar — evita tablero vacío
