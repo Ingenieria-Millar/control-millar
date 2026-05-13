@@ -2057,6 +2057,7 @@ window.addEventListener('DOMContentLoaded', async ()=>{
   // ── Detectar retorno desde páginas externas ────────────────────
   const _urlParams = new URLSearchParams(location.search);
   const _volver = _urlParams.get('volver');
+  const _ir     = _urlParams.get('ir');
   if(_volver === 'produccion'){
     // Limpiar parámetro de la URL sin recargar
     history.replaceState({}, '', '/');
@@ -2065,6 +2066,24 @@ window.addEventListener('DOMContentLoaded', async ()=>{
       setTimeout(()=>{
         document.getElementById('area-screen').classList.remove('hidden');
         mostrarSubMenuProduccion();
+      }, 300);
+    }
+  }
+  if(_ir){
+    history.replaceState({}, '', '/');
+    if(currentUser){
+      setTimeout(()=>{
+        if(_ir === 'tablero'){
+          document.getElementById('area-screen').classList.add('hidden');
+          entrarTablero();
+        } else if(_ir === 'mecanicos'){
+          document.getElementById('area-screen').classList.add('hidden');
+          currentUser = currentUser || 'Mecanicos';
+          entrarTablero();
+        } else if(_ir === 'modulos'){
+          document.getElementById('area-screen').classList.add('hidden');
+          abrirModtable();
+        }
       }, 300);
     }
   }
@@ -8833,15 +8852,15 @@ function confirmarFalloMec(){
     ordenes:        '/ordenes',
     asistencia:     '/ingresos',
     recogedores:    '/recogedores',
-    tableroGeneral: '/',
-    tableroMec:     '/',
+    tableroGeneral: '/?ir=tablero',
+    tableroMec:     '/?ir=mecanicos',
     tableroCI:      '/ci',
     insumos:        '/solicitar-insumos',
     alistamiento:   '/alistamiento?seccion=alistamiento',
     mantenimiento:  '/alistamiento?seccion=mantenimiento',
     contador:       '/contador-modulos',
     informeCI:      '/ci?seccion=informe',
-    informeGeneral: '/?seccion=historico',
+    informeGeneral: '/?ir=tablero&seccion=historico',
     dashCI:         '/ci?seccion=dashboard',
     dashPlanta:     '/dashboard-planta',
   };
