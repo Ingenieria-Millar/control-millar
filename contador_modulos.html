@@ -612,21 +612,30 @@ setInterval(() => {
 function buildImpCard(impId, color, label, inicio, lockBadge, empHtml, mecHtml, tapHint, isMulti){
   const onclickAttr = isMulti ? `onclick="applyChangeMulti('${impId}')"` : '';
 
-  // Buscar si hay confirmación pendiente para este improductivo
-  const imps = _multiImp[selectedMod] || [];
-  const imp  = impId === 'principal' ? null : imps.find(i => i.id === impId);
-  const ciReqId = imp ? imp.ciRequestId : null;
-  const pendingReq = ciReqId ? window._ciPendingConfirm[ciReqId] : null;
+  // Buscar confirmación pendiente para esta tarjeta
+  // Estrategia: buscar en _ciPendingConfirm el request que corresponde
+  // al color de esta tarjeta (orange→Falta de Insumos, purple→Solicitud de Producción)
+  let req = null;
+  const pendings = Object.values(window._ciPendingConfirm);
 
-  // Si no hay multi, buscar en el estado principal
-  let principalPending = null;
-  if (impId === 'principal' && (color === 'orange' || color === 'purple')) {
-    // Buscar si hay algún pending para este módulo sin imp asignado
-    Object.values(window._ciPendingConfirm).forEach(r => {
-      if (r.module === selectedMod || (!r.module && !principalPending)) principalPending = r;
-    });
+  if (color === 'orange' || color === 'purple') {
+    const esProd = color === 'purple';
+    // Buscar por ciRequestId del imp si hay multi
+    if (impId !== 'principal') {
+      const imps   = _multiImp[selectedMod] || [];
+      const imp    = imps.find(i => i.id === impId);
+      const ciRId  = imp ? imp.ciRequestId : null;
+      if (ciRId) req = window._ciPendingConfirm[ciRId] || null;
+    }
+    // Si no encontró por ID exacto, buscar por tipo y módulo
+    if (!req) {
+      req = pendings.find(r => {
+        const rEsProd = r.categoria === 'Solicitud de Producción' || r.tipo === 'Solicitud de Producción';
+        const modMatch = !r.module || r.module === selectedMod;
+        return modMatch && (esProd ? rEsProd : !rEsProd);
+      }) || null;
+    }
   }
-  const req = pendingReq || principalPending;
 
   const bannerHtml = req ? `
     <div class="ci-confirm-banner" onclick="event.stopPropagation()">
