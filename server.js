@@ -1104,7 +1104,8 @@ wss.on('connection', (ws, req) => {
         if (msg.empleada) lastEmpleada[msg.id] = msg.empleada;
         else if (msg.state === 'green') lastEmpleada[msg.id] = '';
         saveFloorState();
-        broadcastLocal({ type:'change', id:msg.id, state:msg.state, mecanico:msg.mecanico||'', limite:msg.limite||null, empleada:lastEmpleada[msg.id]||'', stateTime:stateTimes[msg.id] });
+        const esRed = (msg.state === 'red' || msg.state === 'garnet');
+        broadcastLocal({ type:'change', id:msg.id, state:msg.state, mecanico:msg.mecanico||'', limite:msg.limite||null, empleada:lastEmpleada[msg.id]||'', stateTime:stateTimes[msg.id], fromSlot:esRed, fromMulti:!esRed });
       }
 
       else if (msg.type === 'change2') {
