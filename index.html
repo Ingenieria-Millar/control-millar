@@ -133,7 +133,7 @@ window.addEventListener('beforeunload', () => {
 <style>
 :root{--bg:#f1f5f9;--panel:#ffffff;--border:#e2e8f0;--green:#22c55e;--yellow:#eab308;--red:#ef4444;--text:#0f172a;--muted:#64748b;--blue:#2563eb;--blue-dark:#1e3a8a;--blue-light:#60a5fa;}
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background:var(--bg);font-family:'Nunito',sans-serif;color:var(--text);min-height:100vh;overflow-x:hidden;width:100%;max-width:100vw;padding-top:64px;}
+body{background:var(--bg);font-family:'Nunito',sans-serif;color:var(--text);min-height:100vh;overflow-x:hidden;width:100%;max-width:100vw;}
 body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(203,213,225,.4) 1px,transparent 1px),linear-gradient(90deg,rgba(203,213,225,.4) 1px,transparent 1px);background-size:28px 28px;pointer-events:none;z-index:0;}
 
 header{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:#fff;border-bottom:1px solid #e2e8f0;box-shadow:0 1px 4px rgba(0,0,0,.06);min-width:0;flex-wrap:wrap;}
@@ -176,9 +176,9 @@ h1{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;lett
 .stat.active-filter.fr{border-color:var(--red);background:rgba(239,68,68,0.08);color:var(--red);}
 .stat.active-filter.fb{border-color:#3b82f6;background:rgba(59,130,246,0.08);color:#1d4ed8;}
 .stat.active-filter.fo{border-color:#f97316;background:rgba(249,115,22,0.08);color:#c2410c;}
-.stat.active-filter.fg2{border-color:#991b1b;background:rgba(153,27,27,0.08);color:#7f1d1d;}
 .stat-todos{font-size:12px;letter-spacing:1px;}
 .stat-todos.active-filter-todos{border-color:#2563eb;background:rgba(37,99,235,0.10);color:#2563eb;}
+#stat-novedades.active-filter-novedades{border-color:#7c3aed;background:rgba(124,58,237,0.10);color:#7c3aed;}
 .sd{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
 .sd.g{background:var(--green);box-shadow:0 0 6px rgba(34,197,94,0.7);}
 .sd.y{background:var(--yellow);box-shadow:0 0 6px rgba(234,179,8,0.7);}
@@ -1040,11 +1040,8 @@ body { overflow-x: hidden; max-width: 100vw; }
 <style>
 /* ── Header principal — igual a Control de Asistencia ── */
 #main-header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 100;
+  position: relative;
+  z-index: 10;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1085,10 +1082,11 @@ body { overflow-x: hidden; max-width: 100vw; }
 
 <div class="stats" id="stats-bar" style="display:none;">
     <div class="stat stat-todos active-filter-todos" id="stat-todos" onclick="toggleFilter('todos')"><span>Todos</span></div>
+    <div class="stat" id="stat-novedades" onclick="toggleFilter('novedades')" style="cursor:pointer;display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;border:1.5px solid transparent;font-size:12px;font-weight:700;color:#64748b;transition:all .2s;">⚡ Novedades</div>
     <div class="stat fg" id="stat-green"  onclick="toggleFilter('green')"><div class="sd g"></div><span id="cnt-g">0</span>&nbsp;Operativos</div>
     <div class="stat fy" id="stat-yellow" onclick="toggleFilter('yellow')"><div class="sd y"></div><span id="cnt-y">0</span>&nbsp;Atendiendo</div>
     <div class="stat fr" id="stat-red"    onclick="toggleFilter('red')"><div class="sd r"></div><span id="cnt-r">0</span>&nbsp;Alerta</div>
-    <div class="stat fg2" id="stat-garnet" onclick="toggleFilter('garnet')"><div class="sd" style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:#991b1b;box-shadow:0 0 6px rgba(153,27,27,0.7);"></div><span id="cnt-garnet">0</span>&nbsp;Alistamiento</div>
+    <div class="stat" id="stat-garnet" onclick="toggleFilter('garnet')" style="cursor:pointer;display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;border:1.5px solid transparent;font-size:12px;font-weight:700;color:#64748b;transition:all .2s;"><div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:#991b1b;box-shadow:0 0 6px rgba(153,27,27,0.7);"></div><span id="cnt-garnet">0</span>&nbsp;Alistamiento</div>
     <div class="stat fb" id="stat-blue"   onclick="toggleFilter('blue')"><div class="sd" style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:#3b82f6;box-shadow:0 0 6px rgba(59,130,246,0.7);"></div><span id="cnt-b">0</span>&nbsp;En Cambio</div>
     <div class="stat fo" id="stat-orange" onclick="toggleFilter('orange')"><div class="sd" style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:#f97316;box-shadow:0 0 6px rgba(249,115,22,0.7);"></div><span id="cnt-o">0</span>&nbsp;Espera CI</div>
   <div id="eye-wrap">
@@ -2060,7 +2058,6 @@ window.addEventListener('DOMContentLoaded', async ()=>{
   // ── Detectar retorno desde páginas externas ────────────────────
   const _urlParams = new URLSearchParams(location.search);
   const _volver = _urlParams.get('volver');
-  const _ir     = _urlParams.get('ir');
   if(_volver === 'produccion'){
     // Limpiar parámetro de la URL sin recargar
     history.replaceState({}, '', '/');
@@ -2069,31 +2066,6 @@ window.addEventListener('DOMContentLoaded', async ()=>{
       setTimeout(()=>{
         document.getElementById('area-screen').classList.remove('hidden');
         mostrarSubMenuProduccion();
-      }, 300);
-    }
-  }
-  if(_ir){
-    history.replaceState({}, '', '/');
-    if(currentUser){
-      setTimeout(()=>{
-        if(_ir === 'tablero'){
-          document.getElementById('area-screen').classList.add('hidden');
-          entrarTablero();
-        } else if(_ir === 'mecanicos'){
-          document.getElementById('area-screen').classList.add('hidden');
-          entrarTablero(true);
-        } else if(_ir === 'modulos'){
-          document.getElementById('area-screen').classList.add('hidden');
-          abrirModtable();
-        } else if(_ir === 'historico'){
-          document.getElementById('area-screen').classList.add('hidden');
-          entrarTablero();
-          setTimeout(()=>abrirHistorico(), 200);
-        } else if(_ir === 'dashboard'){
-          document.getElementById('area-screen').classList.add('hidden');
-          entrarTablero();
-          setTimeout(()=>{ abrirHistorico(); setTimeout(()=>abrirDashboard(), 300); }, 200);
-        }
       }, 300);
     }
   }
@@ -2721,9 +2693,8 @@ function ocultarTodo(){
   currentView=null;
 }
 // ── Entrar al tablero general (activa modo blanco en header) ─────────
-function entrarTablero(forzarMec){
-  const esMec = forzarMec || currentUser==='Mecanicos' || currentUser==='Televisor';
-  const nombre = esMec ? 'Tablero Mecanicos' : 'Tablero General';
+function entrarTablero(){
+  const nombre = (currentUser==='Mecanicos'||currentUser==='Televisor') ? 'Tablero Mecanicos' : 'Tablero General';
   const h1 = document.getElementById('main-header-title');
   if(h1){
     const partes = nombre.split(' ');
@@ -2737,7 +2708,11 @@ function entrarTablero(forzarMec){
   // ── Ocultar "Espera CI" en Tablero Mecánicos ──
   const estatOrange = document.getElementById('stat-orange');
   if(estatOrange){
-    estatOrange.style.display = esMec ? 'none' : '';
+    if(currentUser==='Mecanicos'||currentUser==='Televisor'){
+      estatOrange.style.display = 'none';
+    } else {
+      estatOrange.style.display = '';
+    }
   }
   
   // Limpiar filtros al entrar — evita tablero vacío
@@ -3128,14 +3103,20 @@ function commitChange(id,s,mecanico,limite){
   }
 }
 
-// ── Filtro por estado (Todos / Operativo / Atendiendo…) ──────────────
+// ── Filtro por estado (Todos / Novedades / Operativo / Atendiendo…) ──────────────
 function toggleFilter(color){
-  const todosEl=document.getElementById('stat-todos');
+  const todosEl     = document.getElementById('stat-todos');
+  const novedadesEl = document.getElementById('stat-novedades');
   if(color==='todos'){
     activeFilters.clear();
+    window._filtroNovedades = false;
+  } else if(color==='novedades'){
+    // Toggle novedades
+    window._filtroNovedades = !window._filtroNovedades;
+    activeFilters.clear();
   } else {
+    window._filtroNovedades = false;
     // Exclusivo: un solo filtro activo a la vez.
-    // Si toco el mismo que ya está activo, lo apago (vuelve a Todos).
     if(activeFilters.has(color) && activeFilters.size===1){
       activeFilters.clear();
     } else {
@@ -3149,8 +3130,13 @@ function toggleFilter(color){
     if(!el)return;
     el.classList.toggle('active-filter',activeFilters.has(c));
   });
-  // Botón Todos: activo cuando no hay filtro
-  if(todosEl) todosEl.classList.toggle('active-filter-todos', activeFilters.size===0);
+  // Botón Todos: activo cuando no hay filtro y no hay novedades
+  if(todosEl) todosEl.classList.toggle('active-filter-todos', activeFilters.size===0 && !window._filtroNovedades);
+  // Botón Novedades
+  if(novedadesEl) novedadesEl.classList.toggle('active-filter-novedades', !!window._filtroNovedades);
+  // Actualizar garnet
+  const garnetEl = document.getElementById('stat-garnet');
+  if(garnetEl) garnetEl.classList.toggle('active-filter', activeFilters.has('garnet'));
   const hint=document.getElementById('filter-hint');
   if(hint) hint.textContent='';
   applyGridFilter();
@@ -3168,7 +3154,13 @@ function applyGridFilter(){
     if(!div) return;
     const s=states[id]||'green';
     const sVis=(esPlanta&&(s==='orange'||s==='purple'))?'green':s;
-    const filtrado=activeFilters.size>0&&!activeFilters.has(sVis);
+    let filtrado=false;
+    if(window._filtroNovedades){
+      // Novedades: ocultar solo los operativos (verde)
+      filtrado = (sVis==='green');
+    } else {
+      filtrado=activeFilters.size>0&&!activeFilters.has(sVis);
+    }
     div.classList.toggle('hidden-filter', filtrado);
     if(!filtrado) anyVisible=true;
   });
@@ -3176,7 +3168,7 @@ function applyGridFilter(){
   if(!grid) return;
   let emptyMsg=grid.querySelector('.empty-msg');
   if(!anyVisible){
-    if(!emptyMsg){emptyMsg=document.createElement('div');emptyMsg.className='empty-msg';emptyMsg.textContent='✅ No hay módulos en este estado';grid.appendChild(emptyMsg);}
+    if(!emptyMsg){emptyMsg=document.createElement('div');emptyMsg.className='empty-msg';emptyMsg.textContent='✅ No hay novedades activas';grid.appendChild(emptyMsg);}
   } else { if(emptyMsg) emptyMsg.remove(); }
 }
 // ── Renderizar / actualizar el grid de módulos ────────────────────────
@@ -8212,7 +8204,7 @@ function siEnviar(){
 
   <!-- Topbar -->
   <div class="hst-topbar">
-    <div class="hst-title">📊 INFORME <span>GENERAL</span></div>
+    <div class="hst-title">📊 HISTÓ<span>RICO</span></div>
     <div style="display:flex;align-items:center;gap:8px;">
       <div style="display:flex;align-items:center;gap:6px;padding:7px 14px;height:36px;box-sizing:border-box;border-radius:8px;border:1.5px solid #0f172a;background:#f1f5f9;cursor:default;">
         <span style="font-size:13px;">⏱</span>
@@ -8333,7 +8325,7 @@ function siEnviar(){
 <!-- Panel Dashboard -->
 <div id="hst-dashboard-panel">
   <div class="dash-topbar">
-    <div class="dash-title">📈 DASHBOARD <span style="color:#7c3aed;">PLANTA</span></div>
+    <div class="dash-title">📈 DASH<span style="color:#7c3aed;">BOARD</span></div>
     <button class="hst-btn" style="border-color:#7c3aed;color:#7c3aed;" onclick="cerrarDashboard()">← Volver</button>
   </div>
   <div class="dash-body">
@@ -8861,19 +8853,17 @@ function confirmarFalloMec(){
     ordenes:        '/ordenes',
     asistencia:     '/ingresos',
     recogedores:    '/recogedores',
-    tableroGeneral: '/?ir=tablero',
-    tableroMec:     '/?ir=mecanicos',
-    tableroCI:      '/ci',
+    tableroGeneral: '/',
+    tableroMec:     '/?tablero=mecanicos',
+    tableroCI:      '/tablero-ci',
     insumos:        '/solicitar-insumos',
     alistamiento:   '/alistamiento?seccion=alistamiento',
     mantenimiento:  '/alistamiento?seccion=mantenimiento',
-    contador:       '/?ir=modulos',
-    informeCI:              '/ci?seccion=informe',
-    informeCIDetallado:     '/ci?seccion=informe-detallado',
-    informeCIResumido:      '/ci?seccion=informe-resumido',
-    informeGeneral: '/?ir=historico',
-    dashCI:         '/ci?seccion=dashboard',
-    dashPlanta:     '/?ir=dashboard',
+    contador:       '/contador-modulos',
+    informeCI:      '/tablero-ci?seccion=informe',
+    informeGeneral: '/?seccion=historico',
+    dashCI:         '/tablero-ci?seccion=dashboard',
+    dashPlanta:     '/dashboard-planta',
   };
 
   function ir(ruta){
@@ -8983,13 +8973,7 @@ function confirmarFalloMec(){
         `<div class="millar-dd-sep"></div>
          <div style="padding:4px 12px;font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#94a3b8;">Informes</div>`,
         `<a class="millar-dd-item" href="${href(RUTAS.informeGeneral)}">📊 Informe General</a>`,
-        `<div class="millar-dd-item has-sub">
-          📋 Informe CI ${FLECHA}
-          <div class="millar-sub">
-            <a class="millar-sub-item" href="${href(RUTAS.informeCIDetallado)}">📋 Informe Detallado</a>
-            <a class="millar-sub-item" href="${href(RUTAS.informeCIResumido)}">📊 Informe Resumido</a>
-          </div>
-        </div>`,
+        `<a class="millar-dd-item" href="${href(RUTAS.informeCI)}">📋 Informe CI</a>`,
         `<div class="millar-dd-sep"></div>
          <div style="padding:4px 12px;font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#94a3b8;">Dashboard</div>`,
         `<a class="millar-dd-item" href="${href(RUTAS.dashCI)}">📈 Dashboard CI</a>`,
