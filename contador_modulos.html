@@ -697,6 +697,12 @@ function renderBig(){
     const {lb, mh, eh} = buildBadges(s, empNombre, mecNombre);
     const timerInicio = s !== 'green' ? (timers[selectedMod] || Date.now()) : 0;
     html = buildImpCard('principal', s, LABELS[s]||s, timerInicio, lb, eh, mh, tapHintFor(s), false);
+  } else if (imps.length === 1) {
+    // Un solo multi: mostrar como tarjeta principal usando el inicio real del imp
+    const imp = imps[0];
+    const c = imp.tipoActual || imp.tipo;
+    const {lb, mh, eh} = buildBadges(c, imp.empleada||'', imp.mecanico||'');
+    html = buildImpCard(imp.id, c, LABELS[c]||c, imp.inicio, lb, eh, mh, tapHintFor(c), true);
   } else {
     // Con multis: una tarjeta por improductivo
     imps.forEach(imp => {
@@ -891,9 +897,18 @@ function closeMultiImp(impId){
   const idx   = imps.findIndex(i => i.id === impId);
   if (idx === -1) return;
   imps.splice(idx, 1);
+  _multiImp[modId] = imps;
   states[modId] = calcColorLocal(modId);
-  timers[modId] = Date.now();
-  if (states[modId] === 'green') { lastMec[modId] = ''; window._lastEmpleada[modId] = ''; }
+  // Restaurar el timer al inicio del improductivo que queda activo
+  // para que el cronómetro no se reinicie a 0
+  if (imps.length > 0) {
+    // Usar el inicio del último improductivo del array (el que queda visible)
+    timers[modId] = imps[imps.length - 1].inicio || Date.now();
+  } else {
+    timers[modId] = Date.now();
+    lastMec[modId] = '';
+    window._lastEmpleada[modId] = '';
+  }
   renderBig();
   wsSend({ type:'multi_imp_change', action:'close', modId, imp:{ id:impId } });
 }
