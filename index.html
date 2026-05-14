@@ -3215,14 +3215,17 @@ function renderGrid(){
     const pinkMecHtml=(sVis==='pink')&&(lastMec[id]||lastMec2[id])?`<span class="mod-mec" style="font-size:10px;color:#9d174d;">🔧 ${lastMec[id]||lastMec2[id]}</span>`:``;
     div.className=`module ${canClick?'clickable':'readonly'} ${sVis}`;
     div.innerHTML=`<span class="mod-id">${id}</span><div class="light"></div><span class="mod-label">${LABELS[sVis]||sVis}</span><span class="mod-timer" id="timer-${id}"></span>${mecHtml}${empHtml}${pinkMecHtml}`;
-    const filtrado=activeFilters.size>0&&!activeFilters.has(sVis);
+    const filtrado = window._filtroNovedades
+      ? (sVis === 'green')
+      : (activeFilters.size > 0 && !activeFilters.has(sVis));
     div.classList.toggle('hidden-filter', filtrado);
     if(!filtrado) anyVisible=true;
   });
-  // Mensaje vacío
   let emptyMsg=grid.querySelector('.empty-msg');
   if(!anyVisible){
-    if(!emptyMsg){emptyMsg=document.createElement('div');emptyMsg.className='empty-msg';emptyMsg.textContent='✅ No hay módulos en este estado';grid.appendChild(emptyMsg);}
+    const msgTxt = window._filtroNovedades ? '✅ No hay novedades activas' : '✅ No hay módulos en este estado';
+    if(!emptyMsg){emptyMsg=document.createElement('div');emptyMsg.className='empty-msg';grid.appendChild(emptyMsg);}
+    emptyMsg.textContent = msgTxt;
   } else {
     if(emptyMsg) emptyMsg.remove();
   }
@@ -3308,7 +3311,7 @@ function updateStats(){
     else if(s==='yellow')y++;
     else if(s==='red')r++;
     else if(s==='blue')b++;
-    else if(s==='garnet')gn++;
+    else if(s==='garnet'||s==='pink')gn++;
     else if(s==='orange'){ if(!(esPlanta)) o++; }
     else if(s==='purple'){ if(!(esPlanta)) o++; } // purple también es Espera CI
     if(s!=='green') nov++;
@@ -8340,8 +8343,18 @@ function siEnviar(){
 <!-- Panel Dashboard -->
 <div id="hst-dashboard-panel">
   <div class="dash-topbar">
-    <div class="dash-title">📈 DASH<span style="color:#7c3aed;">BOARD</span></div>
-    <button class="hst-btn" style="border-color:#7c3aed;color:#7c3aed;" onclick="cerrarDashboard()">← Volver</button>
+    <div class="dash-title">📈 DASHBOARD <span style="color:#7c3aed;">PLANTA</span></div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <button onclick="dashFiltro('hoy')" id="dash-btn-hoy" style="padding:6px 12px;border-radius:8px;border:1.5px solid #7c3aed;background:#f5f3ff;color:#7c3aed;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Hoy</button>
+      <button onclick="dashFiltro('semana')" id="dash-btn-semana" style="padding:6px 12px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#334155;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Esta semana</button>
+      <button onclick="dashFiltro('mes')" id="dash-btn-mes" style="padding:6px 12px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#334155;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Este mes</button>
+      <div style="display:flex;align-items:center;gap:4px;">
+        <input type="date" id="dash-desde" onchange="dashFiltro('custom')" style="padding:5px 8px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:'Nunito',sans-serif;font-size:12px;outline:none;">
+        <span style="font-size:12px;color:#64748b;">→</span>
+        <input type="date" id="dash-hasta" onchange="dashFiltro('custom')" style="padding:5px 8px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:'Nunito',sans-serif;font-size:12px;outline:none;">
+      </div>
+      <button class="hst-btn" style="border-color:#7c3aed;color:#7c3aed;" onclick="cerrarDashboard()">← Volver</button>
+    </div>
   </div>
   <div class="dash-body">
     <!-- KPIs -->
@@ -8718,16 +8731,54 @@ function abrirDashboard(){
   const panel = document.getElementById('hst-dashboard-panel');
   if(!panel) return;
   panel.classList.add('open');
-  renderDashboard();
+  // Inicializar filtro en "Hoy" si no tiene valor
+  const desdeEl = document.getElementById('dash-desde');
+  const hastaEl = document.getElementById('dash-hasta');
+  const hoy = new Date().toISOString().split('T')[0];
+  if(desdeEl && !desdeEl.value) desdeEl.value = hoy;
+  if(hastaEl && !hastaEl.value) hastaEl.value = hoy;
+  // Marcar botón Hoy como activo
+  dashFiltro('hoy');
 }
 
 function cerrarDashboard(){
   document.getElementById('hst-dashboard-panel').classList.remove('open');
 }
 
+function dashFiltro(tipo){
+  const hoy = new Date().toISOString().split('T')[0];
+  const desdeEl = document.getElementById('dash-desde');
+  const hastaEl = document.getElementById('dash-hasta');
+  if(tipo==='hoy'){
+    desdeEl.value = hoy; hastaEl.value = hoy;
+  } else if(tipo==='semana'){
+    const d = new Date(); d.setDate(d.getDate() - d.getDay() + 1);
+    desdeEl.value = d.toISOString().split('T')[0]; hastaEl.value = hoy;
+  } else if(tipo==='mes'){
+    desdeEl.value = hoy.slice(0,8)+'01'; hastaEl.value = hoy;
+  }
+  // Actualizar botones activos
+  ['hoy','semana','mes'].forEach(t=>{
+    const btn = document.getElementById('dash-btn-'+t);
+    if(!btn) return;
+    const activo = t===tipo;
+    btn.style.background  = activo ? '#f5f3ff' : '#fff';
+    btn.style.borderColor = activo ? '#7c3aed' : '#e2e8f0';
+    btn.style.color       = activo ? '#7c3aed' : '#334155';
+  });
+  renderDashboard();
+}
+
 function renderDashboard(){
   const hist = loadHistory();
-  const rows = hist.filter(r=>r.tipo && r.tipo!=='green');
+  // Filtrar por fecha si hay selectores
+  const desdeEl = document.getElementById('dash-desde');
+  const hastaEl = document.getElementById('dash-hasta');
+  const desde = desdeEl ? desdeEl.value : '';
+  const hasta  = hastaEl ? hastaEl.value : '';
+  let rows = hist.filter(r=>r.tipo && r.tipo!=='green');
+  if(desde) rows = rows.filter(r=> (r.fechaISO||'') >= desde);
+  if(hasta)  rows = rows.filter(r=> (r.fechaISO||'') <= hasta);
 
   // ── KPIs
   const totalMin = rows.reduce((s,r)=>s+(r.durMinutos||0),0);
