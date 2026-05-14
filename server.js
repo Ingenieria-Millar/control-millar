@@ -1087,14 +1087,19 @@ wss.on('connection', (ws, req) => {
         }
 
         // Guardar en historial ANTES de actualizar el estado
+        // SOLO si NO viene de multi-improductivo — el multi tiene su propio registro en close
         const prevState = states[msg.id];
 
         // Actualizar empleada y mecánico en memoria ANTES de logHistorial
         if (msg.empleada) lastEmpleada[msg.id] = msg.empleada;
         if (msg.mecanico) lastMec[msg.id] = msg.mecanico;
 
-        console.log(`[HISTORIAL] ${msg.id}: ${prevState} → ${msg.state} | mec="${msg.mecanico||''}" emp="${msg.empleada||''}"`);
-        logHistorial(msg.id, prevState, msg.state || 'green', msg.mecanico || lastMec[msg.id] || '', msg.empleada || lastEmpleada[msg.id] || '');
+        // Solo registrar si es un cambio de estado simple (no multi)
+        // msg.fromMulti=true significa que viene del sistema de multi-improductivos
+        if (!msg.fromMulti) {
+          console.log(`[HISTORIAL] ${msg.id}: ${prevState} → ${msg.state} | mec="${msg.mecanico||''}" emp="${msg.empleada||''}"`);
+          logHistorial(msg.id, prevState, msg.state || 'green', msg.mecanico || lastMec[msg.id] || '', msg.empleada || lastEmpleada[msg.id] || '');
+        }
 
         states[msg.id]     = msg.state || 'green';
         stateTimes[msg.id] = Date.now();
@@ -1368,34 +1373,37 @@ wss.on('connection', (ws, req) => {
           if (idx === -1) return;
           const imp = multiImps[modId][idx];
 
-          // Guardar en historial
-          const ahora  = Date.now();
-          const durMs  = ahora - (imp.inicio || ahora);
-          if (durMs > 0) {
-            const now      = new Date();
-            const opts     = { timeZone:'America/Bogota', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true };
-            const bogota   = new Date(now.toLocaleString('en-US', { timeZone:'America/Bogota' }));
-            const fechaISO = bogota.getFullYear()+'-'+String(bogota.getMonth()+1).padStart(2,'0')+'-'+String(bogota.getDate()).padStart(2,'0');
-            let historial  = readJSON(FILES.historial, []);
-            const regHoy   = historial.filter(r => r.fechaISO === fechaISO);
-            const tipoReal = imp.tipoActual || imp.tipo;
-            historial.push({
-              num:            regHoy.length + 1,
-              fecha:          now.toLocaleDateString('es-CO', { timeZone:'America/Bogota' }),
-              fechaISO,
-              horaInicio:     new Date(imp.inicio || ahora).toLocaleTimeString('es-CO', opts),
-              hora:           now.toLocaleTimeString('es-CO', opts),
-              modulo:         modId,
-              tipo:           tipoReal,
-              estadoAnterior: tipoReal,
-              estadoNuevo:    'green',
-              durMinutos:     parseFloat((durMs / 60000).toFixed(2)),
-              mecanico:       imp.mecanico || '',
-              empleada:       imp.empleada || '',
-              ciRequestId:    imp.ciRequestId || undefined
-            });
-            if (historial.length > 10000) historial = historial.slice(-10000);
-            writeJSON(FILES.historial, historial);
+          // Solo registrar en historial si NO es el imp principal
+          // El imp principal ya fue registrado por el bloque 'change' cuando se creó
+          if (!imp.esPrincipal) {
+            const ahora  = Date.now();
+            const durMs  = ahora - (imp.inicio || ahora);
+            if (durMs > 0) {
+              const now      = new Date();
+              const opts     = { timeZone:'America/Bogota', hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true };
+              const bogota   = new Date(now.toLocaleString('en-US', { timeZone:'America/Bogota' }));
+              const fechaISO = bogota.getFullYear()+'-'+String(bogota.getMonth()+1).padStart(2,'0')+'-'+String(bogota.getDate()).padStart(2,'0');
+              let historial  = readJSON(FILES.historial, []);
+              const regHoy   = historial.filter(r => r.fechaISO === fechaISO);
+              const tipoReal = imp.tipoActual || imp.tipo;
+              historial.push({
+                num:            regHoy.length + 1,
+                fecha:          now.toLocaleDateString('es-CO', { timeZone:'America/Bogota' }),
+                fechaISO,
+                horaInicio:     new Date(imp.inicio || ahora).toLocaleTimeString('es-CO', opts),
+                hora:           now.toLocaleTimeString('es-CO', opts),
+                modulo:         modId,
+                tipo:           tipoReal,
+                estadoAnterior: tipoReal,
+                estadoNuevo:    'green',
+                durMinutos:     parseFloat((durMs / 60000).toFixed(2)),
+                mecanico:       imp.mecanico || '',
+                empleada:       imp.empleada || '',
+                ciRequestId:    imp.ciRequestId || undefined
+              });
+              if (historial.length > 10000) historial = historial.slice(-10000);
+              writeJSON(FILES.historial, historial);
+            }
           }
 
           // Quitar del array
