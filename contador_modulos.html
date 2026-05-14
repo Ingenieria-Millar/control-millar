@@ -1097,21 +1097,32 @@ function ciConfirmarRecepcion(reqId, accepted){
       waitTime:   existing && existing.alertStart ? (Date.now() - existing.alertStart) : 0
     });
     wsSend({ type:'ci_update_request', request:req });
-    // Cerrar improductivo localmente también
+    // Cerrar improductivo localmente
     const modId = req.module || selectedMod;
     if (modId) {
       const imps = _multiImp[modId] || [];
-      const mIdx = imps.findIndex(i => i.ciRequestId === req._id);
+      // Buscar por ciRequestId exacto primero
+      let mIdx = imps.findIndex(i => i.ciRequestId === req._id);
+      // Si no encontró, buscar por tipo
+      if (mIdx === -1) {
+        const esProd = req.categoria === 'Solicitud de Producción' || req.tipo === 'Solicitud de Producción';
+        mIdx = imps.findIndex(i => {
+          const c = i.tipoActual || i.tipo;
+          return esProd ? c === 'purple' : c === 'orange';
+        });
+      }
       if (mIdx > -1) {
         imps.splice(mIdx, 1);
         _multiImp[modId] = imps;
       } else if (states[modId] === 'orange' || states[modId] === 'purple') {
-        if (imps.length === 0) { states[modId] = 'green'; timers[modId] = Date.now(); }
+        states[modId] = 'green';
+        timers[modId] = Date.now();
       }
       states[modId] = calcColorLocal(modId);
+      if (states[modId] === 'green') { lastMec[modId] = ''; window._lastEmpleada[modId] = ''; }
       renderBig();
     }
-    showToast('✅ Insumo confirmado como recibido');
+    showToast('✅ Confirmado como recibido');
   } else {
     const existing = (window._ciRequests || []).find(r => r._id === reqId);
     const req = Object.assign({}, existing || { _id:reqId }, { status:'alert', waitTime:null });
