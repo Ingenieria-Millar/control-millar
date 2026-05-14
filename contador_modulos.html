@@ -422,6 +422,9 @@ let states = {}, timers = {};
 let lastMec = {};
 window._lastEmpleada = {};
 
+// _ciRequestByMod: { [modId]: ciRequestId } — ciRequestId del improductivo simple activo
+window._ciRequestByMod = {};
+
 // _ciPendingConfirm: { [ciRequestId]: requestObject } — tarjetas con confirmación pendiente
 window._ciPendingConfirm = {};
 
@@ -827,7 +830,7 @@ function commitMultiImp(tipo, empleada, ciRequestId){
         inicio:      timers[modId] || Date.now(),
         empleada:    (window._lastEmpleada && window._lastEmpleada[modId]) || '',
         mecanico:    lastMec[modId] || '',
-        ciRequestId: null,
+        ciRequestId: window._ciRequestByMod[modId] || null,
         esPrincipal: true
       };
       imps.push(impPrincipal);
@@ -953,6 +956,7 @@ function onImpProd(){
   if (esMulti) {
     commitMultiImp('purple', '', newReq._id);
   } else {
+    window._ciRequestByMod[selectedMod] = newReq._id;
     commitChange(selectedMod, 'purple', null);
     showToast('🟣 Solicitud de producción enviada al CI');
   }
@@ -1085,27 +1089,36 @@ function showCiCumplidoModal(req){
 }
 
 function ciConfirmarRecepcion(reqId, accepted){
-  // Limpiar pending y overlay si existe
+  // Recuperar el request del pending ANTES de borrarlo
+  const pendingReq = window._ciPendingConfirm[reqId] || null;
   delete window._ciPendingConfirm[reqId];
+  // Limpiar _ciRequestByMod si corresponde
+  Object.keys(window._ciRequestByMod).forEach(mod => {
+    if (window._ciRequestByMod[mod] === reqId) delete window._ciRequestByMod[mod];
+  });
   const ov = document.getElementById('ci-confirm-overlay');
   if (ov) ov.style.display = 'none';
+
   if (accepted) {
     const existing = (window._ciRequests || []).find(r => r._id === reqId);
-    const req = Object.assign({}, existing || { _id:reqId }, {
-      status:'done',
+    const source   = existing || pendingReq || { _id:reqId };
+    const req = Object.assign({}, source, {
+      status:     'done',
       resolvedAt: new Date().toLocaleTimeString('es-CO'),
-      waitTime:   existing && existing.alertStart ? (Date.now() - existing.alertStart) : 0
+      waitTime:   source.alertStart ? (Date.now() - source.alertStart) : 0
     });
     wsSend({ type:'ci_update_request', request:req });
+
     // Cerrar improductivo localmente
     const modId = req.module || selectedMod;
     if (modId) {
       const imps = _multiImp[modId] || [];
-      // Buscar por ciRequestId exacto primero
-      let mIdx = imps.findIndex(i => i.ciRequestId === req._id);
-      // Si no encontró, buscar por tipo
+      // 1. Buscar por ciRequestId exacto
+      let mIdx = imps.findIndex(i => i.ciRequestId === reqId);
+      // 2. Si no, buscar por tipo usando source (que tiene categoria/tipo correctos)
       if (mIdx === -1) {
-        const esProd = req.categoria === 'Solicitud de Producción' || req.tipo === 'Solicitud de Producción';
+        const esProd = (source.categoria||'') === 'Solicitud de Producción' ||
+                       (source.tipo||'') === 'Solicitud de Producción';
         mIdx = imps.findIndex(i => {
           const c = i.tipoActual || i.tipo;
           return esProd ? c === 'purple' : c === 'orange';
@@ -1125,7 +1138,8 @@ function ciConfirmarRecepcion(reqId, accepted){
     showToast('✅ Confirmado como recibido');
   } else {
     const existing = (window._ciRequests || []).find(r => r._id === reqId);
-    const req = Object.assign({}, existing || { _id:reqId }, { status:'alert', waitTime:null });
+    const source   = existing || pendingReq || { _id:reqId };
+    const req = Object.assign({}, source, { status:'alert', waitTime:null });
     wsSend({ type:'ci_update_request', request:req });
     wsSend({ type:'ci_reactivar_alerta', reqId });
     showToast('⚠ No recibido — solicitud reactivada en el CI');
@@ -1305,6 +1319,7 @@ function siEnviar(){
     commitMultiImp('orange', '', newReq._id);
     siClose();
   } else {
+    window._ciRequestByMod[selectedMod] = newReq._id;
     commitChange(selectedMod, 'orange', null);
     siClose();
     showToast(`✅ Solicitud enviada (${newReq.insumos.length} insumo${newReq.insumos.length > 1 ? 's' : ''})`);
