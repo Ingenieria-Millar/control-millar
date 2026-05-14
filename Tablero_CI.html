@@ -1200,10 +1200,55 @@ function arrancar(){
   renderCards();
   startTimers();
   setTimeout(actualizarMinutosCI, 500);
-  // Abrir dashboard automáticamente si viene ?seccion=dashboard
-  if(_params.get('seccion') === 'dashboard'){
+  // Acciones automáticas según parámetro ?seccion=
+  const seccion = _params.get('seccion');
+  if(seccion === 'dashboard'){
     setTimeout(()=>abrirDashboard(), 400);
+  } else if(seccion === 'informe-detallado'){
+    setTimeout(()=>exportarExcel(), 400);
+  } else if(seccion === 'informe-resumido'){
+    setTimeout(()=>exportarExcelResumido(), 400);
   }
+}
+
+// ── Informe Resumido CI: Módulo · Tipo · T. Espera acumulado ──────
+function exportarExcelResumido(){
+  if(typeof XLSX === 'undefined'){ showToast('⚠ Librería Excel no disponible'); return; }
+  const desde = document.getElementById('ci-fecha-desde').value;
+  const hasta  = document.getElementById('ci-fecha-hasta').value;
+  let data = ciRequests.slice();
+  data = filtrarPorFecha(data);
+
+  // Agrupar por Módulo + Tipo y sumar T. Espera
+  const mapa = {};
+  data.forEach(r => {
+    const modulo = r.module || '—';
+    const tipo   = r.esMecanico ? 'Alistamiento' : (r.categoria || 'Falta de Insumos');
+    const key    = modulo + '||' + tipo;
+    if(!mapa[key]) mapa[key] = { Módulo:modulo, Tipo:tipo, 'Solicitudes':0, 'T. Espera Acum. (min)':0 };
+    mapa[key]['Solicitudes']++;
+    if(r.waitTime != null){
+      const min = r.waitTime < 3600 && r.waitTime > 0 ? r.waitTime/60 : r.waitTime/60000;
+      mapa[key]['T. Espera Acum. (min)'] += min;
+    }
+  });
+
+  const rows = Object.values(mapa).map(r => ({
+    ...r,
+    'T. Espera Acum. (min)': parseFloat(r['T. Espera Acum. (min)'].toFixed(2))
+  }));
+
+  // Ordenar por módulo
+  rows.sort((a,b) => a['Módulo'].localeCompare(b['Módulo']));
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [{wch:12},{wch:22},{wch:14},{wch:22}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Resumen CI');
+  const label = desde===hasta ? (desde||fechaLocal()) : (desde||'')+'_'+(hasta||'');
+  const fname = 'CI_Resumido_'+label.replace(/\//g,'-')+'.xlsx';
+  XLSX.writeFile(wb, fname);
+  showToast('📥 Descargado: '+fname);
 }
 
 
