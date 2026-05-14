@@ -159,7 +159,36 @@ header::after{
 }
 #cm-toast.show{ opacity:1; }
 
-/* ── RIPPLE ── */
+/* ── CI CONFIRM BANNER — dentro de la tarjeta ── */
+.ci-confirm-banner{
+  position:absolute;bottom:0;left:0;right:0;
+  background:#fff;border-top:2px solid #e2e8f0;
+  border-radius:0 0 18px 18px;
+  padding:10px 12px;display:flex;flex-direction:column;
+  gap:6px;animation:slup .2s ease;z-index:10;
+}
+.ci-confirm-banner .ci-cb-title{
+  font-family:'Barlow Condensed',sans-serif;font-size:14px;
+  font-weight:800;letter-spacing:1px;color:#1e3a8a;text-align:center;
+}
+.ci-confirm-banner .ci-cb-sub{
+  font-size:11px;color:#64748b;text-align:center;line-height:1.4;
+}
+.ci-confirm-banner .ci-cb-btns{
+  display:flex;gap:8px;margin-top:2px;
+}
+.ci-confirm-banner .ci-cb-ok{
+  flex:1;padding:9px;border-radius:8px;border:none;
+  background:linear-gradient(135deg,#15803d,#22c55e);
+  color:#fff;font-family:'Barlow Condensed',sans-serif;
+  font-size:13px;font-weight:700;cursor:pointer;
+}
+.ci-confirm-banner .ci-cb-no{
+  flex:1;padding:9px;border-radius:8px;border:none;
+  background:linear-gradient(135deg,#991b1b,#ef4444);
+  color:#fff;font-family:'Barlow Condensed',sans-serif;
+  font-size:13px;font-weight:700;cursor:pointer;
+}
 .ripple{position:absolute;border-radius:50%;background:rgba(255,255,255,0.12);transform:scale(0);animation:rip 0.55s linear;pointer-events:none;}
 @keyframes rip{to{transform:scale(5);opacity:0;}}
 
@@ -393,6 +422,9 @@ let states = {}, timers = {};
 let lastMec = {};
 window._lastEmpleada = {};
 
+// _ciPendingConfirm: { [ciRequestId]: requestObject } — tarjetas con confirmación pendiente
+window._ciPendingConfirm = {};
+
 // _multiImp: array de improductivos activos por módulo
 // [{ id, tipo, tipoActual, inicio, empleada, mecanico, ciRequestId, esPrincipal }]
 let _multiImp = {};
@@ -579,7 +611,34 @@ setInterval(() => {
 // ── buildImpCard — genera HTML de una tarjeta con diseño original ──
 function buildImpCard(impId, color, label, inicio, lockBadge, empHtml, mecHtml, tapHint, isMulti){
   const onclickAttr = isMulti ? `onclick="applyChangeMulti('${impId}')"` : '';
-  return `<div class="big-wrap ${color}" id="imp-card-${impId}" style="min-width:220px;max-width:300px;flex:1;position:relative;" ${onclickAttr}>
+
+  // Buscar si hay confirmación pendiente para este improductivo
+  const imps = _multiImp[selectedMod] || [];
+  const imp  = impId === 'principal' ? null : imps.find(i => i.id === impId);
+  const ciReqId = imp ? imp.ciRequestId : null;
+  const pendingReq = ciReqId ? window._ciPendingConfirm[ciReqId] : null;
+
+  // Si no hay multi, buscar en el estado principal
+  let principalPending = null;
+  if (impId === 'principal' && (color === 'orange' || color === 'purple')) {
+    // Buscar si hay algún pending para este módulo sin imp asignado
+    Object.values(window._ciPendingConfirm).forEach(r => {
+      if (r.module === selectedMod || (!r.module && !principalPending)) principalPending = r;
+    });
+  }
+  const req = pendingReq || principalPending;
+
+  const bannerHtml = req ? `
+    <div class="ci-confirm-banner" onclick="event.stopPropagation()">
+      <div class="ci-cb-title">${req.categoria === 'Solicitud de Producción' ? '🟣 ¡PRODUCCIÓN LISTA!' : '📦 ¡INSUMO LISTO!'}</div>
+      <div class="ci-cb-sub">El CI confirma la entrega.<br>¿Lo recibiste?</div>
+      <div class="ci-cb-btns">
+        <button class="ci-cb-ok" onclick="ciConfirmarRecepcion('${req._id}',true)">✅ ACEPTAR</button>
+        <button class="ci-cb-no" onclick="ciConfirmarRecepcion('${req._id}',false)">✖ RECHAZAR</button>
+      </div>
+    </div>` : '';
+
+  return `<div class="big-wrap ${color}" id="imp-card-${impId}" style="min-width:220px;max-width:300px;flex:1;position:relative;${req ? 'padding-bottom:110px;' : ''}" ${onclickAttr}>
     <button class="imp-close-x" onclick="event.stopPropagation();abrirModalForzar('${impId}','${isMulti?'multi':'principal'}')" title="Cerrar improductivo">✕</button>
     <span class="big-id">${selectedMod}</span>
     <div class="big-light"></div>
@@ -587,6 +646,7 @@ function buildImpCard(impId, color, label, inicio, lockBadge, empHtml, mecHtml, 
     <span class="big-timer" data-imp-timer="${inicio}">⏱ ${formatTime(Date.now()-inicio)}</span>
     ${lockBadge}${empHtml}${mecHtml}
     <span class="tap-hint">${tapHint}</span>
+    ${bannerHtml}
   </div>`;
 }
 
@@ -1010,27 +1070,14 @@ function seleccionarMecanico(nombre){
 // ── CI: modal confirmación ────────────────────────────────────────
 function showCiCumplidoModal(req){
   playCiAlertSound();
-  const ov = document.getElementById('ci-confirm-overlay');
-  const esProd = req.categoria === 'Solicitud de Producción' || req.tipo === 'Solicitud de Producción';
-  ov.innerHTML = `
-    <div style="background:#fff;border-radius:18px;padding:30px 26px 22px;width:100%;max-width:380px;box-shadow:0 24px 60px rgba(15,23,42,.25);animation:slup .22s ease;text-align:center;">
-      <div style="font-size:44px;margin-bottom:10px;">${esProd ? '🟣' : '📦'}</div>
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;letter-spacing:2px;color:#1e3a8a;margin-bottom:6px;">${esProd ? '¡PRODUCCIÓN LISTA!' : '¡INSUMO LISTO!'}</div>
-      <div style="font-size:13px;color:#64748b;margin-bottom:16px;">El CI confirma que fue atendido.<br>¿Confirmas que lo recibiste?</div>
-      <div style="background:#f8fafc;border-radius:10px;padding:12px;margin-bottom:18px;text-align:left;font-size:13px;">
-        <div><b>Tipo:</b> ${req.tipo || req.categoria || '—'}</div>
-        <div><b>Referencia:</b> ${req.ref || '—'}</div>
-        <div><b>OP / OC:</b> ${req.opoc || req.op || '—'}</div>
-      </div>
-      <div style="display:flex;gap:10px;">
-        <button onclick="ciConfirmarRecepcion('${req._id}',true)"  style="flex:1;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,#15803d,#22c55e);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer;">✅ SÍ, RECIBÍ</button>
-        <button onclick="ciConfirmarRecepcion('${req._id}',false)" style="flex:1;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,#991b1b,#ef4444);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;cursor:pointer;">✖ NO RECIBÍ</button>
-      </div>
-    </div>`;
-  ov.style.display = 'flex';
+  // Guardar en pending y re-renderizar — el banner aparece dentro de la tarjeta
+  window._ciPendingConfirm[req._id] = req;
+  renderBig();
 }
 
 function ciConfirmarRecepcion(reqId, accepted){
+  // Limpiar pending y overlay si existe
+  delete window._ciPendingConfirm[reqId];
   const ov = document.getElementById('ci-confirm-overlay');
   if (ov) ov.style.display = 'none';
   if (accepted) {
