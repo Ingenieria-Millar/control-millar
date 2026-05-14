@@ -878,6 +878,10 @@ function applyChangeMulti(impId){
     openMecanicoModal('¿Quién solucionó la falla?', 'Mecánico que resolvió el problema'); return;
   }
   if (c === 'pink') { closeMultiImp(impId); return; }
+  if (c === 'garnet') {
+    pendingTransicion = { id:modId, estado:'yellow', impId };
+    openMecanicoModal('¿Quién va a realizar el alistamiento?', 'Mecánico que llegó al alistamiento'); return;
+  }
   closeMultiImp(impId);
 }
 
@@ -1143,6 +1147,7 @@ function ciConfirmarRecepcion(reqId, accepted){
     const req = Object.assign({}, source, { status:'alert', waitTime:null });
     wsSend({ type:'ci_update_request', request:req });
     wsSend({ type:'ci_reactivar_alerta', reqId });
+    renderBig(); // quitar el banner de la tarjeta
     showToast('⚠ No recibido — solicitud reactivada en el CI');
   }
 }
