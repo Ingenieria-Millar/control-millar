@@ -479,9 +479,19 @@ function connectWS(){
       if (msg.type === 'change') {
         const id = msg.id, s = msg.state;
         if (!states[id]) states[id] = 'green';
-        // Si hay improductivos activos locales, no sobreescribir el estado
         const impsActivos = _multiImp[id] || [];
-        if (impsActivos.length > 0) {
+        // Si el servidor dice green, limpiar todo localmente — el servidor es la fuente de verdad
+        if (s === 'green' && impsActivos.length > 0) {
+          _multiImp[id] = [];
+          delete window._ciRequestByMod[id];
+          // Limpiar pendings CI de este módulo
+          Object.keys(window._ciPendingConfirm || {}).forEach(reqId => {
+            const r = window._ciPendingConfirm[reqId];
+            if (!r || r.module === id) delete window._ciPendingConfirm[reqId];
+          });
+        }
+        // Si hay improductivos activos locales y el servidor NO dice green, no sobreescribir
+        if ((_multiImp[id]||[]).length > 0 && s !== 'green') {
           if (msg.mecanico) lastMec[id] = msg.mecanico;
           if (msg.empleada !== undefined) window._lastEmpleada[id] = msg.empleada;
           if (id === selectedMod) renderBig();
@@ -491,6 +501,7 @@ function connectWS(){
         timers[id]  = msg.stateTime || Date.now();
         if (msg.mecanico) lastMec[id] = msg.mecanico;
         if (msg.empleada !== undefined) window._lastEmpleada[id] = msg.empleada;
+        if (s === 'green') { lastMec[id] = ''; window._lastEmpleada[id] = ''; }
         if (id === selectedMod) renderBig();
         return;
       }
@@ -549,17 +560,34 @@ function connectWS(){
         if (!window._ciRequests) window._ciRequests = [];
         const idx = window._ciRequests.findIndex(r => r._id === req._id);
         if (idx > -1) window._ciRequests[idx] = req; else window._ciRequests.unshift(req);
-        // Si el servidor ya cerró el improductivo, sincronizar localmente
-        if (req.status === 'done' && req.module === selectedMod) {
-          const imps = _multiImp[selectedMod] || [];
-          const mIdx = imps.findIndex(i => i.ciRequestId === req._id);
-          if (mIdx > -1) {
-            imps.splice(mIdx, 1);
-            _multiImp[selectedMod] = imps;
-          } else if (states[selectedMod] === 'orange' || states[selectedMod] === 'purple') {
-            if (imps.length === 0) { states[selectedMod] = 'green'; timers[selectedMod] = Date.now(); }
+        // Si fue aceptado (done), cerrar el improductivo localmente
+        if (req.status === 'done') {
+          const modId = req.module || selectedMod;
+          if (modId === selectedMod) {
+            // Limpiar pending si existe
+            delete (window._ciPendingConfirm||{})[req._id];
+            const imps = _multiImp[modId] || [];
+            // Buscar por ciRequestId exacto
+            let mIdx = imps.findIndex(i => i.ciRequestId === req._id);
+            // Si no, buscar por tipo
+            if (mIdx === -1) {
+              const esProd = (req.categoria||'') === 'Solicitud de Producción' ||
+                             (req.tipo||'') === 'Solicitud de Producción';
+              mIdx = imps.findIndex(i => {
+                const c = i.tipoActual || i.tipo;
+                return esProd ? c === 'purple' : c === 'orange';
+              });
+            }
+            if (mIdx > -1) {
+              imps.splice(mIdx, 1);
+              _multiImp[modId] = imps;
+            } else if (states[modId] === 'orange' || states[modId] === 'purple') {
+              if (imps.length === 0) { states[modId] = 'green'; timers[modId] = Date.now(); }
+            }
+            states[modId] = calcColorLocal(modId);
+            if (states[modId] === 'green') { lastMec[modId]=''; window._lastEmpleada[modId]=''; }
+            renderBig();
           }
-          renderBig();
         }
         return;
       }
