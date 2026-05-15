@@ -543,11 +543,13 @@ tr:hover td{background:#f8fafc;}
           </div>
           <div class="form-group">
             <label class="form-label">Operaria</label>
-            <input type="text" class="form-input" name="operaria" placeholder="Nombre de la operaria..." autocomplete="off">
+            <select class="form-select" name="operaria" id="mantOperaria">
+              <option value="">Seleccionar operaria...</option>
+            </select>
           </div>
           <div class="form-group">
             <label class="form-label">Tipo de Máquina <span class="required">*</span></label>
-            <select class="form-select" id="selectMaquinaMant" name="tipoMaquinaSelect" onchange="document.getElementById('hiddenMaquinaMant').value=this.value">
+            <select class="form-select" id="selectMaquinaMant" name="tipoMaquinaSelect" onchange="onTipoMaquinaChange()">
               <option value="">Seleccionar tipo de máquina...</option>
             </select>
             <input type="hidden" name="tipoMaquina" id="hiddenMaquinaMant" required>
@@ -555,6 +557,9 @@ tr:hover td{background:#f8fafc;}
           <div class="form-group">
             <label class="form-label">Serial <span class="required">*</span></label>
             <div style="display:flex;gap:8px;align-items:center;">
+              <select class="form-select" id="selectSerial" name="serialSelect" style="flex:1;display:none;" onchange="document.getElementById('mantSerial').value=this.value">
+                <option value="">Seleccionar serial...</option>
+              </select>
               <input type="text" class="form-input" name="serial" id="mantSerial" required placeholder="Número de serial" style="flex:1">
               <button type="button" class="btn btn-secondary" style="padding:8px 12px;white-space:nowrap;font-size:13px;" onclick="abrirQR('mant')" title="Escanear QR">📷 QR</button>
             </div>
@@ -569,8 +574,13 @@ tr:hover td{background:#f8fafc;}
             <input type="text" class="form-input" name="repuestos" placeholder="Ej: Aguja, correa, fusible...">
           </div>
           <div class="form-group">
-            <label class="form-label">Observaciones</label>
-            <textarea class="form-textarea" name="observaciones" placeholder="Descripción del problema y solución aplicada..."></textarea>
+            <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;">
+              Observaciones
+              <button type="button" id="btn-mic-mant" onclick="toggleMic('mantObs','btn-mic-mant')"
+                style="background:none;border:1.5px solid #e2e8f0;border-radius:8px;padding:3px 10px;cursor:pointer;font-size:14px;color:#64748b;display:flex;align-items:center;gap:4px;transition:all .2s;"
+                title="Dictar texto">🎙️ <span style="font-size:11px;font-weight:700;letter-spacing:.5px;">DICTAR</span></button>
+            </label>
+            <textarea class="form-textarea" name="observaciones" id="mantObs" placeholder="Descripción del problema y solución aplicada..."></textarea>
           </div>
           <div class="form-group">
             <label class="form-label">Fotos de Evidencia</label>
@@ -815,12 +825,12 @@ async function loadConfig() {
 
   // Máquinas desde /api/maquinaria — extraer tipos únicos
   let maquinas = [];
+  let maquinariaCompleta = [];
   try {
     const r = await fetch('/api/maquinaria');
     if (r.ok) {
-      const lista = await r.json();
-      // Extraer tipos únicos, ignorar vacíos
-      const tipos = [...new Set(lista.map(m => (m.tipo||'').trim()).filter(Boolean))].sort();
+      maquinariaCompleta = await r.json();
+      const tipos = [...new Set(maquinariaCompleta.map(m => (m.tipo||'').trim()).filter(Boolean))].sort();
       maquinas = tipos;
     }
   } catch(e) {}
@@ -831,8 +841,23 @@ async function loadConfig() {
       if (r.ok) { const sc = await r.json(); maquinas = sc.maquinas || []; }
     } catch(e) {}
   }
+  window._maquinariaCompleta = maquinariaCompleta;
 
-  config = { supervisoras:[], mecanicos, modulos, maquinas };
+  // ── Empleados ──────────────────────────────────────────────────
+  let empleados = [];
+  try {
+    const r = await fetch('/api/empleados');
+    if (r.ok) {
+      const lista = await r.json();
+      empleados = lista
+        .filter(e => e.status !== 'inactive')
+        .map(e => e.name || e.empName || e.nombre || '')
+        .filter(Boolean)
+        .sort();
+    }
+  } catch(e) {}
+
+  config = { supervisoras:[], mecanicos, modulos, maquinas, empleados };
 }
 
 
@@ -844,6 +869,7 @@ function _populateFormsNow() {
   // Módulos en selects
   ['alistModulo','mantModulo'].forEach(id => {
     const sel = document.getElementById(id);
+    if (!sel) return;
     const base = id === 'mantModulo' ? '<option value="">Sin módulo específico</option>' : '<option value="">Seleccionar módulo...</option>';
     sel.innerHTML = base + config.modulos.map(m => `<option value="${m}">Módulo ${m}</option>`).join('');
   });
@@ -851,31 +877,129 @@ function _populateFormsNow() {
   // Mecánicos
   ['formAlistamiento','formMantenimiento'].forEach(fid => {
     const form = document.getElementById(fid);
+    if (!form) return;
     const sel = form.querySelector('select[name="mecanico"]');
+    if (!sel) return;
     sel.innerHTML = '<option value="">Seleccionar mecánico...</option>' +
-      config.mecanicos.map(m => `<option value="${m}">${m}</option>`).join('');
+      config.mecanicos.map(m => {
+        const nombre = typeof m === 'string' ? m : (m.name||m.nombre||'');
+        return `<option value="${nombre}">${nombre}</option>`;
+      }).join('');
   });
+
+  // Operaria — select con empleados
+  const selOp = document.getElementById('mantOperaria');
+  if (selOp) {
+    const emps = config.empleados || [];
+    selOp.innerHTML = '<option value="">Seleccionar operaria...</option>' +
+      emps.map(e => `<option value="${e}">${e}</option>`).join('');
+  }
 
   // Filter supervisoras
   const fSup = document.getElementById('alistFilterSup');
-  fSup.innerHTML = '<option value="">Todas las supervisoras</option>' +
-    config.supervisoras.map(s => `<option value="${s.nombre}">${s.nombre}</option>`).join('');
+  if (fSup) {
+    fSup.innerHTML = '<option value="">Todas las supervisoras</option>' +
+      config.supervisoras.map(s => `<option value="${s.nombre}">${s.nombre}</option>`).join('');
+  }
 
   // Radio supervisoras
-  document.getElementById('radioSupervisoras').innerHTML = config.supervisoras.map(s =>
-    `<span class="radio-btn" data-group="supervisor" data-value="${s.nombre}" onclick="selectRadio(this,'supervisor','hiddenSupervisor')">${s.nombre}<br><small style="opacity:.6;font-weight:400">${s.rol}</small></span>`
-  ).join('');
+  const radSup = document.getElementById('radioSupervisoras');
+  if (radSup) {
+    radSup.innerHTML = config.supervisoras.map(s =>
+      `<span class="radio-btn" data-group="supervisor" data-value="${s.nombre}" onclick="selectRadio(this,'supervisor','hiddenSupervisor')">${s.nombre}<br><small style="opacity:.6;font-weight:400">${s.rol}</small></span>`
+    ).join('');
+  }
 
   // Radio máquinas alistamiento
-  document.getElementById('radioMaquinas').innerHTML = config.maquinas.map(m =>
-    `<span class="radio-btn" data-group="maquina" data-value="${m}" onclick="selectRadio(this,'maquina','hiddenMaquina')">${m}</span>`
-  ).join('');
+  const radMaq = document.getElementById('radioMaquinas');
+  if (radMaq) {
+    radMaq.innerHTML = config.maquinas.map(m =>
+      `<span class="radio-btn" data-group="maquina" data-value="${m}" onclick="selectRadio(this,'maquina','hiddenMaquina')">${m}</span>`
+    ).join('');
+  }
 
   // Select de máquinas para mantenimiento
   const selMaqMant = document.getElementById('selectMaquinaMant');
   if (selMaqMant) {
     selMaqMant.innerHTML = '<option value="">Seleccionar tipo de máquina...</option>' +
       config.maquinas.map(m => `<option value="${m}">${m}</option>`).join('');
+  }
+}
+
+// ── Reconocimiento de voz (micrófono) ────────────────────────────
+let _micRecognition = null;
+let _micActive      = false;
+
+function toggleMic(textareaId, btnId){
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    showToast('⚠ Tu navegador no soporta reconocimiento de voz', 'warning');
+    return;
+  }
+  const textarea = document.getElementById(textareaId);
+  const btn      = document.getElementById(btnId);
+  if (!textarea || !btn) return;
+
+  if (_micActive && _micRecognition) {
+    _micRecognition.stop();
+    return;
+  }
+
+  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  _micRecognition = new SpeechRec();
+  _micRecognition.lang      = 'es-CO';
+  _micRecognition.continuous    = true;
+  _micRecognition.interimResults = true;
+
+  let textoBase = textarea.value;
+
+  _micRecognition.onstart = () => {
+    _micActive = true;
+    btn.style.borderColor = '#dc2626';
+    btn.style.color       = '#dc2626';
+    btn.querySelector('span').textContent = 'GRABANDO';
+  };
+
+  _micRecognition.onresult = (e) => {
+    let interim = '';
+    let final   = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) final   += e.results[i][0].transcript;
+      else                       interim += e.results[i][0].transcript;
+    }
+    if (final) textoBase += (textoBase ? ' ' : '') + final;
+    textarea.value = textoBase + (interim ? ' ' + interim : '');
+  };
+
+  _micRecognition.onerror = () => { _micRecognition.stop(); };
+
+  _micRecognition.onend = () => {
+    _micActive = false;
+    btn.style.borderColor = '#e2e8f0';
+    btn.style.color       = '#64748b';
+    btn.querySelector('span').textContent = 'DICTAR';
+    _micRecognition = null;
+  };
+
+  _micRecognition.start();
+}
+
+// ── Filtrar seriales según tipo de máquina (ya definida arriba) ──
+function onTipoMaquinaChange(){
+  const tipo   = document.getElementById('selectMaquinaMant').value;
+  const selSer = document.getElementById('selectSerial');
+  const inpSer = document.getElementById('mantSerial');
+  if (!selSer) return;
+  const lista = (window._maquinariaCompleta || []).filter(m => (m.tipo||'').trim() === tipo);
+  if (lista.length > 0) {
+    selSer.innerHTML = '<option value="">Seleccionar serial...</option>' +
+      lista.map(m => `<option value="${m.serial}">${m.serial}${m.codigo ? ' — '+m.codigo : ''}</option>`).join('');
+    selSer.style.display = '';
+    if (inpSer) inpSer.style.display = 'none';
+    document.getElementById('hiddenMaquinaMant').value = tipo;
+  } else {
+    selSer.style.display = 'none';
+    if (inpSer) { inpSer.style.display = ''; inpSer.value = ''; }
+    document.getElementById('hiddenMaquinaMant').value = tipo;
   }
 }
 
