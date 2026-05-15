@@ -547,7 +547,9 @@ tr:hover td{background:#f8fafc;}
           </div>
           <div class="form-group">
             <label class="form-label">Tipo de Máquina <span class="required">*</span></label>
-            <div class="radio-group" id="radioMaquinasMant"></div>
+            <select class="form-select" id="selectMaquinaMant" name="tipoMaquinaSelect" onchange="document.getElementById('hiddenMaquinaMant').value=this.value">
+              <option value="">Seleccionar tipo de máquina...</option>
+            </select>
             <input type="hidden" name="tipoMaquina" id="hiddenMaquinaMant" required>
           </div>
           <div class="form-group">
@@ -811,12 +813,24 @@ async function loadConfig() {
   if (mecanicos.length) localCfg.mecanicos = mecanicos;
   localStorage.setItem(CFG_KEY, JSON.stringify(localCfg));
 
-  // Máquinas desde el servidor
+  // Máquinas desde /api/maquinaria — extraer tipos únicos
   let maquinas = [];
   try {
-    const r = await fetch(`${API}/api/config`);
-    if (r.ok) { const sc = await r.json(); maquinas = sc.maquinas || []; }
+    const r = await fetch('/api/maquinaria');
+    if (r.ok) {
+      const lista = await r.json();
+      // Extraer tipos únicos, ignorar vacíos
+      const tipos = [...new Set(lista.map(m => (m.tipo||'').trim()).filter(Boolean))].sort();
+      maquinas = tipos;
+    }
   } catch(e) {}
+  // Fallback: intentar config de alistamiento si no hay maquinaria
+  if (!maquinas.length) {
+    try {
+      const r = await fetch(`${API}/api/config`);
+      if (r.ok) { const sc = await r.json(); maquinas = sc.maquinas || []; }
+    } catch(e) {}
+  }
 
   config = { supervisoras:[], mecanicos, modulos, maquinas };
 }
@@ -857,10 +871,12 @@ function _populateFormsNow() {
     `<span class="radio-btn" data-group="maquina" data-value="${m}" onclick="selectRadio(this,'maquina','hiddenMaquina')">${m}</span>`
   ).join('');
 
-  // Radio máquinas mantenimiento
-  document.getElementById('radioMaquinasMant').innerHTML = config.maquinas.map(m =>
-    `<span class="radio-btn" data-group="maquinaMant" data-value="${m}" onclick="selectRadio(this,'maquinaMant','hiddenMaquinaMant')">${m}</span>`
-  ).join('');
+  // Select de máquinas para mantenimiento
+  const selMaqMant = document.getElementById('selectMaquinaMant');
+  if (selMaqMant) {
+    selMaqMant.innerHTML = '<option value="">Seleccionar tipo de máquina...</option>' +
+      config.maquinas.map(m => `<option value="${m}">${m}</option>`).join('');
+  }
 }
 
 // ===== RADIO SELECTOR =====
@@ -1534,12 +1550,17 @@ function usarDatosQR() {
   if (qrTarget === 'alist') {
     const serialInput = document.getElementById('alistSerial');
     if (serialInput) serialInput.value = qrDatosLeidos.serial;
-    // Si el tipo de máquina coincide con alguna opción, seleccionarla
     autoSelectMaquina(qrDatosLeidos.nombre, 'maquina', 'hiddenMaquina', 'radioMaquinas');
   } else if (qrTarget === 'mant') {
     const serialInput = document.getElementById('mantSerial');
     if (serialInput) serialInput.value = qrDatosLeidos.serial;
-    autoSelectMaquina(qrDatosLeidos.nombre, 'maquinaMant', 'hiddenMaquinaMant', 'radioMaquinasMant');
+    // Para mantenimiento usar el select
+    const sel = document.getElementById('selectMaquinaMant');
+    const hid = document.getElementById('hiddenMaquinaMant');
+    if (sel && qrDatosLeidos.nombre) {
+      const match = [...sel.options].find(o => o.value.toLowerCase() === qrDatosLeidos.nombre.toLowerCase());
+      if (match) { sel.value = match.value; if (hid) hid.value = match.value; }
+    }
   }
   cerrarQR();
   showToast('✅ Datos de la máquina cargados', 'success');
