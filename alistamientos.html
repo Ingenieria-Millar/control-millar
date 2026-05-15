@@ -162,16 +162,19 @@ tr:hover td{background:#f8fafc;}
 
 /* ── FORM ── */
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-.form-grid-1col{display:grid;grid-template-columns:1fr;gap:16px;}
-.form-group{display:flex;flex-direction:column;gap:6px;}
+.form-grid-1col{display:grid;grid-template-columns:1fr;gap:20px;}
+.form-group{display:flex;flex-direction:column;gap:8px;}
 .form-group.span2{grid-column:1/-1;}
-.form-label{font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);}
+.form-label{font-size:12px;font-weight:700;letter-spacing:.3px;color:var(--text);}
 .required{color:var(--red);}
-.form-input,.form-select,.form-textarea{padding:10px 14px;border-radius:9px;border:1.5px solid var(--border);background:#fff;font-family:'Nunito',sans-serif;font-size:13px;color:var(--text);outline:none;transition:border-color .2s;width:100%;}
-.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--blue);}
-.form-textarea{resize:vertical;min-height:72px;}
+.form-input,.form-select,.form-textarea{padding:13px 14px;border-radius:9px;border:1.5px solid #0f172a;background:#fff;font-family:'Nunito',sans-serif;font-size:15px;color:var(--text);outline:none;transition:border-color .2s,box-shadow .2s;width:100%;}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.1);}
+.form-input::placeholder,.form-textarea::placeholder{color:transparent;}
+.form-textarea{resize:vertical;min-height:88px;}
 .form-divider{grid-column:1/-1;border:none;border-top:1px solid var(--border);margin:4px 0;}
 .form-section-title{grid-column:1/-1;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;color:var(--text);border-left:3px solid var(--blue);padding-left:10px;}
+.mant-section{padding:4px 0 0;}
+.mant-section-label{font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);padding:14px 0 10px;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--border);margin-bottom:16px;}
 
 /* ── RADIO BTNS ── */
 .radio-group{display:flex;flex-wrap:wrap;gap:8px;}
@@ -540,8 +543,11 @@ tr:hover td{background:#f8fafc;}
     <div class="modal-body">
       <form id="formMantenimiento" onsubmit="guardarMantenimiento(event)">
         <div class="form-grid-1col">
+
+          <!-- ── GENERAL ── -->
+          <div class="mant-section-label">📋 General</div>
           <div class="form-group">
-            <label class="form-label">Módulo (Opcional)</label>
+            <label class="form-label">Módulo</label>
             <select class="form-select" name="modulo" id="mantModulo"><option value="">Sin módulo específico</option></select>
           </div>
           <div class="form-group">
@@ -553,25 +559,31 @@ tr:hover td{background:#f8fafc;}
             </div>
             <input type="hidden" name="tipoMantenimiento" id="hiddenTipoMant" required>
           </div>
+
+          <!-- ── PERSONAL ── -->
+          <div class="mant-section-label">👤 Personal</div>
           <div class="form-group">
             <label class="form-label">Mecánico Responsable <span class="required">*</span></label>
-            <select class="form-select" name="mecanico" required id="mantMecanico"><option value="">Seleccionar mecánico...</option></select>
+            <select class="form-select" name="mecanico" required id="mantMecanico"><option value=""></option></select>
           </div>
           <div class="form-group">
             <label class="form-label">Operaria</label>
             <div class="autocomplete-wrap">
               <input type="text" class="form-input" id="mantOperariaInput" name="operaria"
-                placeholder="Escribe para buscar operaria..." autocomplete="off"
+                autocomplete="off"
                 oninput="acFilter('mantOperariaInput','mantOperariaList',config.empleados||[])"
                 onfocus="acFilter('mantOperariaInput','mantOperariaList',config.empleados||[])"
                 onblur="setTimeout(()=>acClose('mantOperariaList'),200)">
               <div class="autocomplete-list" id="mantOperariaList"></div>
             </div>
           </div>
+
+          <!-- ── MÁQUINA ── -->
+          <div class="mant-section-label">⚙️ Máquina</div>
           <div class="form-group">
             <label class="form-label">Tipo de Máquina <span class="required">*</span></label>
             <select class="form-select" id="selectMaquinaMant" name="tipoMaquinaSelect" onchange="onTipoMaquinaChange()">
-              <option value="">Seleccionar tipo de máquina...</option>
+              <option value=""></option>
             </select>
             <input type="hidden" name="tipoMaquina" id="hiddenMaquinaMant" required>
           </div>
@@ -580,23 +592,26 @@ tr:hover td{background:#f8fafc;}
             <div style="display:flex;gap:8px;align-items:center;">
               <div class="autocomplete-wrap" style="flex:1;">
                 <input type="text" class="form-input" name="serial" id="mantSerial" required
-                  placeholder="Escribe para buscar serial..." autocomplete="off"
+                  autocomplete="off"
                   oninput="acFilterSeriales('mantSerial','mantSerialList')"
                   onfocus="acFilterSeriales('mantSerial','mantSerialList')"
                   onblur="setTimeout(()=>acClose('mantSerialList'),200)">
                 <div class="autocomplete-list" id="mantSerialList"></div>
               </div>
-              <button type="button" class="btn btn-secondary" style="padding:8px 12px;white-space:nowrap;font-size:13px;" onclick="abrirQR('mant')" title="Escanear QR">📷 QR</button>
+              <button type="button" class="btn btn-secondary" style="padding:13px 14px;white-space:nowrap;font-size:13px;" onclick="abrirQR('mant')" title="Escanear QR">📷 QR</button>
             </div>
           </div>
           <div class="form-group">
             <label class="form-label">Número de Guía</label>
-            <input type="text" class="form-input" name="numeroGuia" id="mantGuiaInput" placeholder="Digita código o N/A..." autocomplete="off">
+            <input type="text" class="form-input" name="numeroGuia" id="mantGuiaInput" autocomplete="off">
             <div id="mantGuiaDesc" style="display:none;margin-top:6px;padding:8px 12px;background:rgba(13,148,136,.05);border:1.5px solid rgba(13,148,136,.15);border-radius:8px;font-size:12px;color:#0f766e;"></div>
           </div>
+
+          <!-- ── DETALLES ── -->
+          <div class="mant-section-label">📝 Detalles</div>
           <div class="form-group">
             <label class="form-label">Repuestos Utilizados</label>
-            <input type="text" class="form-input" name="repuestos" placeholder="Ej: Aguja, correa, fusible...">
+            <input type="text" class="form-input" name="repuestos">
           </div>
           <div class="form-group">
             <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;">
@@ -605,7 +620,7 @@ tr:hover td{background:#f8fafc;}
                 style="background:none;border:1.5px solid #e2e8f0;border-radius:8px;padding:3px 10px;cursor:pointer;font-size:14px;color:#64748b;display:flex;align-items:center;gap:4px;transition:all .2s;"
                 title="Dictar texto">🎙️ <span style="font-size:11px;font-weight:700;letter-spacing:.5px;">DICTAR</span></button>
             </label>
-            <textarea class="form-textarea" name="observaciones" id="mantObs" placeholder="Descripción del problema y solución aplicada..."></textarea>
+            <textarea class="form-textarea" name="observaciones" id="mantObs"></textarea>
           </div>
           <div class="form-group">
             <label class="form-label">Fotos de Evidencia</label>
@@ -1407,10 +1422,12 @@ function cerrarModal(id) {
   document.getElementById(id).classList.remove('open');
 }
 
-// Cerrar modal al click en overlay
+// Cerrar modal al click en overlay — excepto modalMantenimiento
 document.querySelectorAll('.modal-overlay').forEach(overlay => {
   overlay.addEventListener('click', e => {
-    if (e.target === overlay) overlay.classList.remove('open');
+    if (e.target === overlay && overlay.id !== 'modalMantenimiento') {
+      overlay.classList.remove('open');
+    }
   });
 });
 
