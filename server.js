@@ -681,6 +681,31 @@ app.delete('/alistamiento/api/mantenimientos/:id', (req, res) => {
   res.json({ success: true });
 });
 
+app.put(
+  '/alistamiento/api/mantenimientos/:id',
+  (req, res, next) => upload.array('fotos', 5)(req, res, err => err ? handleMulterError(err, req, res, next) : next()),
+  (req, res) => {
+    try {
+      const data = loadDB('mantenimientos');
+      const idx  = data.findIndex(r => r.id === req.params.id);
+      if (idx === -1) return res.status(404).json({ error: 'Registro no encontrado' });
+      const existing = data[idx];
+      const ahora    = new Date();
+      const fotos    = req.files && req.files.length
+        ? req.files.map(f => `/alistamiento/uploads/${f.filename}`)
+        : existing.fotos || [];
+      data[idx] = {
+        ...existing,
+        ...req.body,
+        fotos,
+        updatedAt: ahora.toISOString()
+      };
+      saveDB('mantenimientos', data);
+      res.json({ success: true, data: data[idx] });
+    } catch(e) { res.status(500).json({ error: e.message }); }
+  }
+);
+
 // ── Alertas ────────────────────────────────────────────────────────
 app.get('/alistamiento/api/alertas', (req, res) => {
   const data = loadDB('alertas');
