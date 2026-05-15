@@ -174,7 +174,7 @@ tr:hover td{background:#f8fafc;}
 .form-divider{grid-column:1/-1;border:none;border-top:1px solid var(--border);margin:4px 0;}
 .form-section-title{grid-column:1/-1;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;color:var(--text);border-left:3px solid var(--blue);padding-left:10px;}
 .mant-section{padding:4px 0 0;}
-.mant-section-label{font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);padding:14px 0 10px;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--border);margin-bottom:16px;}
+.mant-section-label{font-size:10px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);padding:14px 0 10px;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--border);margin-bottom:16px;}
 
 /* ── RADIO BTNS ── */
 .radio-group{display:flex;flex-wrap:wrap;gap:8px;}
@@ -307,8 +307,7 @@ tr:hover td{background:#f8fafc;}
 
 <!-- NAV TABS -->
 <nav class="nav-bar">
-  <div class="nav-tab active" id="tab-dashboard"      onclick="switchSection('dashboard')">📊 Dashboard</div>
-  <div class="nav-tab"        id="tab-alistamiento"   onclick="switchSection('alistamiento')">⚙️ Alistamiento</div>
+  <div class="nav-tab active" id="tab-alistamiento"   onclick="switchSection('alistamiento')">⚙️ Alistamiento</div>
   <div class="nav-tab mant"   id="tab-mantenimiento"  onclick="switchSection('mantenimiento')">🔧 Mantenimiento</div>
 </nav>
 
@@ -386,9 +385,14 @@ tr:hover td{background:#f8fafc;}
         <button class="btn btn-primary mant" onclick="abrirModalMantenimiento()">＋ Nuevo Mantenimiento</button>
       </div>
     </div>
+
+    <!-- KPIs -->
+    <div id="mant-kpis" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:20px;"></div>
+
+    <!-- Tabla -->
     <div class="table-panel">
       <div class="toolbar">
-        <input class="search-input" placeholder="🔍 Buscar por módulo, máquina, mecánico..." id="mantSearch" oninput="debounce(filtrarMantenimientos,300)()">
+        <input class="search-input" placeholder="🔍 Buscar..." id="mantSearch" oninput="debounce(filtrarMantenimientos,300)()">
         <select class="filter-select" id="mantFilterTipo" onchange="filtrarMantenimientos()">
           <option value="">Todos los tipos</option>
           <option>Preventivo</option><option>Correctivo</option><option>Mantenimiento de Fugas</option>
@@ -397,7 +401,7 @@ tr:hover td{background:#f8fafc;}
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Módulo</th><th>Tipo</th><th>Máquina</th><th>Serial</th><th>Mecánico</th><th>Operaria</th><th>Guía</th><th>Repuestos</th><th>Fecha</th><th>Hora</th><th>Fotos</th><th></th></tr></thead>
+          <thead><tr><th>Tipo</th><th>Mecánico</th><th>Módulo</th><th>Máquina</th><th>Serial</th><th>Guía</th><th>Repuestos</th><th>Acciones</th><th>Fotos</th></tr></thead>
           <tbody id="mantBody"></tbody>
         </table>
       </div>
@@ -747,6 +751,20 @@ tr:hover td{background:#f8fafc;}
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="cerrarQR()">Cancelar</button>
       <button class="btn btn-primary" id="btnUsarQR" style="display:none;" onclick="usarDatosQR()">✅ Usar estos datos</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL FOTOS -->
+<div class="modal-overlay" id="modalFotos" style="display:none;">
+  <div class="modal-box" style="max-width:600px;max-height:90vh;overflow-y:auto;">
+    <div class="modal-header">
+      <div class="modal-title">📷 Fotos de Evidencia</div>
+      <button class="modal-close" onclick="cerrarModal('modalFotos')">✕</button>
+    </div>
+    <div id="fotosGaleriaGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;padding:16px 0;"></div>
+    <div style="text-align:center;padding-bottom:8px;">
+      <button class="btn btn-secondary" onclick="cerrarModal('modalFotos')">Cerrar</button>
     </div>
   </div>
 </div>
@@ -1214,24 +1232,93 @@ function renderMantenimientos(data) {
   const rows = data || mantenimientos;
   const tbody = document.getElementById('mantBody');
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="10"><div style="text-align:center;padding:24px;color:#64748b;font-style:italic;"><div style="font-size:28px;margin-bottom:6px;">🔧</div><div>No hay registros de mantenimiento</div></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9"><div style="text-align:center;padding:24px;color:#64748b;font-style:italic;"><div style="font-size:28px;margin-bottom:6px;">🔧</div><div>No hay registros de mantenimiento</div></div></td></tr>`;
+    renderMantKPIs(rows);
     return;
   }
   tbody.innerHTML = rows.map(r => `
     <tr>
-      <td style="font-weight:700;">${r.modulo||'-'}</td>
       <td>${tipoBadge(r.tipoMantenimiento)}</td>
+      <td>${r.mecanico||'-'}</td>
+      <td style="font-weight:700;">${r.modulo||'-'}</td>
       <td>${r.tipoMaquina||'-'}</td>
       <td><code style="font-size:11px;background:var(--bg3);padding:2px 6px;border-radius:4px">${r.serial||'-'}</code></td>
-      <td>${r.mecanico||'-'}</td>
-      <td>${r.operaria||'-'}</td>
       <td><span style="font-size:11px;font-weight:700;color:var(--teal)">${r.numeroGuia||'—'}</span></td>
       <td>${r.repuestos||'-'}</td>
-      <td>${r.fecha||'-'}</td>
-      <td>${r.hora||'-'}</td>
-      <td>${fotosThumb(r.fotos)}</td>
-      <td><button class="btn btn-danger" style="padding:4px 10px;font-size:11px" onclick="eliminar('mantenimientos','${r.id}')">🗑️</button></td>
+      <td style="white-space:nowrap;">
+        <button class="btn" style="padding:4px 10px;font-size:11px;background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;margin-right:4px;" onclick="editarMantenimiento('${r.id}')">✏️</button>
+        <button class="btn btn-danger" style="padding:4px 10px;font-size:11px" onclick="eliminar('mantenimientos','${r.id}')">🗑️</button>
+      </td>
+      <td>${r.fotos&&r.fotos.length?`<button class="btn" style="padding:4px 10px;font-size:11px;background:#f0fdf4;color:#15803d;border:1px solid #86efac;white-space:nowrap;" onclick="verFotos('${r.id}')">📷 Ver fotos (${r.fotos.length})</button>`:'<span style="color:#94a3b8;font-size:12px;">—</span>'}</td>
     </tr>`).join('');
+  renderMantKPIs(rows);
+}
+
+function renderMantKPIs(rows){
+  const el = document.getElementById('mant-kpis');
+  if (!el) return;
+  const total     = rows.length;
+  const prev      = rows.filter(r=>r.tipoMantenimiento==='Preventivo').length;
+  const corr      = rows.filter(r=>r.tipoMantenimiento==='Correctivo').length;
+  const fugas     = rows.filter(r=>r.tipoMantenimiento==='Mantenimiento de Fugas').length;
+  const conFotos  = rows.filter(r=>r.fotos&&r.fotos.length).length;
+  const kpis = [
+    { label:'Total', valor:total, color:'#1e40af', bg:'#eff6ff' },
+    { label:'Preventivos', valor:prev, color:'#0f766e', bg:'#f0fdf4' },
+    { label:'Correctivos', valor:corr, color:'#dc2626', bg:'#fef2f2' },
+    { label:'Fugas', valor:fugas, color:'#2563eb', bg:'#eff6ff' },
+    { label:'Con fotos', valor:conFotos, color:'#7c3aed', bg:'#f5f3ff' },
+  ];
+  el.innerHTML = kpis.map(k=>`
+    <div style="background:${k.bg};border-radius:12px;padding:14px 16px;border:1px solid ${k.color}22;">
+      <div style="font-size:22px;font-weight:800;color:${k.color};">${k.valor}</div>
+      <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">${k.label}</div>
+    </div>`).join('');
+}
+
+function verFotos(id){
+  const r = mantenimientos.find(m=>m.id===id);
+  if (!r || !r.fotos || !r.fotos.length) { showToast('Sin fotos', 'warning'); return; }
+  const grid = document.getElementById('fotosGaleriaGrid');
+  grid.innerHTML = r.fotos.map(f=>{
+    let url = f;
+    if (url && !url.startsWith('http') && !url.startsWith('/')) url = '/' + url;
+    if (!url.startsWith('/alistamiento/') && !url.startsWith('http')) url = '/alistamiento' + url;
+    return `<div style="border-radius:10px;overflow:hidden;cursor:pointer;" onclick="window.open('${url}','_blank')">
+      <img src="${url}" style="width:100%;height:140px;object-fit:cover;" onerror="this.parentElement.innerHTML='<div style=\\"height:140px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;color:#94a3b8;\\">Sin imagen</div>'">
+    </div>`;
+  }).join('');
+  document.getElementById('modalFotos').classList.add('open');
+}
+
+function editarMantenimiento(id){
+  const r = mantenimientos.find(m=>m.id===id);
+  if (!r) return;
+  abrirModalMantenimiento();
+  setTimeout(()=>{
+    const form = document.getElementById('formMantenimiento');
+    if (!form) return;
+    form.dataset.editId = id;
+    document.getElementById('mantModulo').value          = r.modulo||'';
+    document.getElementById('mantMecanico').value        = r.mecanico||'';
+    document.getElementById('mantOperariaInput').value   = r.operaria||'';
+    document.getElementById('selectMaquinaMant').value   = r.tipoMaquina||'';
+    document.getElementById('hiddenMaquinaMant').value   = r.tipoMaquina||'';
+    document.getElementById('mantSerial').value          = r.serial||'';
+    document.getElementById('mantGuiaInput').value       = r.numeroGuia||'';
+    const repEl = form.querySelector('[name="repuestos"]');
+    if (repEl) repEl.value = r.repuestos||'';
+    document.getElementById('mantObs').value             = r.observaciones||'';
+    // Tipo de mantenimiento
+    document.querySelectorAll('[data-group="tipoMant"]').forEach(btn=>{
+      if(btn.dataset.value===r.tipoMantenimiento){
+        btn.click();
+      }
+    });
+    // Cambiar título
+    const title = document.querySelector('#modalMantenimiento .modal-title');
+    if (title) title.textContent = '✏️ Editar Mantenimiento';
+  }, 300);
 }
 
 function fotosThumb(fotos) {
@@ -1330,14 +1417,23 @@ async function guardarMantenimiento(e) {
     Array.from(fotosInput.files).forEach(f => formData.append('fotos', f));
   }
 
+  const editId = form.dataset.editId;
+  if (editId) formData.append('id', editId);
+
   try {
-    const r = await fetch(`${API}/api/mantenimientos`, { method:'POST', body:formData });
+    const url = editId ? `${API}/api/mantenimientos/${editId}` : `${API}/api/mantenimientos`;
+    const method = editId ? 'PUT' : 'POST';
+    const r = await fetch(url, { method, body:formData });
     const data = await r.json();
     if (data.success) {
-      showToast('✅ Mantenimiento guardado correctamente','success');
+      showToast(editId ? '✅ Mantenimiento actualizado' : '✅ Mantenimiento guardado correctamente','success');
       cerrarModal('modalMantenimiento');
       form.reset();
+      form.dataset.editId = '';
       resetRadios();
+      // Restaurar título
+      const title = document.querySelector('#modalMantenimiento .modal-title');
+      if (title) title.textContent = '🔧 Nuevo Mantenimiento';
       await loadMantenimientos();
       await loadAlertas();
       renderDashboard();
@@ -1451,10 +1547,12 @@ function previewFotos(input, previewId) {
 // ===== NAVIGATION =====
 function switchSection(section) {
   ['dashboard','alistamiento','mantenimiento'].forEach(s => {
-    document.getElementById(`section-${s}`).style.display = s === section ? '' : 'none';
-    document.getElementById(`tab-${s}`).classList.toggle('active', s === section);
+    const sec = document.getElementById(`section-${s}`);
+    const tab = document.getElementById(`tab-${s}`);
+    if (sec) sec.style.display = s === section ? '' : 'none';
+    if (tab) tab.classList.toggle('active', s === section);
   });
-  if (section === 'dashboard') renderDashboard();
+  if (section === 'mantenimiento') renderMantenimientos();
 }
 
 function switchAlistTab(tab, el) {
