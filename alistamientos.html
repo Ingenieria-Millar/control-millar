@@ -197,6 +197,22 @@ tr:hover td{background:#f8fafc;}
 @keyframes tout{to{opacity:0;transform:translateX(20px);}}
 
 
+/* ── AUTOCOMPLETE ── */
+.autocomplete-wrap{position:relative;}
+.autocomplete-wrap input{width:100%;}
+.autocomplete-list{
+  position:absolute;top:100%;left:0;right:0;z-index:200;
+  background:#fff;border:1.5px solid var(--border);border-radius:10px;
+  box-shadow:0 8px 24px rgba(0,0,0,.1);max-height:220px;overflow-y:auto;
+  padding:4px 0;display:none;margin-top:2px;
+}
+.autocomplete-list.open{display:block;}
+.autocomplete-item{
+  padding:9px 14px;cursor:pointer;font-family:'Nunito',sans-serif;
+  font-size:13px;color:var(--text);transition:background .12s;
+}
+.autocomplete-item:hover,.autocomplete-item.active{background:#f1f5f9;color:#1e40af;}
+
 /* ── JS-generated classes ── */
 .modulo-card{background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:16px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.05);cursor:pointer;transition:all .2s;}
 .modulo-card:hover{border-color:#93c5fd;transform:translateY(-2px);}
@@ -543,9 +559,14 @@ tr:hover td{background:#f8fafc;}
           </div>
           <div class="form-group">
             <label class="form-label">Operaria</label>
-            <select class="form-select" name="operaria" id="mantOperaria">
-              <option value="">Seleccionar operaria...</option>
-            </select>
+            <div class="autocomplete-wrap">
+              <input type="text" class="form-input" id="mantOperariaInput" name="operaria"
+                placeholder="Escribe para buscar operaria..." autocomplete="off"
+                oninput="acFilter('mantOperariaInput','mantOperariaList',config.empleados||[])"
+                onfocus="acFilter('mantOperariaInput','mantOperariaList',config.empleados||[])"
+                onblur="setTimeout(()=>acClose('mantOperariaList'),200)">
+              <div class="autocomplete-list" id="mantOperariaList"></div>
+            </div>
           </div>
           <div class="form-group">
             <label class="form-label">Tipo de Máquina <span class="required">*</span></label>
@@ -557,10 +578,14 @@ tr:hover td{background:#f8fafc;}
           <div class="form-group">
             <label class="form-label">Serial <span class="required">*</span></label>
             <div style="display:flex;gap:8px;align-items:center;">
-              <select class="form-select" id="selectSerial" name="serialSelect" style="flex:1;display:none;" onchange="document.getElementById('mantSerial').value=this.value">
-                <option value="">Seleccionar serial...</option>
-              </select>
-              <input type="text" class="form-input" name="serial" id="mantSerial" required placeholder="Número de serial" style="flex:1">
+              <div class="autocomplete-wrap" style="flex:1;">
+                <input type="text" class="form-input" name="serial" id="mantSerial" required
+                  placeholder="Escribe para buscar serial..." autocomplete="off"
+                  oninput="acFilterSeriales('mantSerial','mantSerialList')"
+                  onfocus="acFilterSeriales('mantSerial','mantSerialList')"
+                  onblur="setTimeout(()=>acClose('mantSerialList'),200)">
+                <div class="autocomplete-list" id="mantSerialList"></div>
+              </div>
               <button type="button" class="btn btn-secondary" style="padding:8px 12px;white-space:nowrap;font-size:13px;" onclick="abrirQR('mant')" title="Escanear QR">📷 QR</button>
             </div>
           </div>
@@ -797,31 +822,25 @@ function startClock() {
 }
 
 async function loadConfig() {
-  // Módulos y mecánicos: primero intentar desde servidor (compartido entre dispositivos)
-  // Fallback a localStorage si el servidor no responde
-  let modulos   = [];
+  // ── Mecánicos desde /api/mecanicos ────────────────────────────
   let mecanicos = [];
   try {
-    const r = await fetch('/api/app-config');
-    if (r.ok) {
-      const serverCfg = await r.json();
-      modulos   = serverCfg._alist_modulos   || [];
-      mecanicos = serverCfg._alist_mecanicos || [];
-    }
+    const r = await fetch('/api/mecanicos');
+    if (r.ok) mecanicos = await r.json();
   } catch(e) {}
 
-  // Si el servidor no tiene datos, usar localStorage
-  if (!modulos.length || !mecanicos.length) {
-    const localCfg = getCfgLocal();
-    if (!modulos.length)   modulos   = localCfg.modulos   || [];
-    if (!mecanicos.length) mecanicos = localCfg.mecanicos || [];
+  // ── Módulos desde /api/modules (igual que tablero general) ────
+  let modulos = [];
+  try {
+    const r = await fetch('/api/modules');
+    if (r.ok) modulos = await r.json();
+  } catch(e) {}
+  if (!modulos.length) {
+    try {
+      const r = await fetch('/api/app-config');
+      if (r.ok) { const cfg = await r.json(); modulos = cfg._alist_modulos || []; }
+    } catch(e) {}
   }
-
-  // Actualizar localStorage con lo del servidor para uso offline
-  const localCfg = getCfgLocal();
-  if (modulos.length)   localCfg.modulos   = modulos;
-  if (mecanicos.length) localCfg.mecanicos = mecanicos;
-  localStorage.setItem(CFG_KEY, JSON.stringify(localCfg));
 
   // Máquinas desde /api/maquinaria — extraer tipos únicos
   let maquinas = [];
@@ -887,13 +906,7 @@ function _populateFormsNow() {
       }).join('');
   });
 
-  // Operaria — select con empleados
-  const selOp = document.getElementById('mantOperaria');
-  if (selOp) {
-    const emps = config.empleados || [];
-    selOp.innerHTML = '<option value="">Seleccionar operaria...</option>' +
-      emps.map(e => `<option value="${e}">${e}</option>`).join('');
-  }
+  // Operaria — autocompletado, no necesita populate (se filtra en tiempo real)
 
   // Filter supervisoras
   const fSup = document.getElementById('alistFilterSup');
@@ -924,6 +937,42 @@ function _populateFormsNow() {
     selMaqMant.innerHTML = '<option value="">Seleccionar tipo de máquina...</option>' +
       config.maquinas.map(m => `<option value="${m}">${m}</option>`).join('');
   }
+}
+
+// ── Autocompletado genérico ───────────────────────────────────────
+function acFilter(inputId, listId, items){
+  const input = document.getElementById(inputId);
+  const list  = document.getElementById(listId);
+  if (!input || !list) return;
+  const q = input.value.trim().toLowerCase();
+  const filtrados = q
+    ? items.filter(i => i.toLowerCase().includes(q))
+    : items;
+  if (!filtrados.length) { acClose(listId); return; }
+  list.innerHTML = filtrados.slice(0,50).map(i =>
+    `<div class="autocomplete-item" onmousedown="acSelect('${inputId}','${listId}','${i.replace(/'/g,"\\'")}')"> ${i}</div>`
+  ).join('');
+  list.classList.add('open');
+}
+
+function acFilterSeriales(inputId, listId){
+  const tipo = document.getElementById('hiddenMaquinaMant')?.value || '';
+  const lista = (window._maquinariaCompleta || [])
+    .filter(m => !tipo || (m.tipo||'').trim() === tipo)
+    .map(m => m.serial || '')
+    .filter(Boolean);
+  acFilter(inputId, listId, lista);
+}
+
+function acSelect(inputId, listId, value){
+  const input = document.getElementById(inputId);
+  if (input) input.value = value;
+  acClose(listId);
+}
+
+function acClose(listId){
+  const list = document.getElementById(listId);
+  if (list) list.classList.remove('open');
 }
 
 // ── Reconocimiento de voz (micrófono) ────────────────────────────
