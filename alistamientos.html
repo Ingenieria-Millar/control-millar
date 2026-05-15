@@ -1034,22 +1034,13 @@ function toggleMic(textareaId, btnId){
 
 // ── Filtrar seriales según tipo de máquina (ya definida arriba) ──
 function onTipoMaquinaChange(){
-  const tipo   = document.getElementById('selectMaquinaMant').value;
-  const selSer = document.getElementById('selectSerial');
+  const tipo = document.getElementById('selectMaquinaMant').value;
+  // Asignar siempre el valor al campo hidden
+  document.getElementById('hiddenMaquinaMant').value = tipo;
+  // Limpiar el campo de serial al cambiar tipo
   const inpSer = document.getElementById('mantSerial');
-  if (!selSer) return;
-  const lista = (window._maquinariaCompleta || []).filter(m => (m.tipo||'').trim() === tipo);
-  if (lista.length > 0) {
-    selSer.innerHTML = '<option value="">Seleccionar serial...</option>' +
-      lista.map(m => `<option value="${m.serial}">${m.serial}${m.codigo ? ' — '+m.codigo : ''}</option>`).join('');
-    selSer.style.display = '';
-    if (inpSer) inpSer.style.display = 'none';
-    document.getElementById('hiddenMaquinaMant').value = tipo;
-  } else {
-    selSer.style.display = 'none';
-    if (inpSer) { inpSer.style.display = ''; inpSer.value = ''; }
-    document.getElementById('hiddenMaquinaMant').value = tipo;
-  }
+  if (inpSer) inpSer.value = '';
+  acClose('mantSerialList');
 }
 
 // ===== RADIO SELECTOR =====
