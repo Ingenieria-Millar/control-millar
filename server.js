@@ -820,6 +820,11 @@ app.get('/api/recogedores-lista', (req, res) => {
   res.json([]);
 });
 
+app.get('/api/empleados', (req, res) => {
+  const emps = (iaState && iaState.employees) ? iaState.employees : [];
+  res.json(emps);
+});
+
 app.get('/api/mecanicos', (req, res) => {
   // Leer miembros del perfil "Mecanicos" desde app_config._perfil_members
   const appCfg = readJSON(FILES.app_config, {});
