@@ -826,7 +826,10 @@ async function init() {
   if (hastaEl) hastaEl.value = hoy;
   if (lblEl)   lblEl.textContent = `${hace30} → ${hoy}`;
 
-  await Promise.all([loadAlistamientos(), loadMantenimientos(), loadAlertas()]);
+  // Cargar datos en secuencia: primero config, luego datos
+  await loadAlistamientos();
+  await loadMantenimientos();
+  await loadAlertas();
   setInterval(loadAlertas, 30000);
 
   // Fecha dinámica en header
@@ -1115,7 +1118,21 @@ async function loadMantenimientos() {
   try {
     const r = await fetch(`${API}/api/mantenimientos`);
     mantenimientos = await r.json();
-    filtrarMantenimientos();
+    // Actualizar label con las fechas actuales antes de filtrar
+    const desde = document.getElementById('mant-fecha-desde')?.value || '';
+    const hasta  = document.getElementById('mant-fecha-hasta')?.value || '';
+    const lbl    = document.getElementById('lbl-fecha-mant');
+    const hoyStr = new Date().toISOString().split('T')[0];
+    if (lbl) {
+      if (desde === hoyStr && (hasta === hoyStr || !hasta)) {
+        lbl.textContent = 'Hoy';
+      } else if (desde && hasta) {
+        lbl.textContent = `${desde} → ${hasta}`;
+      } else if (desde) {
+        lbl.textContent = `desde ${desde}`;
+      }
+    }
+    renderMantenimientos(getMantFiltrados());
   } catch(e) { mantenimientos = []; }
 }
 
