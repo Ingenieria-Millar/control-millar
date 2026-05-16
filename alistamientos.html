@@ -28,7 +28,7 @@ window.addEventListener("load", function() { ScreenState.save(window.location.pa
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);font-family:'Nunito',sans-serif;color:var(--text);min-height:100vh;overflow-x:hidden;}
-body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(203,213,225,.4) 1px,transparent 1px),linear-gradient(90deg,rgba(203,213,225,.4) 1px,transparent 1px);background-size:28px 28px;pointer-events:none;z-index:0;}
+
 
 /* ── HEADER — igual a Control de Asistencia ── */
 header{
@@ -380,9 +380,26 @@ tr:hover td{background:#f8fafc;}
   <div id="section-mantenimiento" style="display:none">
     <div class="section-header">
       <div class="section-title">🔧 Área de <span class="teal">Mantenimiento</span></div>
-      <div class="section-actions">
-        <button class="btn-export" onclick="exportar('mantenimientos')">⬇️ Exportar Excel</button>
+      <div class="section-actions" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <button class="btn-export" onclick="toggleFechaPopup()" id="btn-fecha-mant">📅 Fecha: <span id="lbl-fecha-mant">Hoy</span></button>
+        <button class="btn-export" onclick="exportarMantenimientosExcel()">⬇️ Exportar Excel</button>
         <button class="btn btn-primary mant" onclick="abrirModalMantenimiento()">＋ Nuevo Mantenimiento</button>
+      </div>
+    </div>
+
+    <!-- Popup de fecha -->
+    <div id="fecha-popup-mant" style="display:none;position:absolute;background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:16px;z-index:100;margin-top:4px;">
+      <div style="font-size:11px;font-weight:800;letter-spacing:1px;color:#64748b;text-transform:uppercase;margin-bottom:10px;">Rango de fechas</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <label style="font-size:11px;color:#64748b;">Desde</label>
+          <input type="date" id="mant-fecha-desde" class="form-input" style="padding:8px 10px;font-size:13px;" onchange="aplicarFiltroFecha()">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <label style="font-size:11px;color:#64748b;">Hasta</label>
+          <input type="date" id="mant-fecha-hasta" class="form-input" style="padding:8px 10px;font-size:13px;" onchange="aplicarFiltroFecha()">
+        </div>
+        <button onclick="resetFecha()" style="padding:8px 12px;border-radius:8px;border:1.5px solid #e2e8f0;background:#f1f5f9;font-size:12px;font-weight:700;color:#64748b;cursor:pointer;margin-top:16px;">Hoy</button>
       </div>
     </div>
 
@@ -391,14 +408,6 @@ tr:hover td{background:#f8fafc;}
 
     <!-- Tabla -->
     <div class="table-panel">
-      <div class="toolbar">
-        <input class="search-input" placeholder="🔍 Buscar..." id="mantSearch" oninput="debounce(filtrarMantenimientos,300)()">
-        <select class="filter-select" id="mantFilterTipo" onchange="filtrarMantenimientos()">
-          <option value="">Todos los tipos</option>
-          <option>Preventivo</option><option>Correctivo</option><option>Mantenimiento de Fugas</option>
-        </select>
-        <input type="date" class="filter-select" id="mantFilterFecha" onchange="filtrarMantenimientos()">
-      </div>
       <div class="table-wrap">
         <table>
           <thead><tr><th>Tipo</th><th>Mecánico</th><th>Módulo</th><th>Máquina</th><th>Serial</th><th>Guía</th><th>Repuestos</th><th>Acciones</th><th>Fotos</th></tr></thead>
@@ -805,8 +814,18 @@ async function init() {
   populateForms();
   aplicarConfigAFormularios();
   await Promise.all([loadAlistamientos(), loadMantenimientos(), loadAlertas()]);
-  renderDashboard();
   setInterval(loadAlertas, 30000);
+
+  // Inicializar filtro de fecha en hoy
+  const hoy = new Date().toISOString().split('T')[0];
+  const desdeEl = document.getElementById('mant-fecha-desde');
+  const hastaEl = document.getElementById('mant-fecha-hasta');
+  if (desdeEl) desdeEl.value = hoy;
+  if (hastaEl) hastaEl.value = hoy;
+
+  // Mostrar mantenimiento directamente
+  switchSection('mantenimiento');
+  renderMantenimientos();
 
   // Fecha dinámica en header
   function updateAlistDate(){
@@ -1264,10 +1283,9 @@ function renderMantKPIs(rows){
   const conFotos  = rows.filter(r=>r.fotos&&r.fotos.length).length;
   const kpis = [
     { label:'Total', valor:total, color:'#1e40af', bg:'#eff6ff' },
-    { label:'Preventivos', valor:prev, color:'#0f766e', bg:'#f0fdf4' },
+    { label:'Preventivos', valor:prev, color:'#2563eb', bg:'#dbeafe' },
     { label:'Correctivos', valor:corr, color:'#dc2626', bg:'#fef2f2' },
-    { label:'Fugas', valor:fugas, color:'#2563eb', bg:'#eff6ff' },
-    { label:'Con fotos', valor:conFotos, color:'#7c3aed', bg:'#f5f3ff' },
+    { label:'Fugas', valor:fugas, color:'#0369a1', bg:'#e0f2fe' },
   ];
   el.innerHTML = kpis.map(k=>`
     <div style="background:${k.bg};border-radius:12px;padding:14px 16px;border:1px solid ${k.color}22;">
@@ -1351,18 +1369,76 @@ function filtrarAlistamientos() {
   renderAlistamientos(filtered);
 }
 
-function filtrarMantenimientos() {
-  const q = document.getElementById('mantSearch').value.toLowerCase();
-  const tipo = document.getElementById('mantFilterTipo').value;
-  const fecha = document.getElementById('mantFilterFecha').value;
-  const filtered = mantenimientos.filter(r => {
-    const txt = `${r.modulo} ${r.tipoMaquina} ${r.mecanico} ${r.serial}`.toLowerCase();
-    return (!q || txt.includes(q)) &&
-           (!tipo || r.tipoMantenimiento === tipo) &&
-           (!fecha || r.fecha === fecha);
-  });
-  renderMantenimientos(filtered);
+// ── Filtro de fecha mantenimiento ────────────────────────────────
+function toggleFechaPopup(){
+  const popup = document.getElementById('fecha-popup-mant');
+  popup.style.display = popup.style.display === 'none' ? 'block' : 'none';
 }
+
+function resetFecha(){
+  const hoy = new Date().toISOString().split('T')[0];
+  document.getElementById('mant-fecha-desde').value = hoy;
+  document.getElementById('mant-fecha-hasta').value = hoy;
+  document.getElementById('lbl-fecha-mant').textContent = 'Hoy';
+  document.getElementById('fecha-popup-mant').style.display = 'none';
+  aplicarFiltroFecha();
+}
+
+function aplicarFiltroFecha(){
+  const desde = document.getElementById('mant-fecha-desde').value;
+  const hasta  = document.getElementById('mant-fecha-hasta').value;
+  const lbl    = document.getElementById('lbl-fecha-mant');
+  const hoy    = new Date().toISOString().split('T')[0];
+  if (desde === hoy && (hasta === hoy || !hasta)) {
+    lbl.textContent = 'Hoy';
+  } else if (desde && hasta) {
+    lbl.textContent = `${desde} → ${hasta}`;
+  } else if (desde) {
+    lbl.textContent = `desde ${desde}`;
+  }
+  filtrarMantenimientos();
+}
+
+function getMantFiltrados(){
+  const desde = document.getElementById('mant-fecha-desde')?.value || '';
+  const hasta  = document.getElementById('mant-fecha-hasta')?.value || '';
+  return mantenimientos.filter(r => {
+    const f = r.fecha || '';
+    return (!desde || f >= desde) && (!hasta || f <= hasta);
+  });
+}
+
+function filtrarMantenimientos(){
+  renderMantenimientos(getMantFiltrados());
+}
+
+function exportarMantenimientosExcel(){
+  const rows = getMantFiltrados();
+  if (!rows.length) { showToast('No hay datos para exportar','warning'); return; }
+  const ws_data = [
+    ['Tipo','Mecánico','Módulo','Máquina','Serial','Guía','Repuestos','Observaciones','Fecha','Hora'],
+    ...rows.map(r => [
+      r.tipoMantenimiento||'', r.mecanico||'', r.modulo||'', r.tipoMaquina||'',
+      r.serial||'', r.numeroGuia||'', r.repuestos||'', r.observaciones||'',
+      r.fecha||'', r.hora||''
+    ])
+  ];
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(ws_data);
+  XLSX.utils.book_append_sheet(wb, ws, 'Mantenimiento');
+  const desde = document.getElementById('mant-fecha-desde')?.value || '';
+  const hasta  = document.getElementById('mant-fecha-hasta')?.value || '';
+  XLSX.writeFile(wb, `Mantenimiento_${desde||'todos'}_${hasta||''}.xlsx`);
+}
+
+// Cerrar popup al click fuera
+document.addEventListener('click', e => {
+  const popup = document.getElementById('fecha-popup-mant');
+  const btn   = document.getElementById('btn-fecha-mant');
+  if (popup && btn && !popup.contains(e.target) && !btn.contains(e.target)) {
+    popup.style.display = 'none';
+  }
+});
 
 // ===== GUARDAR ALISTAMIENTO =====
 async function guardarAlistamiento(e) {
