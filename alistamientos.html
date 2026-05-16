@@ -816,13 +816,15 @@ async function init() {
   populateForms();
   aplicarConfigAFormularios();
 
-  // Inicializar filtro de fecha: desde 30 días atrás hasta hoy para mostrar historial reciente
+  // Inicializar filtro de fecha: desde 30 días atrás hasta hoy
   const hoy = new Date().toISOString().split('T')[0];
   const hace30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
   const desdeEl = document.getElementById('mant-fecha-desde');
   const hastaEl = document.getElementById('mant-fecha-hasta');
+  const lblEl   = document.getElementById('lbl-fecha-mant');
   if (desdeEl) desdeEl.value = hace30;
   if (hastaEl) hastaEl.value = hoy;
+  if (lblEl)   lblEl.textContent = `${hace30} → ${hoy}`;
 
   await Promise.all([loadAlistamientos(), loadMantenimientos(), loadAlertas()]);
   setInterval(loadAlertas, 30000);
@@ -1113,7 +1115,7 @@ async function loadMantenimientos() {
   try {
     const r = await fetch(`${API}/api/mantenimientos`);
     mantenimientos = await r.json();
-    renderMantenimientos(getMantFiltrados());
+    filtrarMantenimientos();
   } catch(e) { mantenimientos = []; }
 }
 
