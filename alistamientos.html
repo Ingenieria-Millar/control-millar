@@ -767,7 +767,7 @@ tr:hover td{background:#f8fafc;}
 
 <!-- MODAL FOTOS -->
 <div class="modal-overlay" id="modalFotos" onclick="if(event.target===this)cerrarFotos()">
-  <div class="modal-box" style="max-width:600px;max-height:90vh;overflow-y:auto;">
+  <div class="modal" style="max-width:600px;max-height:90vh;overflow-y:auto;">
     <div class="modal-header">
       <div class="modal-title">📷 Fotos de Evidencia</div>
       <button class="modal-close" onclick="cerrarFotos()">✕</button>
@@ -775,6 +775,30 @@ tr:hover td{background:#f8fafc;}
     <div id="fotosGaleriaGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;padding:16px 0;"></div>
     <div style="text-align:center;padding-bottom:8px;">
       <button class="btn btn-secondary" onclick="cerrarFotos()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONTRASEÑA -->
+<div class="modal-overlay" id="modalClave" style="z-index:1000;">
+  <div class="modal" style="max-width:340px;">
+    <div class="modal-header">
+      <div class="modal-title" id="modalClaveTitle">🔒 Confirmar acción</div>
+      <button class="modal-close" onclick="cerrarModalClave()">✕</button>
+    </div>
+    <div class="modal-body" style="padding:20px 24px;">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">Ingresa la contraseña para continuar.</p>
+      <input type="password" id="modalClaveInput" class="form-input"
+        placeholder="" autocomplete="off"
+        onkeydown="if(event.key==='Enter')confirmarClave()"
+        style="border:1.5px solid #0f172a;font-size:18px;letter-spacing:4px;text-align:center;">
+      <div id="modalClaveError" style="display:none;color:#dc2626;font-size:12px;font-weight:700;margin-top:8px;text-align:center;">
+        ❌ Contraseña incorrecta
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="cerrarModalClave()">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmarClave()">✅ Confirmar</button>
     </div>
   </div>
 </div>
@@ -1315,33 +1339,35 @@ function cerrarFotos(){
 }
 
 function editarMantenimiento(id){
-  const r = mantenimientos.find(m=>m.id===id);
-  if (!r) return;
-  abrirModalMantenimiento();
-  setTimeout(()=>{
-    const form = document.getElementById('formMantenimiento');
-    if (!form) return;
-    form.dataset.editId = id;
-    document.getElementById('mantModulo').value          = r.modulo||'';
-    document.getElementById('mantMecanico').value        = r.mecanico||'';
-    document.getElementById('mantOperariaInput').value   = r.operaria||'';
-    document.getElementById('selectMaquinaMant').value   = r.tipoMaquina||'';
-    document.getElementById('hiddenMaquinaMant').value   = r.tipoMaquina||'';
-    document.getElementById('mantSerial').value          = r.serial||'';
-    document.getElementById('mantGuiaInput').value       = r.numeroGuia||'';
-    const repEl = form.querySelector('[name="repuestos"]');
-    if (repEl) repEl.value = r.repuestos||'';
-    document.getElementById('mantObs').value             = r.observaciones||'';
-    // Tipo de mantenimiento
-    document.querySelectorAll('[data-group="tipoMant"]').forEach(btn=>{
-      if(btn.dataset.value===r.tipoMantenimiento){
-        btn.click();
-      }
-    });
-    // Cambiar título
-    const title = document.querySelector('#modalMantenimiento .modal-title');
-    if (title) title.textContent = '✏️ Editar Mantenimiento';
-  }, 300);
+  pedirClave('✏️ Editar registro', () => {
+    const r = mantenimientos.find(m=>m.id===id);
+    if (!r) return;
+    abrirModalMantenimiento();
+    setTimeout(()=>{
+      const form = document.getElementById('formMantenimiento');
+      if (!form) return;
+      form.dataset.editId = id;
+      document.getElementById('mantModulo').value          = r.modulo||'';
+      document.getElementById('mantMecanico').value        = r.mecanico||'';
+      document.getElementById('mantOperariaInput').value   = r.operaria||'';
+      document.getElementById('selectMaquinaMant').value   = r.tipoMaquina||'';
+      document.getElementById('hiddenMaquinaMant').value   = r.tipoMaquina||'';
+      document.getElementById('mantSerial').value          = r.serial||'';
+      document.getElementById('mantGuiaInput').value       = r.numeroGuia||'';
+      const repEl = form.querySelector('[name="repuestos"]');
+      if (repEl) repEl.value = r.repuestos||'';
+      document.getElementById('mantObs').value             = r.observaciones||'';
+      // Tipo de mantenimiento
+      document.querySelectorAll('[data-group="tipoMant"]').forEach(btn=>{
+        if(btn.dataset.value===r.tipoMantenimiento){
+          btn.click();
+        }
+      });
+      // Cambiar título
+      const title = document.querySelector('#modalMantenimiento .modal-title');
+      if (title) title.textContent = '✏️ Editar Mantenimiento';
+    }, 300);
+  });
 }
 
 function fotosThumb(fotos) {
@@ -1532,16 +1558,50 @@ async function guardarMantenimiento(e) {
   }
 }
 
+// ===== MODAL CONTRASEÑA =====
+let _claveCallback = null;
+
+function pedirClave(titulo, callback) {
+  _claveCallback = callback;
+  document.getElementById('modalClaveTitle').textContent = titulo;
+  document.getElementById('modalClaveInput').value = '';
+  document.getElementById('modalClaveError').style.display = 'none';
+  document.getElementById('modalClave').classList.add('open');
+  setTimeout(() => document.getElementById('modalClaveInput').focus(), 150);
+}
+
+function confirmarClave() {
+  const val = document.getElementById('modalClaveInput').value;
+  if (val !== '1') {
+    document.getElementById('modalClaveError').style.display = 'block';
+    document.getElementById('modalClaveInput').value = '';
+    document.getElementById('modalClaveInput').focus();
+    return;
+  }
+  cerrarModalClave();
+  if (typeof _claveCallback === 'function') _claveCallback();
+  _claveCallback = null;
+}
+
+function cerrarModalClave() {
+  document.getElementById('modalClave').classList.remove('open');
+  document.getElementById('modalClaveInput').value = '';
+  document.getElementById('modalClaveError').style.display = 'none';
+  _claveCallback = null;
+}
+
 // ===== ELIMINAR =====
 async function eliminar(tipo, id) {
-  if (!confirm('¿Eliminar este registro?')) return;
-  try {
-    await fetch(`${API}/api/${tipo}/${id}`, { method:'DELETE' });
-    showToast('Registro eliminado','success');
-    if (tipo === 'alistamientos') { await loadAlistamientos(); }
-    else { await loadMantenimientos(); }
-    renderDashboard();
-  } catch(e) { showToast('Error al eliminar','error'); }
+  pedirClave('🗑️ Eliminar registro', async () => {
+    if (!confirm('¿Confirmas que deseas eliminar este registro? Esta acción no se puede deshacer.')) return;
+    try {
+      await fetch(`${API}/api/${tipo}/${id}`, { method:'DELETE' });
+      showToast('Registro eliminado','success');
+      if (tipo === 'alistamientos') { await loadAlistamientos(); }
+      else { await loadMantenimientos(); }
+      renderDashboard();
+    } catch(e) { showToast('Error al eliminar','error'); }
+  });
 }
 
 // ===== EXPORTAR =====
