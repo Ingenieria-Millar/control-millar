@@ -410,7 +410,7 @@ tr:hover td{background:#f8fafc;}
     <div class="table-panel">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Tipo</th><th>Mecánico</th><th>Módulo</th><th>Máquina</th><th>Serial</th><th>Guía</th><th>Repuestos</th><th>Acciones</th><th>Fotos</th></tr></thead>
+          <thead><tr><th>Tipo</th><th>Mecánico</th><th>Módulo</th><th>Máquina</th><th>Código</th><th>Serial</th><th>Guía</th><th>Repuestos</th><th>Fotos</th><th>Acciones</th></tr></thead>
           <tbody id="mantBody"></tbody>
         </table>
       </div>
@@ -765,15 +765,15 @@ tr:hover td{background:#f8fafc;}
 </div>
 
 <!-- MODAL FOTOS -->
-<div class="modal-overlay" id="modalFotos" style="display:none;">
+<div class="modal-overlay" id="modalFotos" onclick="if(event.target===this)cerrarFotos()">
   <div class="modal-box" style="max-width:600px;max-height:90vh;overflow-y:auto;">
     <div class="modal-header">
       <div class="modal-title">📷 Fotos de Evidencia</div>
-      <button class="modal-close" onclick="cerrarModal('modalFotos')">✕</button>
+      <button class="modal-close" onclick="cerrarFotos()">✕</button>
     </div>
     <div id="fotosGaleriaGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;padding:16px 0;"></div>
     <div style="text-align:center;padding-bottom:8px;">
-      <button class="btn btn-secondary" onclick="cerrarModal('modalFotos')">Cerrar</button>
+      <button class="btn btn-secondary" onclick="cerrarFotos()">Cerrar</button>
     </div>
   </div>
 </div>
@@ -1261,14 +1261,15 @@ function renderMantenimientos(data) {
       <td>${r.mecanico||'-'}</td>
       <td style="font-weight:700;">${r.modulo||'-'}</td>
       <td>${r.tipoMaquina||'-'}</td>
+      <td><code style="font-size:11px;background:#f1f5f9;padding:2px 6px;border-radius:4px;">${getMaqCodigo(r.serial,r.tipoMaquina)}</code></td>
       <td><code style="font-size:11px;background:var(--bg3);padding:2px 6px;border-radius:4px">${r.serial||'-'}</code></td>
       <td><span style="font-size:11px;font-weight:700;color:var(--teal)">${r.numeroGuia||'—'}</span></td>
       <td>${r.repuestos||'-'}</td>
+      <td>${r.fotos&&r.fotos.length?`<button class="btn" style="padding:4px 10px;font-size:11px;background:#f0fdf4;color:#15803d;border:1px solid #86efac;white-space:nowrap;" onclick="verFotos('${r.id}')">📷 Ver fotos (${r.fotos.length})</button>`:'<span style="color:#94a3b8;font-size:12px;">—</span>'}</td>
       <td style="white-space:nowrap;">
         <button class="btn" style="padding:4px 10px;font-size:11px;background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;margin-right:4px;" onclick="editarMantenimiento('${r.id}')">✏️</button>
         <button class="btn btn-danger" style="padding:4px 10px;font-size:11px" onclick="eliminar('mantenimientos','${r.id}')">🗑️</button>
       </td>
-      <td>${r.fotos&&r.fotos.length?`<button class="btn" style="padding:4px 10px;font-size:11px;background:#f0fdf4;color:#15803d;border:1px solid #86efac;white-space:nowrap;" onclick="verFotos('${r.id}')">📷 Ver fotos (${r.fotos.length})</button>`:'<span style="color:#94a3b8;font-size:12px;">—</span>'}</td>
     </tr>`).join('');
   renderMantKPIs(rows);
 }
@@ -1299,14 +1300,17 @@ function verFotos(id){
   if (!r || !r.fotos || !r.fotos.length) { showToast('Sin fotos', 'warning'); return; }
   const grid = document.getElementById('fotosGaleriaGrid');
   grid.innerHTML = r.fotos.map(f=>{
-    let url = f;
-    if (url && !url.startsWith('http') && !url.startsWith('/')) url = '/' + url;
-    if (!url.startsWith('/alistamiento/') && !url.startsWith('http')) url = '/alistamiento' + url;
+    const url = f.startsWith('http') ? f : f;
     return `<div style="border-radius:10px;overflow:hidden;cursor:pointer;" onclick="window.open('${url}','_blank')">
-      <img src="${url}" style="width:100%;height:140px;object-fit:cover;" onerror="this.parentElement.innerHTML='<div style=\\"height:140px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;color:#94a3b8;\\">Sin imagen</div>'">
+      <img src="${url}" style="width:100%;height:140px;object-fit:cover;" 
+        onerror="this.parentElement.innerHTML='<div style=\\"height:140px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:12px;\\">Sin imagen</div>'">
     </div>`;
   }).join('');
   document.getElementById('modalFotos').classList.add('open');
+}
+
+function cerrarFotos(){
+  document.getElementById('modalFotos').classList.remove('open');
 }
 
 function editarMantenimiento(id){
@@ -1367,6 +1371,14 @@ function filtrarAlistamientos() {
            (!fecha || r.fecha === fecha);
   });
   renderAlistamientos(filtered);
+}
+
+// ── Obtener código de máquina por serial ─────────────────────────
+function getMaqCodigo(serial, tipo){
+  if (!serial) return '—';
+  const lista = window._maquinariaCompleta || [];
+  const maq = lista.find(m => m.serial && m.serial.toLowerCase() === serial.toLowerCase());
+  return maq ? (maq.codigo || maq.code || maq.id || '—') : '—';
 }
 
 // ── Filtro de fecha mantenimiento ────────────────────────────────
