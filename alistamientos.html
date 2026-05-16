@@ -813,7 +813,7 @@ async function init() {
 
   startClock();
   await loadConfig();
-  populateForms();
+  _populateFormsNow();
   aplicarConfigAFormularios();
 
   // Inicializar filtro de fecha: desde 30 días atrás hasta hoy
@@ -1117,23 +1117,33 @@ async function loadAlistamientos() {
 async function loadMantenimientos() {
   try {
     const r = await fetch(`${API}/api/mantenimientos`);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
     mantenimientos = await r.json();
-    // Actualizar label con las fechas actuales antes de filtrar
-    const desde = document.getElementById('mant-fecha-desde')?.value || '';
-    const hasta  = document.getElementById('mant-fecha-hasta')?.value || '';
-    const lbl    = document.getElementById('lbl-fecha-mant');
-    const hoyStr = new Date().toISOString().split('T')[0];
-    if (lbl) {
-      if (desde === hoyStr && (hasta === hoyStr || !hasta)) {
-        lbl.textContent = 'Hoy';
-      } else if (desde && hasta) {
-        lbl.textContent = `${desde} → ${hasta}`;
-      } else if (desde) {
-        lbl.textContent = `desde ${desde}`;
-      }
+    if (!Array.isArray(mantenimientos)) mantenimientos = [];
+  } catch(e) {
+    // Reintento único después de 1 segundo si falla
+    await new Promise(res => setTimeout(res, 1000));
+    try {
+      const r2 = await fetch(`${API}/api/mantenimientos`);
+      if (r2.ok) mantenimientos = await r2.json();
+      if (!Array.isArray(mantenimientos)) mantenimientos = [];
+    } catch(e2) { mantenimientos = []; }
+  }
+  // Actualizar label con las fechas actuales antes de filtrar
+  const desde = document.getElementById('mant-fecha-desde')?.value || '';
+  const hasta  = document.getElementById('mant-fecha-hasta')?.value || '';
+  const lbl    = document.getElementById('lbl-fecha-mant');
+  const hoyStr = new Date().toISOString().split('T')[0];
+  if (lbl) {
+    if (desde === hoyStr && (hasta === hoyStr || !hasta)) {
+      lbl.textContent = 'Hoy';
+    } else if (desde && hasta) {
+      lbl.textContent = `${desde} → ${hasta}`;
+    } else if (desde) {
+      lbl.textContent = `desde ${desde}`;
     }
-    renderMantenimientos(getMantFiltrados());
-  } catch(e) { mantenimientos = []; }
+  }
+  renderMantenimientos(getMantFiltrados());
 }
 
 async function loadAlertas() {
@@ -1263,6 +1273,7 @@ function renderModulosGrid() {
 function renderMantenimientos(data) {
   const rows = data || mantenimientos;
   const tbody = document.getElementById('mantBody');
+  if (!tbody) return; // Seguridad: si el elemento no existe aún, salir sin error
   if (!rows.length) {
     tbody.innerHTML = `<tr><td colspan="9"><div style="text-align:center;padding:24px;color:#64748b;font-style:italic;"><div style="font-size:28px;margin-bottom:6px;">🔧</div><div>No hay registros de mantenimiento</div></div></td></tr>`;
     renderMantKPIs(rows);
@@ -1711,9 +1722,13 @@ function switchSection(section) {
     if (tab) tab.classList.toggle('active', s === section);
   });
   if (section === 'mantenimiento') {
-    // Actualizar label de fecha al entrar
     aplicarFiltroFecha();
-    renderMantenimientos(getMantFiltrados());
+    // Si no hay datos cargados, recargar del servidor
+    if (!mantenimientos.length) {
+      loadMantenimientos();
+    } else {
+      renderMantenimientos(getMantFiltrados());
+    }
   }
 }
 
