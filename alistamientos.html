@@ -380,41 +380,54 @@ tr:hover td{background:#f8fafc;}
 
   <!-- MANTENIMIENTO -->
   <div id="section-mantenimiento">
-    <div class="section-header">
-      <div class="section-title">🔧 Área de <span class="teal">Mantenimiento</span></div>
-      <div class="section-actions" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-        <button class="btn-export" onclick="toggleFechaPopup()" id="btn-fecha-mant">📅 Fecha: <span id="lbl-fecha-mant">Hoy</span></button>
-        <button class="btn-export" onclick="exportarMantenimientosExcel()">⬇️ Exportar Excel</button>
-        <button class="btn btn-primary mant" onclick="abrirModalMantenimiento()">＋ Nuevo Mantenimiento</button>
+
+    <!-- KPIs + Botones en la misma fila -->
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
+      <div id="mant-kpis" style="display:flex;flex-wrap:wrap;gap:12px;flex:1;"></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex-shrink:0;">
+        <!-- Botón Fecha con popup anclado -->
+        <div style="position:relative;">
+          <button class="btn-export" onclick="toggleFechaPopup()" id="btn-fecha-mant">📅 <span id="lbl-fecha-mant">Hoy</span></button>
+          <!-- Popup de fecha — anclado justo debajo del botón -->
+          <div id="fecha-popup-mant" style="display:none;position:absolute;top:calc(100% + 6px);right:0;background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:18px;z-index:300;min-width:220px;">
+            <div style="display:flex;flex-direction:column;gap:12px;">
+              <div style="display:flex;flex-direction:column;gap:4px;">
+                <label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">Desde</label>
+                <input type="date" id="mant-fecha-desde" class="form-input" style="padding:8px 10px;font-size:13px;">
+              </div>
+              <div style="display:flex;flex-direction:column;gap:4px;">
+                <label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">Hasta</label>
+                <input type="date" id="mant-fecha-hasta" class="form-input" style="padding:8px 10px;font-size:13px;">
+              </div>
+              <div style="display:flex;gap:8px;margin-top:4px;">
+                <button onclick="aplicarFiltroFechaYCerrar()" style="flex:1;padding:9px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">Filtrar</button>
+                <button onclick="resetFecha()" style="flex:1;padding:9px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:13px;font-weight:700;cursor:pointer;">Limpiar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button class="btn-export" onclick="exportarMantenimientosExcel()">📥 Exportar Excel</button>
+        <button class="btn btn-primary" style="background:linear-gradient(135deg,#1e3a8a,#2563eb);border:none;" onclick="abrirModalMantenimiento()">＋ Nuevo Mantenimiento</button>
       </div>
     </div>
-
-    <!-- Popup de fecha -->
-    <div id="fecha-popup-mant" style="display:none;position:absolute;background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:18px;z-index:200;margin-top:4px;min-width:220px;">
-      <div style="display:flex;flex-direction:column;gap:12px;">
-        <div style="display:flex;flex-direction:column;gap:4px;">
-          <label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">Desde</label>
-          <input type="date" id="mant-fecha-desde" class="form-input" style="padding:8px 10px;font-size:13px;">
-        </div>
-        <div style="display:flex;flex-direction:column;gap:4px;">
-          <label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">Hasta</label>
-          <input type="date" id="mant-fecha-hasta" class="form-input" style="padding:8px 10px;font-size:13px;">
-        </div>
-        <div style="display:flex;gap:8px;margin-top:4px;">
-          <button onclick="aplicarFiltroFechaYCerrar()" style="flex:1;padding:9px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">Filtrar</button>
-          <button onclick="resetFecha()" style="flex:1;padding:9px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:13px;font-weight:700;cursor:pointer;">Limpiar</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- KPIs -->
-    <div id="mant-kpis" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:20px;"></div>
 
     <!-- Tabla -->
     <div class="table-panel">
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Tipo</th><th>Mecánico</th><th>Módulo</th><th>Máquina</th><th>Código</th><th>Serial</th><th>Guía</th><th>Repuestos</th><th>Fotos</th><th>Acciones</th></tr></thead>
+      <div style="overflow-x:hidden;width:100%;">
+        <table style="width:100%;table-layout:fixed;">
+          <thead><tr>
+            <th style="width:100px;">Tipo</th>
+            <th style="width:130px;">Mecánico</th>
+            <th style="width:70px;">Módulo</th>
+            <th style="width:110px;">Máquina</th>
+            <th style="width:120px;">Código</th>
+            <th style="width:110px;">Serial</th>
+            <th style="width:110px;">Guía</th>
+            <th style="width:110px;">Repuestos</th>
+            <th style="width:50px;">Fotos</th>
+            <th style="width:50px;">Obs.</th>
+            <th style="width:90px;">Acciones</th>
+          </tr></thead>
           <tbody id="mantBody"></tbody>
         </table>
       </div>
@@ -1304,23 +1317,30 @@ function renderMantenimientos(data) {
     renderMantKPIs(rows);
     return;
   }
-  tbody.innerHTML = rows.map(r => `
-    <tr>
+  tbody.innerHTML = rows.map(r => {
+    const fotoBtn = r.fotos&&r.fotos.length
+      ? `<button class="btn" style="padding:4px 8px;font-size:14px;background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;" onclick="verFotos('${r.id}')">&#128247;</button>`
+      : '<span style="color:#94a3b8;">&#8212;</span>';
+    const obsBtn = r.observaciones
+      ? `<button class="btn" style="padding:4px 8px;font-size:14px;background:#f8fafc;color:#475569;border:1px solid #e2e8f0;" onclick="verObservacion('${r.id}')" title="Ver observaciones">&#128172;</button>`
+      : '<span style="color:#94a3b8;">&#8212;</span>';
+    return `<tr>
       <td>${tipoBadge(r.tipoMantenimiento)}</td>
-      <td>${r.mecanico||'-'}</td>
-      <td style="font-weight:700;">${r.modulo||'-'}</td>
-      <td>${r.tipoMaquina||'-'}</td>
-      <td><code style="font-size:11px;background:#f1f5f9;padding:2px 6px;border-radius:4px;">${getMaqCodigo(r.serial,r.tipoMaquina)}</code></td>
-      <td><code style="font-size:11px;background:var(--bg3);padding:2px 6px;border-radius:4px">${r.serial||'-'}</code></td>
-      <td><span style="font-size:11px;font-weight:700;color:var(--teal)">${r.numeroGuia||'—'}</span></td>
-      <td>${r.repuestos||'-'}</td>
-      <td>${r.fotos&&r.fotos.length?`<button class="btn" style="padding:4px 10px;font-size:14px;background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;" onclick="verFotos('${r.id}')">📷</button>`:'<span style="color:#94a3b8;font-size:12px;">—</span>'}</td>
-      <td style="white-space:nowrap;">
-        ${r.observaciones?`<button class="btn" style="padding:4px 10px;font-size:14px;background:#f8fafc;color:#475569;border:1px solid #e2e8f0;margin-right:4px;" onclick="verObservacion('${r.id}')" title="Ver observaciones">💬</button>`:''}
-        <button class="btn" style="padding:4px 10px;font-size:11px;background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;margin-right:4px;" onclick="editarMantenimiento('${r.id}')">✏️</button>
-        <button class="btn btn-danger" style="padding:4px 10px;font-size:11px" onclick="eliminar('mantenimientos','${r.id}')">🗑️</button>
+      <td style="font-size:12px;">${r.mecanico||'-'}</td>
+      <td style="font-weight:700;text-align:center;">${r.modulo||'-'}</td>
+      <td style="font-size:12px;">${r.tipoMaquina||'-'}</td>
+      <td><code style="font-size:10px;background:#f1f5f9;padding:2px 5px;border-radius:4px;word-break:break-all;">${getMaqCodigo(r.serial,r.tipoMaquina)}</code></td>
+      <td><code style="font-size:11px;background:var(--bg3);padding:2px 5px;border-radius:4px;">${r.serial||'-'}</code></td>
+      <td><span style="font-size:11px;font-weight:700;color:#0f172a;">${r.numeroGuia||'&mdash;'}</span></td>
+      <td style="font-size:12px;">${r.repuestos||'-'}</td>
+      <td style="text-align:center;">${fotoBtn}</td>
+      <td style="text-align:center;">${obsBtn}</td>
+      <td style="text-align:center;white-space:nowrap;">
+        <button class="btn" style="padding:4px 8px;font-size:12px;background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;margin-right:2px;" onclick="editarMantenimiento('${r.id}')">&#9999;&#65039;</button>
+        <button class="btn btn-danger" style="padding:4px 8px;font-size:12px;" onclick="eliminar('mantenimientos','${r.id}')">&#128465;&#65039;</button>
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
   renderMantKPIs(rows);
 }
 
@@ -1360,20 +1380,22 @@ function cerrarModalObs(){
 
 function buildFotoUrl(f) {
   if (!f) return '';
-  // Convertir a string y limpiar todo lo que no sea una ruta válida
-  let url = String(f).trim();
-  // Eliminar caracteres basura: quotes, >, <, espacios
-  url = url.replace(/["'<>]/g, '').trim();
+  // Limpiar comillas, <, >, espacios
+  let url = String(f).replace(/["'<>\s]/g, '').trim();
   if (!url) return '';
-  // Si ya es URL completa, devolver directo
+  // Si ya es URL completa
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
-  // Asegurar que empieza con /
-  if (!url.startsWith('/')) url = '/' + url;
-  // Evitar duplicar el prefijo /alistamiento
-  if (url.startsWith('/alistamiento/uploads/')) return url;
-  if (url.startsWith('/uploads/')) return '/alistamiento' + url;
-  if (!url.startsWith('/alistamiento/')) url = '/alistamiento' + url;
-  return url;
+  // Extraer solo el nombre del archivo si viene con ruta compleja
+  // Ejemplo: /uploads/1779104119246-abc.jpeg  o  uploads/1779104119246-abc.jpeg
+  // o incluso  /alistamiento/uploads/1779104119246-abc.jpeg
+  if (url.includes('/uploads/')) {
+    const parts = url.split('/uploads/');
+    const filename = parts[parts.length - 1];
+    return '/alistamiento/uploads/' + filename;
+  }
+  // Si es solo nombre de archivo
+  if (!url.startsWith('/')) return '/alistamiento/uploads/' + url;
+  return '/alistamiento/uploads/' + url.replace(/^\/+/, '');
 }
 
 function verFotos(id){
