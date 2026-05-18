@@ -383,27 +383,59 @@ tr:hover td{background:#f8fafc;}
 
   <!-- ALISTAMIENTO -->
   <div id="section-alistamiento" style="display:none">
-    <div class="section-header">
-      <div class="section-title">⚙️ Área de <span>Alistamiento</span></div>
-      <div class="section-actions">
-        <button class="btn-export" onclick="exportar('alistamientos')">⬇️ Exportar Excel</button>
-        <button class="btn btn-primary" onclick="abrirModalAlistamiento()">＋ Nuevo Alistamiento</button>
+
+    <!-- KPIs + Botones en la misma fila -->
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
+      <div id="alist-kpis" style="display:flex;flex-wrap:wrap;gap:12px;flex:1;"></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex-shrink:0;">
+        <!-- Botón Fecha con popup anclado -->
+        <div style="position:relative;">
+          <button class="btn-export" onclick="toggleAlistFechaPopup()" id="btn-fecha-alist">📅 <span id="lbl-fecha-alist">Hoy</span></button>
+          <div id="fecha-popup-alist" style="display:none;position:absolute;top:calc(100% + 6px);right:0;background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:18px;z-index:300;min-width:220px;">
+            <div style="display:flex;flex-direction:column;gap:12px;">
+              <div style="display:flex;flex-direction:column;gap:4px;">
+                <label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">Desde</label>
+                <input type="date" id="alist-fecha-desde" class="form-input" style="padding:8px 10px;font-size:13px;">
+              </div>
+              <div style="display:flex;flex-direction:column;gap:4px;">
+                <label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">Hasta</label>
+                <input type="date" id="alist-fecha-hasta" class="form-input" style="padding:8px 10px;font-size:13px;">
+              </div>
+              <div style="display:flex;gap:8px;margin-top:4px;">
+                <button onclick="aplicarAlistFiltroFechaYCerrar()" style="flex:1;padding:9px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">Filtrar</button>
+                <button onclick="resetAlistFecha()" style="flex:1;padding:9px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:13px;font-weight:700;cursor:pointer;">Limpiar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button class="btn-export" onclick="exportar('alistamientos')">📥 Exportar Excel</button>
+        <button class="btn btn-primary" style="background:linear-gradient(135deg,#1e3a8a,#2563eb);border:none;" onclick="abrirModalAlistamiento()">＋ Nuevo Alistamiento</button>
       </div>
     </div>
+
     <div class="inner-tabs">
       <div class="inner-tab active" onclick="switchAlistTab('registros',this)">📋 Registros</div>
       <div class="inner-tab" onclick="switchAlistTab('modulos',this)">🗂️ Vista Módulos</div>
     </div>
+
     <div id="alist-registros">
       <div class="table-panel">
-        <div class="toolbar">
-          <input class="search-input" placeholder="🔍 Buscar por módulo, máquina, mecánico..." id="alistSearch" oninput="debounce(filtrarAlistamientos,300)()">
-          <select class="filter-select" id="alistFilterSup" onchange="filtrarAlistamientos()"><option value="">Todas las supervisoras</option></select>
-          <input type="date" class="filter-select" id="alistFilterFecha" onchange="filtrarAlistamientos()">
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Módulo</th><th>Referencia</th><th>Máquina</th><th>Serial</th><th>Mecánico</th><th>Supervisor</th><th>Guía</th><th>Costura</th><th>Fecha</th><th>Hora</th><th>Estado</th><th>Fotos</th><th></th></tr></thead>
+        <div style="overflow-x:hidden;width:100%;">
+          <table style="width:100%;table-layout:fixed;">
+            <thead><tr>
+              <th style="width:70px;">Módulo</th>
+              <th style="width:100px;">Referencia</th>
+              <th style="width:110px;">Máquina</th>
+              <th style="width:90px;">Serial</th>
+              <th style="width:110px;">Mecánico</th>
+              <th style="width:100px;">Supervisor</th>
+              <th style="width:90px;">Guía</th>
+              <th style="width:90px;">Costura</th>
+              <th style="width:90px;">Fecha</th>
+              <th style="width:70px;">Hora</th>
+              <th style="width:50px;">Fotos</th>
+              <th style="width:90px;" id="th-alist-acciones">Acciones</th>
+            </tr></thead>
             <tbody id="alistBody"></tbody>
           </table>
         </div>
@@ -516,7 +548,7 @@ tr:hover td{background:#f8fafc;}
     </div>
     <div class="modal-body">
       <form id="formAlistamiento" onsubmit="guardarAlistamiento(event)">
-        <div class="form-grid">
+        <div style="display:flex;flex-direction:column;gap:14px;">
           <div class="form-group">
             <label class="form-label">Módulo <span class="required">*</span></label>
             <select class="form-select" name="modulo" required id="alistModulo"><option value="">Seleccionar módulo...</option></select>
@@ -525,18 +557,18 @@ tr:hover td{background:#f8fafc;}
             <label class="form-label">Referencia de Producción <span class="required">*</span></label>
             <input type="text" class="form-input" name="referencia" required placeholder="Ej: REF-2025-001" autocomplete="off">
           </div>
-          <div class="form-group span2">
+          <div class="form-group">
             <label class="form-label">Supervisora Responsable <span class="required">*</span></label>
             <div class="radio-group" id="radioSupervisoras"></div>
             <input type="hidden" name="supervisor" id="hiddenSupervisor" required>
           </div>
-          <div class="form-group span2" id="alist-mecanico-wrap">
+          <div class="form-group" id="alist-mecanico-wrap">
             <label class="form-label">Mecánico que Alista <span class="required">*</span></label>
             <select class="form-select" name="mecanico" required id="alistMecanico"><option value="">Seleccionar mecánico...</option></select>
           </div>
           <hr class="form-divider">
           <div class="form-section-title">🔩 Datos de la Máquina</div>
-          <div class="form-group span2">
+          <div class="form-group">
             <label class="form-label">Tipo de Máquina <span class="required">*</span></label>
             <div class="radio-group" id="radioMaquinas"></div>
             <input type="hidden" name="tipoMaquina" id="hiddenMaquina" required>
@@ -581,7 +613,7 @@ tr:hover td{background:#f8fafc;}
               <option>19</option><option>20</option>
             </select>
           </div>
-          <div class="form-group span2">
+          <div class="form-group">
             <label class="form-label">Número de Guía</label>
             <input type="text" class="form-input" name="numeroGuia" id="alistGuiaInput" placeholder="Digita código o N/A..." autocomplete="off">
             <div id="alistGuiaDesc" style="display:none;margin-top:6px;padding:8px 12px;background:rgba(37,99,235,.05);border:1.5px solid rgba(37,99,235,.15);border-radius:8px;font-size:12px;color:#1d4ed8;"></div>
@@ -604,7 +636,7 @@ tr:hover td{background:#f8fafc;}
             </div>
             <input type="hidden" name="muestraFisica" id="hiddenMuestra">
           </div>
-          <div class="form-group span2">
+          <div class="form-group">
             <label class="form-label">Prueba de Costura</label>
             <div class="radio-group">
               <span class="radio-btn" data-group="prueba" data-value="Aprobada" onclick="selectRadio(this,'prueba','hiddenPrueba','success')">✅ Aprobada</span>
@@ -612,11 +644,11 @@ tr:hover td{background:#f8fafc;}
             </div>
             <input type="hidden" name="pruebaCostura" id="hiddenPrueba">
           </div>
-          <div class="form-group span2">
+          <div class="form-group">
             <label class="form-label">Observaciones</label>
             <textarea class="form-textarea" name="observaciones" placeholder="Notas adicionales..."></textarea>
           </div>
-          <div class="form-group span2">
+          <div class="form-group">
             <label class="form-label">Fotos de Evidencia</label>
             <div class="photo-area" onclick="document.getElementById('fotosAlist').click()">
               📷 Toca para adjuntar fotos desde cámara o galería
@@ -1368,30 +1400,84 @@ function tipoBadge(tipo) {
 }
 
 // ===== RENDER ALISTAMIENTOS =====
+function renderAlistKPIs(rows) {
+  const el = document.getElementById('alist-kpis');
+  if (!el) return;
+  const total      = rows.length;
+  const aprobados  = rows.filter(r => r.pruebaCostura === 'Aprobada').length;
+  const rechazados = rows.filter(r => r.pruebaCostura === 'Rechazada').length;
+  const obs        = rows.filter(r => r.pruebaCostura === 'Observación' || (!r.pruebaCostura && r.observaciones)).length;
+  const kpis = [
+    { valor: total,      label: 'Total',      color: '#2563eb', bg: '#eff6ff' },
+    { valor: aprobados,  label: 'Aprobados',  color: '#16a34a', bg: '#f0fdf4' },
+    { valor: rechazados, label: 'Rechazados', color: '#dc2626', bg: '#fef2f2' },
+    { valor: obs,        label: 'Observación',color: '#d97706', bg: '#fffbeb' },
+  ];
+  el.innerHTML = kpis.map(k => `
+    <div style="background:${k.bg};border-radius:12px;padding:14px 20px;border:1px solid ${k.color}22;min-width:110px;flex:1;max-width:160px;">
+      <div style="font-size:26px;font-weight:800;color:${k.color};line-height:1;">${k.valor}</div>
+      <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-top:4px;">${k.label}</div>
+    </div>`).join('');
+}
+
 function renderAlistamientos(data) {
-  const rows = data || alistamientos;
+  const rows = data || getAlistFiltrados();
   const tbody = document.getElementById('alistBody');
+  if (!tbody) return;
+
+  // Agregar fila de filtros al thead si no existe
+  const thead = tbody.closest('table') && tbody.closest('table').querySelector('thead');
+  if (thead && !document.getElementById('alist-filter-row')) {
+    const filterRow = document.createElement('tr');
+    filterRow.id = 'alist-filter-row';
+    const cols = ['modulo','referencia','maquina','serial','mecanico','supervisor','guia','costura','fecha','hora','',''];
+    filterRow.innerHTML = cols.map(function(c) {
+      if (!c) return '<td style="padding:4px;"></td>';
+      return '<td style="padding:4px 3px;">' +
+        '<input type="text" id="af-' + c + '" placeholder="Buscar..." ' +
+        'style="width:100%;padding:4px 6px;font-size:11px;border:1px solid #e2e8f0;border-radius:6px;outline:none;box-sizing:border-box;color:#334155;" ' +
+        'oninput="filtrarAlistamientos()" ' +
+        'onfocus="this.style.borderColor=\'#2563eb\'" onblur="this.style.borderColor=\'#e2e8f0\'">' +
+        '</td>';
+    }).join('');
+    thead.appendChild(filterRow);
+  }
+
+  // Mostrar/ocultar columna acciones
+  const thAcc = document.getElementById('th-alist-acciones');
+  if (thAcc) thAcc.style.display = mecanicoActual === 'ADMINISTRADOR' ? '' : 'none';
+
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="12"><div style="text-align:center;padding:24px;color:#64748b;font-style:italic;"><div style="font-size:28px;margin-bottom:6px;">⚙️</div><div>No hay registros de alistamiento</div></div></td></tr>`;
+    tbody.innerHTML = '<tr><td colspan="12"><div style="text-align:center;padding:24px;color:#64748b;font-style:italic;"><div style="font-size:28px;margin-bottom:6px;">⚙️</div><div>No hay registros de alistamiento</div></div></td></tr>';
+    renderAlistKPIs(rows);
     return;
   }
-  tbody.innerHTML = rows.map(r => `
-    <tr>
-      <td style="font-weight:700;">${r.modulo}</td>
-      <td>${r.referencia||'-'}</td>
-      <td>${r.tipoMaquina||'-'}</td>
-      <td><code style="font-size:11px;background:var(--bg3);padding:2px 6px;border-radius:4px">${r.serial||'-'}</code></td>
-      <td>${r.mecanico||'-'}</td>
-      <td>${r.supervisor||'-'}</td>
-      <td><span style="font-size:11px;font-weight:700;color:var(--blue)">${r.numeroGuia||'—'}</span></td>
-      <td>${estadoBadge(r.pruebaCostura)}</td>
-      <td>${r.fecha||'-'}</td>
-      <td>${r.hora||'-'}</td>
-      <td>${fotosThumb(r.fotos)}</td>
-      <td><button class="btn btn-danger" style="padding:4px 10px;font-size:11px" onclick="eliminar('alistamientos','${r.id}')">🗑️</button></td>
-    </tr>`).join('');
 
-  // Módulos grid
+  const esAdmin = mecanicoActual === 'ADMINISTRADOR';
+  tbody.innerHTML = rows.map(function(r) {
+    const fotoBtn = r.fotos && r.fotos.length
+      ? '<button class="btn" style="padding:4px 8px;font-size:14px;background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;" onclick="verFotos(\'' + r.id + '\')">&#128247;</button>'
+      : '<span style="color:#94a3b8;">&#8212;</span>';
+    const accionBtn = esAdmin
+      ? '<button class="btn" style="padding:4px 8px;font-size:12px;background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;margin-right:2px;" onclick="editarAlistamiento(\'' + r.id + '\')">&#9999;&#65039;</button>' +
+        '<button class="btn btn-danger" style="padding:4px 8px;font-size:12px;" onclick="eliminar(\'alistamientos\',\'' + r.id + '\')">&#128465;&#65039;</button>'
+      : '<span style="color:#94a3b8;">&#8212;</span>';
+    return '<tr>' +
+      '<td style="' + TD + 'font-weight:700;">' + (r.modulo||'-') + '</td>' +
+      '<td style="' + TD + '">' + (r.referencia||'-') + '</td>' +
+      '<td style="' + TD + '">' + (r.tipoMaquina||'-') + '</td>' +
+      '<td style="' + TD + '"><code style="font-size:11px;background:var(--bg3);padding:2px 5px;border-radius:4px;">' + (r.serial||'-') + '</code></td>' +
+      '<td style="' + TD + '">' + (r.mecanico||'-') + '</td>' +
+      '<td style="' + TD + '">' + (r.supervisor||'-') + '</td>' +
+      '<td style="' + TD + '">' + (r.numeroGuia||'—') + '</td>' +
+      '<td>' + estadoBadge(r.pruebaCostura) + '</td>' +
+      '<td style="' + TD + '">' + (r.fecha||'-') + '</td>' +
+      '<td style="' + TD + '">' + (r.hora||'-') + '</td>' +
+      '<td style="text-align:center;">' + fotoBtn + '</td>' +
+      '<td style="text-align:center;white-space:nowrap;" class="td-alist-acc">' + accionBtn + '</td>' +
+    '</tr>';
+  }).join('');
+  renderAlistKPIs(rows);
   renderModulosGrid();
 }
 
@@ -1619,18 +1705,81 @@ function fotosThumb(fotos) {
   }).join('')}</div>`;
 }
 
+// ── Filtro de fecha alistamiento ─────────────────────────────────
+function toggleAlistFechaPopup(){
+  const popup = document.getElementById('fecha-popup-alist');
+  if (popup) popup.style.display = popup.style.display === 'none' ? 'block' : 'none';
+}
+
+function resetAlistFecha(){
+  const hoy = new Date().toISOString().split('T')[0];
+  document.getElementById('alist-fecha-desde').value = hoy;
+  document.getElementById('alist-fecha-hasta').value = hoy;
+  document.getElementById('lbl-fecha-alist').textContent = 'Hoy';
+  document.getElementById('fecha-popup-alist').style.display = 'none';
+  filtrarAlistamientos();
+}
+
+function aplicarAlistFiltroFechaYCerrar(){
+  const desde = document.getElementById('alist-fecha-desde').value;
+  const hasta  = document.getElementById('alist-fecha-hasta').value;
+  const lbl    = document.getElementById('lbl-fecha-alist');
+  const hoy    = new Date().toISOString().split('T')[0];
+  if (desde === hoy && (hasta === hoy || !hasta)) {
+    lbl.textContent = 'Hoy';
+  } else if (desde && hasta && desde === hasta) {
+    lbl.textContent = desde;
+  } else if (desde && hasta) {
+    lbl.textContent = desde + ' → ' + hasta;
+  } else if (desde) {
+    lbl.textContent = 'desde ' + desde;
+  } else {
+    lbl.textContent = 'Todas las fechas';
+  }
+  document.getElementById('fecha-popup-alist').style.display = 'none';
+  filtrarAlistamientos();
+}
+
+function getAlistFiltrados(){
+  const desde = document.getElementById('alist-fecha-desde')?.value || '';
+  const hasta  = document.getElementById('alist-fecha-hasta')?.value || '';
+  let rows = alistamientos;
+  // Filtrar por mecánico logueado (excepto ADMINISTRADOR)
+  if (mecanicoActual && mecanicoActual !== 'ADMINISTRADOR') {
+    rows = rows.filter(r => (r.mecanico||'').toLowerCase() === mecanicoActual.toLowerCase());
+  }
+  if (!desde && !hasta) return rows;
+  return rows.filter(r => {
+    const f = (r.fecha||'').substring(0,10);
+    return (!desde || f >= desde) && (!hasta || f <= hasta);
+  });
+}
+
 // ===== FILTROS =====
 function filtrarAlistamientos() {
-  const q = document.getElementById('alistSearch').value.toLowerCase();
-  const sup = document.getElementById('alistFilterSup').value;
-  const fecha = document.getElementById('alistFilterFecha').value;
-  const filtered = alistamientos.filter(r => {
-    const txt = `${r.modulo} ${r.tipoMaquina} ${r.mecanico} ${r.referencia} ${r.serial}`.toLowerCase();
-    return (!q || txt.includes(q)) &&
-           (!sup || r.supervisor === sup) &&
-           (!fecha || r.fecha === fecha);
-  });
-  renderAlistamientos(filtered);
+  const get = id => (document.getElementById(id)||{value:''}).value.trim().toLowerCase();
+  const qMod  = get('af-modulo');
+  const qRef  = get('af-referencia');
+  const qMaq  = get('af-maquina');
+  const qSer  = get('af-serial');
+  const qMec  = get('af-mecanico');
+  const qSup  = get('af-supervisor');
+  const qGui  = get('af-guia');
+  const qCos  = get('af-costura');
+  const qFec  = get('af-fecha');
+  const qHor  = get('af-hora');
+  let rows = getAlistFiltrados();
+  if (qMod)  rows = rows.filter(r => (r.modulo||'').toLowerCase().includes(qMod));
+  if (qRef)  rows = rows.filter(r => (r.referencia||'').toLowerCase().includes(qRef));
+  if (qMaq)  rows = rows.filter(r => (r.tipoMaquina||'').toLowerCase().includes(qMaq));
+  if (qSer)  rows = rows.filter(r => (r.serial||'').toLowerCase().includes(qSer));
+  if (qMec)  rows = rows.filter(r => (r.mecanico||'').toLowerCase().includes(qMec));
+  if (qSup)  rows = rows.filter(r => (r.supervisor||'').toLowerCase().includes(qSup));
+  if (qGui)  rows = rows.filter(r => (r.numeroGuia||'').toLowerCase().includes(qGui));
+  if (qCos)  rows = rows.filter(r => (r.pruebaCostura||'').toLowerCase().includes(qCos));
+  if (qFec)  rows = rows.filter(r => (r.fecha||'').toLowerCase().includes(qFec));
+  if (qHor)  rows = rows.filter(r => (r.hora||'').toLowerCase().includes(qHor));
+  renderAlistamientos(rows);
 }
 
 // ── Obtener código de máquina por serial ─────────────────────────
@@ -2082,6 +2231,20 @@ function switchSection(section) {
     if (sec) sec.style.display = s === section ? '' : 'none';
     if (tab) tab.classList.toggle('active', s === section);
   });
+  if (section === 'alistamiento') {
+    // Inicializar fecha si no está puesta
+    const hoy = new Date().toISOString().split('T')[0];
+    const desdeEl = document.getElementById('alist-fecha-desde');
+    const hastaEl = document.getElementById('alist-fecha-hasta');
+    const lblEl   = document.getElementById('lbl-fecha-alist');
+    if (desdeEl && !desdeEl.value) desdeEl.value = hoy;
+    if (hastaEl && !hastaEl.value) hastaEl.value = hoy;
+    if (lblEl   && lblEl.textContent === 'Hoy') lblEl.textContent = 'Hoy';
+    // Ocultar columna acciones para mecánicos
+    const thAcc = document.getElementById('th-alist-acciones');
+    if (thAcc) thAcc.style.display = mecanicoActual === 'ADMINISTRADOR' ? '' : 'none';
+    renderAlistamientos(getAlistFiltrados());
+  }
   if (section === 'mantenimiento') {
     // Ocultar columna acciones para mecánicos
     const thAcc = document.getElementById('th-acciones');
