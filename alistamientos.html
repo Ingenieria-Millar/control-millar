@@ -424,8 +424,8 @@ tr:hover td{background:#f8fafc;}
       <img id="ml-logo-img" src="" alt="Millar">
     </div>
     <div class="ml-eyebrow">Confecciones Millar</div>
-    <div class="ml-headline">Área de <em>Mantenimiento</em></div>
-    <div class="ml-sub">Preventivo · Correctivo · Fugas</div>
+    <div class="ml-headline" id="ml-login-title">Área de <em>Mantenimiento</em></div>
+    <div class="ml-sub" id="ml-login-sub">Preventivo · Correctivo · Fugas</div>
   </div>
   <div class="ml-right">
     <div class="ml-card">
@@ -497,7 +497,7 @@ tr:hover td{background:#f8fafc;}
             <th style="width:110px;">Repuestos</th>
             <th style="width:50px;">Fotos</th>
             <th style="width:50px;">Obs.</th>
-            <th style="width:90px;">Acciones</th>
+            <th style="width:90px;" id="th-acciones">Acciones</th>
           </tr></thead>
           <tbody id="mantBody"></tbody>
         </table>
@@ -530,9 +530,9 @@ tr:hover td{background:#f8fafc;}
             <div class="radio-group" id="radioSupervisoras"></div>
             <input type="hidden" name="supervisor" id="hiddenSupervisor" required>
           </div>
-          <div class="form-group span2">
+          <div class="form-group span2" id="alist-mecanico-wrap">
             <label class="form-label">Mecánico que Alista <span class="required">*</span></label>
-            <select class="form-select" name="mecanico" required><option value="">Seleccionar mecánico...</option></select>
+            <select class="form-select" name="mecanico" required id="alistMecanico"><option value="">Seleccionar mecánico...</option></select>
           </div>
           <hr class="form-divider">
           <div class="form-section-title">🔩 Datos de la Máquina</div>
@@ -948,8 +948,19 @@ async function init() {
   const mlLogo = document.getElementById('ml-logo-img');
   if (hdLogo && mlLogo) mlLogo.src = hdLogo.src;
 
-  // Ir directamente a mantenimiento sin pasar por dashboard
-  if (seccion === 'mantenimiento') {
+  // Actualizar título del login según sección
+  const seccionLogin = new URLSearchParams(window.location.search).get('seccion') || 'mantenimiento';
+  const titleEl = document.getElementById('ml-login-title');
+  const subEl   = document.getElementById('ml-login-sub');
+  if (titleEl) titleEl.innerHTML = seccionLogin === 'alistamiento'
+    ? 'Área de <em>Alistamiento</em>'
+    : 'Área de <em>Mantenimiento</em>';
+  if (subEl) subEl.textContent = seccionLogin === 'alistamiento'
+    ? 'Preparación de máquinas · Pruebas de costura'
+    : 'Preventivo · Correctivo · Fugas';
+
+  // Mostrar login para AMBAS secciones
+  if (seccion === 'mantenimiento' || seccion === 'alistamiento') {
     await poblarSelectLogin();
     document.getElementById('mant-login').style.display = 'flex';
   } else {
@@ -1448,8 +1459,10 @@ function renderMantenimientos(data) {
       '<td style="text-align:center;">' + fotoBtn + '</td>' +
       '<td style="text-align:center;">' + obsBtn + '</td>' +
       '<td style="text-align:center;white-space:nowrap;">' +
-        '<button class="btn" style="padding:4px 8px;font-size:12px;background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;margin-right:2px;" onclick="editarMantenimiento(\'' + r.id + '\')">&#9999;&#65039;</button>' +
-        '<button class="btn btn-danger" style="padding:4px 8px;font-size:12px;" onclick="eliminar(\'mantenimientos\',\'' + r.id + '\')">&#128465;&#65039;</button>' +
+        (mecanicoActual === 'ADMINISTRADOR' ?
+          '<button class="btn" style="padding:4px 8px;font-size:12px;background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;margin-right:2px;" onclick="editarMantenimiento(\'' + r.id + '\')">&#9999;&#65039;</button>' +
+          '<button class="btn btn-danger" style="padding:4px 8px;font-size:12px;" onclick="eliminar(\'mantenimientos\',\'' + r.id + '\')">&#128465;&#65039;</button>'
+          : '<span style="color:#94a3b8;font-size:12px;">—</span>') +
       '</td>' +
     '</tr>';
   }).join('');
@@ -1743,6 +1756,10 @@ async function guardarAlistamiento(e) {
   } else if (selectAguja) {
     formData.set('tipoAguja', selectAguja.value);
   }
+  // Si no es ADMINISTRADOR, usar el mecánico logueado
+  if (mecanicoActual && mecanicoActual !== 'ADMINISTRADOR') {
+    formData.set('mecanico', mecanicoActual);
+  }
   // Validar hidden fields
   if (!formData.get('supervisor')) { showToast('Selecciona una supervisora','error'); return; }
   if (!formData.get('tipoMaquina')) { showToast('Selecciona el tipo de máquina','error'); return; }
@@ -1933,6 +1950,12 @@ function toggleAlerts() { return; // alerts panel removed
 
 // ===== MODALS =====
 function abrirModalAlistamiento(modulo) {
+  const esAdmin = mecanicoActual === 'ADMINISTRADOR';
+  // Ocultar campo mecánico para no-admins
+  const mecWrap = document.getElementById('alist-mecanico-wrap');
+  const mecSel  = document.getElementById('alistMecanico');
+  if (mecWrap) mecWrap.style.display = esAdmin ? '' : 'none';
+  if (mecSel)  mecSel.required = esAdmin;
   // Repoblar selects con datos frescos cada vez que se abre
   (async () => {
     await loadConfig();
@@ -2032,7 +2055,10 @@ function confirmarLoginMant() {
   if (nav)   { nav.style.display = esAdmin ? '' : 'none'; }
 
   document.getElementById('mant-login').style.display = 'none';
-  switchSection('mantenimiento');
+  // Ir a la sección según la URL
+  const params  = new URLSearchParams(window.location.search);
+  const seccion = params.get('seccion') || 'mantenimiento';
+  switchSection(seccion);
 }
 
 function getMantFiltradosPorMecanico(rows) {
@@ -2057,6 +2083,9 @@ function switchSection(section) {
     if (tab) tab.classList.toggle('active', s === section);
   });
   if (section === 'mantenimiento') {
+    // Ocultar columna acciones para mecánicos
+    const thAcc = document.getElementById('th-acciones');
+    if (thAcc) thAcc.style.display = mecanicoActual === 'ADMINISTRADOR' ? '' : 'none';
     aplicarFiltroFecha();
     if (!mantenimientos.length) {
       loadMantenimientos();
