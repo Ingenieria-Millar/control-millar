@@ -1730,15 +1730,12 @@ async function guardarMantenimiento(e) {
   if (!formData.get('tipoMantenimiento')) { showToast('Selecciona el tipo de mantenimiento','error'); return; }
   if (!formData.get('tipoMaquina'))       { showToast('Selecciona el tipo de máquina','error'); return; }
 
-  // Usar _mantFotosFiles en lugar del input directo
-  if (_mantFotosFiles.length) {
-    _mantFotosFiles.forEach(f => formData.append('fotos', f));
-  } else {
-    const fotosInput = document.getElementById('fotosMant');
-    if (fotosInput && fotosInput.files.length) {
-      Array.from(fotosInput.files).forEach(f => formData.append('fotos', f));
-    }
-  }
+  // Eliminar el campo fotos que viene del form HTML (viene vacío o duplicado)
+  formData.delete('fotos');
+
+  // Agregar fotos desde _mantFotosFiles (máximo 10 según servidor)
+  const fotosParaEnviar = _mantFotosFiles.slice(0, 10);
+  fotosParaEnviar.forEach(f => formData.append('fotos', f));
 
   const editId = form.dataset.editId;
   if (editId) formData.append('id', editId);
