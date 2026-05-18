@@ -673,8 +673,8 @@ tr:hover td{background:#f8fafc;}
       </form>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="cerrarModal('modalMantenimiento')">Cancelar</button>
-      <button class="btn btn-primary mant" onclick="document.getElementById('submitMant').click()">💾 Guardar Mantenimiento</button>
+      <button class="btn btn-danger" onclick="cerrarModal('modalMantenimiento')">Cancelar</button>
+      <button class="btn btn-primary" style="background:linear-gradient(135deg,#1e3a8a,#2563eb);border:none;" onclick="document.getElementById('submitMant').click()">💾 Guardar Mantenimiento</button>
     </div>
   </div>
 </div>
@@ -838,15 +838,14 @@ async function init() {
   _populateFormsNow();
   aplicarConfigAFormularios();
 
-  // Inicializar filtro de fecha: desde 30 días atrás hasta hoy
+  // Filtro de fecha: por defecto "Hoy" sin rango previo
   const hoy = new Date().toISOString().split('T')[0];
-  const hace30 = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
   const desdeEl = document.getElementById('mant-fecha-desde');
   const hastaEl = document.getElementById('mant-fecha-hasta');
   const lblEl   = document.getElementById('lbl-fecha-mant');
-  if (desdeEl) desdeEl.value = hace30;
+  if (desdeEl) desdeEl.value = hoy;
   if (hastaEl) hastaEl.value = hoy;
-  if (lblEl)   lblEl.textContent = `${hace30} → ${hoy}`;
+  if (lblEl)   lblEl.textContent = 'Hoy';
 
   // Cargar datos en secuencia: primero config, luego datos
   await loadAlistamientos();
@@ -1308,38 +1307,60 @@ function renderModulosGrid() {
 }
 
 // ===== RENDER MANTENIMIENTOS =====
+// Estilo uniforme para celdas de datos
+const TD = 'font-size:13px;color:#334155;';
+
 function renderMantenimientos(data) {
   const rows = data || mantenimientos;
   const tbody = document.getElementById('mantBody');
-  if (!tbody) return; // Seguridad: si el elemento no existe aún, salir sin error
+  if (!tbody) return;
+
+  // Agregar fila de filtros al thead si no existe
+  const thead = tbody.closest('table') && tbody.closest('table').querySelector('thead');
+  if (thead && !document.getElementById('mant-filter-row')) {
+    const filterRow = document.createElement('tr');
+    filterRow.id = 'mant-filter-row';
+    const cols = ['tipo','mecanico','modulo','maquina','codigo','serial','guia','repuestos','','',''];
+    filterRow.innerHTML = cols.map(function(c) {
+      if (!c) return '<td style="padding:4px;"></td>';
+      return '<td style="padding:4px 3px;">' +
+        '<input type="text" id="mf-' + c + '" placeholder="Buscar..." ' +
+        'style="width:100%;padding:4px 6px;font-size:11px;border:1px solid #e2e8f0;border-radius:6px;outline:none;box-sizing:border-box;color:#334155;" ' +
+        'oninput="filtrarMantenimientos()" ' +
+        'onfocus="this.style.borderColor=\'#2563eb\'" onblur="this.style.borderColor=\'#e2e8f0\'">' +
+        '</td>';
+    }).join('');
+    thead.appendChild(filterRow);
+  }
+
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="9"><div style="text-align:center;padding:24px;color:#64748b;font-style:italic;"><div style="font-size:28px;margin-bottom:6px;">🔧</div><div>No hay registros de mantenimiento</div></div></td></tr>`;
+    tbody.innerHTML = '<tr><td colspan="11"><div style="text-align:center;padding:24px;color:#64748b;font-style:italic;"><div style="font-size:28px;margin-bottom:6px;">&#128295;</div><div>No hay registros de mantenimiento</div></div></td></tr>';
     renderMantKPIs(rows);
     return;
   }
-  tbody.innerHTML = rows.map(r => {
-    const fotoBtn = r.fotos&&r.fotos.length
-      ? `<button class="btn" style="padding:4px 8px;font-size:14px;background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;" onclick="verFotos('${r.id}')">&#128247;</button>`
+  tbody.innerHTML = rows.map(function(r) {
+    var fotoBtn = r.fotos && r.fotos.length
+      ? '<button class="btn" style="padding:4px 8px;font-size:14px;background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;" onclick="verFotos(\'' + r.id + '\')">&#128247;</button>'
       : '<span style="color:#94a3b8;">&#8212;</span>';
-    const obsBtn = r.observaciones
-      ? `<button class="btn" style="padding:4px 8px;font-size:14px;background:#f8fafc;color:#475569;border:1px solid #e2e8f0;" onclick="verObservacion('${r.id}')" title="Ver observaciones">&#128172;</button>`
+    var obsBtn = r.observaciones
+      ? '<button class="btn" style="padding:4px 8px;font-size:14px;background:#f8fafc;color:#475569;border:1px solid #e2e8f0;" onclick="verObservacion(\'' + r.id + '\')" title="Ver observaciones">&#128172;</button>'
       : '<span style="color:#94a3b8;">&#8212;</span>';
-    return `<tr>
-      <td>${tipoBadge(r.tipoMantenimiento)}</td>
-      <td style="font-size:12px;">${r.mecanico||'-'}</td>
-      <td style="font-weight:700;text-align:center;">${r.modulo||'-'}</td>
-      <td style="font-size:12px;">${r.tipoMaquina||'-'}</td>
-      <td><code style="font-size:10px;background:#f1f5f9;padding:2px 5px;border-radius:4px;word-break:break-all;">${getMaqCodigo(r.serial,r.tipoMaquina)}</code></td>
-      <td><code style="font-size:11px;background:var(--bg3);padding:2px 5px;border-radius:4px;">${r.serial||'-'}</code></td>
-      <td><span style="font-size:11px;font-weight:700;color:#0f172a;">${r.numeroGuia||'&mdash;'}</span></td>
-      <td style="font-size:12px;">${r.repuestos||'-'}</td>
-      <td style="text-align:center;">${fotoBtn}</td>
-      <td style="text-align:center;">${obsBtn}</td>
-      <td style="text-align:center;white-space:nowrap;">
-        <button class="btn" style="padding:4px 8px;font-size:12px;background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;margin-right:2px;" onclick="editarMantenimiento('${r.id}')">&#9999;&#65039;</button>
-        <button class="btn btn-danger" style="padding:4px 8px;font-size:12px;" onclick="eliminar('mantenimientos','${r.id}')">&#128465;&#65039;</button>
-      </td>
-    </tr>`;
+    return '<tr>' +
+      '<td>' + tipoBadge(r.tipoMantenimiento) + '</td>' +
+      '<td style="' + TD + '">' + (r.mecanico||'-') + '</td>' +
+      '<td style="' + TD + 'text-align:center;">' + (r.modulo||'-') + '</td>' +
+      '<td style="' + TD + '">' + (r.tipoMaquina||'-') + '</td>' +
+      '<td style="' + TD + '"><code style="font-size:11px;background:#f1f5f9;padding:2px 5px;border-radius:4px;">' + getMaqCodigo(r.serial,r.tipoMaquina) + '</code></td>' +
+      '<td style="' + TD + '"><code style="font-size:11px;background:var(--bg3);padding:2px 5px;border-radius:4px;">' + (r.serial||'-') + '</code></td>' +
+      '<td style="' + TD + '">' + (r.numeroGuia||'&mdash;') + '</td>' +
+      '<td style="' + TD + '">' + (r.repuestos||'-') + '</td>' +
+      '<td style="text-align:center;">' + fotoBtn + '</td>' +
+      '<td style="text-align:center;">' + obsBtn + '</td>' +
+      '<td style="text-align:center;white-space:nowrap;">' +
+        '<button class="btn" style="padding:4px 8px;font-size:12px;background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;margin-right:2px;" onclick="editarMantenimiento(\'' + r.id + '\')">&#9999;&#65039;</button>' +
+        '<button class="btn btn-danger" style="padding:4px 8px;font-size:12px;" onclick="eliminar(\'mantenimientos\',\'' + r.id + '\')">&#128465;&#65039;</button>' +
+      '</td>' +
+    '</tr>';
   }).join('');
   renderMantKPIs(rows);
 }
@@ -1359,9 +1380,9 @@ function renderMantKPIs(rows){
     { label:'Fugas', valor:fugas, color:'#0369a1', bg:'#e0f2fe' },
   ];
   el.innerHTML = kpis.map(k=>`
-    <div style="background:${k.bg};border-radius:12px;padding:14px 16px;border:1px solid ${k.color}22;">
-      <div style="font-size:22px;font-weight:800;color:${k.color};">${k.valor}</div>
-      <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">${k.label}</div>
+    <div style="background:${k.bg};border-radius:12px;padding:14px 20px;border:1px solid ${k.color}22;min-width:110px;flex:1;max-width:160px;">
+      <div style="font-size:26px;font-weight:800;color:${k.color};line-height:1;">${k.valor}</div>
+      <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-top:4px;">${k.label}</div>
     </div>`).join('');
 }
 
@@ -1567,7 +1588,25 @@ function getMantFiltrados(){
 }
 
 function filtrarMantenimientos(){
-  renderMantenimientos(getMantFiltrados());
+  const get = id => (document.getElementById(id)||{value:''}).value.trim().toLowerCase();
+  const qTipo    = get('mf-tipo');
+  const qMec     = get('mf-mecanico');
+  const qMod     = get('mf-modulo');
+  const qMaq     = get('mf-maquina');
+  const qCod     = get('mf-codigo');
+  const qSer     = get('mf-serial');
+  const qGuia    = get('mf-guia');
+  const qRep     = get('mf-repuestos');
+  let rows = getMantFiltrados();
+  if (qTipo)  rows = rows.filter(r => (r.tipoMantenimiento||'').toLowerCase().includes(qTipo));
+  if (qMec)   rows = rows.filter(r => (r.mecanico||'').toLowerCase().includes(qMec));
+  if (qMod)   rows = rows.filter(r => (r.modulo||'').toLowerCase().includes(qMod));
+  if (qMaq)   rows = rows.filter(r => (r.tipoMaquina||'').toLowerCase().includes(qMaq));
+  if (qCod)   rows = rows.filter(r => getMaqCodigo(r.serial,r.tipoMaquina).toLowerCase().includes(qCod));
+  if (qSer)   rows = rows.filter(r => (r.serial||'').toLowerCase().includes(qSer));
+  if (qGuia)  rows = rows.filter(r => (r.numeroGuia||'').toLowerCase().includes(qGuia));
+  if (qRep)   rows = rows.filter(r => (r.repuestos||'').toLowerCase().includes(qRep));
+  renderMantenimientos(rows);
 }
 
 function exportarMantenimientosExcel(){
