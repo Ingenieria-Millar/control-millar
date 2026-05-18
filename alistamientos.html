@@ -619,7 +619,7 @@ tr:hover td{background:#f8fafc;}
           </div>
           <div class="form-group">
             <label class="form-label">Número de Guía</label>
-            <input type="text" class="form-input" name="numeroGuia" id="mantGuiaInput" autocomplete="off">
+            <input type="text" class="form-input" name="numeroGuia" id="mantGuiaInput" autocomplete="off" placeholder="Escribe para buscar referencia...">
             <div id="mantGuiaDesc" style="display:none;margin-top:6px;padding:8px 12px;background:rgba(13,148,136,.05);border:1.5px solid rgba(13,148,136,.15);border-radius:8px;font-size:12px;color:#0f766e;"></div>
           </div>
 
@@ -829,6 +829,7 @@ async function init() {
   // Cargar datos en secuencia: primero config, luego datos
   await loadAlistamientos();
   await loadMantenimientos();
+  await loadGuiasReferencias();
   await loadAlertas();
   setInterval(loadAlertas, 30000);
 
@@ -2046,26 +2047,25 @@ function cerrarQR() {
   qrDatosLeidos = null;
 }
 
-// ===== INVENTARIO DE GUÍAS =====
-// Estructura: { fecha, mes, tipoMaquina, tipoGuia, anchoEntrada, doblez, consecutivo, codigo, responsable, observaciones }
-let inventarioGuias = [
-  // Ejemplo: { fecha:'2/03/2026', mes:'MARZO', tipoMaquina:'RECUBRIDORA', tipoGuia:'RS', anchoEntrada:'3 CM', doblez:'SENCILLO', consecutivo:10, codigo:'RS-3-S-10', responsable:'LINA RAMIREZ', observaciones:'' }
-];
+// ===== GUÍAS DESDE SERVIDOR =====
+let inventarioGuias = [];
 
-// Cuando el programador conecte el API, descomentar y ajustar:
-// async function loadGuias() {
-//   try {
-//     const r = await fetch(`${API}/api/guias`);
-//     inventarioGuias = await r.json();
-//   } catch(e) { inventarioGuias = []; }
-// }
+async function loadGuiasReferencias() {
+  try {
+    const r = await fetch('/api/guias');
+    if (r.ok) inventarioGuias = await r.json();
+    else inventarioGuias = [];
+  } catch(e) { inventarioGuias = []; }
+}
 
+// ===== AUTOCOMPLETE GUÍAS =====
 function initGuiaAutocomplete(inputId, descId) {
   const input = document.getElementById(inputId);
   const desc  = document.getElementById(descId);
-  if (!input || !desc) return;
+  if (!input) return;
 
-  // Crear dropdown
+  const esMant = (inputId === 'mantGuiaInput');
+
   let dropdown = document.getElementById(inputId + '_drop');
   if (!dropdown) {
     dropdown = document.createElement('div');
@@ -2075,59 +2075,84 @@ function initGuiaAutocomplete(inputId, descId) {
     input.parentNode.appendChild(dropdown);
   }
 
+  let _valido = false;
+
   input.addEventListener('input', () => {
+    _valido = false;
     const q = input.value.trim().toLowerCase();
-    desc.textContent = '';
-    desc.style.display = 'none';
+    if (desc) { desc.textContent = ''; desc.style.display = 'none'; }
     if (!q) { dropdown.style.display = 'none'; return; }
 
-    // Siempre incluir N/A
-    const naMatch = 'n/a'.includes(q);
-    const matches = inventarioGuias.filter(g =>
-      g.codigo?.toLowerCase().includes(q) ||
-      g.tipoGuia?.toLowerCase().includes(q) ||
-      g.tipoMaquina?.toLowerCase().includes(q)
-    ).slice(0, 10);
-
-    if (!matches.length && !naMatch) { dropdown.style.display = 'none'; return; }
-
-    dropdown.innerHTML = '';
-
-    if (naMatch || !q) {
-      const naItem = document.createElement('div');
-      naItem.textContent = 'N/A — Sin guía';
-      naItem.style.cssText = 'padding:10px 14px;cursor:pointer;font-size:13px;color:#64748b;font-style:italic;border-bottom:1px solid #f1f5f9;';
-      naItem.onmousedown = () => {
-        input.value = 'N/A';
-        desc.textContent = 'Sin guía asignada';
-        desc.style.display = 'block';
-        dropdown.style.display = 'none';
-      };
-      naItem.onmouseover = () => naItem.style.background = '#f8fafc';
-      naItem.onmouseout  = () => naItem.style.background = '';
-      dropdown.appendChild(naItem);
+    let matches;
+    if (esMant) {
+      matches = inventarioGuias
+        .filter(g => (g.referencia || '').toLowerCase().includes(q))
+        .slice(0, 12);
+    } else {
+      const naMatch = 'n/a'.includes(q);
+      matches = inventarioGuias.filter(g =>
+        g.codigo?.toLowerCase().includes(q) ||
+        g.tipoGuia?.toLowerCase().includes(q) ||
+        g.tipoMaquina?.toLowerCase().includes(q)
+      ).slice(0, 10);
+      if (!matches.length && !naMatch) { dropdown.style.display = 'none'; return; }
     }
 
+    if (!matches.length) {
+      dropdown.innerHTML = '<div style="padding:12px 14px;font-size:13px;color:#94a3b8;font-style:italic;">Sin resultados</div>';
+      dropdown.style.display = 'block';
+      return;
+    }
+
+    dropdown.innerHTML = '';
     matches.forEach(g => {
       const item = document.createElement('div');
       item.style.cssText = 'padding:10px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid #f1f5f9;';
-      item.innerHTML = `<strong style="color:var(--blue)">${g.codigo}</strong> <span style="color:#64748b;font-size:11px;">— ${g.tipoMaquina} | ${g.tipoGuia} | ${g.anchoEntrada} | ${g.doblez}</span>`;
-      item.onmousedown = () => {
-        input.value = g.codigo;
-        desc.innerHTML = `<span style="color:#0f172a">📋 ${g.tipoMaquina}</span> &nbsp;·&nbsp; Tipo: <b>${g.tipoGuia}</b> &nbsp;·&nbsp; Ancho: <b>${g.anchoEntrada}</b> &nbsp;·&nbsp; Doblez: <b>${g.doblez}</b>${g.responsable ? ' &nbsp;·&nbsp; Resp: <b>'+g.responsable+'</b>' : ''}`;
-        desc.style.display = 'block';
-        dropdown.style.display = 'none';
-      };
+      if (esMant) {
+        item.innerHTML = '<strong style="color:var(--blue)">' + g.referencia + '</strong>' +
+          (g.maquina ? ' <span style="color:#64748b;font-size:11px;">— ' + g.maquina + '</span>' : '');
+        item.onmousedown = () => {
+          input.value = g.referencia;
+          _valido = true;
+          if (desc) {
+            desc.innerHTML = g.maquina ? '📋 Máquina: <b>' + g.maquina + '</b>' : '📋 Guía seleccionada';
+            desc.style.display = 'block';
+          }
+          dropdown.style.display = 'none';
+        };
+      } else {
+        item.innerHTML = '<strong style="color:var(--blue)">' + g.codigo + '</strong> <span style="color:#64748b;font-size:11px;">— ' + g.tipoMaquina + ' | ' + g.tipoGuia + '</span>';
+        item.onmousedown = () => {
+          input.value = g.codigo;
+          _valido = true;
+          if (desc) {
+            desc.innerHTML = '<span style="color:#0f172a">📋 ' + g.tipoMaquina + '</span> &nbsp;·&nbsp; Tipo: <b>' + g.tipoGuia + '</b>';
+            desc.style.display = 'block';
+          }
+          dropdown.style.display = 'none';
+        };
+      }
       item.onmouseover = () => item.style.background = '#f8fafc';
       item.onmouseout  = () => item.style.background = '';
       dropdown.appendChild(item);
     });
-
     dropdown.style.display = 'block';
   });
 
-  input.addEventListener('blur', () => setTimeout(() => { dropdown.style.display = 'none'; }, 150));
-  input.addEventListener('focus', () => { if (input.value.trim()) input.dispatchEvent(new Event('input')); });
+  input.addEventListener('blur', () => {
+    setTimeout(() => {
+      dropdown.style.display = 'none';
+      if (esMant && !_valido) {
+        input.value = '';
+        if (desc) { desc.textContent = ''; desc.style.display = 'none'; }
+      }
+    }, 180);
+  });
+
+  input.addEventListener('focus', () => {
+    _valido = !!input.value.trim();
+    if (input.value.trim()) input.dispatchEvent(new Event('input'));
+  });
 }
 
 // ===== START =====
