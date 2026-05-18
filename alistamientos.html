@@ -1399,8 +1399,10 @@ function confirmarPass() {
     document.getElementById('modalPassInput').focus();
     return;
   }
-  cerrarModalPass();
-  if (_passCallback) _passCallback();
+  const cb = _passCallback;
+  _passCallback = null;
+  document.getElementById('modalPass').classList.remove('open');
+  if (typeof cb === 'function') cb();
 }
 
 function editarMantenimiento(id){
@@ -2386,7 +2388,7 @@ init();
 
 <!-- MODAL CONTRASEÑA — Editar / Eliminar -->
 <div class="modal-overlay" id="modalPass" onclick="if(event.target===this)cerrarModalPass()">
-  <div class="modal-box" style="max-width:340px;padding:28px 24px;text-align:center;">
+  <div class="modal-box" style="max-width:340px;padding:28px 24px;text-align:center;" onclick="event.stopPropagation()">
     <div style="font-size:32px;margin-bottom:8px;">🔒</div>
     <div class="modal-title" style="margin-bottom:6px;font-size:18px;" id="modalPassTitulo">Confirmar acción</div>
     <div style="font-size:13px;color:#64748b;margin-bottom:18px;" id="modalPassDesc">Ingresa la contraseña para continuar</div>
@@ -2398,7 +2400,7 @@ init();
     <div id="modalPassError" style="color:#dc2626;font-size:12px;min-height:18px;margin-bottom:10px;"></div>
     <div style="display:flex;gap:10px;justify-content:center;">
       <button class="btn btn-secondary" onclick="cerrarModalPass()">Cancelar</button>
-      <button class="btn btn-danger" id="modalPassBtn" onclick="confirmarPass()">Confirmar</button>
+      <button class="btn btn-danger" id="modalPassBtn" onclick="event.stopPropagation();confirmarPass()">Confirmar</button>
     </div>
   </div>
 </div>
