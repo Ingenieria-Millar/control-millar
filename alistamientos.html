@@ -1259,10 +1259,10 @@ function estadoBadge(prueba) {
 }
 
 function tipoBadge(tipo) {
-  if (tipo === 'Preventivo') return '<span class="badge badge badge-teal">Preventivo</span>';
-  if (tipo === 'Correctivo') return '<span class="badge badge badge-red">Correctivo</span>';
-  if (tipo === 'Mantenimiento de Fugas') return '<span class="badge badge badge-yellow">Fugas</span>';
-  return `<span class="badge badge-info">${tipo||'-'}</span>`;
+  if (tipo === 'Preventivo')           return '<span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:rgba(234,179,8,.12);color:#a16207;">Preventivo</span>';
+  if (tipo === 'Correctivo')           return '<span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:rgba(239,68,68,.12);color:#dc2626;">Correctivo</span>';
+  if (tipo === 'Mantenimiento de Fugas') return '<span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:rgba(37,99,235,.1);color:#1d4ed8;">Fugas</span>';
+  return '<span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:#f1f5f9;color:#64748b;">' + (tipo||'-') + '</span>';
 }
 
 // ===== RENDER ALISTAMIENTOS =====
@@ -1401,22 +1401,19 @@ function cerrarModalObs(){
 
 function buildFotoUrl(f) {
   if (!f) return '';
-  // Limpiar comillas, <, >, espacios
+  // Limpiar comillas, <, >, espacios y cualquier caracter no válido en URL
   let url = String(f).replace(/["'<>\s]/g, '').trim();
   if (!url) return '';
-  // Si ya es URL completa
+  // URL completa — devolver directo
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
-  // Extraer solo el nombre del archivo si viene con ruta compleja
-  // Ejemplo: /uploads/1779104119246-abc.jpeg  o  uploads/1779104119246-abc.jpeg
-  // o incluso  /alistamiento/uploads/1779104119246-abc.jpeg
+  // Extraer solo el nombre del archivo de cualquier ruta que contenga /uploads/
   if (url.includes('/uploads/')) {
-    const parts = url.split('/uploads/');
-    const filename = parts[parts.length - 1];
+    const filename = url.split('/uploads/').pop();
     return '/alistamiento/uploads/' + filename;
   }
-  // Si es solo nombre de archivo
-  if (!url.startsWith('/')) return '/alistamiento/uploads/' + url;
-  return '/alistamiento/uploads/' + url.replace(/^\/+/, '');
+  // Si empieza con / quitar el slash y tratar como nombre de archivo
+  url = url.replace(/^\/+/, '');
+  return '/alistamiento/uploads/' + url;
 }
 
 function verFotos(id){
@@ -1678,40 +1675,94 @@ async function guardarAlistamiento(e) {
 }
 
 // ===== GUARDAR MANTENIMIENTO =====
+// Array para rastrear archivos seleccionados (permite eliminar antes de guardar)
+let _mantFotosFiles = [];
+
+function previewFotos(input, previewId) {
+  const container = document.getElementById(previewId);
+  container.innerHTML = '';
+  // Si es el input de mantenimiento, sincronizar con _mantFotosFiles
+  if (input.id === 'fotosMant') {
+    _mantFotosFiles = Array.from(input.files);
+  }
+  const files = input.id === 'fotosMant' ? _mantFotosFiles : Array.from(input.files);
+  files.forEach((file, idx) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const div = document.createElement('div');
+      div.className = 'photo-preview';
+      div.dataset.idx = idx;
+      div.innerHTML = `<img src="${e.target.result}"><button class="photo-remove" onclick="removePhoto(this,'${input.id}','${previewId}')">✕</button>`;
+      container.appendChild(div);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function removePhoto(btn, inputId, previewId) {
+  const div = btn.closest('.photo-preview');
+  const idx = parseInt(div.dataset.idx);
+  if (inputId === 'fotosMant') {
+    _mantFotosFiles.splice(idx, 1);
+    // Reconstruir input files no es posible directamente, usamos _mantFotosFiles
+    // Re-renderizar preview
+    const container = document.getElementById(previewId);
+    container.innerHTML = '';
+    _mantFotosFiles.forEach((file, i) => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const d = document.createElement('div');
+        d.className = 'photo-preview';
+        d.dataset.idx = i;
+        d.innerHTML = `<img src="${e.target.result}"><button class="photo-remove" onclick="removePhoto(this,'${inputId}','${previewId}')">✕</button>`;
+        container.appendChild(d);
+      };
+      reader.readAsDataURL(file);
+    });
+  } else {
+    div.remove();
+  }
+}
+
 async function guardarMantenimiento(e) {
   e.preventDefault();
   const form = document.getElementById('formMantenimiento');
   const formData = new FormData(form);
   if (!formData.get('tipoMantenimiento')) { showToast('Selecciona el tipo de mantenimiento','error'); return; }
-  if (!formData.get('tipoMaquina')) { showToast('Selecciona el tipo de máquina','error'); return; }
+  if (!formData.get('tipoMaquina'))       { showToast('Selecciona el tipo de máquina','error'); return; }
 
-  const fotosInput = document.getElementById('fotosMant');
-  if (fotosInput.files.length) {
-    Array.from(fotosInput.files).forEach(f => formData.append('fotos', f));
+  // Usar _mantFotosFiles en lugar del input directo
+  if (_mantFotosFiles.length) {
+    _mantFotosFiles.forEach(f => formData.append('fotos', f));
+  } else {
+    const fotosInput = document.getElementById('fotosMant');
+    if (fotosInput && fotosInput.files.length) {
+      Array.from(fotosInput.files).forEach(f => formData.append('fotos', f));
+    }
   }
 
   const editId = form.dataset.editId;
   if (editId) formData.append('id', editId);
 
   try {
-    const url = editId ? `${API}/api/mantenimientos/${editId}` : `${API}/api/mantenimientos`;
+    const url    = editId ? `${API}/api/mantenimientos/${editId}` : `${API}/api/mantenimientos`;
     const method = editId ? 'PUT' : 'POST';
-    const r = await fetch(url, { method, body:formData });
+    const r    = await fetch(url, { method, body: formData });
     const data = await r.json();
     if (data.success) {
-      showToast(editId ? '✅ Mantenimiento actualizado' : '✅ Mantenimiento guardado correctamente','success');
+      showToast(editId ? '✅ Mantenimiento actualizado' : '✅ Mantenimiento guardado','success');
       cerrarModal('modalMantenimiento');
       form.reset();
       form.dataset.editId = '';
+      _mantFotosFiles = [];
       resetRadios();
-      // Restaurar título
       const title = document.querySelector('#modalMantenimiento .modal-title');
       if (title) title.textContent = '🔧 Nuevo Mantenimiento';
       await loadMantenimientos();
-      await loadAlertas();
-      renderDashboard();
+    } else {
+      showToast('Error: ' + (data.error||'No se pudo guardar'),'error');
     }
-  } catch(e) {
+  } catch(err) {
     showToast('Error al guardar. Verifica la conexión.','error');
   }
 }
@@ -1799,10 +1850,13 @@ function abrirModalMantenimiento() {
     _populateFormsNow();
     if (!inventarioGuias.length) await loadGuiasReferencias();
   })();
-  // Resetear campo de guía
+  // Resetear campo de guía y fotos
   const guiaInput = document.getElementById('mantGuiaInput');
   if (guiaInput) guiaInput.value = '';
   acClose('mantGuiaList');
+  _mantFotosFiles = [];
+  const prevMant = document.getElementById('previewMant');
+  if (prevMant) prevMant.innerHTML = '';
   document.getElementById('modalMantenimiento').classList.add('open');
 }
 
@@ -1820,21 +1874,6 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
 });
 
 // ===== FOTO PREVIEW =====
-function previewFotos(input, previewId) {
-  const container = document.getElementById(previewId);
-  container.innerHTML = '';
-  Array.from(input.files).forEach((file, idx) => {
-    const reader = new FileReader();
-    reader.onload = e => {
-      const div = document.createElement('div');
-      div.className = 'photo-preview';
-      div.innerHTML = `<img src="${e.target.result}"><button class="photo-remove" onclick="removePhoto(this,${idx})">✕</button>`;
-      container.appendChild(div);
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
 // ===== NAVIGATION =====
 function switchSection(section) {
   ['dashboard','alistamiento','mantenimiento'].forEach(s => {
