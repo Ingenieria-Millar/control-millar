@@ -1401,18 +1401,21 @@ function cerrarModalObs(){
 
 function buildFotoUrl(f) {
   if (!f) return '';
-  // Limpiar comillas, <, >, espacios
-  let url = String(f).replace(/["'<>\s]/g, '').trim();
+  // Limpiar comillas, <, >, espacios al inicio/fin
+  let url = String(f).replace(/["'<>]/g, '').trim();
   if (!url) return '';
   // URL completa
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
   // Extraer nombre del archivo de cualquier variante de ruta
-  // Maneja: /uploads/, /upload/, /alistamiento/uploads/, /alistamiento/upload/
   const match = url.match(/\/uploads?\/(.+)$/);
-  if (match) return '/alistamiento/uploads/' + match[1];
-  // Si no tiene slash, es solo el nombre del archivo
+  if (match) {
+    // Codificar caracteres especiales del nombre (espacios, paréntesis, etc.)
+    const filename = match[1].split('/').map(encodeURIComponent).join('/');
+    return '/alistamiento/uploads/' + filename;
+  }
+  // Solo nombre de archivo
   url = url.replace(/^\/+/, '');
-  return '/alistamiento/uploads/' + url;
+  return '/alistamiento/uploads/' + encodeURIComponent(url);
 }
 
 function verFotos(id){
