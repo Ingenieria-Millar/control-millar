@@ -64,7 +64,6 @@ const FILES = {
   novedades:      path.join(DATA_DIR, 'novedades.json'),
   cargos:         path.join(DATA_DIR, 'cargos.json'),
   maquinaria:     path.join(DATA_DIR, 'maquinaria.json'),
-  guias:          path.join(DATA_DIR, 'guias.json'),
   turnos:         path.join(DATA_DIR, 'turnos.json'),
   historial:      path.join(DATA_DIR, 'historial.json'),
   ordenes:        path.join(DATA_DIR, 'ordenes.json'),
@@ -596,7 +595,7 @@ app.get('/alistamiento/api/alistamientos', (req, res) => {
 
 app.post(
   '/alistamiento/api/alistamientos',
-  (req, res, next) => upload.array('fotos', 5)(req, res, err => err ? handleMulterError(err, req, res, next) : next()),
+  (req, res, next) => upload.array('fotos', 10)(req, res, err => err ? handleMulterError(err, req, res, next) : next()),
   (req, res) => {
     const missing = requireFields(req.body, ['modulo', 'tipoMaquina', 'serial', 'mecanico']);
     if (missing) return res.status(400).json({ error: `Campos requeridos faltantes: ${missing.join(', ')}` });
@@ -645,7 +644,7 @@ app.get('/alistamiento/api/mantenimientos', (req, res) => {
 
 app.post(
   '/alistamiento/api/mantenimientos',
-  (req, res, next) => upload.array('fotos', 5)(req, res, err => err ? handleMulterError(err, req, res, next) : next()),
+  (req, res, next) => upload.array('fotos', 10)(req, res, err => err ? handleMulterError(err, req, res, next) : next()),
   (req, res) => {
     const missing = requireFields(req.body, ['tipoMaquina', 'serial', 'mecanico', 'tipoMantenimiento']);
     if (missing) return res.status(400).json({ error: `Campos requeridos faltantes: ${missing.join(', ')}` });
@@ -684,7 +683,7 @@ app.delete('/alistamiento/api/mantenimientos/:id', (req, res) => {
 
 app.put(
   '/alistamiento/api/mantenimientos/:id',
-  (req, res, next) => upload.array('fotos', 5)(req, res, err => err ? handleMulterError(err, req, res, next) : next()),
+  (req, res, next) => upload.array('fotos', 10)(req, res, err => err ? handleMulterError(err, req, res, next) : next()),
   (req, res) => {
     try {
       const data = loadDB('mantenimientos');
@@ -893,13 +892,6 @@ app.post('/api/cargos', (req, res) => {
 app.get('/api/maquinaria',  (req, res) => res.json(readJSON(FILES.maquinaria, [])));
 app.post('/api/maquinaria', (req, res) => {
   try { writeJSON(FILES.maquinaria, req.body); res.json({ success: true }); }
-  catch(e) { res.status(500).json({ error: e.message }); }
-});
-
-// Guías
-app.get('/api/guias',  (req, res) => res.json(readJSON(FILES.guias, [])));
-app.post('/api/guias', (req, res) => {
-  try { writeJSON(FILES.guias, req.body); res.json({ success: true }); }
   catch(e) { res.status(500).json({ error: e.message }); }
 });
 
