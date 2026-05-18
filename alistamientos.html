@@ -182,6 +182,10 @@ tr:hover td{background:#f8fafc;}
 .ml-footer{margin-top:20px;font-size:10px;color:#94a3b8;letter-spacing:.5px;font-family:'Nunito',sans-serif;}
 @media(max-width:640px){#mant-login{flex-direction:column;}.ml-left{flex:0 0 200px;padding:24px;}.ml-headline{font-size:30px;}.ml-right{padding:24px;}}
 
+.hide-acciones .col-acciones-mant { display:none !important; }
+.hide-acciones td:last-child { display:none !important; }
+.hide-alist-acciones .col-acciones-alist { display:none !important; }
+.hide-alist-acciones td.td-alist-acc { display:none !important; }
 .modal-overlay{display:none;position:fixed;inset:0;z-index:500;background:rgba(15,23,42,.5);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:16px;}
 .modal-overlay.open{display:flex;}
 .modal{background:#fff;border-radius:18px;width:100%;max-width:640px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(15,23,42,.25);}
@@ -434,7 +438,7 @@ tr:hover td{background:#f8fafc;}
               <th style="width:90px;">Fecha</th>
               <th style="width:70px;">Hora</th>
               <th style="width:50px;">Fotos</th>
-              <th style="width:90px;" id="th-alist-acciones">Acciones</th>
+              <th style="width:90px;" id="th-alist-acciones" class="col-acciones-alist">Acciones</th>
             </tr></thead>
             <tbody id="alistBody"></tbody>
           </table>
@@ -529,7 +533,7 @@ tr:hover td{background:#f8fafc;}
             <th style="width:110px;">Repuestos</th>
             <th style="width:50px;">Fotos</th>
             <th style="width:50px;">Obs.</th>
-            <th style="width:90px;" id="th-acciones">Acciones</th>
+            <th style="width:90px;" id="th-acciones" class="col-acciones-mant">Acciones</th>
           </tr></thead>
           <tbody id="mantBody"></tbody>
         </table>
@@ -559,8 +563,10 @@ tr:hover td{background:#f8fafc;}
           </div>
           <div class="form-group">
             <label class="form-label">Supervisora Responsable <span class="required">*</span></label>
-            <div class="radio-group" id="radioSupervisoras"></div>
-            <input type="hidden" name="supervisor" id="hiddenSupervisor" required>
+            <select class="form-select" name="supervisor" required id="alistSupervisora">
+              <option value="">Seleccionar supervisora...</option>
+            </select>
+            <input type="hidden" name="supervisor" id="hiddenSupervisor">
           </div>
           <div class="form-group" id="alist-mecanico-wrap">
             <label class="form-label">Mecánico que Alista <span class="required">*</span></label>
@@ -570,13 +576,22 @@ tr:hover td{background:#f8fafc;}
           <div class="form-section-title">🔩 Datos de la Máquina</div>
           <div class="form-group">
             <label class="form-label">Tipo de Máquina <span class="required">*</span></label>
-            <div class="radio-group" id="radioMaquinas"></div>
-            <input type="hidden" name="tipoMaquina" id="hiddenMaquina" required>
+            <select class="form-select" id="selectMaquinaAlist" name="tipoMaquinaSelect" onchange="onTipoMaquinaAlistChange()">
+              <option value="">Seleccionar tipo de máquina...</option>
+            </select>
+            <input type="hidden" name="tipoMaquina" id="hiddenMaquinaAlist" required>
           </div>
           <div class="form-group">
             <label class="form-label">Serial <span class="required">*</span></label>
-            <div style="display:flex;gap:8px;align-items:center;">
-              <input type="text" class="form-input" name="serial" id="alistSerial" required placeholder="Número de serial" autocomplete="off" style="flex:1">
+            <div class="autocomplete-wrap" style="display:flex;gap:8px;align-items:flex-start;">
+              <div style="flex:1;position:relative;">
+                <input type="text" class="form-input" name="serial" id="alistSerial" required
+                  placeholder="Número de serial" autocomplete="off"
+                  oninput="acFilterSerialesAlist('alistSerial','alistSerialList')"
+                  onfocus="acFilterSerialesAlist('alistSerial','alistSerialList')"
+                  onblur="setTimeout(()=>acClose('alistSerialList'),200)">
+                <div class="autocomplete-list" id="alistSerialList"></div>
+              </div>
               <button type="button" class="btn btn-secondary" style="padding:8px 12px;white-space:nowrap;font-size:13px;" onclick="abrirQR('alist')" title="Escanear QR">📷 QR</button>
             </div>
           </div>
@@ -1117,27 +1132,25 @@ function _populateFormsNow() {
 
   // Operaria — autocompletado, no necesita populate (se filtra en tiempo real)
 
-  // Filter supervisoras
-  const fSup = document.getElementById('alistFilterSup');
-  if (fSup) {
-    fSup.innerHTML = '<option value="">Todas las supervisoras</option>' +
-      config.supervisoras.map(s => `<option value="${s.nombre}">${s.nombre}</option>`).join('');
+  // Filter supervisoras (select dropdown now)
+  const selSupAlist = document.getElementById('alistSupervisora');
+  if (selSupAlist) {
+    selSupAlist.innerHTML = '<option value="">Seleccionar supervisora...</option>' +
+      config.supervisoras.map(s =>
+        `<option value="${s.nombre}">${s.nombre}${s.rol?' — '+s.rol:''}</option>`
+      ).join('');
+    // Sincronizar hidden field al cambiar
+    selSupAlist.onchange = function() {
+      const h = document.getElementById('hiddenSupervisor');
+      if (h) h.value = this.value;
+    };
   }
 
-  // Radio supervisoras
-  const radSup = document.getElementById('radioSupervisoras');
-  if (radSup) {
-    radSup.innerHTML = config.supervisoras.map(s =>
-      `<span class="radio-btn" data-group="supervisor" data-value="${s.nombre}" onclick="selectRadio(this,'supervisor','hiddenSupervisor')">${s.nombre}<br><small style="opacity:.6;font-weight:400">${s.rol}</small></span>`
-    ).join('');
-  }
-
-  // Radio máquinas alistamiento
-  const radMaq = document.getElementById('radioMaquinas');
-  if (radMaq) {
-    radMaq.innerHTML = config.maquinas.map(m =>
-      `<span class="radio-btn" data-group="maquina" data-value="${m}" onclick="selectRadio(this,'maquina','hiddenMaquina')">${m}</span>`
-    ).join('');
+  // Select de máquinas para alistamiento
+  const selMaqAlist = document.getElementById('selectMaquinaAlist');
+  if (selMaqAlist) {
+    selMaqAlist.innerHTML = '<option value="">Seleccionar tipo de máquina...</option>' +
+      config.maquinas.map(m => `<option value="${m}">${m}</option>`).join('');
   }
 
   // Select de máquinas para mantenimiento
@@ -1258,12 +1271,27 @@ function toggleMic(textareaId, btnId){
 // ── Filtrar seriales según tipo de máquina (ya definida arriba) ──
 function onTipoMaquinaChange(){
   const tipo = document.getElementById('selectMaquinaMant').value;
-  // Asignar siempre el valor al campo hidden
   document.getElementById('hiddenMaquinaMant').value = tipo;
-  // Limpiar el campo de serial al cambiar tipo
   const inpSer = document.getElementById('mantSerial');
   if (inpSer) inpSer.value = '';
   acClose('mantSerialList');
+}
+
+function onTipoMaquinaAlistChange(){
+  const tipo = document.getElementById('selectMaquinaAlist').value;
+  document.getElementById('hiddenMaquinaAlist').value = tipo;
+  const inpSer = document.getElementById('alistSerial');
+  if (inpSer) inpSer.value = '';
+  acClose('alistSerialList');
+}
+
+function acFilterSerialesAlist(inputId, listId){
+  const tipo = document.getElementById('hiddenMaquinaAlist')?.value || '';
+  const lista = (window._maquinariaCompleta || [])
+    .filter(m => !tipo || (m.tipo||'').trim() === tipo)
+    .map(m => m.serial || '')
+    .filter(Boolean);
+  acFilter(inputId, listId, lista);
 }
 
 // ===== RADIO SELECTOR =====
@@ -1443,9 +1471,7 @@ function renderAlistamientos(data) {
     thead.appendChild(filterRow);
   }
 
-  // Mostrar/ocultar columna acciones
-  const thAcc = document.getElementById('th-alist-acciones');
-  if (thAcc) thAcc.style.display = mecanicoActual === 'ADMINISTRADOR' ? '' : 'none';
+  // La columna acciones se controla por clase en switchSection
 
   if (!rows.length) {
     tbody.innerHTML = '<tr><td colspan="12"><div style="text-align:center;padding:24px;color:#64748b;font-style:italic;"><div style="font-size:28px;margin-bottom:6px;">⚙️</div><div>No hay registros de alistamiento</div></div></td></tr>';
@@ -1905,6 +1931,14 @@ async function guardarAlistamiento(e) {
   } else if (selectAguja) {
     formData.set('tipoAguja', selectAguja.value);
   }
+  // Sincronizar tipoMaquina desde select
+  const selMaq = document.getElementById('selectMaquinaAlist');
+  if (selMaq && selMaq.value) formData.set('tipoMaquina', selMaq.value);
+
+  // Sincronizar supervisora desde select
+  const selSup = document.getElementById('alistSupervisora');
+  if (selSup && selSup.value) formData.set('supervisor', selSup.value);
+
   // Si no es ADMINISTRADOR, usar el mecánico logueado
   if (mecanicoActual && mecanicoActual !== 'ADMINISTRADOR') {
     formData.set('mecanico', mecanicoActual);
@@ -2152,10 +2186,11 @@ function cerrarModal(id) {
   document.getElementById(id).classList.remove('open');
 }
 
-// Cerrar modal al click en overlay — excepto modalMantenimiento
+// Cerrar modal al click en overlay — excepto modalMantenimiento y modalAlistamiento
 document.querySelectorAll('.modal-overlay').forEach(overlay => {
   overlay.addEventListener('click', e => {
-    if (e.target === overlay && overlay.id !== 'modalMantenimiento') {
+    const excluidos = ['modalMantenimiento', 'modalAlistamiento'];
+    if (e.target === overlay && !excluidos.includes(overlay.id)) {
       overlay.classList.remove('open');
     }
   });
@@ -2240,15 +2275,27 @@ function switchSection(section) {
     if (desdeEl && !desdeEl.value) desdeEl.value = hoy;
     if (hastaEl && !hastaEl.value) hastaEl.value = hoy;
     if (lblEl   && lblEl.textContent === 'Hoy') lblEl.textContent = 'Hoy';
-    // Ocultar columna acciones para mecánicos
-    const thAcc = document.getElementById('th-alist-acciones');
-    if (thAcc) thAcc.style.display = mecanicoActual === 'ADMINISTRADOR' ? '' : 'none';
+    // Usar clase para colapsar columna acciones completamente
+    const tablaAlist = document.getElementById('alistBody')?.closest('table');
+    if (tablaAlist) {
+      if (mecanicoActual === 'ADMINISTRADOR') {
+        tablaAlist.classList.remove('hide-alist-acciones');
+      } else {
+        tablaAlist.classList.add('hide-alist-acciones');
+      }
+    }
     renderAlistamientos(getAlistFiltrados());
   }
   if (section === 'mantenimiento') {
-    // Ocultar columna acciones para mecánicos
-    const thAcc = document.getElementById('th-acciones');
-    if (thAcc) thAcc.style.display = mecanicoActual === 'ADMINISTRADOR' ? '' : 'none';
+    // Usar clase para colapsar columna acciones completamente
+    const tabla = document.getElementById('mantBody')?.closest('table');
+    if (tabla) {
+      if (mecanicoActual === 'ADMINISTRADOR') {
+        tabla.classList.remove('hide-acciones');
+      } else {
+        tabla.classList.add('hide-acciones');
+      }
+    }
     aplicarFiltroFecha();
     if (!mantenimientos.length) {
       loadMantenimientos();
