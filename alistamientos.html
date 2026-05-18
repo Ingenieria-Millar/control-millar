@@ -664,7 +664,7 @@ tr:hover td{background:#f8fafc;}
 
           <!-- ── PERSONAL ── -->
           <div class="mant-section-label">👤 Personal</div>
-          <div class="form-group">
+          <div class="form-group" id="mant-mecanico-wrap">
             <label class="form-label">Mecánico Responsable <span class="required">*</span></label>
             <select class="form-select" name="mecanico" required id="mantMecanico"><option value=""></option></select>
           </div>
@@ -937,6 +937,12 @@ async function init() {
   // Inicializar autocomplete de guías (solo alistamiento usa el sistema legacy)
   initGuiaAutocomplete('alistGuiaInput', 'alistGuiaDesc');
 
+  // Ocultar nav y configuración hasta que se loguee
+  const navWrap = document.getElementById('millar-nav-wrap');
+  const btnCfg  = document.getElementById('btn-configuracion');
+  if (navWrap) navWrap.style.display = 'none';
+  if (btnCfg)  btnCfg.style.display  = 'none';
+
   // Copiar logo del header al login
   const hdLogo = document.querySelector('.hd-logo img');
   const mlLogo = document.getElementById('ml-logo-img');
@@ -953,11 +959,14 @@ async function init() {
 
 // Volver a la pantalla de selección Alistamiento/Mantenimiento
 function volverSeleccion() {
-  // Regresar a la pantalla de selección Alistamiento/Mantenimiento
-  const params = new URLSearchParams(window.location.search);
+  const params  = new URLSearchParams(window.location.search);
   const seccion = params.get('seccion');
-  // La pantalla de selección la genera index.html (mostrarSubMenuMontajes)
-  // Al ir a / el index retomará donde estaba si usamos history
+  // Si estamos en mantenimiento y hay un mecánico logueado → volver al login
+  if (seccion === 'mantenimiento' && mecanicoActual) {
+    cerrarSesionMant();
+    return;
+  }
+  // Si venimos de otra página, ir atrás
   if (document.referrer && document.referrer !== window.location.href) {
     window.history.back();
   } else {
@@ -1818,6 +1827,11 @@ async function guardarMantenimiento(e) {
   if (!formData.get('tipoMantenimiento')) { showToast('Selecciona el tipo de mantenimiento','error'); return; }
   if (!formData.get('tipoMaquina'))       { showToast('Selecciona el tipo de máquina','error'); return; }
 
+  // Si no es ADMINISTRADOR, usar el mecánico logueado
+  if (mecanicoActual && mecanicoActual !== 'ADMINISTRADOR') {
+    formData.set('mecanico', mecanicoActual);
+  }
+
   // Eliminar el campo fotos que viene del form HTML (viene vacío o duplicado)
   formData.delete('fotos');
 
@@ -1932,8 +1946,26 @@ function abrirModalMantenimiento() {
   (async () => {
     await loadConfig();
     _populateFormsNow();
-    if (!inventarioGuias.length) await loadGuiasReferencias();
+    // Siempre recargar guías al abrir el modal
+    await loadGuiasReferencias();
+    // Reinicializar autocomplete con datos frescos
+    initGuiaAutocomplete('mantGuiaInput', 'mantGuiaDesc');
   })();
+
+  // Mecánico: autocompletar si no es ADMINISTRADOR
+  const esAdmin = mecanicoActual === 'ADMINISTRADOR';
+  const mecWrap = document.getElementById('mant-mecanico-wrap');
+  const mecSel  = document.getElementById('mantMecanico');
+  if (mecWrap) mecWrap.style.display = esAdmin ? '' : 'none';
+  if (mecSel) {
+    if (!esAdmin) {
+      // Poner el nombre del mecánico logueado y hacerlo no requerido visualmente
+      mecSel.required = false;
+    } else {
+      mecSel.required = true;
+    }
+  }
+
   // Resetear campo de guía y fotos
   const guiaInput = document.getElementById('mantGuiaInput');
   if (guiaInput) guiaInput.value = '';
