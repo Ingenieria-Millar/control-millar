@@ -1681,7 +1681,17 @@ function abrirModalAlistamiento(modulo) {
 }
 
 function abrirModalMantenimiento() {
-  (async () => { await loadConfig(); _populateFormsNow(); })();
+  (async () => {
+    await loadConfig();
+    _populateFormsNow();
+    // Recargar guías por si se agregaron nuevas desde configuraciones
+    if (!inventarioGuias.length) await loadGuiasReferencias();
+  })();
+  // Resetear campo de guía
+  const guiaInput = document.getElementById('mantGuiaInput');
+  const guiaDesc  = document.getElementById('mantGuiaDesc');
+  if (guiaInput) guiaInput.value = '';
+  if (guiaDesc)  { guiaDesc.textContent = ''; guiaDesc.style.display = 'none'; }
   document.getElementById('modalMantenimiento').classList.add('open');
 }
 
@@ -2052,10 +2062,18 @@ let inventarioGuias = [];
 
 async function loadGuiasReferencias() {
   try {
+    // /api/guias es una ruta global del servidor, no usa el prefijo /alistamiento
     const r = await fetch('/api/guias');
-    if (r.ok) inventarioGuias = await r.json();
-    else inventarioGuias = [];
-  } catch(e) { inventarioGuias = []; }
+    if (r.ok) {
+      const data = await r.json();
+      inventarioGuias = Array.isArray(data) ? data : [];
+    } else {
+      inventarioGuias = [];
+    }
+  } catch(e) {
+    console.error('loadGuiasReferencias:', e);
+    inventarioGuias = [];
+  }
 }
 
 // ===== AUTOCOMPLETE GUÍAS =====
