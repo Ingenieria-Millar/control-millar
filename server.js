@@ -64,6 +64,7 @@ const FILES = {
   novedades:      path.join(DATA_DIR, 'novedades.json'),
   cargos:         path.join(DATA_DIR, 'cargos.json'),
   maquinaria:     path.join(DATA_DIR, 'maquinaria.json'),
+  guias:          path.join(DATA_DIR, 'guias.json'),
   turnos:         path.join(DATA_DIR, 'turnos.json'),
   historial:      path.join(DATA_DIR, 'historial.json'),
   ordenes:        path.join(DATA_DIR, 'ordenes.json'),
@@ -916,6 +917,13 @@ app.post('/api/cargos', (req, res) => {
 app.get('/api/maquinaria',  (req, res) => res.json(readJSON(FILES.maquinaria, [])));
 app.post('/api/maquinaria', (req, res) => {
   try { writeJSON(FILES.maquinaria, req.body); res.json({ success: true }); }
+  catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Guías
+app.get('/api/guias',  (req, res) => res.json(readJSON(FILES.guias, [])));
+app.post('/api/guias', (req, res) => {
+  try { writeJSON(FILES.guias, req.body); res.json({ success: true }); }
   catch(e) { res.status(500).json({ error: e.message }); }
 });
 
