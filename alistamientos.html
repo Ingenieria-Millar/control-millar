@@ -411,7 +411,7 @@ tr:hover td{background:#f8fafc;}
             </div>
           </div>
         </div>
-        <button class="btn-export" id="btn-export-alist" onclick="exportar('alistamientos')">📥 Exportar Excel</button>
+        <button class="btn-export" id="btn-export-alist" onclick="exportarAlistamientosExcel()">📥 Exportar Excel</button>
         <button class="btn btn-primary" style="background:linear-gradient(135deg,#1e3a8a,#2563eb);border:none;" onclick="abrirModalAlistamiento()">＋ Nuevo Alistamiento</button>
       </div>
     </div>
@@ -515,20 +515,20 @@ tr:hover td{background:#f8fafc;}
 
     <!-- Tabla -->
     <div class="table-panel">
-      <div style="overflow-x:hidden;width:100%;">
-        <table style="width:100%;table-layout:fixed;">
+      <div style="width:100%;">
+        <table style="width:100%;table-layout:fixed;font-size:12px;">
           <thead><tr>
-            <th style="width:100px;">Tipo</th>
-            <th style="width:130px;">Mecánico</th>
-            <th style="width:70px;">Módulo</th>
-            <th style="width:110px;">Máquina</th>
-            <th style="width:120px;">Código</th>
-            <th style="width:110px;">Serial</th>
-            <th style="width:110px;">Guía</th>
-            <th style="width:110px;">Repuestos</th>
-            <th style="width:50px;">Fotos</th>
-            <th style="width:50px;">Obs.</th>
-            <th style="width:90px;" id="th-acciones" class="col-acciones-mant">Acciones</th>
+            <th style="width:90px;">Tipo</th>
+            <th style="width:110px;">Mecánico</th>
+            <th style="width:60px;">Módulo</th>
+            <th style="width:95px;">Máquina</th>
+            <th style="width:110px;">Código</th>
+            <th style="width:95px;">Serial</th>
+            <th style="width:95px;">Guía</th>
+            <th style="width:100px;">Repuestos</th>
+            <th style="width:42px;">📷</th>
+            <th style="width:42px;">💬</th>
+            <th style="width:100px;" id="th-acciones" class="col-acciones-mant">Acciones</th>
           </tr></thead>
           <tbody id="mantBody"></tbody>
         </table>
@@ -1822,38 +1822,36 @@ function editarMantenimiento(id){
   pedirPass(
     '✏️ Editar Mantenimiento',
     'Ingresa la contraseña para editar este registro.',
-    () => {
+    async () => {
       const r = mantenimientos.find(m=>m.id===id);
       if (!r) return;
-      abrirModalMantenimiento();
-      setTimeout(()=>{
-        const form = document.getElementById('formMantenimiento');
-        if (!form) return;
-        form.dataset.editId = id;
-        document.getElementById('mantModulo').value          = r.modulo||'';
-        document.getElementById('mantMecanico').value        = r.mecanico||'';
-        document.getElementById('mantOperariaInput').value   = r.operaria||'';
-        document.getElementById('selectMaquinaMant').value   = r.tipoMaquina||'';
-        document.getElementById('hiddenMaquinaMant').value   = r.tipoMaquina||'';
-        document.getElementById('mantSerial').value          = r.serial||'';
-        document.getElementById('mantGuiaInput').value       = r.numeroGuia||'';
-        const repEl = form.querySelector('[name="repuestos"]');
-        if (repEl) repEl.value = r.repuestos||'';
-        document.getElementById('mantObs').value             = r.observaciones||'';
-        // Tipo de mantenimiento
-        document.querySelectorAll('[data-group="tipoMant"]').forEach(btn=>{
-          if(btn.dataset.value===r.tipoMantenimiento){
-            btn.click();
-          }
-        });
-        // Cambiar título
-        const title = document.querySelector('#modalMantenimiento .modal-title');
-        if (title) title.textContent = '✏️ Editar Mantenimiento';
-      }, 300);
+      document.getElementById('modalMantenimiento').classList.add('open');
+      await loadConfig();
+      _populateFormsNow();
+      await loadGuiasReferencias();
+      const form = document.getElementById('formMantenimiento');
+      if (!form) return;
+      form.dataset.editId = id;
+      document.querySelectorAll('[data-group="tipoMant"]').forEach(btn=>{
+        if(btn.dataset.value===r.tipoMantenimiento) btn.click();
+      });
+      document.getElementById('mantModulo').value = r.modulo||'';
+      const selMec = document.getElementById('mantMecanico');
+      if (selMec) selMec.value = r.mecanico||'';
+      const opEl = document.getElementById('mantOperariaInput');
+      if (opEl) opEl.value = r.operaria||'';
+      const selMaq = document.getElementById('selectMaquinaMant');
+      if (selMaq) { selMaq.value = r.tipoMaquina||''; document.getElementById('hiddenMaquinaMant').value = r.tipoMaquina||''; }
+      document.getElementById('mantSerial').value = r.serial||'';
+      document.getElementById('mantGuiaInput').value = r.numeroGuia||'';
+      const repEl = form.querySelector('[name="repuestos"]');
+      if (repEl) repEl.value = r.repuestos||'';
+      document.getElementById('mantObs').value = r.observaciones||'';
+      const title = document.querySelector('#modalMantenimiento .modal-title');
+      if (title) title.textContent = '✏️ Editar Mantenimiento';
     }
   );
 }
-
 function fotosThumb(fotos) {
   if (!fotos || !fotos.length) return '<span style="color:var(--text3);font-size:12px">—</span>';
   return `<div class="fotos-thumb">${fotos.slice(0,3).map(f => {
@@ -2030,23 +2028,49 @@ function filtrarMantenimientos(){
   renderMantenimientos(rows);
 }
 
-function exportarMantenimientosExcel(){
-  const rows = getMantFiltrados();
+function exportarAlistamientosExcel(){
+  const rows = getAlistFiltrados();
   if (!rows.length) { showToast('No hay datos para exportar','warning'); return; }
   const ws_data = [
-    ['Tipo','Mecánico','Módulo','Máquina','Serial','Guía','Repuestos','Observaciones','Fecha','Hora'],
+    ['Fecha','Mecánico','Supervisora','Módulo','Referencia','Máquina','Código','Serial','Guía','Tipo Aguja','Calibre','PPP','Ficha Técnica','Muestra Física','Costura','Observaciones'],
     ...rows.map(r => [
-      r.tipoMantenimiento||'', r.mecanico||'', r.modulo||'', r.tipoMaquina||'',
-      r.serial||'', r.numeroGuia||'', r.repuestos||'', r.observaciones||'',
-      r.fecha||'', r.hora||''
+      r.fecha||'', r.mecanico||'', r.supervisor||'', r.modulo||'', r.referencia||'',
+      r.tipoMaquina||'', getMaqCodigo(r.serial,r.tipoMaquina)||'', r.serial||'',
+      r.numeroGuia||'', r.tipoAguja||'', r.calibreAguja||'', r.ppp||'',
+      r.fichaTecnica||'', r.muestraFisica||'', r.pruebaCostura||'', r.observaciones||''
     ])
   ];
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(ws_data);
+  ws['!cols'] = [{wch:12},{wch:16},{wch:16},{wch:8},{wch:14},{wch:14},{wch:18},{wch:12},{wch:14},{wch:10},{wch:8},{wch:6},{wch:8},{wch:8},{wch:10},{wch:30}];
+  XLSX.utils.book_append_sheet(wb, ws, 'Alistamientos');
+  const desde = document.getElementById('alist-fecha-desde')?.value || '';
+  const hasta  = document.getElementById('alist-fecha-hasta')?.value || '';
+  XLSX.writeFile(wb, `Alistamientos_${desde||'todos'}_${hasta||''}.xlsx`);
+  showToast('✅ Excel descargado','success');
+}
+
+function exportarMantenimientosExcel(){
+  const rows = getMantFiltrados();
+  if (!rows.length) { showToast('No hay datos para exportar','warning'); return; }
+  const ws_data = [
+    ['Tipo','Mecánico','Módulo','Máquina','Código','Serial','Guía','Repuestos','Fecha','Hora','Observaciones'],
+    ...rows.map(r => [
+      r.tipoMantenimiento||'', r.mecanico||'', r.modulo||'', r.tipoMaquina||'',
+      getMaqCodigo(r.serial,r.tipoMaquina)||'', r.serial||'', r.numeroGuia||'',
+      r.repuestos||'', r.fecha||'',
+      r.fechaHora ? new Date(r.fechaHora).toLocaleTimeString('es-CO') : (r.hora||''),
+      r.observaciones||''
+    ])
+  ];
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(ws_data);
+  ws['!cols'] = [{wch:12},{wch:18},{wch:8},{wch:14},{wch:18},{wch:12},{wch:14},{wch:20},{wch:12},{wch:10},{wch:30}];
   XLSX.utils.book_append_sheet(wb, ws, 'Mantenimiento');
   const desde = document.getElementById('mant-fecha-desde')?.value || '';
   const hasta  = document.getElementById('mant-fecha-hasta')?.value || '';
   XLSX.writeFile(wb, `Mantenimiento_${desde||'todos'}_${hasta||''}.xlsx`);
+  showToast('✅ Excel descargado','success');
 }
 
 // Cerrar popup al click fuera
@@ -2106,7 +2130,9 @@ async function guardarAlistamiento(e) {
     const r = await fetch(url, { method, body: formData });
     const data = await r.json();
     if (data.success) {
-      showToast('✅ Alistamiento guardado correctamente','success');
+      // Confirmación visual con resumen
+      const resumen = `✅ Alistamiento guardado\n🔧 ${formData.get('mecanico')||mecanicoActual} — Módulo ${formData.get('modulo')||''} — ${formData.get('tipoMaquina')||''}`;
+      showToast(resumen, 'success');
       cerrarModal('modalAlistamiento');
       form.reset();
       form.dataset.editId = '';
@@ -2287,33 +2313,100 @@ function editarAlistamiento(id) {
   pedirPass(
     '✏️ Editar Alistamiento',
     'Ingresa la contraseña para editar este registro.',
-    () => {
+    async () => {
       const r = alistamientos.find(a => a.id === id);
       if (!r) return;
-      abrirModalAlistamiento();
-      setTimeout(() => {
-        const form = document.getElementById('formAlistamiento');
-        if (!form) return;
-        form.dataset.editId = id;
-        document.getElementById('alistModulo').value           = r.modulo||'';
-        form.querySelector('[name="referencia"]').value        = r.referencia||'';
-        const selSup = document.getElementById('alistSupervisora');
-        if (selSup) { selSup.value = r.supervisor||''; const h=document.getElementById('hiddenSupervisor'); if(h) h.value=r.supervisor||''; }
-        const selMaq = document.getElementById('selectMaquinaAlist');
-        if (selMaq) { selMaq.value = r.tipoMaquina||''; document.getElementById('hiddenMaquinaAlist').value = r.tipoMaquina||''; }
-        document.getElementById('alistSerial').value           = r.serial||'';
-        document.getElementById('alistGuiaInput').value        = r.numeroGuia||'';
-        const selAguja = document.getElementById('selectTipoAguja');
-        if (selAguja) selAguja.value = r.tipoAguja||'';
-        const selCal = form.querySelector('[name="calibreAguja"]');
-        if (selCal) selCal.value = r.calibreAguja||'';
-        const selPPP = form.querySelector('[name="ppp"]');
-        if (selPPP) selPPP.value = r.ppp||'';
-        const obsEl = form.querySelector('[name="observaciones"]');
-        if (obsEl) obsEl.value = r.observaciones||'';
-        const title = document.querySelector('#modalAlistamiento .modal-title');
-        if (title) title.textContent = '✏️ Editar Alistamiento';
-      }, 350);
+
+      // Abrir modal y esperar que cargue config
+      const esAdmin = mecanicoActual === 'ADMINISTRADOR';
+      const mecWrap = document.getElementById('alist-mecanico-wrap');
+      const mecSel  = document.getElementById('alistMecanico');
+      if (mecWrap) mecWrap.style.display = esAdmin ? '' : 'none';
+      if (mecSel)  mecSel.required = esAdmin;
+      document.getElementById('modalAlistamiento').classList.add('open');
+
+      // Cargar config y guías, luego llenar campos
+      await loadConfig();
+      _populateFormsNow();
+      await loadGuiasReferencias();
+
+      const form = document.getElementById('formAlistamiento');
+      if (!form) return;
+      form.dataset.editId = id;
+
+      // Título
+      const title = document.getElementById('alist-modal-title');
+      if (title) title.textContent = '✏️ Editar Alistamiento';
+
+      // Campos básicos
+      document.getElementById('alistModulo').value = r.modulo||'';
+      const refEl = form.querySelector('[name="referencia"]');
+      if (refEl) refEl.value = r.referencia||'';
+
+      // Supervisora
+      const selSup = document.getElementById('alistSupervisora');
+      if (selSup) {
+        selSup.value = r.supervisor||'';
+        const h = document.getElementById('hiddenSupervisor');
+        if (h) h.value = r.supervisor||'';
+      }
+
+      // Mecánico (solo admin)
+      if (esAdmin) {
+        const selMec = document.getElementById('alistMecanico');
+        if (selMec) selMec.value = r.mecanico||'';
+      }
+
+      // Tipo de máquina
+      const selMaq = document.getElementById('selectMaquinaAlist');
+      if (selMaq) {
+        selMaq.value = r.tipoMaquina||'';
+        const h = document.getElementById('hiddenMaquinaAlist');
+        if (h) h.value = r.tipoMaquina||'';
+      }
+
+      // Serial
+      document.getElementById('alistSerial').value = r.serial||'';
+
+      // Guía
+      document.getElementById('alistGuiaInput').value = r.numeroGuia||'';
+
+      // Tipo aguja
+      const selAguja = document.getElementById('selectTipoAguja');
+      if (selAguja) selAguja.value = r.tipoAguja||'';
+
+      // Calibre
+      const selCal = form.querySelector('[name="calibreAguja"]');
+      if (selCal) selCal.value = r.calibreAguja||'';
+
+      // PPP
+      const selPPP = form.querySelector('[name="ppp"]');
+      if (selPPP) selPPP.value = r.ppp||'';
+
+      // Ficha técnica
+      if (r.fichaTecnica) {
+        document.querySelectorAll('[data-group="fichaTecnica"]').forEach(btn => {
+          if (btn.dataset.value === r.fichaTecnica) btn.click();
+        });
+      }
+
+      // Muestra física
+      if (r.muestraFisica) {
+        document.querySelectorAll('[data-group="muestraFisica"]').forEach(btn => {
+          if (btn.dataset.value === r.muestraFisica) btn.click();
+        });
+      }
+
+      // Prueba de costura
+      if (r.pruebaCostura) {
+        document.querySelectorAll('[data-group="prueba"]').forEach(btn => {
+          if (btn.dataset.value === r.pruebaCostura) btn.click();
+        });
+      }
+
+      // Observaciones
+      const obsEl = form.querySelector('[name="observaciones"]');
+      if (obsEl) obsEl.value = r.observaciones||'';
     }
   );
 }
