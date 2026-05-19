@@ -421,23 +421,22 @@ tr:hover td{background:#f8fafc;}
         <div style="overflow-x:auto;width:100%;">
           <table style="width:100%;table-layout:auto;">
             <thead><tr>
-              <th style="min-width:90px;">Fecha</th>
-              <th style="min-width:110px;">Mecánico</th>
-              <th style="min-width:110px;">Supervisora</th>
+              <th style="min-width:85px;">Fecha</th>
+              <th style="min-width:100px;">Mecánico</th>
               <th style="min-width:60px;">Módulo</th>
-              <th style="min-width:100px;">Referencia</th>
-              <th style="min-width:110px;">Máquina</th>
-              <th style="min-width:120px;">Código</th>
-              <th style="min-width:90px;">Serial</th>
-              <th style="min-width:90px;">Guía</th>
-              <th style="min-width:90px;">Tipo Aguja</th>
-              <th style="min-width:80px;">Calibre</th>
-              <th style="min-width:60px;">PPP</th>
-              <th style="min-width:70px;">Ficha Téc.</th>
-              <th style="min-width:70px;">Muestra Fís.</th>
-              <th style="min-width:90px;">Costura</th>
-              <th style="min-width:50px;">Fotos</th>
-              <th style="min-width:100px;" id="th-alist-acciones" class="col-acciones-alist">Acciones</th>
+              <th style="min-width:90px;">Referencia</th>
+              <th style="min-width:100px;">Máquina</th>
+              <th style="min-width:110px;">Código</th>
+              <th style="min-width:80px;">Serial</th>
+              <th style="min-width:80px;">Guía</th>
+              <th style="min-width:80px;">Tipo Aguja</th>
+              <th style="min-width:65px;">Calibre</th>
+              <th style="min-width:50px;">PPP</th>
+              <th style="min-width:60px;">Ficha</th>
+              <th style="min-width:65px;">Muestra</th>
+              <th style="min-width:85px;">Costura</th>
+              <th style="min-width:45px;">Fotos</th>
+              <th style="min-width:95px;" id="th-alist-acciones" class="col-acciones-alist">Acciones</th>
             </tr></thead>
             <tbody id="alistBody"></tbody>
           </table>
@@ -545,46 +544,60 @@ tr:hover td{background:#f8fafc;}
 <div class="modal-overlay" id="modalAlistamiento">
   <div class="modal">
     <div class="modal-header">
-      <div class="modal-title">⚙️ Nuevo Alistamiento</div>
+      <div class="modal-title" id="alist-modal-title">⚙️ Nuevo Alistamiento</div>
       <button class="modal-close" onclick="cerrarModal('modalAlistamiento')">✕</button>
     </div>
     <div class="modal-body">
       <form id="formAlistamiento" onsubmit="guardarAlistamiento(event)">
-        <div style="display:flex;flex-direction:column;gap:14px;">
-          <div class="form-group">
-            <label class="form-label">Módulo <span class="required">*</span></label>
-            <select class="form-select" name="modulo" required id="alistModulo"><option value="">Seleccionar módulo...</option></select>
+        <div style="display:flex;flex-direction:column;gap:0;">
+
+          <!-- Módulo -->
+          <div style="display:flex;flex-direction:column;gap:6px;padding-bottom:18px;">
+            <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;">Módulo <span style="color:#e24b4a;">*</span></label>
+            <select class="form-select" name="modulo" required id="alistModulo"><option value="">Seleccionar módulo</option></select>
           </div>
-          <div class="form-group">
-            <label class="form-label">Referencia de Producción <span class="required">*</span></label>
-            <input type="text" class="form-input" name="referencia" required placeholder="Ej: REF-2025-001" autocomplete="off">
+
+          <!-- Referencia -->
+          <div style="display:flex;flex-direction:column;gap:6px;padding-bottom:18px;">
+            <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;">Referencia de Producción <span style="color:#e24b4a;">*</span></label>
+            <input type="text" class="form-input" name="referencia" required autocomplete="off">
           </div>
-          <div class="form-group">
-            <label class="form-label">Supervisora Responsable <span class="required">*</span></label>
-            <select class="form-select" name="supervisor" required id="alistSupervisora">
-              <option value="">Seleccionar supervisora...</option>
-            </select>
+
+          <!-- Supervisora -->
+          <div style="display:flex;flex-direction:column;gap:6px;padding-bottom:18px;">
+            <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;">Supervisora Responsable <span style="color:#e24b4a;">*</span></label>
+            <select class="form-select" name="supervisor" required id="alistSupervisora"><option value="">Seleccionar supervisora</option></select>
             <input type="hidden" name="supervisor" id="hiddenSupervisor">
           </div>
-          <div class="form-group" id="alist-mecanico-wrap">
-            <label class="form-label">Mecánico que Alista <span class="required">*</span></label>
-            <select class="form-select" name="mecanico" required id="alistMecanico"><option value="">Seleccionar mecánico...</option></select>
+
+          <!-- Mecánico -->
+          <div style="display:flex;flex-direction:column;gap:6px;padding-bottom:18px;" id="alist-mecanico-wrap">
+            <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;">Mecánico que Alista <span style="color:#e24b4a;">*</span></label>
+            <select class="form-select" name="mecanico" required id="alistMecanico"><option value="">Seleccionar mecánico</option></select>
           </div>
-          <hr class="form-divider">
-          <div class="form-section-title">🔩 Datos de la Máquina</div>
-          <div class="form-group">
-            <label class="form-label">Tipo de Máquina <span class="required">*</span></label>
+
+          <!-- Separador Máquina -->
+          <div style="border-top:1.5px solid #e2e8f0;margin-bottom:18px;"></div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:18px;">
+            <div style="width:3px;height:18px;background:#1e3a8a;border-radius:2px;"></div>
+            <span style="font-size:12px;font-weight:700;color:#1e3a8a;letter-spacing:1px;text-transform:uppercase;">Datos de la Máquina</span>
+          </div>
+
+          <!-- Tipo Máquina -->
+          <div style="display:flex;flex-direction:column;gap:6px;padding-bottom:18px;">
+            <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;">Tipo de Máquina <span style="color:#e24b4a;">*</span></label>
             <select class="form-select" id="selectMaquinaAlist" name="tipoMaquinaSelect" onchange="onTipoMaquinaAlistChange()">
-              <option value="">Seleccionar tipo de máquina...</option>
+              <option value="">Seleccionar tipo de máquina</option>
             </select>
             <input type="hidden" name="tipoMaquina" id="hiddenMaquinaAlist" required>
           </div>
-          <div class="form-group">
-            <label class="form-label">Serial <span class="required">*</span></label>
+
+          <!-- Serial -->
+          <div style="display:flex;flex-direction:column;gap:6px;padding-bottom:18px;">
+            <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;">Serial <span style="color:#e24b4a;">*</span></label>
             <div class="autocomplete-wrap" style="display:flex;gap:8px;align-items:flex-start;">
               <div style="flex:1;position:relative;">
-                <input type="text" class="form-input" name="serial" id="alistSerial" required
-                  placeholder="Número de serial" autocomplete="off"
+                <input type="text" class="form-input" name="serial" id="alistSerial" required autocomplete="off"
                   oninput="acFilterSerialesAlist('alistSerial','alistSerialList')"
                   onfocus="acFilterSerialesAlist('alistSerial','alistSerialList')"
                   onblur="setTimeout(()=>acClose('alistSerialList'),200)">
@@ -593,95 +606,113 @@ tr:hover td{background:#f8fafc;}
               <button type="button" class="btn btn-secondary" style="padding:8px 12px;white-space:nowrap;font-size:13px;" onclick="abrirQR('alist')" title="Escanear QR">📷 QR</button>
             </div>
           </div>
-          <div class="form-group">
-            <label class="form-label">Tipo de Aguja</label>
-            <select class="form-select" name="tipoAguja" id="selectTipoAguja" onchange="toggleOtraAguja(this)">
-              <option value="">Seleccionar...</option>
-              <option>B27</option>
-              <option>B63</option>
-              <option>B64</option>
-              <option>UY 128</option>
-              <option>UY 113</option>
-              <option>UY 118</option>
-              <option>135 X 5</option>
-              <option>16 X 257</option>
-              <option value="__otra__">✏️ Otra (digitar)</option>
-            </select>
-            <input type="text" class="form-input" id="inputOtraAguja" name="tipoAgujaOtra" placeholder="Escribe el tipo de aguja..." style="display:none;margin-top:8px;" autocomplete="off">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Calibre de Aguja</label>
-            <select class="form-select" name="calibreAguja">
-              <option value="">Seleccionar...</option>
-              <option>50</option><option>55</option><option>60</option><option>65</option>
-              <option>70</option><option>75</option><option>80</option><option>85</option><option>90</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Puntadas por Pulgada (PPP)</label>
-            <select class="form-select" name="ppp">
-              <option value="">Seleccionar...</option>
-              <option>9</option><option>10</option><option>11</option><option>12</option><option>13</option>
-              <option>14</option><option>15</option><option>16</option><option>17</option><option>18</option>
-              <option>19</option><option>20</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Número de Guía</label>
-            <div class="autocomplete-wrap">
-              <input type="text" class="form-input" name="numeroGuia" id="alistGuiaInput"
-                autocomplete="off" placeholder="Escribe para buscar..."
-                oninput="acFilterGuias('alistGuiaInput','alistGuiaList')"
-                onfocus="acFilterGuias('alistGuiaInput','alistGuiaList')"
-                onblur="setTimeout(()=>{ acClose('alistGuiaList'); validarGuiaAlist(); },200)">
-              <div class="autocomplete-list" id="alistGuiaList"></div>
+
+          <!-- Tipo Aguja + Calibre -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding-bottom:18px;">
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;">Tipo de Aguja</label>
+              <select class="form-select" name="tipoAguja" id="selectTipoAguja" onchange="toggleOtraAguja(this)">
+                <option value="">Seleccionar</option>
+                <option>B27</option><option>B63</option><option>B64</option>
+                <option>UY 128</option><option>UY 113</option><option>UY 118</option>
+                <option>135 X 5</option><option>16 X 257</option>
+                <option value="__otra__">✏️ Otra</option>
+              </select>
+              <input type="text" class="form-input" id="inputOtraAguja" name="tipoAgujaOtra" style="display:none;margin-top:6px;" autocomplete="off">
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;">Calibre de Aguja</label>
+              <select class="form-select" name="calibreAguja">
+                <option value="">Seleccionar</option>
+                <option>50</option><option>55</option><option>60</option><option>65</option>
+                <option>70</option><option>75</option><option>80</option><option>85</option><option>90</option>
+              </select>
             </div>
           </div>
-          <hr class="form-divider">
-          <div class="form-section-title">✅ Verificación</div>
-          <div class="form-group">
-            <label class="form-label">¿Tenía Ficha Técnica?</label>
-            <div class="radio-group">
-              <span class="radio-btn" data-group="fichaTecnica" data-value="Sí" onclick="selectRadio(this,'fichaTecnica','hiddenFicha')">Sí</span>
-              <span class="radio-btn" data-group="fichaTecnica" data-value="No" onclick="selectRadio(this,'fichaTecnica','hiddenFicha')">No</span>
+
+          <!-- PPP + Guía -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding-bottom:18px;">
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;">PPP</label>
+              <select class="form-select" name="ppp">
+                <option value="">Seleccionar</option>
+                <option>9</option><option>10</option><option>11</option><option>12</option><option>13</option>
+                <option>14</option><option>15</option><option>16</option><option>17</option><option>18</option>
+                <option>19</option><option>20</option>
+              </select>
             </div>
-            <input type="hidden" name="fichaTecnica" id="hiddenFicha">
-          </div>
-          <div class="form-group">
-            <label class="form-label">¿Tenía Muestra Física?</label>
-            <div class="radio-group">
-              <span class="radio-btn" data-group="muestraFisica" data-value="Sí" onclick="selectRadio(this,'muestraFisica','hiddenMuestra')">Sí</span>
-              <span class="radio-btn" data-group="muestraFisica" data-value="No" onclick="selectRadio(this,'muestraFisica','hiddenMuestra')">No</span>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;">Número de Guía</label>
+              <div class="autocomplete-wrap">
+                <input type="text" class="form-input" name="numeroGuia" id="alistGuiaInput" autocomplete="off"
+                  oninput="acFilterGuias('alistGuiaInput','alistGuiaList')"
+                  onfocus="acFilterGuias('alistGuiaInput','alistGuiaList')"
+                  onblur="setTimeout(()=>{ acClose('alistGuiaList'); validarGuiaAlist(); },200)">
+                <div class="autocomplete-list" id="alistGuiaList"></div>
+              </div>
             </div>
-            <input type="hidden" name="muestraFisica" id="hiddenMuestra">
           </div>
-          <div class="form-group">
-            <label class="form-label">Prueba de Costura</label>
+
+          <!-- Separador Verificación -->
+          <div style="border-top:1.5px solid #e2e8f0;margin-bottom:18px;"></div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:18px;">
+            <div style="width:3px;height:18px;background:#1e3a8a;border-radius:2px;"></div>
+            <span style="font-size:12px;font-weight:700;color:#1e3a8a;letter-spacing:1px;text-transform:uppercase;">Verificación</span>
+          </div>
+
+          <!-- Ficha + Muestra -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding-bottom:18px;">
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;">Ficha Técnica</label>
+              <div class="radio-group">
+                <span class="radio-btn" data-group="fichaTecnica" data-value="Sí" onclick="selectRadio(this,'fichaTecnica','hiddenFicha')">Sí</span>
+                <span class="radio-btn" data-group="fichaTecnica" data-value="No" onclick="selectRadio(this,'fichaTecnica','hiddenFicha')">No</span>
+              </div>
+              <input type="hidden" name="fichaTecnica" id="hiddenFicha">
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;">Muestra Física</label>
+              <div class="radio-group">
+                <span class="radio-btn" data-group="muestraFisica" data-value="Sí" onclick="selectRadio(this,'muestraFisica','hiddenMuestra')">Sí</span>
+                <span class="radio-btn" data-group="muestraFisica" data-value="No" onclick="selectRadio(this,'muestraFisica','hiddenMuestra')">No</span>
+              </div>
+              <input type="hidden" name="muestraFisica" id="hiddenMuestra">
+            </div>
+          </div>
+
+          <!-- Prueba Costura -->
+          <div style="display:flex;flex-direction:column;gap:8px;padding-bottom:18px;">
+            <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;">Prueba de Costura</label>
             <div class="radio-group">
               <span class="radio-btn" data-group="prueba" data-value="Aprobada" onclick="selectRadio(this,'prueba','hiddenPrueba','success')">✅ Aprobada</span>
               <span class="radio-btn" data-group="prueba" data-value="Rechazada" onclick="selectRadio(this,'prueba','hiddenPrueba','danger')">❌ Rechazada</span>
             </div>
             <input type="hidden" name="pruebaCostura" id="hiddenPrueba">
           </div>
-          <div class="form-group">
-            <label class="form-label">Observaciones</label>
-            <textarea class="form-textarea" name="observaciones" placeholder="Notas adicionales..."></textarea>
+
+          <!-- Observaciones -->
+          <div style="display:flex;flex-direction:column;gap:6px;padding-bottom:18px;">
+            <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;">Observaciones</label>
+            <textarea class="form-textarea" name="observaciones"></textarea>
           </div>
-          <div class="form-group">
-            <label class="form-label">Fotos de Evidencia</label>
+
+          <!-- Fotos -->
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;">Fotos de Evidencia</label>
             <div class="photo-area" onclick="document.getElementById('fotosAlist').click()">
               📷 Toca para adjuntar fotos desde cámara o galería
               <input type="file" id="fotosAlist" name="fotos" multiple accept="image/*" style="display:none" onchange="previewFotos(this,'previewAlist')">
             </div>
             <div class="photo-previews" id="previewAlist"></div>
           </div>
+
         </div>
         <div style="display:none"><button type="submit" id="submitAlist">Guardar</button></div>
       </form>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="cerrarModal('modalAlistamiento')">Cancelar</button>
-      <button class="btn btn-primary" onclick="document.getElementById('submitAlist').click()">💾 Guardar Alistamiento</button>
+      <button class="btn btn-danger" onclick="cerrarModal('modalAlistamiento')">Cancelar</button>
+      <button class="btn btn-primary" style="background:linear-gradient(135deg,#1e3a8a,#2563eb);border:none;" onclick="document.getElementById('submitAlist').click()">💾 Guardar Alistamiento</button>
     </div>
   </div>
 </div>
@@ -849,24 +880,13 @@ tr:hover td{background:#f8fafc;}
         </div>
 
         <!-- MÓDULOS -->
-        <div style="margin-bottom:24px;border-top:1px solid var(--border);padding-top:20px;">
+        <div style="margin-bottom:8px;border-top:1px solid var(--border);padding-top:20px;">
           <div class="form-section-title" style="margin-bottom:12px;">🏭 Módulos</div>
           <div id="cfgModuloList" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;"></div>
           <div style="display:flex;gap:8px;margin-top:8px;">
             <input type="text" class="form-input" id="cfgModuloInput" placeholder="Ej: M01, M02..." style="flex:1;"
               onkeydown="if(event.key==='Enter'){event.preventDefault();agregarCfgItem('modulo');}">
             <button class="btn btn-primary" style="padding:8px 16px;" onclick="agregarCfgItem('modulo')">+ Agregar</button>
-          </div>
-        </div>
-
-        <!-- MECÁNICOS -->
-        <div style="margin-bottom:8px;">
-          <div class="form-section-title" style="margin-bottom:12px;">🔧 Mecánicos</div>
-          <div id="cfgMecanicoList" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;"></div>
-          <div style="display:flex;gap:8px;margin-top:8px;">
-            <input type="text" class="form-input" id="cfgMecanicoInput" placeholder="Ej: Juan García..." style="flex:1;"
-              onkeydown="if(event.key==='Enter'){event.preventDefault();agregarCfgItem('mecanico');}">
-            <button class="btn btn-primary" style="padding:8px 16px;" onclick="agregarCfgItem('mecanico')">+ Agregar</button>
           </div>
         </div>
 
@@ -1487,7 +1507,7 @@ function renderAlistamientos(data) {
   if (thead && !document.getElementById('alist-filter-row')) {
     const filterRow = document.createElement('tr');
     filterRow.id = 'alist-filter-row';
-    const cols = ['fecha','mecanico','supervisor','modulo','referencia','maquina','codigo','serial','guia','aguja','calibre','ppp','ficha','muestra','costura','',''];
+    const cols = ['fecha','mecanico','modulo','referencia','maquina','codigo','serial','guia','aguja','calibre','ppp','ficha','muestra','costura','',''];
     filterRow.innerHTML = cols.map(function(c) {
       if (!c) return '<td style="padding:4px;"></td>';
       return '<td style="padding:4px 3px;">' +
@@ -1525,7 +1545,6 @@ function renderAlistamientos(data) {
     return '<tr>' +
       '<td style="' + TD + '">' + (r.fecha||'-') + '</td>' +
       '<td style="' + TD + '">' + (r.mecanico||'-') + '</td>' +
-      '<td style="' + TD + '">' + (r.supervisor||'-') + '</td>' +
       '<td style="' + TD + 'font-weight:700;text-align:center;">' + (r.modulo||'-') + '</td>' +
       '<td style="' + TD + '">' + (r.referencia||'-') + '</td>' +
       '<td style="' + TD + '">' + (r.tipoMaquina||'-') + '</td>' +
@@ -2219,60 +2238,70 @@ function editarAlistamiento(id) {
 function imprimirAlistamiento(id) {
   const r = alistamientos.find(a => a.id === id);
   if (!r) return;
+  const badge = r.pruebaCostura === 'Aprobada'
+    ? '<span style="background:#dcfce7;color:#15803d;font-size:12px;font-weight:700;padding:4px 14px;border-radius:20px;">Aprobada</span>'
+    : r.pruebaCostura === 'Rechazada'
+    ? '<span style="background:#fee2e2;color:#dc2626;font-size:12px;font-weight:700;padding:4px 14px;border-radius:20px;">Rechazada</span>'
+    : r.pruebaCostura
+    ? '<span style="background:#fef9c3;color:#a16207;font-size:12px;font-weight:700;padding:4px 14px;border-radius:20px;">' + r.pruebaCostura + '</span>' : '';
+
+  const fila = (label, value, label2, value2) => `
+    <tr>
+      <td style="padding:8px 12px;border:1px solid #e2e8f0;background:#f8fafc;font-size:11px;font-weight:700;color:#1e3a8a;text-transform:uppercase;width:22%;white-space:nowrap;">${label}</td>
+      <td style="padding:8px 12px;border:1px solid #e2e8f0;font-size:13px;color:#0f172a;width:28%;">${value||'—'}</td>
+      <td style="padding:8px 12px;border:1px solid #e2e8f0;background:#f8fafc;font-size:11px;font-weight:700;color:#1e3a8a;text-transform:uppercase;width:22%;white-space:nowrap;">${label2||''}</td>
+      <td style="padding:8px 12px;border:1px solid #e2e8f0;font-size:13px;color:#0f172a;width:28%;">${value2||''}</td>
+    </tr>`;
+
+  const seccion = (titulo) => `
+    <tr><td colspan="4" style="padding:10px 12px;background:#1e3a8a;color:#fff;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;border:1px solid #1e3a8a;">${titulo}</td></tr>`;
+
+  const fotosHTML = r.fotos && r.fotos.length
+    ? r.fotos.map(f => `<img src="${buildFotoUrl(f)}" style="width:150px;height:110px;object-fit:cover;border-radius:6px;border:1px solid #e2e8f0;margin:4px;" onerror="this.style.display='none'">`).join('')
+    : '<p style="color:#94a3b8;font-size:12px;font-style:italic;">Sin fotos de evidencia</p>';
+
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
   <title>Alistamiento ${r.modulo||''} - ${r.referencia||''}</title>
   <style>
-    body{font-family:'Segoe UI',sans-serif;margin:0;padding:24px;color:#0f172a;font-size:13px;}
-    .header{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #1e3a8a;padding-bottom:12px;margin-bottom:20px;}
-    .header h1{font-size:20px;font-weight:800;color:#1e3a8a;margin:0;}
-    .header .fecha{font-size:11px;color:#64748b;}
-    .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}
-    .badge-aprobado{background:#dcfce7;color:#16a34a;}
-    .badge-rechazado{background:#fee2e2;color:#dc2626;}
-    .badge-obs{background:#fef9c3;color:#a16207;}
-    .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 24px;margin-bottom:20px;}
-    .field{display:flex;flex-direction:column;gap:2px;}
-    .field label{font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;}
-    .field span{font-size:13px;color:#0f172a;font-weight:600;}
-    .section{font-size:11px;font-weight:800;color:#1e3a8a;letter-spacing:2px;text-transform:uppercase;margin:16px 0 10px;border-left:3px solid #1e3a8a;padding-left:8px;}
-    .fotos{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px;}
-    .fotos img{width:100%;height:100px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0;}
-    .footer{margin-top:24px;border-top:1px solid #e2e8f0;padding-top:12px;font-size:10px;color:#94a3b8;text-align:center;}
-    @media print{body{padding:12px;}}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Segoe UI',Arial,sans-serif;padding:24px;color:#0f172a;background:#fff;}
+    .header{display:flex;align-items:flex-start;justify-content:space-between;border-bottom:3px solid #1e3a8a;padding-bottom:14px;margin-bottom:20px;}
+    table{width:100%;border-collapse:collapse;margin-bottom:16px;}
+    .fotos{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+    .footer{margin-top:20px;border-top:1px solid #e2e8f0;padding-top:12px;font-size:10px;color:#94a3b8;text-align:center;}
+    @media print{body{padding:12px;}@page{margin:1cm;}}
   </style></head><body>
   <div class="header">
-    <div><h1>📋 Tarjeta de Alistamiento</h1><div class="fecha">Generado: ${new Date().toLocaleString('es-CO')}</div></div>
-    <div>${r.pruebaCostura ? '<span class="badge badge-' + (r.pruebaCostura==='Aprobada'?'aprobado':r.pruebaCostura==='Rechazada'?'rechazado':'obs') + '">' + r.pruebaCostura + '</span>' : ''}</div>
+    <div>
+      <div style="font-size:20px;font-weight:700;color:#1e3a8a;">Tarjeta de Alistamiento</div>
+      <div style="font-size:11px;color:#64748b;margin-top:4px;">Generado: ${new Date().toLocaleString('es-CO')}</div>
+    </div>
+    <div>${badge}</div>
   </div>
-  <div class="section">Información General</div>
-  <div class="grid">
-    <div class="field"><label>Fecha</label><span>${r.fecha||'—'}</span></div>
-    <div class="field"><label>Hora</label><span>${r.hora||'—'}</span></div>
-    <div class="field"><label>Mecánico</label><span>${r.mecanico||'—'}</span></div>
-    <div class="field"><label>Supervisora</label><span>${r.supervisor||'—'}</span></div>
-    <div class="field"><label>Módulo</label><span>${r.modulo||'—'}</span></div>
-    <div class="field"><label>Referencia</label><span>${r.referencia||'—'}</span></div>
-  </div>
-  <div class="section">Datos de la Máquina</div>
-  <div class="grid">
-    <div class="field"><label>Tipo de Máquina</label><span>${r.tipoMaquina||'—'}</span></div>
-    <div class="field"><label>Serial</label><span>${r.serial||'—'}</span></div>
-    <div class="field"><label>Código</label><span>${getMaqCodigo(r.serial,r.tipoMaquina)||'—'}</span></div>
-    <div class="field"><label>Número de Guía</label><span>${r.numeroGuia||'—'}</span></div>
-    <div class="field"><label>Tipo de Aguja</label><span>${r.tipoAguja||'—'}</span></div>
-    <div class="field"><label>Calibre de Aguja</label><span>${r.calibreAguja||'—'}</span></div>
-    <div class="field"><label>PPP</label><span>${r.ppp||'—'}</span></div>
-  </div>
-  <div class="section">Verificación</div>
-  <div class="grid">
-    <div class="field"><label>¿Tenía Ficha Técnica?</label><span>${r.fichaTecnica||'—'}</span></div>
-    <div class="field"><label>¿Tenía Muestra Física?</label><span>${r.muestraFisica||'—'}</span></div>
-    <div class="field"><label>Prueba de Costura</label><span>${r.pruebaCostura||'—'}</span></div>
-  </div>
-  ${r.observaciones ? '<div class="section">Observaciones</div><p style="background:#f8fafc;padding:12px;border-radius:8px;margin:0;">' + r.observaciones + '</p>' : ''}
-  ${r.fotos && r.fotos.length ? '<div class="section">Fotos de Evidencia</div><div class="fotos">' +
-    r.fotos.map(f => '<img src="' + buildFotoUrl(f) + '" onerror="this.style.display=\'none\'">').join('') +
-  '</div>' : ''}
+  <table>
+    ${seccion('Información General')}
+    ${fila('Fecha', r.fecha, 'Hora', r.hora)}
+    ${fila('Mecánico', r.mecanico, 'Supervisora', r.supervisor)}
+    ${fila('Módulo', r.modulo, 'Referencia', r.referencia)}
+  </table>
+  <table>
+    ${seccion('Datos de la Máquina')}
+    ${fila('Tipo de Máquina', r.tipoMaquina, 'Serial', r.serial)}
+    ${fila('Código', getMaqCodigo(r.serial,r.tipoMaquina), 'Guía', r.numeroGuia)}
+    ${fila('Tipo de Aguja', r.tipoAguja, 'Calibre', r.calibreAguja)}
+    ${fila('PPP', r.ppp, '', '')}
+  </table>
+  <table>
+    ${seccion('Verificación')}
+    ${fila('Ficha Técnica', r.fichaTecnica, 'Muestra Física', r.muestraFisica)}
+    ${fila('Prueba de Costura', r.pruebaCostura, 'Observaciones', r.observaciones)}
+  </table>
+  <table>
+    ${seccion('Fotos de Evidencia')}
+    <tr><td colspan="4" style="padding:12px;border:1px solid #e2e8f0;">
+      <div class="fotos">${fotosHTML}</div>
+    </td></tr>
+  </table>
   <div class="footer">Confecciones Millar S.A.S. — Sistema de Control de Piso</div>
   </body></html>`;
 
@@ -2293,12 +2322,16 @@ function validarGuiaAlist(){
 
 function abrirModalAlistamiento(modulo) {
   const esAdmin = mecanicoActual === 'ADMINISTRADOR';
-  // Ocultar campo mecánico para no-admins
   const mecWrap = document.getElementById('alist-mecanico-wrap');
   const mecSel  = document.getElementById('alistMecanico');
   if (mecWrap) mecWrap.style.display = esAdmin ? '' : 'none';
   if (mecSel)  mecSel.required = esAdmin;
-  // Repoblar selects con datos frescos cada vez que se abre
+  // Resetear título siempre al abrir nuevo
+  const title = document.getElementById('alist-modal-title');
+  if (title) title.textContent = '⚙️ Nuevo Alistamiento';
+  // Limpiar editId
+  const form = document.getElementById('formAlistamiento');
+  if (form) form.dataset.editId = '';
   (async () => {
     await loadConfig();
     _populateFormsNow();
