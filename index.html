@@ -1944,6 +1944,7 @@ window.addEventListener('DOMContentLoaded', async ()=>{
     loadCargosFromServer(),
     loadTurnosFromServer(),
     loadMaquinariaFromServer(),
+    loadGuiasFromServer(),
     cfgLoadNovedades()
   ]);
 
@@ -2274,19 +2275,11 @@ function mostrarSubMenuMecanicos(){
     btns.appendChild(c1b);
   }
   
-  // Alistamiento: acceso directo (antes dentro de Montajes)
+  // Montajes: solo si tiene permiso
   if(hasPerm('area_montajes')){
-    const cAlist=makeCard('⚙️','Alistamiento','Preparación de máquinas · Pruebas de costura','ac-blue',()=>{
-      window.location.href='/alistamiento?seccion=alistamiento';
-    },false);
-    cAlist.style.animationDelay=(idx*0.07)+'s'; idx++;
-    btns.appendChild(cAlist);
-
-    const cMant=makeCard('🔧','Mantenimiento','Preventivo · Correctivo · Fugas','ac-red',()=>{
-      window.location.href='/alistamiento?seccion=mantenimiento';
-    },false);
-    cMant.style.animationDelay=(idx*0.07)+'s'; idx++;
-    btns.appendChild(cMant);
+    const c2=makeCard('🔩','Montajes','Alistamiento & Mantenimiento','ac-blue',()=>{ mostrarSubMenuMontajes(); },false);
+    c2.style.animationDelay=(idx*0.07)+'s'; idx++;
+    btns.appendChild(c2);
   }
   
   // Solicitar Insumos: no para Televisor
@@ -4894,6 +4887,7 @@ setInterval(()=>{const n=new Date();document.getElementById('clock').textContent
       <div class="cfg-nav-item" id="cfgn-cargos" onclick="cfgSwitchTab('cargos',this)"><span>🏷️</span> Cargos</div>
       <div class="cfg-nav-item" id="cfgn-turnos" onclick="cfgSwitchTab('turnos',this)"><span>🕐</span> Turnos</div>
       <div class="cfg-nav-item" id="cfgn-maquinaria" onclick="cfgSwitchTab('maquinaria',this)"><span>⚙️</span> Maquinaria</div>
+      <div class="cfg-nav-item" id="cfgn-guias" onclick="cfgSwitchTab('guias',this)"><span>📋</span> Guías</div>
       <div class="cfg-nav-item" id="cfgn-modulos" onclick="cfgSwitchTab('modulos',this)"><span>🏭</span> Módulos</div>
       <div class="cfg-nav-item" id="cfgn-areas" onclick="cfgSwitchTab('areas',this)"><span>📍</span> Áreas</div>
       <div class="cfg-nav-item" id="cfgn-novedades" onclick="cfgSwitchTab('novedades',this)"><span>📋</span> Novedades</div>
@@ -4929,13 +4923,14 @@ setInterval(()=>{const n=new Date();document.getElementById('clock').textContent
 let cfgCurrentTab = 'perfiles';
 const CFG_TITLES = {
   perfiles:'🎭 Perfiles', usuarios:'👥 Empleados', cargos:'🏷️ Cargos', turnos:'🕐 Turnos',
-  maquinaria:'⚙️ Maquinaria', modulos:'🏭 Módulos', areas:'📍 Áreas', novedades:'📋 Novedades', permisos:'🔑 Permisos', permisos_perfil:'🔑 Permisos', miembros_perfil:'👥 Miembros'
+  maquinaria:'⚙️ Maquinaria', guias:'📋 Guías', modulos:'🏭 Módulos', areas:'📍 Áreas', novedades:'📋 Novedades', permisos:'🔑 Permisos', permisos_perfil:'🔑 Permisos', miembros_perfil:'👥 Miembros'
 };
 const CFG_CREAR_LABELS = {
   perfiles:'+ Nuevo perfil', usuarios:'+ Nuevo empleado', cargos:'+ Nuevo cargo', maquinaria:'+ Nueva máquina',
+  guias:'+ Nueva guía',
   modulos:'+ Nuevo módulo', areas:'+ Nueva área', turnos:'+ Nuevo turno', novedades:'+ Nueva novedad'
 };
-const CFG_EXCEL_TABS = ['maquinaria','turnos','usuarios','cargos','modulos','areas'];
+const CFG_EXCEL_TABS = ['maquinaria','guias','turnos','usuarios','cargos','modulos','areas'];
 const CFG_NO_CREATE_TABS = ['permisos', 'permisos_perfil', 'miembros_perfil'];
 
 function openCfgScreen(){
@@ -4993,9 +4988,9 @@ function cfgSwitchTab(tab, el){
   if(searchWrap) searchWrap.style.display = CFG_EXCEL_TABS.includes(tab) ? 'none' : '';
   if(btnExcel)   btnExcel.style.display   = CFG_EXCEL_TABS.includes(tab) ? 'flex' : 'none';
   const btnUpload = document.getElementById('cfg-btn-upload2');
-  if(btnUpload)  btnUpload.style.display  = ['usuarios','maquinaria','turnos'].includes(tab) ? 'inline-flex' : 'none';
-  if(btnTpl)     btnTpl.style.display     = ['usuarios','maquinaria','turnos'].includes(tab) ? 'flex' : 'none';
-  if(btnLimpiar) btnLimpiar.style.display = ['usuarios','maquinaria','turnos'].includes(tab) ? 'flex' : 'none';
+  if(btnUpload)  btnUpload.style.display  = ['usuarios','maquinaria','guias','turnos'].includes(tab) ? 'inline-flex' : 'none';
+  if(btnTpl)     btnTpl.style.display     = ['usuarios','maquinaria','guias','turnos'].includes(tab) ? 'flex' : 'none';
+  if(btnLimpiar) btnLimpiar.style.display = ['usuarios','maquinaria','guias','turnos'].includes(tab) ? 'flex' : 'none';
   if(btnCrear){
     btnCrear.style.display = CFG_NO_CREATE_TABS.includes(tab) ? 'none' : '';
     btnCrear.textContent = CFG_CREAR_LABELS[tab]||'+ Crear';
@@ -5026,6 +5021,7 @@ function cfgSwitchTab(tab, el){
   if(tab==='cargos')     cfgRenderCargos(body);
   if(tab==='turnos')     cfgRenderTurnos(body);
   if(tab==='maquinaria') cfgRenderMaquinaria(body);
+  if(tab==='guias')      cfgRenderGuias(body);
   if(tab==='modulos')    cfgRenderModulos(body);
   if(tab==='areas')      cfgRenderAreas(body);
   if(tab==='novedades')  cfgRenderNovedades(body);
@@ -5052,11 +5048,13 @@ function cfgOnCrear(){
   if(cfgCurrentTab==='modulos')    openModForm('create');
   if(cfgCurrentTab==='areas')      openAreaForm('create');
   if(cfgCurrentTab==='maquinaria') cfgOpenMaqModal();
+  if(cfgCurrentTab==='guias')      cfgOpenGuiaModal();
   if(cfgCurrentTab==='turnos')     cfgOpenTurnoModal();
   if(cfgCurrentTab==='novedades')  cfgOpenNovedadModal();
 }
 function cfgExcelAction(){
   if(cfgCurrentTab==='maquinaria') cfgExportMaq();
+  else if(cfgCurrentTab==='guias') cfgExportGuias();
   else if(cfgCurrentTab==='turnos') cfgExportTurnos();
   else if(cfgCurrentTab==='usuarios') cfgExportUsuarios();
   else if(cfgCurrentTab==='cargos') cfgExportCargos();
@@ -5116,6 +5114,7 @@ function cfgOnLimpiar(){
   const labels = {
     usuarios: 'operarias',
     maquinaria: 'máquinas',
+    guias: 'guías',
     turnos: 'turnos'
   };
   document.getElementById('clm-seccion').textContent = labels[cfgCurrentTab]||cfgCurrentTab;
@@ -5138,6 +5137,8 @@ function cfgConfirmarLimpiar(){
     if(typeof iaSaveState==='function') iaSaveState();
   } else if(cfgCurrentTab==='maquinaria'){
     cfgSaveMaquinaria([]);
+  } else if(cfgCurrentTab==='guias'){
+    cfgSaveGuias([]);
   } else if(cfgCurrentTab==='turnos'){
     cfgSaveTurnos([]);
   }
@@ -5147,6 +5148,7 @@ function cfgConfirmarLimpiar(){
 }
 function cfgDownloadPlantilla(){
   if(cfgCurrentTab==='maquinaria') cfgPlantillaMaq();
+  else if(cfgCurrentTab==='guias')  cfgPlantillaGuias();
   else if(cfgCurrentTab==='turnos') cfgPlantillaTurnos();
   else if(cfgCurrentTab==='usuarios') cfgPlantillaUsuarios();
 }
@@ -5320,6 +5322,7 @@ function cfgHandleUpload(file){
   if(!file) return;
   if(cfgCurrentTab==='usuarios')   cfgImportUsuariosXLS(file);
   if(cfgCurrentTab==='maquinaria') cfgImportMaquinariaXLS(file);
+  if(cfgCurrentTab==='guias')      cfgImportGuiasXLS(file);
   if(cfgCurrentTab==='turnos')     cfgImportTurnosXLS(file);
   // reset input so same file can be re-uploaded
   const inp = document.querySelector('#cfg-btn-upload2 input[type=file]');
@@ -6204,6 +6207,159 @@ function cfgImportMaquinariaXLS(file){
   };
   reader.readAsBinaryString(file);
 }
+
+// ══ GUÍAS ════════════════════════════════════════════════════════
+let _guiasCache = null;
+function cfgGetGuias(){ return _guiasCache || []; }
+function cfgSaveGuias(arr){
+  _guiasCache = arr;
+  fetch('/api/guias',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(arr)})
+    .catch(e=>console.error('saveGuias:',e));
+}
+async function loadGuiasFromServer(){
+  try{ const r=await fetch('/api/guias'); if(r.ok) _guiasCache=await r.json(); else _guiasCache=[]; }
+  catch(e){ _guiasCache=[]; }
+}
+function cfgGetMaquinaria(){ return window._maquinariaCompleta || []; }
+
+function cfgRenderGuias(body){
+  const guias = cfgGetGuias();
+  const statsRow=document.createElement('div'); statsRow.className='cfg-stats-row';
+  statsRow.innerHTML=`<div class="cfg-stat-box"><div class="cfg-stat-num">${guias.length}</div><div class="cfg-stat-lbl">Total</div></div>`;
+  body.appendChild(statsRow);
+  const COLS='1fr 2fr 110px';
+  const tbl=document.createElement('div'); tbl.className='cfg-user-table'; tbl.id='cfg-guias-list';
+  const hdr=document.createElement('div'); hdr.className='cfg-user-hdr'; hdr.style.gridTemplateColumns=COLS;
+  ['Referencia','Máquina','Acciones'].forEach(label=>{
+    const cell=document.createElement('div');
+    const lbl=document.createElement('span'); lbl.textContent=label;
+    lbl.style.cssText='font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;';
+    cell.appendChild(lbl); hdr.appendChild(cell);
+  });
+  tbl.appendChild(hdr);
+  body.appendChild(tbl);
+  cfgGuiasRenderList(guias);
+}
+
+function cfgGuiasRenderList(guias){
+  const tbl=document.getElementById('cfg-guias-list'); if(!tbl) return;
+  tbl.querySelectorAll('.cfg-user-row,.cfg-guias-empty').forEach(r=>r.remove());
+  const COLS='1fr 2fr 110px';
+  if(!guias.length){
+    const empty=document.createElement('div'); empty.className='cfg-guias-empty';
+    empty.style.cssText='padding:40px;text-align:center;color:#94a3b8;font-size:14px;';
+    empty.innerHTML='📋 No hay guías registradas. Usa <b>+ Nueva guía</b>.';
+    tbl.appendChild(empty); return;
+  }
+  guias.forEach(g=>{
+    const row=document.createElement('div'); row.className='cfg-user-row';
+    row.style.gridTemplateColumns=COLS;
+    row.innerHTML=`<div class="cfg-user-cell" style="font-weight:700;font-family:'Courier New',monospace;font-size:13px;">${g.referencia||'—'}</div><div class="cfg-user-cell">${g.maquina||'—'}</div>`;
+    const acts=document.createElement('div'); acts.className='cfg-row-acts'; acts.style.cssText='display:flex;gap:4px;';
+    const bE=document.createElement('button'); bE.className='cfg-row-btn'; bE.textContent='✏️'; bE.title='Editar';
+    bE.onclick=()=>cfgOpenGuiaModal(g);
+    const bD=document.createElement('button'); bD.className='cfg-row-btn del'; bD.textContent='🗑'; bD.title='Eliminar';
+    bD.onclick=()=>openConfirmDelete('guia', g.referencia||'guía', ()=>{
+      cfgSaveGuias(cfgGetGuias().filter(x=>x.id!==g.id));
+      cfgGuiasRenderList(cfgGetGuias());
+      showToastSimple(`🗑 Guía eliminada`);
+    });
+    acts.appendChild(bE); acts.appendChild(bD); row.appendChild(acts); tbl.appendChild(row);
+  });
+}
+
+function cfgOpenGuiaModal(g){
+  const modal=document.getElementById('cfg-guia-modal'); if(!modal) return;
+  const sel=document.getElementById('cgm-maquina-sel');
+  if(sel){
+    const maquinas=(window._maquinariaCompleta||[]);
+    const tipos=[...new Set(maquinas.map(m=>m.tipo||m.codigo||'').filter(Boolean))].sort();
+    const cur=(g&&g.maquina)||'';
+    sel.innerHTML='<option value="">— Seleccionar máquina —</option>'+
+      tipos.map(t=>`<option value="${t}"${t===cur?' selected':''}>${t}</option>`).join('');
+  }
+  document.getElementById('cgm-id').value=(g&&g.id)||'';
+  document.getElementById('cgm-referencia').value=(g&&g.referencia)||'';
+  document.getElementById('cgm-title').textContent=g?'✏️ EDITAR GUÍA':'➕ NUEVA GUÍA';
+  document.getElementById('cgm-error').textContent='';
+  modal.style.display='flex';
+  setTimeout(()=>document.getElementById('cgm-referencia').focus(),100);
+}
+
+function cfgSaveGuiaModal(){
+  const ref=document.getElementById('cgm-referencia').value.trim();
+  const maq=document.getElementById('cgm-maquina-sel').value;
+  const errEl=document.getElementById('cgm-error');
+  if(!ref){ errEl.textContent='La referencia es obligatoria'; return; }
+  const id=document.getElementById('cgm-id').value||'guia_'+Date.now();
+  const guia={id, referencia:ref, maquina:maq};
+  const arr=cfgGetGuias(); const idx=arr.findIndex(x=>x.id===id);
+  if(idx>-1) arr[idx]={...arr[idx],...guia}; else arr.push(guia);
+  cfgSaveGuias(arr);
+  document.getElementById('cfg-guia-modal').style.display='none';
+  cfgGuiasRenderList(cfgGetGuias());
+  showToastSimple(`✅ Guía "${ref}" guardada`);
+}
+
+function cfgExportGuias(){
+  const guias=cfgGetGuias();
+  if(!guias.length){showToastSimple('No hay guías para exportar');return;}
+  if(typeof XLSX==='undefined'){alert('Librería Excel no disponible');return;}
+  const ws=XLSX.utils.json_to_sheet(guias.map(g=>({Referencia:g.referencia||'',Maquina:g.maquina||''})));
+  ws['!cols']=[{wch:20},{wch:28}];
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Guias');
+  XLSX.writeFile(wb,'guias.xlsx');
+  showToastSimple('✅ Guías exportadas');
+}
+
+function cfgPlantillaGuias(){
+  if(typeof XLSX==='undefined'){alert('Librería Excel no disponible');return;}
+  const ws=XLSX.utils.aoa_to_sheet([['Referencia','Maquina'],['CA-23-0D-01','Plana'],['RS-40-1D-09','Resortadora']]);
+  ws['!cols']=[{wch:20},{wch:28}];
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Guias');
+  XLSX.writeFile(wb,'plantilla_guias.xlsx');
+  showToastSimple('📥 Plantilla descargada');
+}
+
+function cfgImportGuiasXLS(file){
+  if(!file) return;
+  if(typeof XLSX==='undefined'){alert('Librería Excel no disponible');return;}
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      const wb=XLSX.read(ev.target.result,{type:'binary'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+      const arr=cfgGetGuias();
+      let added=0, updated=0;
+      rows.forEach(r=>{
+        const ref=(r['Referencia']||r['referencia']||'').toString().trim();
+        const maq=(r['Maquina']||r['Máquina']||r['maquina']||'').toString().trim();
+        if(!ref) return;
+        const existing=arr.find(x=>x.referencia===ref);
+        if(existing){ existing.maquina=maq; updated++; }
+        else{ arr.push({id:'guia_'+Date.now()+'_'+Math.random().toString(36).slice(2),referencia:ref,maquina:maq}); added++; }
+      });
+      cfgSaveGuias(arr);
+      cfgSwitchTab('guias',document.getElementById('cfgn-guias'));
+      showToastSimple(`✅ ${added} nuevas, ${updated} actualizadas`);
+    } catch(err){ alert('Error al leer el archivo: '+err.message); }
+  };
+  reader.readAsBinaryString(file);
+}
+
+// openConfirmDelete para guia
+(function(){
+  const orig = window.openConfirmDelete;
+  if(orig && !orig._guiasPatched){
+    const _orig = orig;
+    window.openConfirmDelete = function(tipo, nombre, cb){
+      const titles = {usuario:'¿Eliminar usuario?',modulo:'¿Eliminar módulo?',area:'¿Eliminar área?',maquina:'¿Eliminar máquina?',turno:'¿Eliminar turno?',guia:'¿Eliminar guía?'};
+      if(typeof confirmDelete==='function') confirmDelete(titles[tipo]||'¿Eliminar?',`Se eliminará "${nombre}". Esta acción no se puede deshacer.`,cb);
+    };
+    window.openConfirmDelete._guiasPatched = true;
+  }
+})();
 
 // ── NOVEDADES ─────────────────────────────────────────────────────
 // ── NOVEDADES — cache en memoria, persiste en servidor ────────────
@@ -9029,8 +9185,15 @@ function confirmarFalloMec(){
     const mecItems = [];
     if(esAdmin||esMec) mecItems.push(`<a class="millar-dd-item" href="${href(RUTAS.insumos)}">📦 Solicitar Insumos</a>`);
     if(esAdmin||esMec){
-      mecItems.push(`<a class="millar-dd-item" href="${href(RUTAS.alistamiento)}">⚙️ Alistamiento</a>`);
-      mecItems.push(`<a class="millar-dd-item" href="${href(RUTAS.mantenimiento)}">🔧 Mantenimiento</a>`);
+      mecItems.push(`
+        <div class="millar-dd-item has-sub">
+          🔩 Montajes ${FLECHA}
+          <div class="millar-sub">
+            <a class="millar-sub-item" href="${href(RUTAS.alistamiento)}">⚙️ Alistamiento</a>
+            <a class="millar-sub-item" href="${href(RUTAS.mantenimiento)}">🛠 Mantenimiento</a>
+          </div>
+        </div>`);
+    }
     if(mecItems.length){
       html += buildBtn('mecanicos','Mecánicos',mecItems);
     }
@@ -9107,5 +9270,30 @@ function confirmarFalloMec(){
   }
 })();
 </script>
+<!-- MODAL: Formulario Guía -->
+<div id="cfg-guia-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:999;align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:#fff;border-radius:16px;padding:28px 24px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.2);font-family:'Nunito',sans-serif;">
+    <div id="cgm-title" style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;letter-spacing:2px;color:#0f172a;margin-bottom:20px;">➕ NUEVA GUÍA</div>
+    <input type="hidden" id="cgm-id">
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Referencia</label>
+        <input id="cgm-referencia" type="text" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:'Courier New',monospace;font-size:13px;outline:none;width:100%;box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'" onkeydown="if(event.key==='Enter')cfgSaveGuiaModal()">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Máquina</label>
+        <select id="cgm-maquina-sel" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:13px;outline:none;background:#fff;cursor:pointer;width:100%;box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+          <option value="">— Seleccionar máquina —</option>
+        </select>
+      </div>
+    </div>
+    <div id="cgm-error" style="color:#dc2626;font-size:12px;margin-top:8px;min-height:16px;"></div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button onclick="document.getElementById('cfg-guia-modal').style.display='none'" style="flex:1;padding:10px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Cancelar</button>
+      <button onclick="cfgSaveGuiaModal()" style="flex:1;padding:10px;border-radius:8px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Guardar</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
