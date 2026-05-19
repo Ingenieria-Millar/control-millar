@@ -412,7 +412,7 @@ tr:hover td{background:#f8fafc;}
             </div>
           </div>
         </div>
-        <button class="btn-export" onclick="exportar('alistamientos')">📥 Exportar Excel</button>
+        <button class="btn-export" id="btn-export-alist" onclick="exportar('alistamientos')">📥 Exportar Excel</button>
         <button class="btn btn-primary" style="background:linear-gradient(135deg,#1e3a8a,#2563eb);border:none;" onclick="abrirModalAlistamiento()">＋ Nuevo Alistamiento</button>
       </div>
     </div>
@@ -513,7 +513,7 @@ tr:hover td{background:#f8fafc;}
             </div>
           </div>
         </div>
-        <button class="btn-export" onclick="exportarMantenimientosExcel()">📥 Exportar Excel</button>
+        <button class="btn-export" id="btn-export-mant" onclick="exportarMantenimientosExcel()">📥 Exportar Excel</button>
         <button class="btn btn-primary" style="background:linear-gradient(135deg,#1e3a8a,#2563eb);border:none;" onclick="abrirModalMantenimiento()">＋ Nuevo Mantenimiento</button>
       </div>
     </div>
@@ -630,8 +630,14 @@ tr:hover td{background:#f8fafc;}
           </div>
           <div class="form-group">
             <label class="form-label">Número de Guía</label>
-            <input type="text" class="form-input" name="numeroGuia" id="alistGuiaInput" placeholder="Digita código o N/A..." autocomplete="off">
-            <div id="alistGuiaDesc" style="display:none;margin-top:6px;padding:8px 12px;background:rgba(37,99,235,.05);border:1.5px solid rgba(37,99,235,.15);border-radius:8px;font-size:12px;color:#1d4ed8;"></div>
+            <div class="autocomplete-wrap">
+              <input type="text" class="form-input" name="numeroGuia" id="alistGuiaInput"
+                autocomplete="off" placeholder="Escribe para buscar..."
+                oninput="acFilterGuias('alistGuiaInput','alistGuiaList')"
+                onfocus="acFilterGuias('alistGuiaInput','alistGuiaList')"
+                onblur="setTimeout(()=>{ acClose('alistGuiaList'); validarGuiaAlist(); },200)">
+              <div class="autocomplete-list" id="alistGuiaList"></div>
+            </div>
           </div>
           <hr class="form-divider">
           <div class="form-section-title">✅ Verificación</div>
@@ -981,8 +987,7 @@ async function init() {
   setInterval(updateAlistDate, 60000);
   updateAlistDate();
 
-  // Inicializar autocomplete de guías (solo alistamiento usa el sistema legacy)
-  initGuiaAutocomplete('alistGuiaInput', 'alistGuiaDesc');
+  // Guías usan acFilterGuias directamente (igual que mantGuiaInput)
 
   // Ocultar nav y configuración hasta que se loguee
   const navWrap = document.getElementById('millar-nav-wrap');
@@ -1086,8 +1091,26 @@ async function loadConfig() {
   }
   window._maquinariaCompleta = maquinariaCompleta;
 
-  // ── Empleados ──────────────────────────────────────────────────
-  let empleados = [];
+  // ── Supervisoras desde perfil "Supervisoras" ──────────────────
+  let supervisoras = [];
+  try {
+    const r = await fetch('/api/supervisoras');
+    if (r.ok) {
+      const lista = await r.json();
+      supervisoras = lista
+        .filter(s => !s.disabled)
+        .map(s => ({ nombre: typeof s === 'string' ? s : (s.name || s.nombre || ''), rol: s.cargo || s.rol || '' }))
+        .filter(s => s.nombre);
+    }
+  } catch(e) {}
+
+  // Si no hay ruta /api/supervisoras, obtener desde app_config como mecánicos
+  if (!supervisoras.length) {
+    try {
+      const r = await fetch('/api/app-config-supervisoras');
+      if (r.ok) supervisoras = await r.json();
+    } catch(e) {}
+  }
   try {
     const r = await fetch('/api/empleados');
     if (r.ok) {
@@ -1100,7 +1123,7 @@ async function loadConfig() {
     }
   } catch(e) {}
 
-  config = { supervisoras:[], mecanicos, modulos, maquinas, empleados };
+  config = { supervisoras, mecanicos, modulos, maquinas, empleados };
 }
 
 
@@ -2132,6 +2155,15 @@ function toggleAlerts() { return; // alerts panel removed
 }
 
 // ===== MODALS =====
+function validarGuiaAlist(){
+  const input = document.getElementById('alistGuiaInput');
+  if (!input || !input.value.trim()) return;
+  const existe = inventarioGuias.some(g =>
+    (g.referencia || '').toLowerCase() === input.value.trim().toLowerCase()
+  );
+  if (!existe) input.value = '';
+}
+
 function abrirModalAlistamiento(modulo) {
   const esAdmin = mecanicoActual === 'ADMINISTRADOR';
   // Ocultar campo mecánico para no-admins
@@ -2143,6 +2175,7 @@ function abrirModalAlistamiento(modulo) {
   (async () => {
     await loadConfig();
     _populateFormsNow();
+    if (!inventarioGuias.length) await loadGuiasReferencias();
     if (modulo) document.getElementById('alistModulo').value = modulo;
   })();
   document.getElementById('modalAlistamiento').classList.add('open');
@@ -2227,16 +2260,19 @@ function confirmarLoginMant() {
   const esAdmin = val === 'ADMINISTRADOR';
 
   // Mostrar/ocultar elementos según rol
-  const badge = document.getElementById('mant-user-badge');
-  const lbl   = document.getElementById('mant-user-label');
-  const cfg   = document.getElementById('btn-configuracion');
-  const nav   = document.getElementById('millar-nav-wrap');
+  const badge   = document.getElementById('mant-user-badge');
+  const lbl     = document.getElementById('mant-user-label');
+  const cfg     = document.getElementById('btn-configuracion');
+  const nav     = document.getElementById('millar-nav-wrap');
+  const expMant = document.getElementById('btn-export-mant');
+  const expAlist= document.getElementById('btn-export-alist');
 
-  if (badge) { badge.style.display = 'flex'; }
-  if (lbl)   { lbl.textContent = esAdmin ? '👤 ADMINISTRADOR' : '🔧 ' + val; }
-  if (cfg)   { cfg.style.display = esAdmin ? 'flex' : 'none'; }
-  // Barra superior: solo para admin (data-millar-nav se inyecta por JS)
-  if (nav)   { nav.style.display = esAdmin ? '' : 'none'; }
+  if (badge)    { badge.style.display = 'flex'; }
+  if (lbl)      { lbl.textContent = esAdmin ? '👤 ADMINISTRADOR' : '🔧 ' + val; }
+  if (cfg)      { cfg.style.display = esAdmin ? 'flex' : 'none'; }
+  if (nav)      { nav.style.display = esAdmin ? '' : 'none'; }
+  if (expMant)  { expMant.style.display = esAdmin ? '' : 'none'; }
+  if (expAlist) { expAlist.style.display = esAdmin ? '' : 'none'; }
 
   document.getElementById('mant-login').style.display = 'none';
   // Ir a la sección según la URL
