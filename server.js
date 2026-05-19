@@ -595,7 +595,7 @@ app.get('/alistamiento/api/alistamientos', (req, res) => {
 
 app.post(
   '/alistamiento/api/alistamientos',
-  (req, res, next) => upload.array('fotos', 10)(req, res, err => err ? handleMulterError(err, req, res, next) : next()),
+  (req, res, next) => upload.array('fotos', 5)(req, res, err => err ? handleMulterError(err, req, res, next) : next()),
   (req, res) => {
     const missing = requireFields(req.body, ['modulo', 'tipoMaquina', 'serial', 'mecanico']);
     if (missing) return res.status(400).json({ error: `Campos requeridos faltantes: ${missing.join(', ')}` });
@@ -644,7 +644,7 @@ app.get('/alistamiento/api/mantenimientos', (req, res) => {
 
 app.post(
   '/alistamiento/api/mantenimientos',
-  (req, res, next) => upload.array('fotos', 10)(req, res, err => err ? handleMulterError(err, req, res, next) : next()),
+  (req, res, next) => upload.array('fotos', 5)(req, res, err => err ? handleMulterError(err, req, res, next) : next()),
   (req, res) => {
     const missing = requireFields(req.body, ['tipoMaquina', 'serial', 'mecanico', 'tipoMantenimiento']);
     if (missing) return res.status(400).json({ error: `Campos requeridos faltantes: ${missing.join(', ')}` });
@@ -683,7 +683,7 @@ app.delete('/alistamiento/api/mantenimientos/:id', (req, res) => {
 
 app.put(
   '/alistamiento/api/mantenimientos/:id',
-  (req, res, next) => upload.array('fotos', 10)(req, res, err => err ? handleMulterError(err, req, res, next) : next()),
+  (req, res, next) => upload.array('fotos', 5)(req, res, err => err ? handleMulterError(err, req, res, next) : next()),
   (req, res) => {
     try {
       const data = loadDB('mantenimientos');
@@ -870,6 +870,30 @@ app.get('/api/mecanicos', (req, res) => {
   // Fallback: supervisores activos
   const sups = (iaState.supervisors || []).filter(s => s.id !== 'programador' && !s.disabled);
   res.json(sups.map(s => ({ id: s.id, name: s.name })));
+});
+
+app.get('/api/supervisoras', (req, res) => {
+  // Leer miembros del perfil "Supervisoras" desde app_config._perfil_members
+  const appCfg = readJSON(FILES.app_config, {});
+  const perfilMembers = appCfg._perfil_members;
+  // Buscar perfil que contenga "supervis" (insensible a mayúsculas)
+  const key = Object.keys(perfilMembers || {}).find(k => k.toLowerCase().includes('supervis'));
+  if (key && Array.isArray(perfilMembers[key])) {
+    const members = perfilMembers[key]
+      .filter(m => m && !m.disabled)
+      .map(m => {
+        const nombre = typeof m === 'string' ? m : (m.nombre || m.name || '');
+        return { id: nombre, name: nombre, nombre };
+      })
+      .filter(m => m.name);
+    if (members.length > 0) {
+      members.sort((a, b) => a.name.localeCompare(b.name));
+      return res.json(members);
+    }
+  }
+  // Fallback: supervisores del sistema
+  const sups = (iaState.supervisors || []).filter(s => s.id !== 'programador' && !s.disabled);
+  res.json(sups.map(s => ({ id: s.id, name: s.name, nombre: s.name })));
 });
 
 // Novedades
