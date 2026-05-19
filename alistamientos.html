@@ -342,7 +342,6 @@ tr:hover td{background:#f8fafc;}
       <span id="mant-user-label">👤</span>
       <button onclick="cerrarSesionMant()" title="Cambiar usuario" style="background:none;border:none;cursor:pointer;font-size:12px;color:#94a3b8;padding:0;line-height:1;">✕</button>
     </div>
-    <button class="btn-config" id="btn-configuracion" onclick="abrirModalConfig()" style="display:none;">⚙️ Configuración</button>
     <button class="btn-volver" id="btn-volver" onclick="volverSeleccion()">← Volver</button>
   </div>
 </header>
@@ -1628,6 +1627,7 @@ function renderMantenimientos(data) {
       '<td style="text-align:center;">' + obsBtn + '</td>' +
       '<td style="text-align:center;white-space:nowrap;">' +
         (mecanicoActual === 'ADMINISTRADOR' ?
+          '<button class="btn" style="padding:4px 6px;font-size:12px;background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;margin-right:2px;" onclick="imprimirMantenimiento(\'' + r.id + '\')" title="Imprimir PDF">&#128438;</button>' +
           '<button class="btn" style="padding:4px 8px;font-size:12px;background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;margin-right:2px;" onclick="editarMantenimiento(\'' + r.id + '\')">&#9999;&#65039;</button>' +
           '<button class="btn btn-danger" style="padding:4px 8px;font-size:12px;" onclick="eliminar(\'mantenimientos\',\'' + r.id + '\')">&#128465;&#65039;</button>'
           : '<span style="color:#94a3b8;font-size:12px;">—</span>') +
@@ -1646,16 +1646,85 @@ function renderMantKPIs(rows){
   const fugas     = rows.filter(r=>r.tipoMantenimiento==='Mantenimiento de Fugas').length;
   const conFotos  = rows.filter(r=>r.fotos&&r.fotos.length).length;
   const kpis = [
-    { label:'Total', valor:total, color:'#1e40af', bg:'#eff6ff' },
-    { label:'Preventivos', valor:prev, color:'#2563eb', bg:'#dbeafe' },
-    { label:'Correctivos', valor:corr, color:'#dc2626', bg:'#fef2f2' },
-    { label:'Fugas', valor:fugas, color:'#0369a1', bg:'#e0f2fe' },
+    { label:'Total',       valor:total, color:'#1e40af', bg:'#eff6ff' },
+    { label:'Preventivos', valor:prev,  color:'#a16207', bg:'#fef9c3' },
+    { label:'Correctivos', valor:corr,  color:'#dc2626', bg:'#fef2f2' },
+    { label:'Fugas',       valor:fugas, color:'#1d4ed8', bg:'#dbeafe' },
   ];
   el.innerHTML = kpis.map(k=>`
     <div style="background:${k.bg};border-radius:12px;padding:14px 20px;border:1px solid ${k.color}22;min-width:110px;flex:1;max-width:160px;">
       <div style="font-size:26px;font-weight:800;color:${k.color};line-height:1;">${k.valor}</div>
       <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-top:4px;">${k.label}</div>
     </div>`).join('');
+}
+
+function imprimirMantenimiento(id) {
+  const r = mantenimientos.find(m => m.id === id);
+  if (!r) return;
+  const badge = r.tipoMantenimiento === 'Preventivo'
+    ? '<span style="background:#fef9c3;color:#a16207;font-size:12px;font-weight:700;padding:4px 14px;border-radius:20px;">Preventivo</span>'
+    : r.tipoMantenimiento === 'Correctivo'
+    ? '<span style="background:#fee2e2;color:#dc2626;font-size:12px;font-weight:700;padding:4px 14px;border-radius:20px;">Correctivo</span>'
+    : '<span style="background:#dbeafe;color:#1d4ed8;font-size:12px;font-weight:700;padding:4px 14px;border-radius:20px;">Fugas</span>';
+
+  const fila = (label, value, label2, value2) => `
+    <tr>
+      <td style="padding:8px 12px;border:1px solid #e2e8f0;background:#f8fafc;font-size:11px;font-weight:700;color:#1e3a8a;text-transform:uppercase;width:22%;white-space:nowrap;">${label}</td>
+      <td style="padding:8px 12px;border:1px solid #e2e8f0;font-size:13px;color:#0f172a;width:28%;">${value||'—'}</td>
+      <td style="padding:8px 12px;border:1px solid #e2e8f0;background:#f8fafc;font-size:11px;font-weight:700;color:#1e3a8a;text-transform:uppercase;width:22%;white-space:nowrap;">${label2||''}</td>
+      <td style="padding:8px 12px;border:1px solid #e2e8f0;font-size:13px;color:#0f172a;width:28%;">${value2||''}</td>
+    </tr>`;
+
+  const seccion = (titulo) => `
+    <tr><td colspan="4" style="padding:10px 12px;background:#1e3a8a;color:#fff;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;border:1px solid #1e3a8a;">${titulo}</td></tr>`;
+
+  const fotosHTML = r.fotos && r.fotos.length
+    ? r.fotos.map(f => `<img src="${buildFotoUrl(f)}" style="width:150px;height:110px;object-fit:cover;border-radius:6px;border:1px solid #e2e8f0;margin:4px;" onerror="this.style.display='none'">`).join('')
+    : '<p style="color:#94a3b8;font-size:12px;font-style:italic;">Sin fotos de evidencia</p>';
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>Mantenimiento - ${r.mecanico||''} - ${r.tipoMaquina||''}</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Segoe UI',Arial,sans-serif;padding:24px;color:#0f172a;background:#fff;}
+    .header{display:flex;align-items:flex-start;justify-content:space-between;border-bottom:3px solid #1e3a8a;padding-bottom:14px;margin-bottom:20px;}
+    table{width:100%;border-collapse:collapse;margin-bottom:16px;}
+    .fotos{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+    .footer{margin-top:20px;border-top:1px solid #e2e8f0;padding-top:12px;font-size:10px;color:#94a3b8;text-align:center;}
+    @media print{body{padding:12px;}@page{margin:1cm;}}
+  </style></head><body>
+  <div class="header">
+    <div>
+      <div style="font-size:20px;font-weight:700;color:#1e3a8a;">Tarjeta de Mantenimiento</div>
+      <div style="font-size:11px;color:#64748b;margin-top:4px;">Generado: ${new Date().toLocaleString('es-CO')}</div>
+    </div>
+    <div>${badge}</div>
+  </div>
+  <table>
+    ${seccion('Información General')}
+    ${fila('Fecha', r.fecha, 'Hora', r.fechaHora ? new Date(r.fechaHora).toLocaleTimeString('es-CO') : r.hora||'')}
+    ${fila('Mecánico', r.mecanico, 'Módulo', r.modulo)}
+  </table>
+  <table>
+    ${seccion('Datos de la Máquina')}
+    ${fila('Tipo de Máquina', r.tipoMaquina, 'Serial', r.serial)}
+    ${fila('Código', getMaqCodigo(r.serial, r.tipoMaquina), 'Guía', r.numeroGuia)}
+    ${fila('Repuestos', r.repuestos, '', '')}
+  </table>
+  ${r.observaciones ? `<table>${seccion('Observaciones')}<tr><td colspan="4" style="padding:10px 12px;border:1px solid #e2e8f0;font-size:13px;">${r.observaciones}</td></tr></table>` : ''}
+  <table>
+    ${seccion('Fotos de Evidencia')}
+    <tr><td colspan="4" style="padding:12px;border:1px solid #e2e8f0;">
+      <div class="fotos">${fotosHTML}</div>
+    </td></tr>
+  </table>
+  <div class="footer">Confecciones Millar S.A.S. — Sistema de Control de Piso</div>
+  </body></html>`;
+
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+  win.onload = () => win.print();
 }
 
 function verObservacion(id){
@@ -2418,14 +2487,12 @@ function confirmarLoginMant() {
   // Mostrar/ocultar elementos según rol
   const badge   = document.getElementById('mant-user-badge');
   const lbl     = document.getElementById('mant-user-label');
-  const cfg     = document.getElementById('btn-configuracion');
   const nav     = document.getElementById('millar-nav-wrap');
   const expMant = document.getElementById('btn-export-mant');
   const expAlist= document.getElementById('btn-export-alist');
 
   if (badge)    { badge.style.display = 'flex'; }
   if (lbl)      { lbl.textContent = esAdmin ? '👤 ADMINISTRADOR' : '🔧 ' + val; }
-  if (cfg)      { cfg.style.display = esAdmin ? 'flex' : 'none'; }
   if (nav)      { nav.style.display = esAdmin ? '' : 'none'; }
   if (expMant)  { expMant.style.display = esAdmin ? '' : 'none'; }
   if (expAlist) { expAlist.style.display = esAdmin ? '' : 'none'; }
