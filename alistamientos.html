@@ -419,24 +419,23 @@ tr:hover td{background:#f8fafc;}
 
     <div class="table-panel">
         <div style="width:100%;">
-          <table style="width:100%;table-layout:fixed;font-size:11px;">
+          <table style="width:100%;table-layout:fixed;font-size:12px;">
             <thead><tr>
-              <th style="width:75px;">Fecha</th>
-              <th style="width:80px;">Mecánico</th>
-              <th style="width:45px;">Módulo</th>
-              <th style="width:70px;">Referencia</th>
-              <th style="width:75px;">Máquina</th>
-              <th style="width:95px;">Código</th>
-              <th style="width:68px;">Serial</th>
-              <th style="width:65px;">Guía</th>
-              <th style="width:60px;">T.Aguja</th>
-              <th style="width:48px;">Calibre</th>
-              <th style="width:35px;">PPP</th>
-              <th style="width:42px;">Ficha</th>
-              <th style="width:50px;">Muestra</th>
-              <th style="width:75px;">Costura</th>
-              <th style="width:36px;">📷</th>
-              <th style="width:75px;" id="th-alist-acciones" class="col-acciones-alist">Acciones</th>
+              <th style="width:110px;">Mecánico</th>
+              <th style="width:55px;">Módulo</th>
+              <th style="width:90px;">Referencia</th>
+              <th style="width:90px;">Máquina</th>
+              <th style="width:115px;">Código</th>
+              <th style="width:85px;">Serial</th>
+              <th style="width:80px;">Guía</th>
+              <th style="width:75px;">T.Aguja</th>
+              <th style="width:60px;">Calibre</th>
+              <th style="width:45px;">PPP</th>
+              <th style="width:50px;">Ficha</th>
+              <th style="width:60px;">Muestra</th>
+              <th style="width:85px;">Costura</th>
+              <th style="width:42px;">📷</th>
+              <th style="width:90px;" id="th-alist-acciones" class="col-acciones-alist">Acciones</th>
             </tr></thead>
             <tbody id="alistBody"></tbody>
           </table>
@@ -1507,7 +1506,7 @@ function renderAlistamientos(data) {
   if (thead && !document.getElementById('alist-filter-row')) {
     const filterRow = document.createElement('tr');
     filterRow.id = 'alist-filter-row';
-    const cols = ['fecha','mecanico','modulo','referencia','maquina','codigo','serial','guia','aguja','calibre','ppp','ficha','muestra','costura','',''];
+    const cols = ['mecanico','modulo','referencia','maquina','codigo','serial','guia','aguja','calibre','ppp','ficha','muestra','costura','',''];
     filterRow.innerHTML = cols.map(function(c) {
       if (!c) return '<td style="padding:4px;"></td>';
       return '<td style="padding:4px 3px;">' +
@@ -1528,7 +1527,7 @@ function renderAlistamientos(data) {
   }
 
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="17"><div style="text-align:center;padding:24px;color:#64748b;font-style:italic;"><div style="font-size:28px;margin-bottom:6px;">⚙️</div><div>No hay registros de alistamiento</div></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="15"><div style="text-align:center;padding:24px;color:#64748b;font-style:italic;"><div style="font-size:28px;margin-bottom:6px;">⚙️</div><div>No hay registros de alistamiento</div></div></td></tr>';
     renderAlistKPIs(rows);
     return;
   }
@@ -1543,7 +1542,6 @@ function renderAlistamientos(data) {
         '<button class="btn btn-danger" style="padding:4px 6px;font-size:12px;" onclick="eliminar(\'alistamientos\',\'' + r.id + '\')">&#128465;&#65039;</button>'
       : '<span style="color:#94a3b8;">&#8212;</span>';
     return '<tr>' +
-      '<td style="' + TD + '">' + (r.fecha||'-') + '</td>' +
       '<td style="' + TD + '">' + (r.mecanico||'-') + '</td>' +
       '<td style="' + TD + 'font-weight:700;text-align:center;">' + (r.modulo||'-') + '</td>' +
       '<td style="' + TD + '">' + (r.referencia||'-') + '</td>' +
@@ -1842,7 +1840,6 @@ function getAlistFiltrados(){
 // ===== FILTROS =====
 function filtrarAlistamientos() {
   const get = id => (document.getElementById(id)||{value:''}).value.trim().toLowerCase();
-  const qFec  = get('af-fecha');
   const qMec  = get('af-mecanico');
   const qSup  = get('af-supervisor');
   const qMod  = get('af-modulo');
@@ -1858,7 +1855,6 @@ function filtrarAlistamientos() {
   const qMue  = get('af-muestra');
   const qCos  = get('af-costura');
   let rows = getAlistFiltrados();
-  if (qFec)  rows = rows.filter(r => (r.fecha||'').toLowerCase().includes(qFec));
   if (qMec)  rows = rows.filter(r => (r.mecanico||'').toLowerCase().includes(qMec));
   if (qSup)  rows = rows.filter(r => (r.supervisor||'').toLowerCase().includes(qSup));
   if (qMod)  rows = rows.filter(r => (r.modulo||'').toLowerCase().includes(qMod));
