@@ -417,34 +417,32 @@ tr:hover td{background:#f8fafc;}
       </div>
     </div>
 
-    <div class="inner-tabs">
-      <div class="inner-tab active" onclick="switchAlistTab('registros',this)">📋 Registros</div>
-      <div class="inner-tab" onclick="switchAlistTab('modulos',this)">🗂️ Vista Módulos</div>
-    </div>
-
-    <div id="alist-registros">
-      <div class="table-panel">
-        <div style="overflow-x:hidden;width:100%;">
-          <table style="width:100%;table-layout:fixed;">
+    <div class="table-panel">
+        <div style="overflow-x:auto;width:100%;">
+          <table style="width:100%;table-layout:auto;">
             <thead><tr>
-              <th style="width:70px;">Módulo</th>
-              <th style="width:100px;">Referencia</th>
-              <th style="width:110px;">Máquina</th>
-              <th style="width:90px;">Serial</th>
-              <th style="width:110px;">Mecánico</th>
-              <th style="width:100px;">Supervisor</th>
-              <th style="width:90px;">Guía</th>
-              <th style="width:90px;">Costura</th>
-              <th style="width:90px;">Fecha</th>
-              <th style="width:70px;">Hora</th>
-              <th style="width:50px;">Fotos</th>
-              <th style="width:90px;" id="th-alist-acciones" class="col-acciones-alist">Acciones</th>
+              <th style="min-width:90px;">Fecha</th>
+              <th style="min-width:110px;">Mecánico</th>
+              <th style="min-width:110px;">Supervisora</th>
+              <th style="min-width:60px;">Módulo</th>
+              <th style="min-width:100px;">Referencia</th>
+              <th style="min-width:110px;">Máquina</th>
+              <th style="min-width:120px;">Código</th>
+              <th style="min-width:90px;">Serial</th>
+              <th style="min-width:90px;">Guía</th>
+              <th style="min-width:90px;">Tipo Aguja</th>
+              <th style="min-width:80px;">Calibre</th>
+              <th style="min-width:60px;">PPP</th>
+              <th style="min-width:70px;">Ficha Téc.</th>
+              <th style="min-width:70px;">Muestra Fís.</th>
+              <th style="min-width:90px;">Costura</th>
+              <th style="min-width:50px;">Fotos</th>
+              <th style="min-width:100px;" id="th-alist-acciones" class="col-acciones-alist">Acciones</th>
             </tr></thead>
             <tbody id="alistBody"></tbody>
           </table>
         </div>
       </div>
-    </div>
     <div id="alist-modulos" style="display:none">
       <div class="modulos-grid" id="modulosGrid"></div>
     </div>
@@ -1462,7 +1460,6 @@ function renderAlistKPIs(rows) {
     { valor: total,      label: 'Total',      color: '#2563eb', bg: '#eff6ff' },
     { valor: aprobados,  label: 'Aprobados',  color: '#16a34a', bg: '#f0fdf4' },
     { valor: rechazados, label: 'Rechazados', color: '#dc2626', bg: '#fef2f2' },
-    { valor: obs,        label: 'Observación',color: '#d97706', bg: '#fffbeb' },
   ];
   el.innerHTML = kpis.map(k => `
     <div style="background:${k.bg};border-radius:12px;padding:14px 20px;border:1px solid ${k.color}22;min-width:110px;flex:1;max-width:160px;">
@@ -1476,12 +1473,21 @@ function renderAlistamientos(data) {
   const tbody = document.getElementById('alistBody');
   if (!tbody) return;
 
+  // La columna acciones se controla por clase en switchSection
+
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="12"><div style="text-align:center;padding:24px;color:#64748b;font-style:italic;"><div style="font-size:28px;margin-bottom:6px;">⚙️</div><div>No hay registros de alistamiento</div></div></td></tr>';
+    renderAlistKPIs(rows);
+    return;
+  }
+
+  const esAdmin = mecanicoActual === 'ADMINISTRADOR';
   // Agregar fila de filtros al thead si no existe
   const thead = tbody.closest('table') && tbody.closest('table').querySelector('thead');
   if (thead && !document.getElementById('alist-filter-row')) {
     const filterRow = document.createElement('tr');
     filterRow.id = 'alist-filter-row';
-    const cols = ['modulo','referencia','maquina','serial','mecanico','supervisor','guia','costura','fecha','hora','',''];
+    const cols = ['fecha','mecanico','supervisor','modulo','referencia','maquina','codigo','serial','guia','aguja','calibre','ppp','ficha','muestra','costura','',''];
     filterRow.innerHTML = cols.map(function(c) {
       if (!c) return '<td style="padding:4px;"></td>';
       return '<td style="padding:4px 3px;">' +
@@ -1494,34 +1500,44 @@ function renderAlistamientos(data) {
     thead.appendChild(filterRow);
   }
 
-  // La columna acciones se controla por clase en switchSection
+  // Controlar columna acciones
+  const tablaAlist = tbody.closest('table');
+  if (tablaAlist) {
+    if (esAdmin) tablaAlist.classList.remove('hide-alist-acciones');
+    else         tablaAlist.classList.add('hide-alist-acciones');
+  }
 
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="12"><div style="text-align:center;padding:24px;color:#64748b;font-style:italic;"><div style="font-size:28px;margin-bottom:6px;">⚙️</div><div>No hay registros de alistamiento</div></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="17"><div style="text-align:center;padding:24px;color:#64748b;font-style:italic;"><div style="font-size:28px;margin-bottom:6px;">⚙️</div><div>No hay registros de alistamiento</div></div></td></tr>';
     renderAlistKPIs(rows);
     return;
   }
 
-  const esAdmin = mecanicoActual === 'ADMINISTRADOR';
   tbody.innerHTML = rows.map(function(r) {
     const fotoBtn = r.fotos && r.fotos.length
       ? '<button class="btn" style="padding:4px 8px;font-size:14px;background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;" onclick="verFotos(\'' + r.id + '\')">&#128247;</button>'
       : '<span style="color:#94a3b8;">&#8212;</span>';
     const accionBtn = esAdmin
-      ? '<button class="btn" style="padding:4px 8px;font-size:12px;background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;margin-right:2px;" onclick="editarAlistamiento(\'' + r.id + '\')">&#9999;&#65039;</button>' +
-        '<button class="btn btn-danger" style="padding:4px 8px;font-size:12px;" onclick="eliminar(\'alistamientos\',\'' + r.id + '\')">&#128465;&#65039;</button>'
+      ? '<button class="btn" style="padding:4px 6px;font-size:12px;background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;margin-right:2px;" onclick="imprimirAlistamiento(\'' + r.id + '\')" title="Imprimir resumen">&#128438;</button>' +
+        '<button class="btn" style="padding:4px 6px;font-size:12px;background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;margin-right:2px;" onclick="editarAlistamiento(\'' + r.id + '\')">&#9999;&#65039;</button>' +
+        '<button class="btn btn-danger" style="padding:4px 6px;font-size:12px;" onclick="eliminar(\'alistamientos\',\'' + r.id + '\')">&#128465;&#65039;</button>'
       : '<span style="color:#94a3b8;">&#8212;</span>';
     return '<tr>' +
-      '<td style="' + TD + 'font-weight:700;">' + (r.modulo||'-') + '</td>' +
-      '<td style="' + TD + '">' + (r.referencia||'-') + '</td>' +
-      '<td style="' + TD + '">' + (r.tipoMaquina||'-') + '</td>' +
-      '<td style="' + TD + '"><code style="font-size:11px;background:var(--bg3);padding:2px 5px;border-radius:4px;">' + (r.serial||'-') + '</code></td>' +
+      '<td style="' + TD + '">' + (r.fecha||'-') + '</td>' +
       '<td style="' + TD + '">' + (r.mecanico||'-') + '</td>' +
       '<td style="' + TD + '">' + (r.supervisor||'-') + '</td>' +
+      '<td style="' + TD + 'font-weight:700;text-align:center;">' + (r.modulo||'-') + '</td>' +
+      '<td style="' + TD + '">' + (r.referencia||'-') + '</td>' +
+      '<td style="' + TD + '">' + (r.tipoMaquina||'-') + '</td>' +
+      '<td style="' + TD + '"><code style="font-size:11px;background:#f1f5f9;padding:2px 5px;border-radius:4px;">' + getMaqCodigo(r.serial,r.tipoMaquina) + '</code></td>' +
+      '<td style="' + TD + '"><code style="font-size:11px;background:var(--bg3);padding:2px 5px;border-radius:4px;">' + (r.serial||'-') + '</code></td>' +
       '<td style="' + TD + '">' + (r.numeroGuia||'—') + '</td>' +
+      '<td style="' + TD + '">' + (r.tipoAguja||'—') + '</td>' +
+      '<td style="' + TD + '">' + (r.calibreAguja||'—') + '</td>' +
+      '<td style="' + TD + '">' + (r.ppp||'—') + '</td>' +
+      '<td style="' + TD + 'text-align:center;">' + (r.fichaTecnica||'—') + '</td>' +
+      '<td style="' + TD + 'text-align:center;">' + (r.muestraFisica||'—') + '</td>' +
       '<td>' + estadoBadge(r.pruebaCostura) + '</td>' +
-      '<td style="' + TD + '">' + (r.fecha||'-') + '</td>' +
-      '<td style="' + TD + '">' + (r.hora||'-') + '</td>' +
       '<td style="text-align:center;">' + fotoBtn + '</td>' +
       '<td style="text-align:center;white-space:nowrap;" class="td-alist-acc">' + accionBtn + '</td>' +
     '</tr>';
@@ -1553,8 +1569,8 @@ function renderMantenimientos(data) {
   if (!tbody) return;
 
   // Agregar fila de filtros al thead si no existe
-  const thead = tbody.closest('table') && tbody.closest('table').querySelector('thead');
-  if (thead && !document.getElementById('mant-filter-row')) {
+  const theadMant = tbody.closest('table') && tbody.closest('table').querySelector('thead');
+  if (theadMant && !document.getElementById('mant-filter-row')) {
     const filterRow = document.createElement('tr');
     filterRow.id = 'mant-filter-row';
     const cols = ['tipo','mecanico','modulo','maquina','codigo','serial','guia','repuestos','','',''];
@@ -1567,7 +1583,7 @@ function renderMantenimientos(data) {
         'onfocus="this.style.borderColor=\'#2563eb\'" onblur="this.style.borderColor=\'#e2e8f0\'">' +
         '</td>';
     }).join('');
-    thead.appendChild(filterRow);
+    theadMant.appendChild(filterRow);
   }
 
   if (!rows.length) {
@@ -1807,27 +1823,37 @@ function getAlistFiltrados(){
 // ===== FILTROS =====
 function filtrarAlistamientos() {
   const get = id => (document.getElementById(id)||{value:''}).value.trim().toLowerCase();
+  const qFec  = get('af-fecha');
+  const qMec  = get('af-mecanico');
+  const qSup  = get('af-supervisor');
   const qMod  = get('af-modulo');
   const qRef  = get('af-referencia');
   const qMaq  = get('af-maquina');
+  const qCod  = get('af-codigo');
   const qSer  = get('af-serial');
-  const qMec  = get('af-mecanico');
-  const qSup  = get('af-supervisor');
   const qGui  = get('af-guia');
+  const qAgu  = get('af-aguja');
+  const qCal  = get('af-calibre');
+  const qPPP  = get('af-ppp');
+  const qFic  = get('af-ficha');
+  const qMue  = get('af-muestra');
   const qCos  = get('af-costura');
-  const qFec  = get('af-fecha');
-  const qHor  = get('af-hora');
   let rows = getAlistFiltrados();
+  if (qFec)  rows = rows.filter(r => (r.fecha||'').toLowerCase().includes(qFec));
+  if (qMec)  rows = rows.filter(r => (r.mecanico||'').toLowerCase().includes(qMec));
+  if (qSup)  rows = rows.filter(r => (r.supervisor||'').toLowerCase().includes(qSup));
   if (qMod)  rows = rows.filter(r => (r.modulo||'').toLowerCase().includes(qMod));
   if (qRef)  rows = rows.filter(r => (r.referencia||'').toLowerCase().includes(qRef));
   if (qMaq)  rows = rows.filter(r => (r.tipoMaquina||'').toLowerCase().includes(qMaq));
+  if (qCod)  rows = rows.filter(r => getMaqCodigo(r.serial,r.tipoMaquina).toLowerCase().includes(qCod));
   if (qSer)  rows = rows.filter(r => (r.serial||'').toLowerCase().includes(qSer));
-  if (qMec)  rows = rows.filter(r => (r.mecanico||'').toLowerCase().includes(qMec));
-  if (qSup)  rows = rows.filter(r => (r.supervisor||'').toLowerCase().includes(qSup));
   if (qGui)  rows = rows.filter(r => (r.numeroGuia||'').toLowerCase().includes(qGui));
+  if (qAgu)  rows = rows.filter(r => (r.tipoAguja||'').toLowerCase().includes(qAgu));
+  if (qCal)  rows = rows.filter(r => (r.calibreAguja||'').toLowerCase().includes(qCal));
+  if (qPPP)  rows = rows.filter(r => (r.ppp||'').toLowerCase().includes(qPPP));
+  if (qFic)  rows = rows.filter(r => (r.fichaTecnica||'').toLowerCase().includes(qFic));
+  if (qMue)  rows = rows.filter(r => (r.muestraFisica||'').toLowerCase().includes(qMue));
   if (qCos)  rows = rows.filter(r => (r.pruebaCostura||'').toLowerCase().includes(qCos));
-  if (qFec)  rows = rows.filter(r => (r.fecha||'').toLowerCase().includes(qFec));
-  if (qHor)  rows = rows.filter(r => (r.hora||'').toLowerCase().includes(qHor));
   renderAlistamientos(rows);
 }
 
@@ -2155,6 +2181,107 @@ function toggleAlerts() { return; // alerts panel removed
 }
 
 // ===== MODALS =====
+function editarAlistamiento(id) {
+  pedirPass(
+    '✏️ Editar Alistamiento',
+    'Ingresa la contraseña para editar este registro.',
+    () => {
+      const r = alistamientos.find(a => a.id === id);
+      if (!r) return;
+      abrirModalAlistamiento();
+      setTimeout(() => {
+        const form = document.getElementById('formAlistamiento');
+        if (!form) return;
+        form.dataset.editId = id;
+        document.getElementById('alistModulo').value           = r.modulo||'';
+        form.querySelector('[name="referencia"]').value        = r.referencia||'';
+        const selSup = document.getElementById('alistSupervisora');
+        if (selSup) { selSup.value = r.supervisor||''; const h=document.getElementById('hiddenSupervisor'); if(h) h.value=r.supervisor||''; }
+        const selMaq = document.getElementById('selectMaquinaAlist');
+        if (selMaq) { selMaq.value = r.tipoMaquina||''; document.getElementById('hiddenMaquinaAlist').value = r.tipoMaquina||''; }
+        document.getElementById('alistSerial').value           = r.serial||'';
+        document.getElementById('alistGuiaInput').value        = r.numeroGuia||'';
+        const selAguja = document.getElementById('selectTipoAguja');
+        if (selAguja) selAguja.value = r.tipoAguja||'';
+        const selCal = form.querySelector('[name="calibreAguja"]');
+        if (selCal) selCal.value = r.calibreAguja||'';
+        const selPPP = form.querySelector('[name="ppp"]');
+        if (selPPP) selPPP.value = r.ppp||'';
+        const obsEl = form.querySelector('[name="observaciones"]');
+        if (obsEl) obsEl.value = r.observaciones||'';
+        const title = document.querySelector('#modalAlistamiento .modal-title');
+        if (title) title.textContent = '✏️ Editar Alistamiento';
+      }, 350);
+    }
+  );
+}
+
+function imprimirAlistamiento(id) {
+  const r = alistamientos.find(a => a.id === id);
+  if (!r) return;
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <title>Alistamiento ${r.modulo||''} - ${r.referencia||''}</title>
+  <style>
+    body{font-family:'Segoe UI',sans-serif;margin:0;padding:24px;color:#0f172a;font-size:13px;}
+    .header{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #1e3a8a;padding-bottom:12px;margin-bottom:20px;}
+    .header h1{font-size:20px;font-weight:800;color:#1e3a8a;margin:0;}
+    .header .fecha{font-size:11px;color:#64748b;}
+    .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+    .badge-aprobado{background:#dcfce7;color:#16a34a;}
+    .badge-rechazado{background:#fee2e2;color:#dc2626;}
+    .badge-obs{background:#fef9c3;color:#a16207;}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 24px;margin-bottom:20px;}
+    .field{display:flex;flex-direction:column;gap:2px;}
+    .field label{font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;}
+    .field span{font-size:13px;color:#0f172a;font-weight:600;}
+    .section{font-size:11px;font-weight:800;color:#1e3a8a;letter-spacing:2px;text-transform:uppercase;margin:16px 0 10px;border-left:3px solid #1e3a8a;padding-left:8px;}
+    .fotos{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px;}
+    .fotos img{width:100%;height:100px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0;}
+    .footer{margin-top:24px;border-top:1px solid #e2e8f0;padding-top:12px;font-size:10px;color:#94a3b8;text-align:center;}
+    @media print{body{padding:12px;}}
+  </style></head><body>
+  <div class="header">
+    <div><h1>📋 Tarjeta de Alistamiento</h1><div class="fecha">Generado: ${new Date().toLocaleString('es-CO')}</div></div>
+    <div>${r.pruebaCostura ? '<span class="badge badge-' + (r.pruebaCostura==='Aprobada'?'aprobado':r.pruebaCostura==='Rechazada'?'rechazado':'obs') + '">' + r.pruebaCostura + '</span>' : ''}</div>
+  </div>
+  <div class="section">Información General</div>
+  <div class="grid">
+    <div class="field"><label>Fecha</label><span>${r.fecha||'—'}</span></div>
+    <div class="field"><label>Hora</label><span>${r.hora||'—'}</span></div>
+    <div class="field"><label>Mecánico</label><span>${r.mecanico||'—'}</span></div>
+    <div class="field"><label>Supervisora</label><span>${r.supervisor||'—'}</span></div>
+    <div class="field"><label>Módulo</label><span>${r.modulo||'—'}</span></div>
+    <div class="field"><label>Referencia</label><span>${r.referencia||'—'}</span></div>
+  </div>
+  <div class="section">Datos de la Máquina</div>
+  <div class="grid">
+    <div class="field"><label>Tipo de Máquina</label><span>${r.tipoMaquina||'—'}</span></div>
+    <div class="field"><label>Serial</label><span>${r.serial||'—'}</span></div>
+    <div class="field"><label>Código</label><span>${getMaqCodigo(r.serial,r.tipoMaquina)||'—'}</span></div>
+    <div class="field"><label>Número de Guía</label><span>${r.numeroGuia||'—'}</span></div>
+    <div class="field"><label>Tipo de Aguja</label><span>${r.tipoAguja||'—'}</span></div>
+    <div class="field"><label>Calibre de Aguja</label><span>${r.calibreAguja||'—'}</span></div>
+    <div class="field"><label>PPP</label><span>${r.ppp||'—'}</span></div>
+  </div>
+  <div class="section">Verificación</div>
+  <div class="grid">
+    <div class="field"><label>¿Tenía Ficha Técnica?</label><span>${r.fichaTecnica||'—'}</span></div>
+    <div class="field"><label>¿Tenía Muestra Física?</label><span>${r.muestraFisica||'—'}</span></div>
+    <div class="field"><label>Prueba de Costura</label><span>${r.pruebaCostura||'—'}</span></div>
+  </div>
+  ${r.observaciones ? '<div class="section">Observaciones</div><p style="background:#f8fafc;padding:12px;border-radius:8px;margin:0;">' + r.observaciones + '</p>' : ''}
+  ${r.fotos && r.fotos.length ? '<div class="section">Fotos de Evidencia</div><div class="fotos">' +
+    r.fotos.map(f => '<img src="' + buildFotoUrl(f) + '" onerror="this.style.display=\'none\'">').join('') +
+  '</div>' : ''}
+  <div class="footer">Confecciones Millar S.A.S. — Sistema de Control de Piso</div>
+  </body></html>`;
+
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+  win.onload = () => win.print();
+}
+
 function validarGuiaAlist(){
   const input = document.getElementById('alistGuiaInput');
   if (!input || !input.value.trim()) return;
