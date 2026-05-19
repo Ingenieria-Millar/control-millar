@@ -60,7 +60,7 @@ h1 span{color:#2563eb;}
 .nav-tab.active.mant{color:var(--teal);border-bottom-color:var(--teal);}
 
 /* ── MAIN ── */
-main{position:relative;z-index:1;padding:24px;max-width:1280px;margin:0 auto;}
+main{position:relative;z-index:1;padding:20px 24px;}
 
 /* ── SECTION HEADER ── */
 .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:12px;}
@@ -481,7 +481,7 @@ tr:hover td{background:#f8fafc;}
   </div>
 </div>
 
-  <div id="section-mantenimiento">
+  <div id="section-mantenimiento" style="display:none">
 
     <!-- KPIs + Botones en la misma fila -->
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
@@ -1040,12 +1040,10 @@ async function init() {
 function volverSeleccion() {
   const params  = new URLSearchParams(window.location.search);
   const seccion = params.get('seccion');
-  // Si estamos en mantenimiento y hay un mecánico logueado → volver al login
-  if (seccion === 'mantenimiento' && mecanicoActual) {
+  if (seccion === 'mantenimiento' || seccion === 'alistamiento') {
     cerrarSesionMant();
     return;
   }
-  // Si venimos de otra página, ir atrás
   if (document.referrer && document.referrer !== window.location.href) {
     window.history.back();
   } else {
@@ -2076,27 +2074,38 @@ async function guardarAlistamiento(e) {
   if (mecanicoActual && mecanicoActual !== 'ADMINISTRADOR') {
     formData.set('mecanico', mecanicoActual);
   }
-  // Validar hidden fields
+  // Referencia en MAYÚSCULAS
+  const refVal = formData.get('referencia');
+  if (refVal) formData.set('referencia', refVal.toUpperCase());
+
+  // Validar campos obligatorios
   if (!formData.get('supervisor')) { showToast('Selecciona una supervisora','error'); return; }
   if (!formData.get('tipoMaquina')) { showToast('Selecciona el tipo de máquina','error'); return; }
+  if (!formData.get('serial')) { showToast('Ingresa el serial','error'); return; }
 
-  // Add fotos
+  // Fotos — eliminar campo duplicado del form
+  formData.delete('fotos');
   const fotosInput = document.getElementById('fotosAlist');
-  if (fotosInput.files.length) {
+  if (fotosInput && fotosInput.files.length) {
     Array.from(fotosInput.files).forEach(f => formData.append('fotos', f));
   }
 
   try {
-    const r = await fetch(`${API}/api/alistamientos`, { method:'POST', body:formData });
+    const editId = form.dataset.editId;
+    const url    = editId ? `${API}/api/alistamientos/${editId}` : `${API}/api/alistamientos`;
+    const method = editId ? 'PUT' : 'POST';
+    const r = await fetch(url, { method, body: formData });
     const data = await r.json();
     if (data.success) {
       showToast('✅ Alistamiento guardado correctamente','success');
       cerrarModal('modalAlistamiento');
       form.reset();
+      form.dataset.editId = '';
       resetRadios();
       await loadAlistamientos();
-      await loadAlertas();
-      renderDashboard();
+      renderAlistamientos(getAlistFiltrados());
+    } else {
+      showToast('Error: ' + (data.error||'No se pudo guardar'),'error');
     }
   } catch(e) {
     showToast('Error al guardar. Verifica la conexión.','error');
@@ -2511,9 +2520,49 @@ function getMantFiltradosPorMecanico(rows) {
 
 function cerrarSesionMant() {
   mecanicoActual = '';
-  document.getElementById('mant-login-select').value = '';
-  document.getElementById('mant-login-btn').disabled = true;
-  document.getElementById('mant-login-error').textContent = '';
+  // Limpiar selector del login
+  const sel = document.getElementById('mant-login-select');
+  if (sel) { sel.value = ''; }
+  const btn = document.getElementById('mant-login-btn');
+  if (btn) btn.disabled = true;
+  const err = document.getElementById('mant-login-error');
+  if (err) err.textContent = '';
+
+  // Limpiar badge del header
+  const badge = document.getElementById('mant-user-badge');
+  if (badge) badge.style.display = 'none';
+  const lbl = document.getElementById('mant-user-label');
+  if (lbl) lbl.textContent = '';
+
+  // Ocultar nav y exportar
+  const nav = document.getElementById('millar-nav-wrap');
+  if (nav) nav.style.display = 'none';
+  const expMant = document.getElementById('btn-export-mant');
+  if (expMant) expMant.style.display = 'none';
+  const expAlist = document.getElementById('btn-export-alist');
+  if (expAlist) expAlist.style.display = 'none';
+
+  // Resetear filtros de fecha a "Hoy"
+  const hoy = new Date().toISOString().split('T')[0];
+  ['mant-fecha-desde','mant-fecha-hasta','alist-fecha-desde','alist-fecha-hasta'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = hoy;
+  });
+  const lblMant = document.getElementById('lbl-fecha-mant');
+  if (lblMant) lblMant.textContent = 'Hoy';
+  const lblAlist = document.getElementById('lbl-fecha-alist');
+  if (lblAlist) lblAlist.textContent = 'Hoy';
+
+  // Ocultar secciones y mostrar login
+  ['section-alistamiento','section-mantenimiento','section-dashboard'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+
+  // Limpiar fila de filtros para que se regenere con el nuevo usuario
+  const filterRows = document.querySelectorAll('#mant-filter-row, #alist-filter-row');
+  filterRows.forEach(r => r.remove());
+
   poblarSelectLogin();
   document.getElementById('mant-login').style.display = 'flex';
 }
@@ -2883,8 +2932,9 @@ let inventarioGuias = [];
 
 async function loadGuiasReferencias() {
   try {
-    // /api/guias es una ruta global del servidor, no usa el prefijo /alistamiento
-    const r = await fetch('/api/guias');
+    // Intentar primero con ruta absoluta, luego con relativa
+    let r = await fetch('/api/guias');
+    if (!r.ok) r = await fetch('/alistamiento/../api/guias');
     if (r.ok) {
       const data = await r.json();
       inventarioGuias = Array.isArray(data) ? data : [];
