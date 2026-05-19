@@ -475,7 +475,7 @@ tr:hover td{background:#f8fafc;}
       </div>
       <div id="mant-login-error" style="color:#ef4444;font-size:12px;font-weight:700;min-height:18px;margin-bottom:8px;"></div>
       <button id="mant-login-btn" class="ml-confirm-btn" disabled onclick="confirmarLoginMant()">✔ CONTINUAR</button>
-      <button class="ml-back-btn" onclick="volverSeleccion()">← Volver</button>
+      <button class="ml-back-btn" onclick="volverAlMenu()">← Volver</button>
     </div>
     <div class="ml-footer">© 2026 Ingeniería Confecciones Millar S.A.S.</div>
   </div>
@@ -1037,6 +1037,15 @@ async function init() {
 }
 
 // Volver a la pantalla de selección Alistamiento/Mantenimiento
+function volverAlMenu() {
+  // Desde el login → ir al menú anterior (Montajes)
+  if (document.referrer && document.referrer !== window.location.href) {
+    window.history.back();
+  } else {
+    window.location.href = '/';
+  }
+}
+
 function volverSeleccion() {
   const params  = new URLSearchParams(window.location.search);
   const seccion = params.get('seccion');
