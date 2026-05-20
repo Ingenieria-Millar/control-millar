@@ -8,98 +8,83 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Nunito:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{
-  --bg:#f1f5f9;--panel:#fff;--border:#e2e8f0;
-  --text:#0f172a;--muted:#64748b;--blue:#2563eb;
-  --blue-dark:#1e3a8a;--teal:#0d9488;
-  --green:#16a34a;--red:#dc2626;--yellow:#a16207;
-}
+:root{--bg:#f1f5f9;--panel:#fff;--border:#e2e8f0;--text:#0f172a;--muted:#64748b;--blue:#2563eb;--blue-dark:#1e3a8a;}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);font-family:'Nunito',sans-serif;color:var(--text);min-height:100vh;}
-
-/* HEADER */
 header{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 24px;min-height:64px;background:#fff;border-bottom:1px solid var(--border);box-shadow:0 1px 6px rgba(0,0,0,.07);gap:12px;}
 header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);}
 .hd-left{display:flex;align-items:center;gap:12px;}
 .hd-logo{width:46px;height:46px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 0 0 2px #e2e8f0,0 2px 8px rgba(0,0,0,.1);}
 .hd-logo img{width:100%;height:100%;object-fit:contain;padding:3px;}
-h1{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0f172a;line-height:1;}
-h1 span{color:#2563eb;}
+.hd-title{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0f172a;line-height:1;}
+.hd-title span{color:#2563eb;}
 .hd-date{font-size:12px;color:#64748b;font-weight:600;margin-top:2px;}
 .hd-right{display:flex;align-items:center;gap:8px;}
-.btn-volver{padding:7px 16px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#1e3a8a;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:.5px;cursor:pointer;transition:all .2s;height:36px;display:flex;align-items:center;}
+.btn-volver{padding:7px 16px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#1e3a8a;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:.5px;cursor:pointer;height:36px;display:flex;align-items:center;transition:all .2s;}
 .btn-volver:hover{background:#f1f5f9;}
+.btn-primary{padding:7px 18px;border-radius:8px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:.5px;cursor:pointer;height:36px;display:flex;align-items:center;gap:6px;transition:all .2s;}
+.btn-primary:hover{filter:brightness(1.1);}
 
 main{padding:20px 24px;}
 
-/* SEARCH BOX */
-.search-card{background:#fff;border-radius:16px;border:1.5px solid #e2e8f0;padding:24px;margin-bottom:20px;box-shadow:0 1px 6px rgba(0,0,0,.05);}
-.search-title{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;letter-spacing:1px;color:#0f172a;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
-.search-grid{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:12px;align-items:end;}
-.search-field{display:flex;flex-direction:column;gap:5px;}
-.search-field label{font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;}
-.search-field input,.search-field select{padding:10px 12px;border-radius:10px;border:1.5px solid #e2e8f0;font-family:'Nunito',sans-serif;font-size:13px;color:#0f172a;outline:none;transition:border .2s;}
-.search-field input:focus,.search-field select:focus{border-color:#2563eb;}
-.btn-buscar{padding:10px 20px;border-radius:10px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;cursor:pointer;height:42px;display:flex;align-items:center;gap:8px;transition:all .2s;}
-.btn-buscar:hover{filter:brightness(1.1);}
+/* PANTALLAS */
+.screen{display:none;}
+.screen.active{display:block;}
 
-/* RESULTADO */
-#resultado{display:none;}
-
-/* INFO MÁQUINA */
-.maq-info-card{background:#fff;border-radius:16px;border:1.5px solid #e2e8f0;padding:20px 24px;margin-bottom:20px;box-shadow:0 1px 6px rgba(0,0,0,.05);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;}
-.maq-info-left{display:flex;align-items:center;gap:16px;}
-.maq-icon{width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#1e3a8a,#2563eb);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;}
-.maq-nombre{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;letter-spacing:1px;color:#0f172a;}
-.maq-serial{font-size:13px;color:#64748b;font-weight:600;margin-top:2px;}
-.maq-codigo{display:inline-flex;align-items:center;padding:3px 10px;background:#eff6ff;border:1px solid #93c5fd;border-radius:20px;font-size:12px;font-weight:700;color:#1e40af;margin-top:4px;}
-.maq-info-right{display:flex;gap:8px;}
-.btn-pdf{padding:8px 16px;border-radius:10px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .2s;}
-.btn-pdf:hover{filter:brightness(1.1);}
-
-/* TABS */
-.tabs{display:flex;gap:4px;background:#f1f5f9;border-radius:12px;padding:4px;margin-bottom:20px;width:fit-content;}
-.tab{padding:8px 20px;border-radius:9px;border:none;background:transparent;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:.5px;color:#64748b;cursor:pointer;transition:all .2s;}
-.tab.active{background:#fff;color:#1e3a8a;box-shadow:0 1px 4px rgba(0,0,0,.1);}
-
-/* KPIs */
-.kpis-grid{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:20px;}
-.kpi-card{background:#fff;border-radius:12px;padding:16px 20px;border:1px solid transparent;flex:1;min-width:130px;max-width:200px;}
-.kpi-valor{font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:800;line-height:1;}
-.kpi-label{font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-top:4px;}
-
-/* RANKING */
-.ranking-card{background:#fff;border-radius:16px;border:1.5px solid #e2e8f0;padding:20px 24px;margin-bottom:20px;box-shadow:0 1px 6px rgba(0,0,0,.05);}
-.ranking-title{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;color:#0f172a;margin-bottom:14px;display:flex;align-items:center;gap:6px;}
-.ranking-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9;}
-.ranking-row:last-child{border-bottom:none;}
-.ranking-pos{width:24px;height:24px;border-radius:50%;background:#eff6ff;color:#1e40af;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.ranking-bar-wrap{flex:1;}
-.ranking-nombre{font-size:12px;font-weight:600;color:#0f172a;margin-bottom:3px;}
-.ranking-bar{height:6px;border-radius:3px;background:#dbeafe;}
-.ranking-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#1e3a8a,#2563eb);transition:width .6s ease;}
-.ranking-count{font-size:12px;font-weight:700;color:#2563eb;flex-shrink:0;}
-
-/* TABLA HISTORIAL */
+/* TABLE PANEL */
 .table-panel{background:#fff;border-radius:16px;border:1.5px solid #e2e8f0;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.05);}
 .table-panel table{width:100%;table-layout:fixed;font-size:12px;border-collapse:collapse;}
 .table-panel th{background:#f8fafc;padding:10px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;border-bottom:1.5px solid #e2e8f0;}
 .table-panel td{padding:10px 12px;border-bottom:1px solid #f1f5f9;color:#334155;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .table-panel tr:last-child td{border-bottom:none;}
 .table-panel tr:hover td{background:#f8fafc;}
+.filter-input{width:100%;padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:11px;font-family:'Nunito',sans-serif;color:#334155;outline:none;box-sizing:border-box;}
+.filter-input:focus{border-color:#2563eb;}
+.btn-ver{padding:4px 12px;border-radius:8px;border:none;background:#eff6ff;color:#1e40af;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:.5px;cursor:pointer;border:1px solid #93c5fd;transition:all .2s;}
+.btn-ver:hover{background:#dbeafe;}
+
+/* KPIs */
+.kpis-row{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:20px;}
+.kpi{background:#fff;border-radius:12px;padding:16px 20px;flex:1;min-width:120px;max-width:180px;border:1px solid transparent;}
+.kpi-val{font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:800;line-height:1;}
+.kpi-lbl{font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-top:4px;}
+
+/* RANKING */
+.ranking-card{background:#fff;border-radius:16px;border:1.5px solid #e2e8f0;padding:20px 24px;margin-bottom:20px;box-shadow:0 1px 6px rgba(0,0,0,.05);}
+.ranking-title{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;color:#0f172a;margin-bottom:14px;}
+.rank-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9;}
+.rank-row:last-child{border-bottom:none;}
+.rank-pos{width:24px;height:24px;border-radius:50%;background:#eff6ff;color:#1e40af;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.rank-bar-wrap{flex:1;}
+.rank-nombre{font-size:12px;font-weight:600;color:#0f172a;margin-bottom:3px;}
+.rank-bar{height:6px;border-radius:3px;background:#dbeafe;}
+.rank-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#1e3a8a,#2563eb);transition:width .6s ease;}
+.rank-count{font-size:12px;font-weight:700;color:#2563eb;flex-shrink:0;}
+
+/* BADGES */
 .badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;}
 .badge-prev{background:#fef9c3;color:#a16207;}
 .badge-corr{background:#fee2e2;color:#dc2626;}
 .badge-fuga{background:#dbeafe;color:#1d4ed8;}
-.badge-alist{background:#f0fdf4;color:#16a34a;}
+.badge-aprob{background:#f0fdf4;color:#16a34a;}
 .badge-rech{background:#fee2e2;color:#dc2626;}
-.empty-state{text-align:center;padding:40px;color:#94a3b8;font-size:14px;}
 
-@media(max-width:768px){
-  .search-grid{grid-template-columns:1fr 1fr;}
-  .btn-buscar{grid-column:1/-1;}
-  .maq-info-card{flex-direction:column;align-items:flex-start;}
-}
+/* PANTALLA 2 — detalle máquina */
+.maq-header{background:#fff;border-radius:16px;border:1.5px solid #e2e8f0;padding:20px 24px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;box-shadow:0 1px 6px rgba(0,0,0,.05);}
+.maq-header-left{display:flex;align-items:center;gap:14px;}
+.maq-icon{width:52px;height:52px;border-radius:12px;background:linear-gradient(135deg,#1e3a8a,#2563eb);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.maq-nombre{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;letter-spacing:1px;color:#0f172a;}
+.maq-sub{font-size:12px;color:#64748b;margin-top:2px;}
+.maq-codigo{display:inline-flex;padding:2px 10px;background:#eff6ff;border:1px solid #93c5fd;border-radius:20px;font-size:12px;font-weight:700;color:#1e40af;margin-top:4px;}
+.tipo-btns{display:flex;gap:12px;flex-wrap:wrap;}
+.tipo-btn{padding:12px 28px;border-radius:12px;border:2px solid transparent;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all .2s;}
+.tipo-btn.alist{background:#eff6ff;border-color:#93c5fd;color:#1e40af;}
+.tipo-btn.alist:hover,.tipo-btn.alist.active{background:#dbeafe;border-color:#2563eb;color:#1e3a8a;}
+.tipo-btn.mant{background:#fef9c3;border-color:#fcd34d;color:#a16207;}
+.tipo-btn.mant:hover,.tipo-btn.mant.active{background:#fef08a;border-color:#ca8a04;color:#78350f;}
+
+.sub-table-wrap{background:#fff;border-radius:16px;border:1.5px solid #e2e8f0;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.05);}
+.empty{text-align:center;padding:40px;color:#94a3b8;font-size:14px;}
 </style>
 </head>
 <body>
@@ -110,441 +95,342 @@ main{padding:20px 24px;}
       <img src="/logo.png" alt="Millar" onerror="this.style.display='none'">
     </div>
     <div>
-      <h1>Hoja de Vida — <span>Máquina</span></h1>
+      <div class="hd-title">Hoja de Vida — <span id="hd-subtitle">Máquina</span></div>
       <div class="hd-date" id="hd-date"></div>
     </div>
   </div>
-  <div class="hd-right">
-    <button class="btn-volver" onclick="history.back()">← Volver</button>
+  <div class="hd-right" id="hd-right">
+    <button class="btn-primary" onclick="irDashboard()">📊 Dashboard</button>
+    <button class="btn-volver" id="btn-volver" onclick="volverAtras()">← Volver</button>
   </div>
 </header>
 
 <main>
 
-  <!-- BÚSQUEDA -->
-  <div class="search-card">
-    <div class="search-title">🔍 Buscar Máquina</div>
-    <div class="search-grid">
-      <div class="search-field">
-        <label>Serial</label>
-        <input type="text" id="buscar-serial" placeholder="Ej: LK69702" oninput="sugerirMaquinas()" onkeydown="if(event.key==='Enter')buscar()">
-      </div>
-      <div class="search-field">
-        <label>Código</label>
-        <input type="text" id="buscar-codigo" placeholder="Ej: MAQ-FIL-SEN-041" oninput="sugerirMaquinas()" onkeydown="if(event.key==='Enter')buscar()">
-      </div>
-      <div class="search-field">
-        <label>Tipo de Máquina</label>
-        <select id="buscar-tipo" onchange="buscar()">
-          <option value="">— Todos los tipos —</option>
-        </select>
-      </div>
-      <button class="btn-buscar" onclick="buscar()">🔎 Buscar</button>
+  <!-- PANTALLA 1: LISTA DE MÁQUINAS -->
+  <div class="screen active" id="screen-lista">
+    <div class="table-panel">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:130px;">Tipo</th>
+            <th style="width:160px;">Código</th>
+            <th style="width:130px;">Serial</th>
+            <th style="width:130px;">Intervenciones</th>
+            <th style="width:130px;">Ver</th>
+          </tr>
+          <tr id="filter-row-lista">
+            <td style="padding:4px 8px;"><input class="filter-input" id="fl-tipo" placeholder="Buscar..." oninput="filtrarLista()"></td>
+            <td style="padding:4px 8px;"><input class="filter-input" id="fl-codigo" placeholder="Buscar..." oninput="filtrarLista()"></td>
+            <td style="padding:4px 8px;"><input class="filter-input" id="fl-serial" placeholder="Buscar..." oninput="filtrarLista()"></td>
+            <td style="padding:4px 8px;"><input class="filter-input" id="fl-count" placeholder="Buscar..." oninput="filtrarLista()"></td>
+            <td></td>
+          </tr>
+        </thead>
+        <tbody id="lista-body"></tbody>
+      </table>
     </div>
   </div>
 
-  <!-- RESULTADO -->
-  <div id="resultado">
+  <!-- PANTALLA 2: DASHBOARD GENERAL -->
+  <div class="screen" id="screen-dashboard">
+    <div class="kpis-row" id="dash-kpis"></div>
+    <div class="ranking-card">
+      <div class="ranking-title">🏆 Máquinas con más intervenciones</div>
+      <div id="dash-ranking"></div>
+    </div>
+  </div>
 
-    <!-- INFO MÁQUINA -->
-    <div class="maq-info-card" id="maq-info-card">
-      <div class="maq-info-left">
+  <!-- PANTALLA 3: DETALLE MÁQUINA -->
+  <div class="screen" id="screen-detalle">
+    <div class="maq-header">
+      <div class="maq-header-left">
         <div class="maq-icon">⚙️</div>
         <div>
-          <div class="maq-nombre" id="maq-nombre">—</div>
-          <div class="maq-serial" id="maq-serial">—</div>
-          <div class="maq-codigo" id="maq-codigo">—</div>
+          <div class="maq-nombre" id="det-nombre">—</div>
+          <div class="maq-sub" id="det-serial">—</div>
+          <div class="maq-codigo" id="det-codigo">—</div>
         </div>
       </div>
-      <div class="maq-info-right">
-        <button class="btn-pdf" onclick="exportarPDF()">🖨️ Exportar PDF</button>
+      <div class="tipo-btns">
+        <button class="tipo-btn alist active" id="btn-tipo-alist" onclick="switchTipo('alist')">⚙️ Alistamientos</button>
+        <button class="tipo-btn mant" id="btn-tipo-mant" onclick="switchTipo('mant')">🔧 Mantenimientos</button>
       </div>
     </div>
 
-    <!-- TABS -->
-    <div class="tabs">
-      <button class="tab active" onclick="switchTab('dashboard',this)">📊 Dashboard</button>
-      <button class="tab" onclick="switchTab('historial',this)">📋 Historial</button>
+    <!-- Tabla Alistamientos -->
+    <div id="tabla-alist-wrap" class="sub-table-wrap">
+      <table style="width:100%;table-layout:fixed;font-size:12px;border-collapse:collapse;">
+        <thead>
+          <tr>
+            <th style="width:85px;background:#f8fafc;padding:10px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;border-bottom:1.5px solid #e2e8f0;">Fecha</th>
+            <th style="width:100px;background:#f8fafc;padding:10px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;border-bottom:1.5px solid #e2e8f0;">Mecánico</th>
+            <th style="width:60px;background:#f8fafc;padding:10px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;border-bottom:1.5px solid #e2e8f0;">Módulo</th>
+            <th style="width:90px;background:#f8fafc;padding:10px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;border-bottom:1.5px solid #e2e8f0;">Referencia</th>
+            <th style="width:80px;background:#f8fafc;padding:10px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;border-bottom:1.5px solid #e2e8f0;">T.Aguja</th>
+            <th style="width:65px;background:#f8fafc;padding:10px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;border-bottom:1.5px solid #e2e8f0;">Calibre</th>
+            <th style="width:50px;background:#f8fafc;padding:10px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;border-bottom:1.5px solid #e2e8f0;">PPP</th>
+            <th style="width:80px;background:#f8fafc;padding:10px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;border-bottom:1.5px solid #e2e8f0;">Guía</th>
+            <th style="width:55px;background:#f8fafc;padding:10px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;border-bottom:1.5px solid #e2e8f0;">Ficha</th>
+            <th style="width:60px;background:#f8fafc;padding:10px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;border-bottom:1.5px solid #e2e8f0;">Muestra</th>
+            <th style="width:85px;background:#f8fafc;padding:10px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;border-bottom:1.5px solid #e2e8f0;">Costura</th>
+            <th style="background:#f8fafc;padding:10px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;border-bottom:1.5px solid #e2e8f0;">Observaciones</th>
+          </tr>
+        </thead>
+        <tbody id="det-alist-body"></tbody>
+      </table>
     </div>
 
-    <!-- DASHBOARD -->
-    <div id="tab-dashboard">
-      <div class="kpis-grid" id="kpis-grid"></div>
-      <div class="ranking-card">
-        <div class="ranking-title">🏆 Máquinas con más intervenciones</div>
-        <div id="ranking-list"></div>
-      </div>
+    <!-- Tabla Mantenimientos -->
+    <div id="tabla-mant-wrap" class="sub-table-wrap" style="display:none;">
+      <table style="width:100%;table-layout:fixed;font-size:12px;border-collapse:collapse;">
+        <thead>
+          <tr>
+            <th style="width:85px;background:#f8fafc;padding:10px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;border-bottom:1.5px solid #e2e8f0;">Fecha</th>
+            <th style="width:90px;background:#f8fafc;padding:10px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;border-bottom:1.5px solid #e2e8f0;">Tipo</th>
+            <th style="width:100px;background:#f8fafc;padding:10px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;border-bottom:1.5px solid #e2e8f0;">Mecánico</th>
+            <th style="width:60px;background:#f8fafc;padding:10px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;border-bottom:1.5px solid #e2e8f0;">Módulo</th>
+            <th style="width:85px;background:#f8fafc;padding:10px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;border-bottom:1.5px solid #e2e8f0;">Guía</th>
+            <th style="width:110px;background:#f8fafc;padding:10px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;border-bottom:1.5px solid #e2e8f0;">Repuestos</th>
+            <th style="background:#f8fafc;padding:10px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;border-bottom:1.5px solid #e2e8f0;">Observaciones</th>
+          </tr>
+        </thead>
+        <tbody id="det-mant-body"></tbody>
+      </table>
     </div>
-
-    <!-- HISTORIAL -->
-    <div id="tab-historial" style="display:none;">
-      <div class="table-panel">
-        <table>
-          <thead>
-            <tr>
-              <th style="width:85px;">Fecha</th>
-              <th style="width:90px;">Tipo</th>
-              <th style="width:100px;">Mecánico</th>
-              <th style="width:60px;">Módulo</th>
-              <th style="width:90px;">Actividad</th>
-              <th style="width:90px;">Referencia</th>
-              <th style="width:80px;">Guía</th>
-              <th style="width:80px;">Repuestos</th>
-              <th style="width:80px;">Resultado</th>
-              <th style="width:200px;">Observaciones</th>
-            </tr>
-          </thead>
-          <tbody id="historial-body"></tbody>
-        </table>
-      </div>
-    </div>
-
   </div>
 
 </main>
 
 <script>
-const API_BASE = '/alistamiento';
-let todosAlist = [];
-let todosMant  = [];
-let maquinaria = [];
-let eventosMaquina = [];
-let maquinaActual = null;
+const API = '/alistamiento';
+let todosAlist = [], todosMant = [], maquinaria = [];
+let listaMaquinas = [];
+let maqActual = null;
+let pantallaActual = 'lista';
 
-// ── INIT ─────────────────────────────────────────────────────────
+// ── INIT ──────────────────────────────────────────────────────────
 async function init() {
-  // Fecha header
   document.getElementById('hd-date').textContent = new Date().toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-
-  // Cargar datos
-  await Promise.all([cargarAlistamientos(), cargarMantenimientos(), cargarMaquinaria()]);
-
-  // Poblar selector de tipos
-  const tipos = [...new Set([
-    ...todosAlist.map(a => a.tipoMaquina||''),
-    ...todosMant.map(m => m.tipoMaquina||'')
-  ].filter(Boolean))].sort();
-
-  const sel = document.getElementById('buscar-tipo');
-  tipos.forEach(t => {
-    const opt = document.createElement('option');
-    opt.value = t; opt.textContent = t;
-    sel.appendChild(opt);
-  });
+  await Promise.all([cargarAlist(), cargarMant(), cargarMaquinaria()]);
+  construirListaMaquinas();
+  renderLista(listaMaquinas);
 }
 
-async function cargarAlistamientos() {
-  try {
-    const r = await fetch(`${API_BASE}/api/alistamientos`);
-    if (r.ok) todosAlist = await r.json();
-  } catch(e) { todosAlist = []; }
+async function cargarAlist() {
+  try { const r = await fetch(`${API}/api/alistamientos`); if(r.ok) todosAlist = await r.json(); } catch(e) {}
 }
-
-async function cargarMantenimientos() {
-  try {
-    const r = await fetch(`${API_BASE}/api/mantenimientos`);
-    if (r.ok) todosMant = await r.json();
-  } catch(e) { todosMant = []; }
+async function cargarMant() {
+  try { const r = await fetch(`${API}/api/mantenimientos`); if(r.ok) todosMant = await r.json(); } catch(e) {}
 }
-
 async function cargarMaquinaria() {
-  try {
-    const r = await fetch('/api/maquinaria');
-    if (r.ok) maquinaria = await r.json();
-  } catch(e) { maquinaria = []; }
+  try { const r = await fetch('/api/maquinaria'); if(r.ok) maquinaria = await r.json(); } catch(e) {}
 }
 
-// ── BÚSQUEDA ─────────────────────────────────────────────────────
-function buscar() {
-  const serial = document.getElementById('buscar-serial').value.trim().toLowerCase();
-  const codigo = document.getElementById('buscar-codigo').value.trim().toLowerCase();
-  const tipo   = document.getElementById('buscar-tipo').value.trim().toLowerCase();
-
-  if (!serial && !codigo && !tipo) {
-    alert('Ingresa al menos un criterio de búsqueda');
-    return;
-  }
-
-  // Filtrar alistamientos
-  const alist = todosAlist.filter(a => {
-    const matchSerial = !serial || (a.serial||'').toLowerCase().includes(serial);
-    const matchCodigo = !codigo || getMaqCodigo(a.serial, a.tipoMaquina).toLowerCase().includes(codigo);
-    const matchTipo   = !tipo   || (a.tipoMaquina||'').toLowerCase().includes(tipo);
-    return matchSerial && matchCodigo && matchTipo;
-  });
-
-  // Filtrar mantenimientos
-  const mant = todosMant.filter(m => {
-    const matchSerial = !serial || (m.serial||'').toLowerCase().includes(serial);
-    const matchCodigo = !codigo || getMaqCodigo(m.serial, m.tipoMaquina).toLowerCase().includes(codigo);
-    const matchTipo   = !tipo   || (m.tipoMaquina||'').toLowerCase().includes(tipo);
-    return matchSerial && matchCodigo && matchTipo;
-  });
-
-  if (!alist.length && !mant.length) {
-    document.getElementById('resultado').style.display = 'none';
-    alert('No se encontraron registros para esta máquina');
-    return;
-  }
-
-  // Determinar máquina principal (del primer registro encontrado)
-  const primerReg = [...mant,...alist].sort((a,b) => new Date(b.fechaHora||b.fecha) - new Date(a.fechaHora||a.fecha))[0];
-  maquinaActual = {
-    tipo:   primerReg.tipoMaquina || '—',
-    serial: primerReg.serial || '—',
-    codigo: getMaqCodigo(primerReg.serial, primerReg.tipoMaquina) || '—'
-  };
-
-  // Combinar y ordenar del más reciente al más antiguo
-  eventosMaquina = [
-    ...mant.map(m => ({ ...m, _tipo: 'mantenimiento' })),
-    ...alist.map(a => ({ ...a, _tipo: 'alistamiento' }))
-  ].sort((a, b) => {
-    const fa = a.fechaHora ? new Date(a.fechaHora) : new Date(a.fecha||'2000-01-01');
-    const fb = b.fechaHora ? new Date(b.fechaHora) : new Date(b.fecha||'2000-01-01');
-    return fb - fa;
-  });
-
-  mostrarInfo();
-  renderDashboard();
-  renderHistorial();
-  document.getElementById('resultado').style.display = 'block';
-  switchTab('dashboard', document.querySelector('.tab'));
-}
-
-function sugerirMaquinas() {
-  // Autocompletado básico — podría expandirse
-}
-
-function getMaqCodigo(serial, tipo) {
+function getMaqCodigo(serial) {
   if (!serial) return '—';
-  const maq = maquinaria.find(m => m.serial && m.serial.toLowerCase() === (serial||'').toLowerCase());
-  return maq ? (maq.codigo || maq.code || '—') : '—';
+  const m = maquinaria.find(x => x.serial && x.serial.toLowerCase() === serial.toLowerCase());
+  return m ? (m.codigo || m.code || '—') : '—';
 }
 
-// ── INFO MÁQUINA ──────────────────────────────────────────────────
-function mostrarInfo() {
-  document.getElementById('maq-nombre').textContent  = maquinaActual.tipo;
-  document.getElementById('maq-serial').textContent  = 'Serial: ' + maquinaActual.serial;
-  document.getElementById('maq-codigo').textContent  = maquinaActual.codigo;
+// ── LISTA DE MÁQUINAS ─────────────────────────────────────────────
+function construirListaMaquinas() {
+  const map = {};
+  [...todosMant, ...todosAlist].forEach(r => {
+    const key = (r.serial||'').trim().toUpperCase();
+    if (!key) return;
+    if (!map[key]) {
+      map[key] = {
+        tipo:   r.tipoMaquina || '—',
+        serial: r.serial || '—',
+        codigo: getMaqCodigo(r.serial),
+        count:  0
+      };
+    }
+    map[key].count++;
+  });
+  listaMaquinas = Object.values(map).sort((a,b) => b.count - a.count);
 }
 
-// ── TABS ─────────────────────────────────────────────────────────
-function switchTab(tab, el) {
-  document.getElementById('tab-dashboard').style.display = tab === 'dashboard' ? '' : 'none';
-  document.getElementById('tab-historial').style.display = tab === 'historial' ? '' : 'none';
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  if (el) el.classList.add('active');
+function renderLista(rows) {
+  const tbody = document.getElementById('lista-body');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="5"><div class="empty">No hay máquinas intervenidas</div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(m => `
+    <tr>
+      <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.tipo}</td>
+      <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><code style="font-size:11px;background:#f1f5f9;padding:2px 6px;border-radius:4px;">${m.codigo}</code></td>
+      <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><code style="font-size:11px;background:#f1f5f9;padding:2px 6px;border-radius:4px;">${m.serial}</code></td>
+      <td style="font-weight:700;color:#2563eb;text-align:center;">${m.count}</td>
+      <td><button class="btn-ver" onclick="verDetalle('${m.serial.replace(/'/g,"\\'")}')">👁 Ver intervenciones</button></td>
+    </tr>`).join('');
 }
 
-// ── DASHBOARD ─────────────────────────────────────────────────────
+function filtrarLista() {
+  const qTipo   = document.getElementById('fl-tipo').value.toLowerCase();
+  const qCodigo = document.getElementById('fl-codigo').value.toLowerCase();
+  const qSerial = document.getElementById('fl-serial').value.toLowerCase();
+  const qCount  = document.getElementById('fl-count').value.toLowerCase();
+  const rows = listaMaquinas.filter(m =>
+    (!qTipo   || m.tipo.toLowerCase().includes(qTipo)) &&
+    (!qCodigo || m.codigo.toLowerCase().includes(qCodigo)) &&
+    (!qSerial || m.serial.toLowerCase().includes(qSerial)) &&
+    (!qCount  || String(m.count).includes(qCount))
+  );
+  renderLista(rows);
+}
+
+// ── NAVEGACIÓN ────────────────────────────────────────────────────
+function mostrarPantalla(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  pantallaActual = id;
+}
+
+function irDashboard() {
+  document.getElementById('hd-subtitle').textContent = 'Dashboard';
+  renderDashboard();
+  mostrarPantalla('screen-dashboard');
+}
+
+function volverAtras() {
+  if (pantallaActual === 'screen-dashboard' || pantallaActual === 'screen-detalle') {
+    document.getElementById('hd-subtitle').textContent = 'Máquina';
+    mostrarPantalla('screen-lista');
+  } else {
+    history.back();
+  }
+}
+
+// ── DETALLE MÁQUINA ───────────────────────────────────────────────
+function verDetalle(serial) {
+  const maq = listaMaquinas.find(m => m.serial === serial);
+  if (!maq) return;
+  maqActual = maq;
+
+  document.getElementById('det-nombre').textContent  = maq.tipo;
+  document.getElementById('det-serial').textContent  = 'Serial: ' + maq.serial;
+  document.getElementById('det-codigo').textContent  = maq.codigo;
+  document.getElementById('hd-subtitle').textContent = maq.tipo;
+
+  // Cargar datos de esa máquina
+  const alist = todosAlist.filter(a => (a.serial||'').toUpperCase() === serial.toUpperCase())
+    .sort((a,b) => new Date(b.fecha||'2000') - new Date(a.fecha||'2000'));
+  const mant  = todosMant.filter(m => (m.serial||'').toUpperCase() === serial.toUpperCase())
+    .sort((a,b) => new Date(b.fecha||'2000') - new Date(a.fecha||'2000'));
+
+  renderDetalleAlist(alist);
+  renderDetalleMant(mant);
+  switchTipo('alist');
+  mostrarPantalla('screen-detalle');
+}
+
+function switchTipo(tipo) {
+  document.getElementById('tabla-alist-wrap').style.display = tipo === 'alist' ? '' : 'none';
+  document.getElementById('tabla-mant-wrap').style.display  = tipo === 'mant'  ? '' : 'none';
+  document.getElementById('btn-tipo-alist').classList.toggle('active', tipo === 'alist');
+  document.getElementById('btn-tipo-mant').classList.toggle('active', tipo === 'mant');
+}
+
+function renderDetalleAlist(rows) {
+  const tbody = document.getElementById('det-alist-body');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="12"><div class="empty">Sin alistamientos registrados</div></td></tr>';
+    return;
+  }
+  const TD = 'padding:10px 12px;border-bottom:1px solid #f1f5f9;color:#334155;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;';
+  tbody.innerHTML = rows.map(r => {
+    const badge = r.pruebaCostura === 'Aprobada'
+      ? '<span class="badge badge-aprob">Aprobada</span>'
+      : r.pruebaCostura === 'Rechazada'
+      ? '<span class="badge badge-rech">Rechazada</span>'
+      : (r.pruebaCostura||'—');
+    return `<tr>
+      <td style="${TD}">${r.fecha||'—'}</td>
+      <td style="${TD}">${r.mecanico||'—'}</td>
+      <td style="${TD};text-align:center;font-weight:700;">${r.modulo||'—'}</td>
+      <td style="${TD}">${r.referencia||'—'}</td>
+      <td style="${TD}">${r.tipoAguja||'—'}</td>
+      <td style="${TD}">${r.calibreAguja||'—'}</td>
+      <td style="${TD}">${r.ppp||'—'}</td>
+      <td style="${TD}">${r.numeroGuia||'—'}</td>
+      <td style="${TD};text-align:center;">${r.fichaTecnica||'—'}</td>
+      <td style="${TD};text-align:center;">${r.muestraFisica||'—'}</td>
+      <td style="${TD}">${badge}</td>
+      <td style="${TD};color:#64748b;">${r.observaciones||'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderDetalleMant(rows) {
+  const tbody = document.getElementById('det-mant-body');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="7"><div class="empty">Sin mantenimientos registrados</div></td></tr>';
+    return;
+  }
+  const TD = 'padding:10px 12px;border-bottom:1px solid #f1f5f9;color:#334155;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;';
+  tbody.innerHTML = rows.map(r => {
+    const tipo = r.tipoMantenimiento||'';
+    const badge = tipo === 'Preventivo'
+      ? '<span class="badge badge-prev">Preventivo</span>'
+      : tipo === 'Correctivo'
+      ? '<span class="badge badge-corr">Correctivo</span>'
+      : '<span class="badge badge-fuga">Fugas</span>';
+    return `<tr>
+      <td style="${TD}">${r.fecha||'—'}</td>
+      <td style="${TD}">${badge}</td>
+      <td style="${TD}">${r.mecanico||'—'}</td>
+      <td style="${TD};text-align:center;font-weight:700;">${r.modulo||'—'}</td>
+      <td style="${TD}">${r.numeroGuia||'—'}</td>
+      <td style="${TD}">${r.repuestos||'—'}</td>
+      <td style="${TD};color:#64748b;">${r.observaciones||'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── DASHBOARD GENERAL ─────────────────────────────────────────────
 function renderDashboard() {
-  const mant  = eventosMaquina.filter(e => e._tipo === 'mantenimiento');
-  const alist = eventosMaquina.filter(e => e._tipo === 'alistamiento');
-  const prev  = mant.filter(m => m.tipoMantenimiento === 'Preventivo').length;
-  const corr  = mant.filter(m => m.tipoMantenimiento === 'Correctivo').length;
-  const fuga  = mant.filter(m => m.tipoMantenimiento === 'Mantenimiento de Fugas').length;
-  const aprob = alist.filter(a => a.pruebaCostura === 'Aprobada').length;
-  const rech  = alist.filter(a => a.pruebaCostura === 'Rechazada').length;
+  const totalMant  = todosMant.length;
+  const totalAlist = todosAlist.length;
+  const prev  = todosMant.filter(m => m.tipoMantenimiento === 'Preventivo').length;
+  const corr  = todosMant.filter(m => m.tipoMantenimiento === 'Correctivo').length;
+  const fuga  = todosMant.filter(m => m.tipoMantenimiento === 'Mantenimiento de Fugas' || m.tipoMantenimiento === 'Fugas').length;
+  const aprob = todosAlist.filter(a => a.pruebaCostura === 'Aprobada').length;
+  const rech  = todosAlist.filter(a => a.pruebaCostura === 'Rechazada').length;
 
   const kpis = [
-    { valor: eventosMaquina.length, label: 'Total intervenciones', color:'#1e40af', bg:'#eff6ff' },
-    { valor: mant.length,  label: 'Mantenimientos', color:'#1e40af', bg:'#dbeafe' },
-    { valor: alist.length, label: 'Alistamientos',  color:'#16a34a', bg:'#f0fdf4' },
-    { valor: prev,  label: 'Preventivos', color:'#a16207', bg:'#fef9c3' },
-    { valor: corr,  label: 'Correctivos', color:'#dc2626', bg:'#fee2e2' },
-    { valor: fuga,  label: 'Fugas',       color:'#1d4ed8', bg:'#dbeafe' },
-    { valor: aprob, label: 'Aprobados',   color:'#16a34a', bg:'#f0fdf4' },
-    { valor: rech,  label: 'Rechazados',  color:'#dc2626', bg:'#fee2e2' },
+    { val: totalMant+totalAlist, lbl:'Total intervenciones', color:'#1e40af', bg:'#eff6ff' },
+    { val: totalMant,  lbl:'Mantenimientos', color:'#1e40af', bg:'#dbeafe' },
+    { val: totalAlist, lbl:'Alistamientos',  color:'#16a34a', bg:'#f0fdf4' },
+    { val: prev,  lbl:'Preventivos', color:'#a16207', bg:'#fef9c3' },
+    { val: corr,  lbl:'Correctivos', color:'#dc2626', bg:'#fee2e2' },
+    { val: fuga,  lbl:'Fugas',       color:'#1d4ed8', bg:'#dbeafe' },
+    { val: aprob, lbl:'Aprobados',   color:'#16a34a', bg:'#f0fdf4' },
+    { val: rech,  lbl:'Rechazados',  color:'#dc2626', bg:'#fee2e2' },
   ];
 
-  document.getElementById('kpis-grid').innerHTML = kpis.map(k => `
-    <div class="kpi-card" style="border-color:${k.color}22;background:${k.bg};">
-      <div class="kpi-valor" style="color:${k.color};">${k.valor}</div>
-      <div class="kpi-label">${k.label}</div>
+  document.getElementById('dash-kpis').innerHTML = kpis.map(k => `
+    <div class="kpi" style="border-color:${k.color}22;background:${k.bg};">
+      <div class="kpi-val" style="color:${k.color};">${k.val}</div>
+      <div class="kpi-lbl">${k.lbl}</div>
     </div>`).join('');
 
-  // Ranking de máquinas con más intervenciones
-  const conteo = {};
-  [...todosAlist, ...todosMant].forEach(r => {
-    const key = (r.tipoMaquina||'Sin tipo') + '|' + (r.serial||'S/N');
-    conteo[key] = (conteo[key]||0) + 1;
-  });
-
-  const ranking = Object.entries(conteo)
-    .sort((a,b) => b[1]-a[1])
-    .slice(0, 8);
-
-  const maxVal = ranking[0]?.[1] || 1;
-  document.getElementById('ranking-list').innerHTML = ranking.map(([key, count], i) => {
-    const [tipo, serial] = key.split('|');
-    const pct = Math.round((count / maxVal) * 100);
-    return `<div class="ranking-row">
-      <div class="ranking-pos">${i+1}</div>
-      <div class="ranking-bar-wrap">
-        <div class="ranking-nombre">${tipo} <span style="color:#94a3b8;font-weight:400;">· ${serial}</span></div>
-        <div class="ranking-bar"><div class="ranking-fill" style="width:${pct}%"></div></div>
+  // Ranking
+  const ranking = listaMaquinas.slice(0, 10);
+  const maxVal  = ranking[0]?.count || 1;
+  document.getElementById('dash-ranking').innerHTML = ranking.map((m, i) => {
+    const pct = Math.round((m.count / maxVal) * 100);
+    return `<div class="rank-row">
+      <div class="rank-pos">${i+1}</div>
+      <div class="rank-bar-wrap">
+        <div class="rank-nombre">${m.tipo} <span style="color:#94a3b8;font-weight:400;">· ${m.serial}</span></div>
+        <div class="rank-bar"><div class="rank-fill" style="width:${pct}%"></div></div>
       </div>
-      <div class="ranking-count">${count}</div>
+      <div class="rank-count">${m.count}</div>
     </div>`;
   }).join('');
-}
-
-// ── HISTORIAL ─────────────────────────────────────────────────────
-function renderHistorial() {
-  const tbody = document.getElementById('historial-body');
-  if (!eventosMaquina.length) {
-    tbody.innerHTML = '<tr><td colspan="10"><div class="empty-state">📋 No hay registros para esta máquina</div></td></tr>';
-    return;
-  }
-
-  tbody.innerHTML = eventosMaquina.map(e => {
-    const esMant = e._tipo === 'mantenimiento';
-    let tipoBadge, actividad, resultado, referencia, guia, repuestos;
-
-    if (esMant) {
-      const tipo = e.tipoMantenimiento||'';
-      if (tipo === 'Preventivo') tipoBadge = '<span class="badge badge-prev">Preventivo</span>';
-      else if (tipo === 'Correctivo') tipoBadge = '<span class="badge badge-corr">Correctivo</span>';
-      else tipoBadge = '<span class="badge badge-fuga">Fugas</span>';
-      actividad  = 'Mantenimiento';
-      resultado  = '—';
-      referencia = '—';
-      guia       = e.numeroGuia||'—';
-      repuestos  = e.repuestos||'—';
-    } else {
-      tipoBadge  = e.pruebaCostura === 'Aprobada'
-        ? '<span class="badge badge-alist">Aprobado</span>'
-        : '<span class="badge badge-rech">Rechazado</span>';
-      actividad  = 'Alistamiento';
-      resultado  = e.pruebaCostura||'—';
-      referencia = e.referencia||'—';
-      guia       = e.numeroGuia||'—';
-      repuestos  = '—';
-    }
-
-    return `<tr>
-      <td>${e.fecha||'—'}</td>
-      <td>${tipoBadge}</td>
-      <td style="overflow:hidden;text-overflow:ellipsis;">${e.mecanico||'—'}</td>
-      <td style="text-align:center;font-weight:700;">${e.modulo||'—'}</td>
-      <td>${actividad}</td>
-      <td style="overflow:hidden;text-overflow:ellipsis;">${referencia}</td>
-      <td style="overflow:hidden;text-overflow:ellipsis;">${guia}</td>
-      <td style="overflow:hidden;text-overflow:ellipsis;">${repuestos}</td>
-      <td>${resultado}</td>
-      <td style="overflow:hidden;text-overflow:ellipsis;color:#64748b;">${e.observaciones||'—'}</td>
-    </tr>`;
-  }).join('');
-}
-
-// ── PDF ───────────────────────────────────────────────────────────
-function exportarPDF() {
-  if (!maquinaActual) return;
-
-  const mant  = eventosMaquina.filter(e => e._tipo === 'mantenimiento');
-  const alist = eventosMaquina.filter(e => e._tipo === 'alistamiento');
-  const prev  = mant.filter(m => m.tipoMantenimiento === 'Preventivo').length;
-  const corr  = mant.filter(m => m.tipoMantenimiento === 'Correctivo').length;
-  const fuga  = mant.filter(m => m.tipoMantenimiento === 'Mantenimiento de Fugas').length;
-  const aprob = alist.filter(a => a.pruebaCostura === 'Aprobada').length;
-  const rech  = alist.filter(a => a.pruebaCostura === 'Rechazada').length;
-
-  const filaKPI = (label, valor, color) =>
-    `<td style="padding:8px 12px;border:1px solid #e2e8f0;text-align:center;">
-      <div style="font-size:20px;font-weight:800;color:${color};">${valor}</div>
-      <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">${label}</div>
-    </td>`;
-
-  const filaHistorial = (e) => {
-    const esMant = e._tipo === 'mantenimiento';
-    const tipo = esMant
-      ? (e.tipoMantenimiento === 'Preventivo' ? 'Preventivo' : e.tipoMantenimiento === 'Correctivo' ? 'Correctivo' : 'Fugas')
-      : 'Alistamiento';
-    const resultado = esMant ? '—' : (e.pruebaCostura||'—');
-    return `<tr style="border-bottom:1px solid #f1f5f9;">
-      <td style="padding:7px 10px;border:1px solid #e2e8f0;font-size:11px;">${e.fecha||'—'}</td>
-      <td style="padding:7px 10px;border:1px solid #e2e8f0;font-size:11px;font-weight:700;">${tipo}</td>
-      <td style="padding:7px 10px;border:1px solid #e2e8f0;font-size:11px;">${esMant ? 'Mantenimiento' : 'Alistamiento'}</td>
-      <td style="padding:7px 10px;border:1px solid #e2e8f0;font-size:11px;">${e.mecanico||'—'}</td>
-      <td style="padding:7px 10px;border:1px solid #e2e8f0;font-size:11px;">${e.modulo||'—'}</td>
-      <td style="padding:7px 10px;border:1px solid #e2e8f0;font-size:11px;">${esMant ? (e.repuestos||'—') : (e.referencia||'—')}</td>
-      <td style="padding:7px 10px;border:1px solid #e2e8f0;font-size:11px;">${resultado}</td>
-      <td style="padding:7px 10px;border:1px solid #e2e8f0;font-size:11px;max-width:150px;">${e.observaciones||'—'}</td>
-    </tr>`;
-  };
-
-  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
-  <title>Hoja de Vida — ${maquinaActual.tipo} — ${maquinaActual.serial}</title>
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0;}
-    body{font-family:'Segoe UI',Arial,sans-serif;padding:24px;color:#0f172a;background:#fff;}
-    .header{border-bottom:3px solid #1e3a8a;padding-bottom:14px;margin-bottom:20px;}
-    .header h1{font-size:22px;font-weight:800;color:#1e3a8a;letter-spacing:1px;}
-    .header .sub{font-size:12px;color:#64748b;margin-top:4px;}
-    table{width:100%;border-collapse:collapse;margin-bottom:16px;}
-    .section{font-size:11px;font-weight:700;color:#fff;background:#1e3a8a;padding:8px 12px;letter-spacing:2px;text-transform:uppercase;margin-bottom:0;}
-    .footer{margin-top:20px;border-top:1px solid #e2e8f0;padding-top:12px;font-size:10px;color:#94a3b8;text-align:center;}
-    @media print{body{padding:12px;}@page{margin:1cm;}}
-  </style></head><body>
-  <div class="header">
-    <h1>🗂️ Hoja de Vida de Máquina</h1>
-    <div class="sub">Generado: ${new Date().toLocaleString('es-CO')} | Confecciones Millar S.A.S.</div>
-  </div>
-
-  <table>
-    <tr>
-      <td style="padding:10px 14px;border:1px solid #e2e8f0;background:#f8fafc;font-size:11px;font-weight:700;color:#1e3a8a;text-transform:uppercase;width:25%;">Tipo de Máquina</td>
-      <td style="padding:10px 14px;border:1px solid #e2e8f0;font-size:14px;font-weight:700;">${maquinaActual.tipo}</td>
-      <td style="padding:10px 14px;border:1px solid #e2e8f0;background:#f8fafc;font-size:11px;font-weight:700;color:#1e3a8a;text-transform:uppercase;width:25%;">Serial</td>
-      <td style="padding:10px 14px;border:1px solid #e2e8f0;font-size:14px;font-weight:700;">${maquinaActual.serial}</td>
-    </tr>
-    <tr>
-      <td style="padding:10px 14px;border:1px solid #e2e8f0;background:#f8fafc;font-size:11px;font-weight:700;color:#1e3a8a;text-transform:uppercase;">Código</td>
-      <td colspan="3" style="padding:10px 14px;border:1px solid #e2e8f0;font-size:14px;font-weight:700;">${maquinaActual.codigo}</td>
-    </tr>
-  </table>
-
-  <div class="section">Resumen de Intervenciones</div>
-  <table>
-    <tr>
-      ${filaKPI('Total', eventosMaquina.length, '#1e40af')}
-      ${filaKPI('Mantenimientos', mant.length, '#1e40af')}
-      ${filaKPI('Alistamientos', alist.length, '#16a34a')}
-      ${filaKPI('Preventivos', prev, '#a16207')}
-      ${filaKPI('Correctivos', corr, '#dc2626')}
-      ${filaKPI('Fugas', fuga, '#1d4ed8')}
-      ${filaKPI('Aprobados', aprob, '#16a34a')}
-      ${filaKPI('Rechazados', rech, '#dc2626')}
-    </tr>
-  </table>
-
-  <div class="section">Historial de Intervenciones</div>
-  <table>
-    <thead>
-      <tr style="background:#f8fafc;">
-        <th style="padding:8px 10px;border:1px solid #e2e8f0;font-size:10px;text-align:left;color:#64748b;text-transform:uppercase;">Fecha</th>
-        <th style="padding:8px 10px;border:1px solid #e2e8f0;font-size:10px;text-align:left;color:#64748b;text-transform:uppercase;">Tipo</th>
-        <th style="padding:8px 10px;border:1px solid #e2e8f0;font-size:10px;text-align:left;color:#64748b;text-transform:uppercase;">Actividad</th>
-        <th style="padding:8px 10px;border:1px solid #e2e8f0;font-size:10px;text-align:left;color:#64748b;text-transform:uppercase;">Mecánico</th>
-        <th style="padding:8px 10px;border:1px solid #e2e8f0;font-size:10px;text-align:left;color:#64748b;text-transform:uppercase;">Módulo</th>
-        <th style="padding:8px 10px;border:1px solid #e2e8f0;font-size:10px;text-align:left;color:#64748b;text-transform:uppercase;">Referencia/Repuestos</th>
-        <th style="padding:8px 10px;border:1px solid #e2e8f0;font-size:10px;text-align:left;color:#64748b;text-transform:uppercase;">Resultado</th>
-        <th style="padding:8px 10px;border:1px solid #e2e8f0;font-size:10px;text-align:left;color:#64748b;text-transform:uppercase;">Observaciones</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${eventosMaquina.map(filaHistorial).join('')}
-    </tbody>
-  </table>
-
-  <div class="footer">Confecciones Millar S.A.S. — Sistema de Control de Piso — Hoja de Vida de Máquina</div>
-  </body></html>`;
-
-  const win = window.open('', '_blank');
-  win.document.write(html);
-  win.document.close();
-  win.onload = () => win.print();
 }
 
 init();
