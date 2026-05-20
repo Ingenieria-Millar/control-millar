@@ -1896,24 +1896,20 @@ function populateLoginSelect(){
   const prev = sel.value;
   sel.innerHTML = '<option value="">— Selecciona un perfil —</option>';
 
-  // Programador SIEMPRE aparece primero, sin depender de config
+  // Programador SIEMPRE aparece primero
   const oP = document.createElement('option');
-  oP.value = 'Programador'; oP.textContent = 'Programador';
+  oP.value = 'Programador'; oP.textContent = '🔑 Programador';
   sel.appendChild(oP);
 
   const cfg = loadConfig();
-  const extras = (cfg._usuarios_extra||[]).filter(u=>!u.disabled);
+  // Mostrar todos los perfiles de _usuarios_extra que no estén deshabilitados
+  const extras = (cfg._usuarios_extra||[])
+    .filter(u => u.nombre && u.nombre !== 'Programador' && !u.disabled)
+    .sort((a,b) => a.nombre.localeCompare(b.nombre));
 
-  const perfilNames = Object.entries(USUARIOS)
-    .filter(([k,v])=> k !== 'Programador' && v.perms && v.perms.length > 0)
-    .map(([k])=>k)
-    .concat(extras.map(u=>u.nombre))
-    .filter((v,i,a)=>a.indexOf(v)===i)
-    .sort((a,b)=>a.localeCompare(b));
-
-  perfilNames.forEach(nombre=>{
+  extras.forEach(u => {
     const o = document.createElement('option');
-    o.value = nombre; o.textContent = nombre;
+    o.value = u.nombre; o.textContent = u.nombre;
     sel.appendChild(o);
   });
 
