@@ -7021,285 +7021,33 @@ function renderPermisosModal(){
   renderPermisosInto(body, _permModalUser);
 }
 
-function renderPermisosInto(body, nombre){
-  body.innerHTML = '';
-  const wrap = document.createElement('div');
-  wrap.className = 'perm-fullpage';
-
-  function getPerms(){ const c=loadConfig(); return c[nombre]?.perms||USUARIOS[nombre]?.perms||[]; }
-
-  AREAS_CONFIG.forEach(area => {
-    const color = area.color;
-    const areaOn = getPerms().includes(area.key);
-
-    const card = document.createElement('div');
-    card.className = 'perm-area-card' + (areaOn ? ' active' : '');
-    card.style.setProperty('--ac', color);
-
-    const hdr = document.createElement('div');
-    hdr.className = 'perm-area-card-hdr';
-    const left = document.createElement('div');
-    left.className = 'perm-area-card-left';
-    left.innerHTML = `<div class="perm-area-card-icon">${area.icon}</div><span class="perm-area-card-label">${area.label}</span>`;
-    const tog = document.createElement('div');
-    tog.className = 'perm-toggle' + (areaOn ? ' on' : '');
-    tog.style.setProperty('--area-color', color);
-    hdr.appendChild(left); hdr.appendChild(tog);
-    card.appendChild(hdr);
-
-    const subsPanel = document.createElement('div');
-    subsPanel.className = 'perm-area-card-subs';
-    subsPanel.style.display = areaOn ? 'flex' : 'none';
-    subsPanel.style.flexDirection = 'column';
-
-    if(area.subPerms.length === 0){
-      subsPanel.innerHTML = '<div style="font-size:12px;color:#94a3b8;font-style:italic;padding:4px 2px;">Sin actividades configuradas aún</div>';
-    } else {
-      area.subPerms.forEach(sp => {
-        const hasNested = sp.subPerms && sp.subPerms.length > 0;
-        const spOn = getPerms().includes(sp.key);
-
-        const actItem = document.createElement('div');
-        actItem.className = 'perm-act-item' + (spOn ? ' active' : '');
-        const actLeft = document.createElement('span');
-        actLeft.className = 'perm-act-label';
-        actLeft.textContent = sp.label;
-        const actTog = document.createElement('div');
-        actTog.className = 'perm-sub-toggle' + (spOn ? ' on' : '');
-        actTog.style.setProperty('--area-color', color);
-        actItem.appendChild(actLeft); actItem.appendChild(actTog);
-
-        let nestedPanel = null;
-        if(hasNested){
-          nestedPanel = document.createElement('div');
-          nestedPanel.className = 'perm-act-nested';
-          nestedPanel.style.display = spOn ? 'flex' : 'none';
-          nestedPanel.style.flexDirection = 'column';
-          sp.subPerms.forEach(np => {
-            const npOn = getPerms().includes(np.key);
-            const npItem = document.createElement('div');
-            npItem.className = 'perm-nested-item' + (npOn ? ' active' : '');
-            const npLabel = document.createElement('span');
-            npLabel.className = 'perm-nested-label';
-            npLabel.textContent = '↳ ' + np.label;
-            const npTog = document.createElement('div');
-            npTog.className = 'perm-sub-toggle' + (npOn ? ' on' : '');
-            npTog.style.setProperty('--area-color', color);
-            npTog.addEventListener('click', e => {
-              e.stopPropagation();
-              const now = !npTog.classList.contains('on');
-              togglePerm(nombre, np.key, now);
-              npTog.classList.toggle('on', now);
-              npItem.classList.toggle('active', now);
-            });
-            npItem.appendChild(npLabel); npItem.appendChild(npTog);
-            nestedPanel.appendChild(npItem);
-          });
-          const actWrap = document.createElement('div');
-          actWrap.appendChild(actItem); actWrap.appendChild(nestedPanel);
-          subsPanel.appendChild(actWrap);
-        } else {
-          subsPanel.appendChild(actItem);
-        }
-
-        actTog.addEventListener('click', e => {
-          e.stopPropagation();
-          const now = !actTog.classList.contains('on');
-          togglePerm(nombre, sp.key, now);
-          actTog.classList.toggle('on', now);
-          actItem.classList.toggle('active', now);
-          if(nestedPanel) nestedPanel.style.display = now ? 'flex' : 'none';
-          if(now && !tog.classList.contains('on')){
-            toggleAreaPerm(nombre, area.key, []);
-            tog.classList.add('on'); card.classList.add('active'); subsPanel.style.display = 'flex';
-          }
-        });
-      });
-    }
-
-    card.appendChild(subsPanel);
-
-    tog.addEventListener('click', e => {
-      e.stopPropagation();
-      const now = !tog.classList.contains('on');
-      toggleAreaPerm(nombre, area.key, area.subPerms.map(s=>s.key));
-      tog.classList.toggle('on', now);
-      card.classList.toggle('active', now);
-      subsPanel.style.display = now ? 'flex' : 'none';
-      if(!now){
-        subsPanel.querySelectorAll('.perm-sub-toggle').forEach(t=>t.classList.remove('on'));
-        subsPanel.querySelectorAll('.perm-act-item,.perm-nested-item').forEach(i=>i.classList.remove('active'));
-        subsPanel.querySelectorAll('.perm-act-nested').forEach(n=>n.style.display='none');
-      }
-    });
-
-    wrap.appendChild(card);
-  });
-  body.appendChild(wrap);
+function cfgRenderPermisosPerfil(body){
+  if(!_permCurrentUser){ body.innerHTML='<div style="padding:40px;text-align:center;color:#94a3b8;">No hay perfil seleccionado</div>'; return; }
+  renderPermisosInto(body, _permCurrentUser);
 }
 
-</script>
+function renderPermisosInto(body, nombre){
+  body.innerHTML = '';
+  const cfg = loadConfig();
+  const extras = cfg._usuarios_extra || [];
+  const u = extras.find(x => x.nombre === nombre);
+  const activePerms = u && Array.isArray(u.perms) ? u.perms : [];
 
+  ALL_PERMS.forEach((perm, idx) => {
+    const isOn = activePerms.includes(perm.key);
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:12px 20px;' +
+      (idx < ALL_PERMS.length-1 ? 'border-bottom:1px solid var(--color-border-tertiary,#e2e8f0);' : '');
+    row.innerHTML = `
+      <span style="font-size:14px;color:var(--color-text-primary,#0f172a);">${perm.label}</span>
+      <div onclick="togglePermFlat('${nombre}','${perm.key}',this)" data-on="${isOn}"
+        style="width:40px;height:22px;border-radius:11px;background:${isOn?'#2563eb':'#cbd5e1'};cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;">
+        <div style="position:absolute;top:3px;${isOn?'left:21px':'left:3px'};width:16px;height:16px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2);"></div>
+      </div>`;
+    body.appendChild(row);
+  });
+}
 
-<!-- ══════════════════════════════════════════════════════════════ -->
-<!--  §11 · MODALES CONFIGURACIONES                                 -->
-<!--        · Nueva/Editar máquina   · Formulario usuario           -->
-<!--        · Formulario módulo       · Formulario área             -->
-<!--        · Confirmación eliminar                                 -->
-<!-- ══════════════════════════════════════════════════════════════ -->
-<!-- MODAL: Nueva/Editar máquina (CFG SCREEN) -->
-<div id="cfg-maq-modal2" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:999;align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
-  <div style="background:#fff;border-radius:16px;padding:28px;width:100%;max-width:520px;box-shadow:0 20px 60px rgba(0,0,0,.2);font-family:'Nunito',sans-serif;">
-    <div id="cmf2-maq-title" style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;letter-spacing:2px;color:#0f172a;margin-bottom:20px;">➕ NUEVA MÁQUINA</div>
-    <input type="hidden" id="cmf2-id">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-      <div style="display:flex;flex-direction:column;gap:5px;"><label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Código</label><input id="cmf2-codigo" type="text" placeholder="MAQ-001" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:'Courier New',monospace;font-size:13px;outline:none;width:100%;box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'"></div>
-      <div style="display:flex;flex-direction:column;gap:5px;"><label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Tipo</label><input id="cmf2-tipo" type="text" placeholder="Plana, Fileteadora..." style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:13px;outline:none;width:100%;box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'"></div>
-      <div style="display:flex;flex-direction:column;gap:5px;"><label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Marca</label><input id="cmf2-marca" type="text" placeholder="Juki, Brother..." style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:13px;outline:none;width:100%;box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'"></div>
-      <div style="display:flex;flex-direction:column;gap:5px;"><label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Modelo</label><input id="cmf2-modelo" type="text" placeholder="DDL-9000" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:13px;outline:none;width:100%;box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'"></div>
-      <div style="display:flex;flex-direction:column;gap:5px;"><label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Serial</label><input id="cmf2-serial" type="text" placeholder="SN-10234" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:'Courier New',monospace;font-size:13px;outline:none;width:100%;box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'"></div>
-      <div style="display:flex;flex-direction:column;gap:5px;"><label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Ubicación</label><select id="cmf2-modulo-sel" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:'Nunito',sans-serif;font-size:13px;outline:none;background:#fff;cursor:pointer;width:100%;box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'"><option value="">— Seleccionar —</option></select></div>
-    </div>
-    <div id="cmf2-error" style="color:#dc2626;font-size:12px;margin-top:8px;min-height:16px;"></div>
-    <div style="display:flex;gap:10px;margin-top:16px;">
-      <button onclick="document.getElementById('cfg-maq-modal2').style.display='none'" style="flex:1;padding:10px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Cancelar</button>
-      <button onclick="cfgSaveMaqModal()" style="flex:1;padding:10px;border-radius:8px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Guardar</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL: Formulario usuario (crear/editar) -->
-<div class="modal-overlay hidden" id="modal-user-form" style="z-index:700;">
-  <div class="modal-box" style="max-width:360px;width:92%;gap:14px;position:relative;">
-    <div class="modal-title" id="user-form-title">Nuevo Usuario</div>
-    <div style="width:100%;display:flex;flex-direction:column;gap:10px;">
-      <div style="display:flex;flex-direction:column;gap:5px;">
-        <label style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Nombre de usuario</label>
-        <input id="uf-nombre" type="text" placeholder="Ej: Supervisor" style="padding:11px 14px;border-radius:8px;border:1px solid var(--border);background:#f8fafc;color:#0f172a;font-size:14px;outline:none;" oninput="this.style.borderColor='var(--border)'">
-      </div>
-      <div style="display:flex;flex-direction:column;gap:5px;">
-        <label style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Contraseña</label>
-        <input id="uf-pass" type="text" placeholder="Contraseña" style="padding:11px 14px;border-radius:8px;border:1px solid var(--border);background:#f8fafc;color:#0f172a;font-size:14px;font-family:'Courier New',monospace;letter-spacing:3px;outline:none;" oninput="this.style.borderColor='var(--border)'">
-      </div>
-    </div>
-    <div id="uf-error" style="font-size:12px;color:var(--red);min-height:16px;text-align:center;"></div>
-    <div style="display:flex;gap:8px;width:100%;">
-      <button class="modal-btn secondary" style="flex:1;" onclick="closeUserForm()">Cancelar</button>
-      <button class="modal-btn" style="flex:1;" onclick="saveUserForm()">Guardar</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL: Formulario módulo (crear/editar) -->
-<div class="modal-overlay hidden" id="modal-mod-form" style="z-index:700;">
-  <div class="modal-box" style="max-width:360px;width:92%;gap:14px;position:relative;">
-    <div class="modal-title" id="mod-form-title">Nuevo Módulo</div>
-    <div style="width:100%;display:flex;flex-direction:column;gap:10px;">
-      <div style="display:flex;flex-direction:column;gap:5px;">
-        <label style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Nombre del módulo</label>
-        <input id="mf-nombre" type="text" placeholder="Ej: M28" maxlength="20" style="padding:11px 14px;border-radius:8px;border:1px solid var(--border);background:#f8fafc;color:#0f172a;font-size:16px;font-family:'Courier New',monospace;letter-spacing:4px;outline:none;" oninput="this.style.borderColor='var(--border)'">
-      </div>
-      <div style="display:flex;flex-direction:column;gap:5px;">
-        <label style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Contraseña del módulo</label>
-        <input id="mf-pass" type="text" placeholder="Dejar vacío = usar nombre como clave" style="padding:11px 14px;border-radius:8px;border:1px solid var(--border);background:#f8fafc;color:#0f172a;font-size:14px;font-family:'Courier New',monospace;letter-spacing:3px;outline:none;" oninput="this.style.borderColor='var(--border)'">
-      </div>
-      <div style="display:flex;flex-direction:column;gap:5px;">
-        <label style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Supervisora</label>
-        <select id="mf-supervisora" style="padding:11px 14px;border-radius:8px;border:1px solid var(--border);background:#f8fafc;color:#0f172a;font-size:14px;outline:none;">
-          <option value="">— Sin supervisora —</option>
-        </select>
-      </div>
-    </div>
-    <div id="mf-error" style="font-size:12px;color:var(--red);min-height:16px;text-align:center;"></div>
-    <div style="display:flex;gap:8px;width:100%;">
-      <button class="modal-btn secondary" style="flex:1;" onclick="closeModForm()">Cancelar</button>
-      <button class="modal-btn" style="flex:1;" onclick="saveModForm()">Guardar</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL: Formulario área (crear/editar) -->
-<div class="modal-overlay hidden" id="modal-area-form" style="z-index:700;">
-  <div class="modal-box" style="max-width:400px;width:92%;gap:14px;position:relative;">
-    <div class="modal-title" id="area-form-title">Nueva Área</div>
-    <div style="width:100%;display:flex;flex-direction:column;gap:12px;">
-      <!-- Nombre -->
-      <div style="display:flex;flex-direction:column;gap:5px;">
-        <label style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Nombre del área</label>
-        <input id="af-label" type="text" placeholder="Ej: Corte, Costura, Empaque" style="padding:11px 14px;border-radius:8px;border:1px solid var(--border);background:#f8fafc;color:#0f172a;font-size:14px;outline:none;" oninput="this.style.borderColor='var(--border)'">
-      </div>
-      <!-- Color + emoji actual -->
-      <div style="display:flex;gap:10px;align-items:flex-end;">
-        <div style="display:flex;flex-direction:column;gap:5px;flex:1;">
-          <label style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Color</label>
-          <input id="af-color" type="color" value="#3b82f6" style="width:100%;height:44px;border-radius:8px;border:1px solid var(--border);background:#f8fafc;cursor:pointer;padding:4px;">
-        </div>
-        <div style="display:flex;flex-direction:column;gap:5px;align-items:center;">
-          <label style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Ícono</label>
-          <div id="af-icon-preview" style="width:44px;height:44px;border-radius:8px;border:1px solid var(--border);background:#f8fafc;display:flex;align-items:center;justify-content:center;font-size:22px;cursor:default;">📍</div>
-          <input type="hidden" id="af-icon" value="📍">
-        </div>
-      </div>
-      <!-- Picker de emojis (se muestra cuando no hay auto-match) -->
-      <div id="af-emoji-picker" style="display:none;flex-direction:column;gap:6px;">
-        <label style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Elige un ícono</label>
-        <div id="af-emoji-grid" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
-      </div>
-    </div>
-    <div id="af-error" style="font-size:12px;color:var(--red);min-height:16px;text-align:center;"></div>
-    <div style="display:flex;gap:8px;width:100%;">
-      <button class="modal-btn secondary" style="flex:1;" onclick="closeAreaForm()">Cancelar</button>
-      <button class="modal-btn" style="flex:1;" onclick="saveAreaForm()">Guardar</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL: Confirmación eliminar -->
-<div class="modal-overlay hidden" id="modal-confirm-delete" style="z-index:700;">
-  <div class="modal-box" style="max-width:340px;width:92%;gap:16px;position:relative;">
-    <div class="modal-icon">⚠️</div>
-    <div class="modal-title" id="confirm-delete-title">¿Eliminar?</div>
-    <div class="modal-sub" id="confirm-delete-sub">Esta acción no se puede deshacer.</div>
-    <div style="display:flex;gap:8px;width:100%;">
-      <button class="modal-btn secondary" style="flex:1;" onclick="closeConfirmDelete()">Cancelar</button>
-      <button style="flex:1;padding:13px;border-radius:8px;border:none;background:var(--red);color:#fff;font-size:13px;font-weight:700;letter-spacing:1px;cursor:pointer;" onclick="executeDelete()">Eliminar</button>
-    </div>
-  </div>
-</div>
-
-
-
-<!-- ══════════════════════════════════════════════════════════════ -->
-<!--  §15 · MODALES EXTRA CONFIGURACIONES                           -->
-<!--        · Nuevo/Editar Perfil     · Crear/Editar Operaria       -->
-<!--        · Limpiar listado          · Cargo / Turno / Hora       -->
-<!--        · Permisos de perfil                                    -->
-<!-- ══════════════════════════════════════════════════════════════ -->
-<!-- MODAL: Nuevo/Editar Perfil (CFG SCREEN) -->
-<div id="cfg-perfil-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:1000;align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
-  <div style="background:#fff;border-radius:16px;padding:28px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.2);font-family:'Nunito',sans-serif;">
-    <div id="cfg-perfil-modal-title" style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;letter-spacing:2px;color:#0f172a;margin-bottom:20px;">👤 NUEVO PERFIL</div>
-    <input type="hidden" id="cpf-target">
-    <div style="display:flex;flex-direction:column;gap:14px;">
-      <div style="display:flex;flex-direction:column;gap:5px;">
-        <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Nombre del perfil</label>
-        <input id="cpf-nombre" type="text" placeholder="Ej: Supervisora" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:'Nunito',sans-serif;font-size:13px;outline:none;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
-      </div>
-      <div style="display:flex;flex-direction:column;gap:5px;">
-        <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Contraseña</label>
-        <input id="cpf-pass" type="text" placeholder="Ej: 1234" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:'Courier New',monospace;font-size:14px;outline:none;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
-      </div>
-    </div>
-    <div id="cpf-error" style="color:#dc2626;font-size:12px;margin-top:8px;min-height:16px;"></div>
-    <div style="display:flex;gap:10px;margin-top:18px;">
-      <button onclick="document.getElementById('cfg-perfil-modal').style.display='none'" style="flex:1;padding:10px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Cancelar</button>
-      <button onclick="cfgSavePerfilModal()" style="flex:1;padding:10px;border-radius:8px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Guardar</button>
-    </div>
-  </div>
-</div>
-
-<script>
-// ── PERFIL MODAL ─────────────────────────────────────────────────────────
 function cfgOpenPerfilModal(nombre, pass){
   const isEdit = !!nombre;
   document.getElementById('cfg-perfil-modal-title').textContent = isEdit ? '✏️ EDITAR PERFIL' : '👤 NUEVO PERFIL';
