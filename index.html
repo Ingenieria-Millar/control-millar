@@ -1546,9 +1546,10 @@ const LABELS={green:'Operativo',yellow:'Atendiendo',red:'Alerta',blue:'Cambio Re
 const NEXT={green:'red',red:'yellow',yellow:'green'};  // used only for mec flow
 const MECANICOS=[];
 
-// ── Perfiles del sistema con sus permisos base ──────────────────────
+// ── Perfiles del sistema — solo Programador está hardcodeado ────────
+const PROG_PERMS = ALL_PERMS.map(p=>p.key).concat(['fix','tablero','area_asistencia','informes','area_montajes','area_solicitar_insumos','tablero_planta','area_ci','modulos','excel']);
 const USUARIOS={
-  'Programador':  {pass:'1',perms:['tablero','area_asistencia','informes','area_montajes','area_solicitar_insumos','tablero_planta','area_ci','modulos','excel','fix']},
+  'Programador': {pass:'1', perms: PROG_PERMS},
 };
 
 const states={}, timers={}, lastMec={}, acumRed={}, acumYellow={}, acumBlue={}, acumOrange={}, acumPurple={};
@@ -1561,10 +1562,10 @@ let selectedMod=null, activeFilters=new Set(), currentView=null, pendingTransici
 const hiddenMods=new Set(); localStorage.removeItem('hiddenMods'); // visibilidad siempre completa
 // ── Helpers de permisos ─────────────────────────────────────────────
 function hasPerm(p){
-  // Permisos normales desde USUARIOS
-  if(currentUser && USUARIOS[currentUser] && USUARIOS[currentUser].perms.includes(p)) return true;
-  // Supervisoras: tienen area_asistencia e informes por defecto
-  if(currentUserRol==='supervisora' && (p==='area_asistencia'||p==='informes')) return true;
+  // Programador siempre tiene todos los permisos
+  if(currentUser === 'Programador') return true;
+  // Para todos los demás, leer desde USUARIOS (que viene del servidor via applyConfig)
+  if(currentUser && USUARIOS[currentUser] && USUARIOS[currentUser].perms && USUARIOS[currentUser].perms.includes(p)) return true;
   return false;
 }
 function isProg(){ return hasPerm('fix')&&hasPerm('modulos')&&hasPerm('tablero'); }
@@ -2178,7 +2179,7 @@ function mostrarAreaScreen(){
   }
 
   // MECANICOS - mostrar si tiene al menos una actividad habilitada
-  const tieneMecanicos = hasPerm('tablero_planta')||hasPerm('area_montajes')||hasPerm('area_solicitar_insumos');
+  const tieneMecanicos = hasPerm('tablero_planta')||hasPerm('area_montajes')||hasPerm('area_solicitar_insumos')||hasPerm('hoja_vida')||hasPerm('mantenimiento');
   if(tieneMecanicos){
     const c=makeCard('🔧','Mecánicos','','ac-red',()=>{
       mostrarSubMenuMecanicos();
@@ -3655,80 +3656,21 @@ function downloadExcel(){
 // ══════════════════════════════════════════════════════════════════
 // Lista maestra de permisos — agregar aquí cada nueva pantalla/función
 const ALL_PERMS = [
-  {key:'area_mecanicos', label:'Ver Tablero Mecánicos'},
-  {key:'tablero',        label:'Tablero General'},
-  {key:'excel',          label:'Descargar Excel'},
-  {key:'area_produccion',label:'Área Producción'},
-  {key:'modulos',        label:'Módulos (Vista Módulo)'},
-  {key:'fix',            label:'Corregir Mecánico'},
-  {key:'area_ingreso',   label:'Control de Ingreso'},
-  {key:'area_montajes',  label:'Montajes (Mecánicos)'},
-  {key:'area_solicitar_insumos', label:'Solicitar Insumos'},
-];
-
-// Estructura de áreas con sus permisos internos
-const AREAS_CONFIG = [
-  {
-    key: 'area_ingreso',
-    label: 'Producción',
-    icon: '📋',
-    color: '#2563eb',
-    subPerms: [
-      {key:'tablero',         label:'Tablero General'},
-      {key:'area_asistencia', label:'Control de Asistencia'},
-      {key:'modulos',         label:'Contador Módulos'},
-      {key:'informes',        label:'Informes'},
-    ]
-  },
-  {
-    key: 'area_mecanicos',
-    label: 'Mecánicos',
-    icon: '🔧',
-    color: '#ef4444',
-    subPerms: [
-      {key:'tablero_planta', label:'Tablero Mecánicos'},
-      {key:'area_montajes', label:'Montajes'},
-      {key:'area_solicitar_insumos', label:'Solicitar Insumos'},
-    ]
-  },
-  {
-    key: 'area_calidad',
-    label: 'Calidad',
-    icon: '✅',
-    color: '#22c55e',
-    subPerms: []
-  },
-  {
-    key: 'area_ci',
-    label: 'CI',
-    icon: '🏢',
-    color: '#8b5cf6',
-    subPerms: [
-      {key:'ci_tablero',    label:'Tablero CI'},
-      {key:'ci_inventario', label:'Inventario de Hilos'},
-    ]
-  },
-  {
-    key: 'area_empaque',
-    label: 'Empaque',
-    icon: '📦',
-    color: '#eab308',
-    subPerms: []
-  },
-  {
-    key: 'area_corte',
-    label: 'Corte',
-    icon: '✂️',
-    color: '#ef4444',
-    subPerms: []
-  },
-  {
-    key: 'area_sst',
-    label: 'SST',
-    icon: '🦺',
-    color: '#f97316',
-    subPerms: []
-  },
+  {key:'area_montajes',          label:'Alistamiento'},
+  {key:'configuraciones',        label:'Configuraciones'},
+  {key:'modulos',                label:'Contador módulos'},
+  {key:'conteo_recogedores',     label:'Conteo recogedores'},
+  {key:'area_asistencia',        label:'Control de asistencia'},
+  {key:'hoja_vida',              label:'Hoja de vida de máquina'},
+  {key:'informes',               label:'Informes'},
+  {key:'mantenimiento',          label:'Mantenimiento'},
+  {key:'modulos_login',          label:'Módulos'},
+  {key:'ordenes_produccion',     label:'Órdenes de producción'},
+  {key:'recogedores',            label:'Recogedores'},
+  {key:'area_solicitar_insumos', label:'Solicitar insumos'},
+  {key:'tablero_ci',             label:'Tablero CI'},
+  {key:'tablero',                label:'Tablero general'},
+  {key:'tablero_planta',         label:'Tablero mecánicos'},
 ];
 const PERM_LABELS = Object.fromEntries(ALL_PERMS.map(p=>[p.key,p.label]));
 
@@ -3768,53 +3710,25 @@ async function loadConfigFromServer(){
 // ── Aplicar configuración guardada al iniciar la app ─────────────────
 function applyConfig(){
   const cfg = loadConfig();
-  // Usuarios del sistema que nunca se pueden deshabilitar
-  const USUARIOS_FIJOS = ['Programador'];
-  // Aplicar cambios a usuarios base
-  Object.keys(CONFIG_PERMS).forEach(user=>{
-    if(!cfg[user]) return;
-    if(cfg[user].disabled && !USUARIOS_FIJOS.includes(user)){ delete USUARIOS[user]; return; }
-    if(cfg[user].perms) USUARIOS[user].perms = cfg[user].perms;
-  });
-  // Cargar usuarios extra creados manualmente
-  (cfg._usuarios_extra||[]).forEach(u=>{
-    if(u.disabled){ delete USUARIOS[u.nombre]; return; }
-    USUARIOS[u.nombre] = {pass: u.pass, perms: u.perms||[]};
+  // Cargar todos los perfiles desde _usuarios_extra (creados por Programador)
+  (cfg._usuarios_extra||[]).forEach(u => {
+    if(!u || !u.nombre) return;
+    if(u.nombre === 'Programador') return; // Programador está hardcodeado
+    if(u.disabled){
+      delete USUARIOS[u.nombre];
+      return;
+    }
+    USUARIOS[u.nombre] = {
+      pass:  u.pass  || '',
+      perms: Array.isArray(u.perms) ? u.perms : []
+    };
   });
 }
 
 // ── Inicializar permisos correctos para cada perfil ───────────────────
 function initializePermissions(){
-  const cfg = loadConfig();
-  
-  const permisosDefault = {
-    'Administrador': ['tablero', 'area_asistencia', 'informes', 'area_montajes', 'area_solicitar_insumos', 'area_ci'],
-    'Calidad': ['tablero', 'area_asistencia', 'area_ci'],
-    'Mecanicos': ['tablero_planta', 'area_montajes', 'area_solicitar_insumos'],
-    'Modulos': ['modulos'],
-    'Supervisora': ['informes', 'area_asistencia'],
-    'Televisor': ['tablero_planta']
-  };
-  
-  // Si no existen permisos guardados, inicializar con los defaults
-  let cambios = false;
-  Object.entries(permisosDefault).forEach(([user, perms]) => {
-    const extras = cfg._usuarios_extra || [];
-    const userIdx = extras.findIndex(u => u.nombre === user);
-    
-    if(userIdx > -1){
-      // Usuario existe en _usuarios_extra
-      if(!extras[userIdx].perms || extras[userIdx].perms.length === 0){
-        extras[userIdx].perms = perms;
-        cambios = true;
-      }
-    }
-  });
-  
-  if(cambios){
-    saveConfig(cfg);
-    applyConfig();
-  }
+  // Permisos vienen del servidor via applyConfig() — no hay hardcoding aquí
+  // Solo Programador tiene permisos fijos definidos en USUARIOS
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -4227,90 +4141,85 @@ function renderCfgPermisos(){
   container.innerHTML = '';
   const qp = getCfgSearchQuery();
 
-  // Combinar usuarios base (CONFIG_PERMS) + usuarios extra creados manualmente
-  const extraUsers = (cfg._usuarios_extra||[]).map(u=>([u.nombre, {label: u.nombre, isExtra: true}]));
-  const baseEntries = Object.entries(CONFIG_PERMS).map(([k,v])=>([k, {...v, isExtra:false}]));
-  const allEntries = [...baseEntries, ...extraUsers]
-    .sort(([a],[b])=>a.localeCompare(b))
-    .filter(([user, meta])=> !qp || user.toLowerCase().includes(qp) || (meta.label||'').toLowerCase().includes(qp));
+  // Todos los perfiles vienen de _usuarios_extra (creados por Programador)
+  const allUsers = (cfg._usuarios_extra||[])
+    .filter(u => u.nombre !== 'Programador')
+    .sort((a,b) => a.nombre.localeCompare(b.nombre))
+    .filter(u => !qp || u.nombre.toLowerCase().includes(qp));
 
-  allEntries.forEach(([user, meta])=>{
-    const userCfg = cfg[user] || {};
-    const isDisabled = !!userCfg.disabled;
-    const activePerms = userCfg.perms !== undefined ? userCfg.perms : (USUARIOS[user]?.perms || []);
+  if(!allUsers.length){
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:#64748b;font-size:14px;">No hay perfiles para configurar.<br>Crea perfiles desde la pestaña Perfiles.</div>';
+    return;
+  }
+
+  allUsers.forEach(u => {
+    const user = u.nombre;
+    const activePerms = Array.isArray(u.perms) ? u.perms : [];
+    const isDisabled = !!u.disabled;
 
     const card = document.createElement('div');
-    card.style.cssText = 'background:#141c2b;border:1px solid #1e2d42;border-radius:14px;padding:16px;margin-bottom:14px;transition:border-color .2s;';
+    card.style.cssText = 'background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:12px;margin-bottom:12px;overflow:hidden;';
 
-    // Header del usuario
+    // Header del perfil
     const header = document.createElement('div');
-    header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:' + (isDisabled?'0':'14px') + ';';
+    header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:0.5px solid var(--color-border-tertiary);cursor:pointer;';
     header.innerHTML = `
-      <span style="font-size:15px;font-weight:700;letter-spacing:1px;color:#f1f5f9;">
-        <span style="margin-right:8px;opacity:.5;font-size:12px;">👤</span>${meta.label||user}
-      </span>
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;color:${isDisabled?'#4b5a72':'#94a3b8'};letter-spacing:.5px;text-transform:uppercase;">
-        <span>${isDisabled?'Deshabilitado':'Habilitado'}</span>
-        <div onclick="toggleUserEnabled('${user}',this)" style="width:42px;height:24px;border-radius:12px;background:${isDisabled?'#1a2236':'var(--green)'};border:1px solid ${isDisabled?'#2d3f5a':'rgba(34,197,94,.5)'};cursor:pointer;position:relative;transition:all 0.25s;box-shadow:${isDisabled?'none':'0 0 10px rgba(34,197,94,.25)'};">
-          <div style="position:absolute;top:4px;${isDisabled?'left:4px':'left:20px'};width:14px;height:14px;border-radius:50%;background:${isDisabled?'#4b5a72':'#fff'};transition:all 0.25s;"></div>
-        </div>
-      </label>`;
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:18px;">👤</span>
+        <span style="font-size:15px;font-weight:500;color:var(--color-text-primary);">${user}</span>
+        <span style="font-size:12px;color:var(--color-text-secondary);">${activePerms.length} / ${ALL_PERMS.length} permisos</span>
+      </div>
+      <button onclick="toggleCardPermisos('card-${user.replace(/\s/g,'_')}')" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--color-text-secondary);">▾</button>`;
     card.appendChild(header);
 
-    if(!isDisabled){
-      // Grid de áreas
-      const areasGrid = document.createElement('div');
-      areasGrid.style.cssText = 'display:flex;flex-direction:column;gap:10px;';
+    // Lista de permisos
+    const lista = document.createElement('div');
+    lista.id = 'card-' + user.replace(/\s/g,'_');
+    lista.style.cssText = 'display:block;';
 
-      AREAS_CONFIG.forEach(area=>{
-        const areaEnabled = activePerms.includes(area.key);
+    ALL_PERMS.forEach((perm, idx) => {
+      const isOn = activePerms.includes(perm.key);
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:11px 18px;' + (idx < ALL_PERMS.length-1 ? 'border-bottom:0.5px solid var(--color-border-tertiary);' : '');
+      row.innerHTML = `
+        <span style="font-size:14px;color:var(--color-text-primary);">${perm.label}</span>
+        <div onclick="togglePermFlat('${user}','${perm.key}',this)" data-on="${isOn}"
+          style="width:40px;height:22px;border-radius:11px;background:${isOn?'#2563eb':'var(--color-border-secondary)'};border:none;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;">
+          <div style="position:absolute;top:3px;${isOn?'left:21px':'left:3px'};width:16px;height:16px;border-radius:50%;background:#fff;transition:left .2s;"></div>
+        </div>`;
+      lista.appendChild(row);
+    });
 
-        const areaBlock = document.createElement('div');
-        areaBlock.style.cssText = `border:1px solid ${areaEnabled ? area.color+'55' : '#1e2d42'};border-radius:10px;overflow:hidden;transition:border-color .2s;background:${areaEnabled ? area.color+'0d' : 'transparent'};`;
-
-        // Cabecera del área
-        const areaHeader = document.createElement('div');
-        areaHeader.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 14px;cursor:pointer;';
-        areaHeader.innerHTML = `
-          <div style="display:flex;align-items:center;gap:10px;">
-            <span style="font-size:16px;line-height:1;">${area.icon}</span>
-            <span style="font-size:13px;font-weight:700;color:${areaEnabled ? '#f1f5f9' : '#6b7a99'};letter-spacing:.5px;transition:color .2s;">${area.label}</span>
-            ${area.subPerms.length>0 ? `<span style="font-size:10px;color:#4b5a72;letter-spacing:.5px;">${area.subPerms.filter(sp=>activePerms.includes(sp.key)).length}/${area.subPerms.length} permisos</span>` : '<span style="font-size:10px;color:#4b5a72;font-style:italic;">Próximamente</span>'}
-          </div>
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
-            <div onclick="toggleAreaPerm('${user}','${area.key}',${AREAS_CONFIG.indexOf(area)},this)" 
-                 style="width:36px;height:20px;border-radius:10px;background:${areaEnabled?area.color:'#1a2236'};border:1px solid ${areaEnabled?area.color+'88':'#2d3f5a'};cursor:pointer;position:relative;transition:all 0.2s;">
-              <div style="position:absolute;top:3px;${areaEnabled?'left:17px':'left:3px'};width:12px;height:12px;border-radius:50%;background:${areaEnabled?'#fff':'#4b5a72'};transition:all 0.2s;"></div>
-            </div>
-          </label>`;
-
-        areaBlock.appendChild(areaHeader);
-
-        // Sub-permisos (solo si el área está habilitada y tiene sub-permisos)
-        if(areaEnabled && area.subPerms.length > 0){
-          const subGrid = document.createElement('div');
-          subGrid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:0 14px 12px;border-top:1px solid ' + area.color + '22;margin-top:2px;padding-top:10px;';
-
-          area.subPerms.forEach(sp=>{
-            const spChecked = activePerms.includes(sp.key);
-            const spRow = document.createElement('label');
-            spRow.style.cssText = 'display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px;color:' + (spChecked?'#cbd5e1':'#4b5a72') + ';padding:5px 8px;border-radius:6px;background:' + (spChecked?area.color+'15':'transparent') + ';border:1px solid ' + (spChecked?area.color+'30':'transparent') + ';transition:all .15s;';
-            spRow.innerHTML = `
-              <input type="checkbox" data-user="${user}" data-perm="${sp.key}" ${spChecked?'checked':''}
-                onchange="togglePerm('${user}','${sp.key}',this.checked);renderCfgPermisos();"
-                style="width:14px;height:14px;accent-color:${area.color};cursor:pointer;flex-shrink:0;">
-              <span>${sp.label}</span>`;
-            subGrid.appendChild(spRow);
-          });
-          areaBlock.appendChild(subGrid);
-        }
-
-        areasGrid.appendChild(areaBlock);
-      });
-
-      card.appendChild(areasGrid);
-    }
+    card.appendChild(lista);
     container.appendChild(card);
+  });
+}
+
+function toggleCardPermisos(id){
+  const el = document.getElementById(id);
+  if(el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function togglePermFlat(user, permKey, el){
+  const isOn = el.dataset.on === 'true';
+  const nowOn = !isOn;
+  el.dataset.on = nowOn;
+  el.style.background = nowOn ? '#2563eb' : 'var(--color-border-secondary)';
+  el.querySelector('div').style.left = nowOn ? '21px' : '3px';
+  togglePerm(user, permKey, nowOn);
+  // Actualizar contador
+  const cfg = loadConfig();
+  const extras = cfg._usuarios_extra || [];
+  const u = extras.find(x => x.nombre === user);
+  if(u){
+    const card = el.closest('[id^="card-"]')?.previousElementSibling;
+    if(card){
+      const countEl = card.querySelector('span:nth-child(3)');
+      if(countEl) countEl.textContent = (u.perms||[]).length + ' / ' + ALL_PERMS.length + ' permisos';
+    }
+  }
+}
+
   });
 }
 
