@@ -2056,12 +2056,9 @@ window.addEventListener('DOMContentLoaded', async ()=>{
   if(_volver === 'produccion'){
     // Limpiar parámetro de la URL sin recargar
     history.replaceState({}, '', '/');
-    // Si hay sesión activa, ir al submenú de producción
+    // Si hay sesión activa, ir al menú principal
     if(currentUser){
-      setTimeout(()=>{
-        document.getElementById('area-screen').classList.remove('hidden');
-        mostrarSubMenuProduccion();
-      }, 300);
+      setTimeout(()=>{ mostrarAreaScreen(); }, 300);
     }
   }
 });
@@ -2123,29 +2120,27 @@ function submitLogin(){
 // ══════════════════════════════════════════════════════════════════
 // PANTALLA 2 — SELECCIÓN DE ÁREA
 // ══════════════════════════════════════════════════════════════════
-// ── Pantalla de selección de área (menú principal post-login) ────────
+// ── Menú principal post-login — actividades directas (sin submenús de área) ──
 function mostrarAreaScreen(){
   const btns=document.getElementById('area-btns');btns.innerHTML='';
-  
-  // Restaurar títulos originales
+
+  // Títulos
   const titleEl = document.querySelector('.sp-right-title');
-  const subEl = document.querySelector('.sp-right-sub');
-  if(titleEl) titleEl.textContent = 'Selecciona un área';
-  if(subEl) subEl.textContent = '¿A dónde vas hoy?';
-  
-  // Ocultar botón Atrás en panel izquierdo
+  const subEl   = document.querySelector('.sp-right-sub');
+  if(titleEl) titleEl.textContent = 'Menú Principal';
+  if(subEl)   subEl.textContent   = '¿Qué vas a hacer hoy?';
+
+  // Ocultar botón Atrás (no hay nivel superior)
   const backWrap = document.getElementById('sp-back-wrap');
   if(backWrap) backWrap.style.display='none';
 
-  // Actualizar info de usuario en todos los paneles izquierdos
+  // Actualizar info de usuario
   ['p2','p3','p4'].forEach(id=>{
     const un=document.getElementById('sp-username-'+id);
     const rb=document.getElementById('sp-role-'+id);
     if(un) un.textContent=currentUser;
     if(rb) rb.textContent=currentUser;
   });
-
-  // Botón cerrar sesión ya está en el HTML (sp-user-btn-row)
 
   function makeCard(icon,name,desc,colorClass,cb){
     const card=document.createElement('div');
@@ -2157,72 +2152,121 @@ function mostrarAreaScreen(){
 
   let idx=0;
 
-  // PRODUCCION - mostrar si tiene al menos una actividad habilitada
-  const tieneProduccion = hasPerm('tablero')||hasPerm('area_asistencia')||hasPerm('modulos')||hasPerm('informes');
-  if(tieneProduccion){
-    let accion;
-    if(currentUser==='Programador'){
-      accion=()=>mostrarSubMenuProduccion();
-    } else {
-      accion=()=>mostrarSubMenuProduccion();
-    }
-    const c=makeCard('📋','Producción','','ac-blue',accion);
-    c.style.animationDelay=(idx*0.07)+'s'; idx++;
-    btns.appendChild(c);
-  }
-
-  // MECANICOS - mostrar si tiene al menos una actividad habilitada
-  const tieneMecanicos = hasPerm('tablero_planta')||hasPerm('area_montajes')||hasPerm('area_solicitar_insumos')||hasPerm('hoja_vida')||hasPerm('mantenimiento');
-  if(tieneMecanicos){
-    const c=makeCard('🔧','Mecánicos','','ac-red',()=>{
-      mostrarSubMenuMecanicos();
+  // 1. Tablero General
+  if(hasPerm('tablero')){
+    const c=makeCard('🏭','Tablero General','Vista general · módulos','ac-red',()=>{
+      document.getElementById('area-screen').classList.add('hidden');
+      entrarTablero();
     });
     c.style.animationDelay=(idx*0.07)+'s'; idx++;
     btns.appendChild(c);
   }
 
-  // CI — mostrar si tiene permiso
-  if(hasPerm('area_ci')){
-    const c=makeCard('🏢','CI','','ac-purple',()=>{ window.location.href='/ci?perfil='+(currentUser||'Admin'); });
+  // 2. Tablero Mecánicos (con notificaciones)
+  if(hasPerm('tablero_planta')){
+    const c=makeCard('🔊','Tablero Mecánicos','Tablero con notificaciones','ac-orange',()=>{
+      document.getElementById('area-screen').classList.add('hidden');
+      entrarTablero();
+    });
     c.style.animationDelay=(idx*0.07)+'s'; idx++;
     btns.appendChild(c);
   }
 
-  // ÁREAS EXTRAS creadas en configuración
-  const cfgExtra = loadConfig();
-  const deletedAreas = cfgExtra._areas_deleted||[];
-  const disabledAreas = cfgExtra._areas_disabled||[];
-  const overridesAreas = cfgExtra._areas_overrides||{};
-  // Áreas base que hayan sido sobreescritas con nombre/icono nuevo pero no están hardcodeadas aquí
-  // (las hardcodeadas ya aparecen arriba: produccion, mecanicos, calidad, ci, empaque, corte, sst)
-  const BUILTIN_KEYS = ['area_produccion','area_ingreso','area_mecanicos','area_montajes','area_calidad','area_ci','area_empaque','area_corte','area_sst','area_solicitar_insumos'];
-  // Solo mostrar áreas extra (no las builtin que ya están arriba)
-  (cfgExtra._areas_extra||[]).forEach(a=>{
-    if(disabledAreas.includes(a.key)) return; // inactivas no se muestran
-    const label = a.label||'';
-    const icon  = a.icon||'📍';
-    const color = a.color||'#6366f1';
-    // Generar clase de color dinámica con inline style
-    const c=makeCard(icon, label, 'Próximamente', 'ac-blue', ()=>{});
+  // 3. Control de Asistencia
+  if(hasPerm('area_asistencia')){
+    const c=makeCard('📋','Control de Asistencia','Control de ingreso y asistencia','ac-blue',()=>{
+      window.location.href='/ingresos?user='+encodeURIComponent(currentUser);
+    });
     c.style.animationDelay=(idx*0.07)+'s'; idx++;
-    c.style.opacity='0.7'; c.style.cursor='default';
-    // Aplicar color del área en el borde izquierdo
-    c.style.setProperty('--ac-color', color);
-    const beforeStyle = document.createElement('style');
-    c.querySelector('.ac-icon') && (c.querySelector('.ac-icon').style.background = color+'18');
-    // Override the ::before color via inline approach — add a colored left border
-    c.style.borderLeft = `4px solid ${color}`;
-    c.onclick = null;
     btns.appendChild(c);
-  });
+  }
 
-  // CONFIGURACIONES — solo programador/admin
+  // 4. Contador Módulos
+  if(hasPerm('modulos')){
+    const c=makeCard('📱','Contador Módulos','Login de acceso módulos','ac-green',()=>elegirArea('produccion'));
+    c.style.animationDelay=(idx*0.07)+'s'; idx++;
+    btns.appendChild(c);
+  }
+
+  // 5. Alistamiento
+  if(hasPerm('area_montajes')){
+    const c=makeCard('⚙️','Alistamiento','Preparación de máquinas · Pruebas de costura','ac-blue',()=>{
+      window.location.href='/alistamiento?seccion=alistamiento';
+    });
+    c.style.animationDelay=(idx*0.07)+'s'; idx++;
+    btns.appendChild(c);
+  }
+
+  // 6. Mantenimiento
+  if(hasPerm('mantenimiento')){
+    const c=makeCard('🔧','Mantenimiento','Preventivo · Correctivo · Fugas','ac-red',()=>{
+      window.location.href='/alistamiento?seccion=mantenimiento';
+    });
+    c.style.animationDelay=(idx*0.07)+'s'; idx++;
+    btns.appendChild(c);
+  }
+
+  // 7. Hoja de Vida de Máquina
+  if(hasPerm('hoja_vida')){
+    const c=makeCard('🗂️','Hoja de Vida de Máquina','Historial de intervenciones por máquina','ac-teal',()=>{
+      window.location.href='/hoja-vida';
+    });
+    c.style.animationDelay=(idx*0.07)+'s'; idx++;
+    btns.appendChild(c);
+  }
+
+  // 8. Solicitar Insumos
+  if(hasPerm('area_solicitar_insumos') && currentUser!=='Televisor'){
+    const c=makeCard('📦','Solicitar Insumos','Reportar faltante de insumos','ac-teal',()=>{
+      window.location.href='/solicitar-insumos?perfil='+(currentUser||'Mecanicos');
+    });
+    c.style.animationDelay=(idx*0.07)+'s'; idx++;
+    btns.appendChild(c);
+  }
+
+  // 9. Tablero CI
+  if(hasPerm('tablero_ci')){
+    const c=makeCard('🏢','Tablero CI','Control de Información','ac-purple',()=>{
+      window.location.href='/ci?perfil='+(currentUser||'Admin');
+    });
+    c.style.animationDelay=(idx*0.07)+'s'; idx++;
+    btns.appendChild(c);
+  }
+
+  // 10. Órdenes de Producción
+  if(hasPerm('ordenes_produccion') || isProg()){
+    const c=makeCard('📋','Órdenes de Producción','Gestión de órdenes · módulos','ac-orange',()=>{
+      window.location.href='/ordenes';
+    });
+    c.style.animationDelay=(idx*0.07)+'s'; idx++;
+    btns.appendChild(c);
+  }
+
+  // 11. Conteo Recogedores
+  if(hasPerm('conteo_recogedores') || isProg()){
+    const c=makeCard('🧺','Conteo Recogedores','Registro de producción por hora','ac-teal',()=>{
+      window.location.href='/recogedores';
+    });
+    c.style.animationDelay=(idx*0.07)+'s'; idx++;
+    btns.appendChild(c);
+  }
+
+  // 12. Informes
+  if(hasPerm('informes')){
+    const c=makeCard('📊','Informes','Reportes y estadísticas','ac-indigo',()=>{
+      alert('📊 Módulo de Informes - Próximamente');
+    });
+    c.style.animationDelay=(idx*0.07)+'s'; idx++;
+    btns.appendChild(c);
+  }
+
+  // 13. Configuraciones — solo Programador
   if(isProg()){
     const c=makeCard('⚙️','Configuraciones','Empleados · Módulos · Permisos','ac-orange',()=>{
       document.getElementById('area-screen').classList.add('hidden');
       openConfigModal();
     });
-    c.style.animationDelay=(idx*0.07)+'s';
+    c.style.animationDelay=(idx*0.07)+'s'; idx++;
     btns.appendChild(c);
   }
 
@@ -2775,13 +2819,7 @@ function atrasDesdeTablero(){
   const hdRight = document.getElementById('hd-tablero-right');
   if(hdRight) hdRight.classList.remove('visible');
   currentView=null;
-  // Si es Televisor o Mecánicos, volver al submenú de mecánicos
-  if(currentUser==='Televisor'||currentUser==='Mecanicos'){
-    document.getElementById('area-screen').classList.remove('hidden');
-    mostrarSubMenuMecanicos();
-  } else {
-    mostrarAreaScreen();
-  }
+  mostrarAreaScreen();
 }
 function atrasDesdeModulo(){
   document.getElementById('nav-single').style.display='none';
