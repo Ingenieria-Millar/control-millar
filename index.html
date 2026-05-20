@@ -1546,11 +1546,8 @@ const LABELS={green:'Operativo',yellow:'Atendiendo',red:'Alerta',blue:'Cambio Re
 const NEXT={green:'red',red:'yellow',yellow:'green'};  // used only for mec flow
 const MECANICOS=[];
 
-// ── Perfiles del sistema — solo Programador está hardcodeado ────────
-const PROG_PERMS = ALL_PERMS.map(p=>p.key).concat(['fix','tablero','area_asistencia','informes','area_montajes','area_solicitar_insumos','tablero_planta','area_ci','modulos','excel']);
-const USUARIOS={
-  'Programador': {pass:'1', perms: PROG_PERMS},
-};
+// ── Perfiles — se definen después de ALL_PERMS (ver abajo) ─────────
+let USUARIOS = {};
 
 const states={}, timers={}, lastMec={}, acumRed={}, acumYellow={}, acumBlue={}, acumOrange={}, acumPurple={};
 const states2={}, timers2={}, lastMec2={};
@@ -3669,6 +3666,10 @@ const ALL_PERMS = [
   {key:'tablero_planta',         label:'Tablero mecánicos'},
 ];
 const PERM_LABELS = Object.fromEntries(ALL_PERMS.map(p=>[p.key,p.label]));
+
+// ── Programador: único perfil hardcodeado con todos los permisos ───
+const PROG_PERMS = ALL_PERMS.map(p=>p.key).concat(['fix','tablero','area_asistencia','informes','area_montajes','area_solicitar_insumos','tablero_planta','area_ci','modulos','excel']);
+USUARIOS['Programador'] = {pass:'1', perms: PROG_PERMS};
 
 const CONFIG_PERMS = {
   'Programador':    {label:'Programador',    available:ALL_PERMS.map(p=>p.key)},
