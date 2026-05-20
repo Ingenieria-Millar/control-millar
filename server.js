@@ -400,6 +400,9 @@ app.get('/alistamiento', (req, res) =>
 
 app.get('/solicitar-insumos', (req, res) =>
   res.sendFile(path.join(__dirname, 'solicitar_insumos.html'))
+)
+app.get('/hoja-vida', (req, res) =>
+  res.sendFile(path.join(__dirname, 'hoja_vida_maquina.html'))
 );
 
 app.get('/ordenes', (req, res) =>
