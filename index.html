@@ -2231,7 +2231,16 @@ function mostrarAreaScreen(){
     btns.appendChild(c);
   }
 
-  // 11. Conteo Recogedores
+  // 11. Tablero de Producción
+  if(hasPerm('tablero_produccion')){
+    const c=makeCard('🗂️','Tablero Producción','Planeación y seguimiento · Kanban','ac-green',()=>{
+      window.location.href='/produccion';
+    });
+    c.style.animationDelay=(idx*0.07)+'s'; idx++;
+    btns.appendChild(c);
+  }
+
+  // 12. Conteo Recogedores
   if(hasPerm('conteo_recogedores')){
     const c=makeCard('🧺','Conteo Recogedores','Registro de producción por hora','ac-teal',()=>{
       window.location.href='/recogedores';
@@ -3497,11 +3506,12 @@ const ALL_PERMS = [
   {key:'tablero_ci',             label:'Tablero CI'},
   {key:'tablero',                label:'Tablero general'},
   {key:'tablero_planta',         label:'Tablero mecánicos'},
+  {key:'tablero_produccion',     label:'Tablero de producción'},
 ];
 const PERM_LABELS = Object.fromEntries(ALL_PERMS.map(p=>[p.key,p.label]));
 
 // ── Programador: único perfil hardcodeado con todos los permisos ───
-const PROG_PERMS = ALL_PERMS.map(p=>p.key).concat(['fix','tablero','area_asistencia','informes','area_montajes','area_solicitar_insumos','tablero_planta','area_ci','modulos','excel']);
+const PROG_PERMS = ALL_PERMS.map(p=>p.key).concat(['fix','tablero','area_asistencia','informes','area_montajes','area_solicitar_insumos','tablero_planta','area_ci','modulos','excel','tablero_produccion']);
 USUARIOS['Programador'] = {pass:'1', perms: PROG_PERMS};
 
 const CONFIG_PERMS = {
