@@ -5378,11 +5378,12 @@ function cfgGetMaquinaria(){
 }
 function cfgSaveMaquinaria(arr){
   _maquinariaCache = arr;
+  window._maquinariaCompleta = arr;
   fetch('/api/maquinaria',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(arr)}).catch(e=>console.error('saveMaquinaria:',e));
 }
 async function loadMaquinariaFromServer(){
-  try{ const r=await fetch('/api/maquinaria'); _maquinariaCache=await r.json(); }
-  catch(e){ console.error('loadMaquinaria:',e); _maquinariaCache=[]; }
+  try{ const r=await fetch('/api/maquinaria'); _maquinariaCache=await r.json(); window._maquinariaCompleta=_maquinariaCache; }
+  catch(e){ console.error('loadMaquinaria:',e); _maquinariaCache=[]; window._maquinariaCompleta=[]; }
 }
 
 // ── RENDER PRINCIPAL ──────────────────────────────────────────────
@@ -5779,7 +5780,7 @@ async function loadGuiasFromServer(){
   try{ const r=await fetch('/api/guias'); if(r.ok) _guiasCache=await r.json(); else _guiasCache=[]; }
   catch(e){ _guiasCache=[]; }
 }
-function cfgGetMaquinaria(){ return window._maquinariaCompleta || []; }
+function cfgGetMaquinaria(){ return _maquinariaCache || window._maquinariaCompleta || []; }
 
 function cfgRenderGuias(body){
   const guias = cfgGetGuias();
