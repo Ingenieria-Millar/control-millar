@@ -6486,6 +6486,7 @@ function cfgRenderMiembrosPerfil(body){
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
 
       <button onclick="exportMembersExcel()" title="Exportar a Excel" style="padding:8px 14px;border-radius:8px;border:1.5px solid #059669;background:#f0fdf4;color:#059669;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;">📤 Exportar</button>
+      <button onclick="openAsignarCargoModal()" style="padding:8px 14px;border-radius:8px;border:1.5px solid #f59e0b;background:#fffbeb;color:#b45309;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;">🏷️ Asignar</button>
       <button onclick="openMemberModal()" style="padding:9px 18px;border-radius:9px;border:none;background:#059669;color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;">+ Nuevo miembro</button>
     </div>`;
   body.appendChild(topbar);
@@ -8688,6 +8689,97 @@ function selectNovColor(el){
     el.style.boxShadow='0 0 0 3px '+NOVEDAD_COLORS[idx].text;
   }
 }
+
+// ── Asignar miembros por cargo ──────────────────────────────────────
+function openAsignarCargoModal(){
+  const modal = document.getElementById('modal-asignar-cargo');
+  const list  = document.getElementById('asignar-cargo-list');
+  if(!modal||!list) return;
+
+  // Obtener cargos únicos desde iaState.employees
+  const emps = (typeof iaState!=='undefined'&&iaState.employees) ? iaState.employees : [];
+  const cargosUnicos = [...new Set(
+    emps.filter(e=>!e.disabled&&(e.cargo||'').trim())
+        .map(e=>e.cargo.trim())
+  )].sort();
+
+  if(!cargosUnicos.length){
+    list.innerHTML='<div style="padding:20px;text-align:center;color:#94a3b8;font-size:13px;">No hay empleados con cargos asignados.</div>';
+    modal.style.display='flex'; return;
+  }
+
+  list.innerHTML='';
+  cargosUnicos.forEach(cargo=>{
+    const count = emps.filter(e=>!e.disabled&&e.cargo===cargo).length;
+    const item = document.createElement('label');
+    item.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;border:1.5px solid #e2e8f0;background:#fff;transition:all .15s;';
+    item.innerHTML=`
+      <input type="checkbox" value="${cargo}" style="width:16px;height:16px;accent-color:#2563eb;cursor:pointer;flex-shrink:0;">
+      <div style="flex:1;">
+        <span style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:.5px;color:#0f172a;">${cargo}</span>
+        <span style="font-size:11px;color:#94a3b8;margin-left:8px;">${count} empleado${count!==1?'s':''}</span>
+      </div>`;
+    const cb = item.querySelector('input');
+    cb.onchange=()=>{
+      item.style.borderColor = cb.checked?'#2563eb':'#e2e8f0';
+      item.style.background  = cb.checked?'#eff6ff':'#fff';
+    };
+    list.appendChild(item);
+  });
+
+  modal.style.display='flex';
+}
+
+function closeAsignarCargoModal(){
+  document.getElementById('modal-asignar-cargo').style.display='none';
+}
+
+function aplicarAsignarCargo(){
+  const seleccionados = [...document.querySelectorAll('#asignar-cargo-list input:checked')]
+    .map(cb=>cb.value);
+
+  if(!seleccionados.length){
+    showToastSimple('⚠️ Selecciona al menos un cargo');
+    return;
+  }
+
+  const perfil = _membersCurrentPerfil;
+  const emps   = (typeof iaState!=='undefined'&&iaState.employees) ? iaState.employees : [];
+
+  // Obtener empleados con esos cargos
+  const porAsignar = emps.filter(e=>!e.disabled && seleccionados.includes(e.cargo||''));
+
+  if(!porAsignar.length){
+    showToastSimple('No hay empleados activos con esos cargos');
+    closeAsignarCargoModal(); return;
+  }
+
+  // Obtener miembros actuales y agregar sin duplicar
+  const currentMembers = getProfileMembers(perfil);
+  const currentNames   = new Set(currentMembers.map(m=>typeof m==='string'?m:(m.nombre||'')));
+
+  let added = 0;
+  const newMembers = [...currentMembers];
+  porAsignar.forEach(e=>{
+    const nombre = (e.name||e.nombre||'').trim();
+    if(nombre && !currentNames.has(nombre)){
+      newMembers.push({ nombre, pass: e.pass||'', isAdmin: false });
+      currentNames.add(nombre);
+      added++;
+    }
+  });
+
+  saveProfileMembers(perfil, newMembers);
+  closeAsignarCargoModal();
+
+  // Refrescar vista
+  const body = document.getElementById('cfg-body2');
+  if(body) cfgRenderMiembrosPerfil(body);
+
+  showToastSimple(added>0
+    ? '✅ '+added+' miembro'+(added!==1?'s':'')+' agregado'+(added!==1?'s':'')+' al perfil'
+    : 'ℹ️ Todos los empleados ya eran miembros');
+}
 </script>
 <!-- MODAL: Formulario Guía -->
 <div id="cfg-guia-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:999;align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
@@ -8808,6 +8900,22 @@ function selectNovColor(el){
 </div>
 
 
+
+
+<!-- Modal Asignar miembros por cargo -->
+<div id="modal-asignar-cargo" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1100;align-items:center;justify-content:center;" onclick="if(event.target===this)closeAsignarCargoModal()">
+  <div style="background:#fff;border-radius:16px;padding:0;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.25);font-family:'Nunito',sans-serif;overflow:hidden;">
+    <div style="padding:20px 24px 14px;border-bottom:1px solid #e2e8f0;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:800;letter-spacing:2px;color:#0f172a;">🏷️ ASIGNAR POR CARGO</div>
+      <p style="font-size:12px;color:#64748b;margin:4px 0 0;">Selecciona uno o más cargos. Los empleados con esos cargos serán agregados como miembros.</p>
+    </div>
+    <div id="asignar-cargo-list" style="padding:12px 16px;max-height:340px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;"></div>
+    <div style="padding:14px 24px;border-top:1px solid #e2e8f0;display:flex;gap:10px;">
+      <button onclick="closeAsignarCargoModal()" style="flex:1;padding:9px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Cancelar</button>
+      <button onclick="aplicarAsignarCargo()" style="flex:1;padding:9px;border-radius:8px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Aplicar</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
