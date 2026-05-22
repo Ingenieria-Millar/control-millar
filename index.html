@@ -1924,7 +1924,6 @@ window.addEventListener('DOMContentLoaded', async ()=>{
   await Promise.all([
     loadConfigFromServer(),
     loadHistorialFromServer(),
-    loadCargosFromServer(),
     loadTurnosFromServer(),
     loadMaquinariaFromServer(),
     loadGuiasFromServer(),
@@ -3837,18 +3836,19 @@ function openModForm(mode, id='', nombre=''){
     selSup.innerHTML = '<option value="">— Sin supervisora —</option>' +
       supNames.map(n=>`<option value="${n}"${currentSup===n?' selected':''}>${n}</option>`).join('');
   }
-  document.getElementById('modal-mod-form').classList.remove('hidden');
+  const _modModal=document.getElementById('modal-mod-form');
+  _modModal.classList.remove('hidden'); _modModal.style.display='flex';
   setTimeout(()=>document.getElementById(mode==='create'?'mf-nombre':'mf-pass').focus(),100);
 }
-function closeModForm(){ document.getElementById('modal-mod-form').classList.add('hidden'); }
+function closeModForm(){ const _m=document.getElementById('modal-mod-form'); _m.classList.add('hidden'); _m.style.display='none'; }
 function toggleModulo(id){
   const cfg=loadConfig();
   const disabled=cfg._modulos_disabled||[];
   const idx=disabled.indexOf(id);
   if(idx>-1) disabled.splice(idx,1); else disabled.push(id);
   cfg._modulos_disabled=disabled; saveConfig(cfg);
-  rebuildModules(); renderCfgModulos();
-  broadcastModulosConfig();
+  rebuildModules(); broadcastModulosConfig();
+  cfgSwitchTab('modulos', document.getElementById('cfgn-modulos'));
 }
 function deleteModulo(id){
   const cfg=loadConfig();
@@ -4556,7 +4556,7 @@ const CFG_CREAR_LABELS = {
   guias:'+ Nueva guía',
   modulos:'+ Nuevo módulo', areas:'+ Nueva área', turnos:'+ Nuevo turno', novedades:'+ Nueva novedad'
 };
-const CFG_EXCEL_TABS = ['maquinaria','guias','turnos','usuarios','cargos','modulos'];
+const CFG_EXCEL_TABS = ['maquinaria','guias','turnos','usuarios','modulos'];
 const CFG_NO_CREATE_TABS = ['permisos', 'permisos_perfil', 'miembros_perfil'];
 
 function openCfgScreen(){
@@ -4680,15 +4680,6 @@ function cfgExcelAction(){
   else if(cfgCurrentTab==='novedades') cfgExportNovedades();
   else if(cfgCurrentTab==='areas') cfgExportAreas();
 }
-function cfgExportCargos(){
-  if(typeof XLSX==='undefined'){alert('Librería Excel no disponible');return;}
-  const cargos=cfgGetCargos();
-  if(!cargos.length){showToastSimple('No hay cargos para exportar');return;}
-  const ws=XLSX.utils.json_to_sheet(cargos.map(c=>({Nombre:c.nombre})));
-  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Cargos');
-  XLSX.writeFile(wb,'cargos_millar.xlsx');
-  showToastSimple('📥 Cargos exportados');
-}
 function cfgExportModulos(){
   if(typeof XLSX==='undefined'){alert('Librería Excel no disponible');return;}
   const cfg=loadConfig();
@@ -4736,8 +4727,7 @@ function cfgOnLimpiar(){
     guias: 'guías',
     turnos: 'turnos',
     modulos: 'módulos extra',
-    novedades: 'novedades',
-    cargos: 'cargos'
+    novedades: 'novedades'
   };
   document.getElementById('clm-seccion').textContent = labels[cfgCurrentTab]||cfgCurrentTab;
   document.getElementById('clm-pass').value='';
@@ -4846,19 +4836,6 @@ function cfgPlantillaNovedades(){
   XLSX.writeFile(wb,'plantilla_novedades.xlsx');
   showToastSimple('📥 Plantilla descargada');
 }
-function cfgPlantillaCargos(){
-  if(typeof XLSX==='undefined'){alert('Librería Excel no disponible');return;}
-  const ws=XLSX.utils.aoa_to_sheet([
-    ['Nombre'],
-    ['Operaria'],
-    ['Mecánico'],
-    ['Supervisora']
-  ]);
-  ws['!cols']=[{wch:25}];
-  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Cargos');
-  XLSX.writeFile(wb,'plantilla_cargos.xlsx');
-  showToastSimple('📥 Plantilla descargada');
-}
 function cfgExportNovedades(){
   if(typeof XLSX==='undefined'){alert('Librería Excel no disponible');return;}
   const novedades=cfgGetNovedades();
@@ -4941,33 +4918,6 @@ function cfgImportNovedadesXLS(file){
   };
   reader.readAsBinaryString(file);
 }
-function cfgImportCargosXLS(file){
-  if(!file) return;
-  if(typeof XLSX==='undefined'){alert('Librería Excel no disponible');return;}
-  const reader=new FileReader();
-  reader.onload=function(ev){
-    try{
-      const wb=XLSX.read(ev.target.result,{type:'binary'});
-      const ws=wb.Sheets[wb.SheetNames[0]];
-      const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
-      if(!rows.length){showToastSimple('⚠️ El archivo está vacío');return;}
-      const cargos=cfgGetCargos();
-      let added=0,updated=0;
-      rows.forEach(r=>{
-        const nombre=(r['Nombre']||r['nombre']||'').toString().trim();
-        if(!nombre) return;
-        const existing=cargos.find(c=>c.nombre.toLowerCase()===nombre.toLowerCase());
-        if(existing){ updated++; }
-        else{ cargos.push({id:'cargo_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),nombre}); added++; }
-      });
-      cfgSaveCargos(cargos);
-      cfgSwitchTab('cargos',document.getElementById('cfgn-cargos'));
-      showToastSimple('✅ Cargos: '+added+' nuevos, '+updated+' actualizados');
-    }catch(err){alert('Error al leer el archivo: '+err.message);}
-  };
-  reader.readAsBinaryString(file);
-}
-
 function cfgExportTurnos(){
   const turnos=cfgGetTurnos();
   if(!turnos.length){showToastSimple('No hay turnos para exportar');return;}
@@ -5147,129 +5097,6 @@ function cfgRenderPerfiles(body){
       card.appendChild(av); card.appendChild(info); card.appendChild(acts);
       body.appendChild(card);
     });
-}
-
-// ── CARGOS ────────────────────────────────────────────────────────
-let _cargosCache = null;
-function cfgGetCargos(){
-  return _cargosCache || [];
-}
-function cfgSaveCargos(arr){
-  _cargosCache = arr;
-  fetch('/api/cargos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(arr)}).catch(e=>console.error('saveCargos:',e));
-}
-async function loadCargosFromServer(){
-  try{ const r=await fetch('/api/cargos'); _cargosCache=await r.json(); }
-  catch(e){ console.error('loadCargos:',e); _cargosCache=[]; }
-}
-function cfgRenderCargos(body){
-  const q = cfgGetSearch().toLowerCase();
-  const cargos = cfgGetCargos().filter(c=>!q||c.nombre.toLowerCase().includes(q));
-
-  if(!cargos.length){
-    const empty=document.createElement('div');
-    empty.style.cssText='padding:40px;text-align:center;color:#94a3b8;font-size:14px;';
-    empty.innerHTML='<div style="font-size:32px;margin-bottom:8px;">🏷️</div><div>No hay cargos creados aún.<br>Usa "+ Nuevo cargo" para agregar.</div>';
-    body.appendChild(empty); return;
-  }
-
-  // Buscador estilo lupa
-  const searchWrapCar=document.createElement('div');
-  searchWrapCar.className='cfg-search-wrap';
-  searchWrapCar.style.cssText='margin-bottom:14px;width:260px;';
-  searchWrapCar.innerHTML='<span>🔍</span>';
-  const fCargo=document.createElement('input');
-  fCargo.className='cfg-search-inp';
-  fCargo.placeholder='Buscar...';
-  fCargo.oninput=()=>{
-    const fq=fCargo.value.trim().toLowerCase();
-    document.querySelectorAll('#cfg-cargos-tbl .cfg-user-row').forEach(row=>{
-      const nm=row.querySelector('.cfg-user-cell');
-      row.style.display=(!fq||(nm&&nm.textContent.toLowerCase().includes(fq)))?'':'none';
-    });
-  };
-  searchWrapCar.appendChild(fCargo);
-  body.appendChild(searchWrapCar);
-
-  const COLS='2fr auto';
-  const tbl=document.createElement('div'); tbl.style.cssText='width:100%;'; tbl.id='cfg-cargos-tbl';
-
-  // Header
-  const hdr=document.createElement('div');
-  hdr.style.cssText=`display:grid;grid-template-columns:${COLS};gap:0;padding:0 16px 8px;`;
-  ['NOMBRE','ACCIONES'].forEach(t=>{
-    const h=document.createElement('span');
-    h.style.cssText='font-size:11px;font-weight:700;letter-spacing:1px;color:#64748b;text-transform:uppercase;';
-    h.textContent=t; hdr.appendChild(h);
-  });
-  tbl.appendChild(hdr);
-
-  cfgGetCargos().filter(c=>!q||c.nombre.toLowerCase().includes(q)).forEach((c,i)=>{
-    const row=document.createElement('div');
-    row.className='cfg-user-row';
-    row.style.cssText=`display:grid;grid-template-columns:${COLS};gap:0;align-items:center;padding:10px 16px;border-top:1px solid #f1f5f9;border-radius:8px;transition:background .15s;`;
-    row.onmouseenter=()=>row.style.background='#f8fafc';
-    row.onmouseleave=()=>row.style.background='';
-
-    const nm=document.createElement('div');
-    nm.className='cfg-user-cell';
-    nm.style.cssText='font-weight:700;color:#0f172a;font-size:13px;display:flex;align-items:center;gap:8px;';
-    nm.innerHTML=`<span style="background:#eff6ff;color:#2563eb;border-radius:6px;padding:2px 8px;font-size:12px;">🏷️ ${c.nombre}</span>`;
-
-    const desc=document.createElement('div');
-    desc.style.cssText='color:#64748b;font-size:13px;';
-    desc.textContent=c.descripcion||'—';
-
-    const acts=document.createElement('div');
-    acts.style.cssText='display:flex;gap:6px;';
-    const bE=document.createElement('button');
-    bE.className='cfg-row-btn'; bE.textContent='✏️'; bE.title='Editar';
-    bE.onclick=()=>cfgOpenCargoModal(i);
-    const bD=document.createElement('button');
-    bD.className='cfg-row-btn del'; bD.textContent='🗑'; bD.title='Eliminar';
-    bD.onclick=()=>openConfirmDelete('cargo',c.nombre,()=>{
-      const arr=cfgGetCargos(); arr.splice(i,1); cfgSaveCargos(arr);
-      cfgSwitchTab('cargos',document.getElementById('cfgn-cargos'));
-      showToastSimple(`🗑 Cargo "${c.nombre}" eliminado`);
-    });
-    acts.appendChild(bE); acts.appendChild(bD);
-    row.appendChild(nm); row.appendChild(acts);
-    tbl.appendChild(row);
-  });
-  body.appendChild(tbl);
-}
-function cfgOpenCargoModal(idx){
-  const modal=document.getElementById('cfg-cargo-modal');
-  if(!modal) return;
-  const cargos=cfgGetCargos();
-  const c=idx!==undefined?cargos[idx]:null;
-  document.getElementById('ccm-idx').value=idx!==undefined?idx:'-1';
-  document.getElementById('ccm-nombre').value=c?c.nombre:'';
-  
-  document.getElementById('ccm-titulo').textContent=c?'✏️ EDITAR CARGO':'🏷️ NUEVO CARGO';
-  document.getElementById('ccm-error').textContent='';
-  modal.style.display='flex';
-  setTimeout(()=>document.getElementById('ccm-nombre').focus(),100);
-}
-function cfgSaveCargo(){
-  const idx=parseInt(document.getElementById('ccm-idx').value);
-  const nombre=document.getElementById('ccm-nombre').value.trim();
-  
-  const errEl=document.getElementById('ccm-error');
-  if(!nombre){errEl.textContent='El nombre del cargo no puede estar vacío';return;}
-  const cargos=cfgGetCargos();
-  // Check duplicado
-  const dup=cargos.findIndex((c,i)=>c.nombre.toLowerCase()===nombre.toLowerCase()&&i!==idx);
-  if(dup>-1){errEl.textContent='Ya existe un cargo con ese nombre';return;}
-  if(idx===-1){
-    cargos.push({nombre});
-  } else {
-    cargos[idx]={nombre};
-  }
-  cfgSaveCargos(cargos);
-  document.getElementById('cfg-cargo-modal').style.display='none';
-  cfgSwitchTab('cargos',document.getElementById('cfgn-cargos'));
-  showToastSimple(idx===-1?'✅ Cargo creado':'✅ Cargo actualizado');
 }
 
 // ── USUARIOS (operarias) ──────────────────────────────────────────
@@ -6243,9 +6070,9 @@ function cfgRenderNovedades(body){
 function cfgOpenNovedadModal(id){
   const novedades = cfgGetNovedades();
   const nov = id ? novedades.find(n=>n.id===id) : null;
-  const colorOpts = NOVEDAD_COLORS.map((c,i)=>`<div onclick="this.parentNode.querySelectorAll('.nov-color-opt').forEach(x=>x.classList.remove('selected'));this.classList.add('selected');this.dataset.sel='1';" 
+  const colorOpts = NOVEDAD_COLORS.map((c,i)=>`<div onclick="selectNovColor(this)" 
     data-idx="${i}" class="nov-color-opt${(nov?nov.color:0)===i?' selected':''}" 
-    style="width:28px;height:28px;border-radius:50%;background:${c.bg};border:2.5px solid ${c.border};cursor:pointer;transition:transform .15s;${(nov?nov.color:0)===i?'transform:scale(1.25);box-shadow:0 0 0 2px '+c.text+';':''}"></div>`).join('');
+    style="width:28px;height:28px;border-radius:50%;background:${c.bg};border:2.5px solid ${c.border};cursor:pointer;transition:all .15s;${(nov?nov.color:0)===i?'transform:scale(1.25);box-shadow:0 0 0 3px '+c.text+';':''}"></div>`).join('');
   const emojiOpts = NOVEDAD_EMOJIS.map(e=>`<span onclick="document.getElementById('nov-emoji-sel').textContent=this.textContent;this.parentNode.querySelectorAll('span').forEach(x=>x.style.background='');this.style.background='#e2e8f0';" 
     style="font-size:20px;cursor:pointer;padding:4px;border-radius:6px;${nov&&nov.emoji===e?'background:#e2e8f0':''}">${e}</span>`).join('');
   
@@ -6302,10 +6129,17 @@ function cfgSaveNovedadModal(id){
   const body=document.getElementById('cfg-body2'); if(body) cfgRenderNovedades(body);
 }
 function cfgDeleteNovedad(id){
-  if(!confirm('¿Eliminar este tipo de novedad?')) return;
-  const novedades = cfgGetNovedades().filter(n=>n.id!==id);
-  cfgSaveNovedades(novedades);
-  const body=document.getElementById('cfg-body2'); if(body) cfgRenderNovedades(body);
+  const nov = cfgGetNovedades().find(n=>n.id===id);
+  const nombre = nov ? nov.nombre : 'esta novedad';
+  confirmDelete(
+    `¿Eliminar novedad "${nombre}"?`,
+    'Esta acción no se puede deshacer.',
+    ()=>{
+      const novedades = cfgGetNovedades().filter(n=>n.id!==id);
+      cfgSaveNovedades(novedades);
+      const body=document.getElementById('cfg-body2'); if(body) cfgRenderNovedades(body);
+    }
+  );
 }
 
 // ── MÓDULOS ───────────────────────────────────────────────────────
@@ -6654,7 +6488,7 @@ function cfgRenderMiembrosPerfil(body){
       <div id="members-header-sub" style="font-size:12px;color:#94a3b8;margin-top:2px;">${members.length} miembro${members.length!==1?'s':''}</div>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-      <button onclick="openCargoFilterModal()" style="padding:8px 14px;border-radius:8px;border:1.5px solid #f59e0b;background:#fffbeb;color:#b45309;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;">🏷️ Cargos</button>
+
       <button onclick="exportMembersExcel()" title="Exportar a Excel" style="padding:8px 14px;border-radius:8px;border:1.5px solid #059669;background:#f0fdf4;color:#059669;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;">📤 Exportar</button>
       <button onclick="openMemberModal()" style="padding:9px 18px;border-radius:9px;border:none;background:#059669;color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;">+ Nuevo miembro</button>
     </div>`;
@@ -7004,12 +6838,7 @@ function cfgOpenPerfilModal(nombre, pass){
           <option value="">Sin módulo</option>
         </select>
       </div>
-      <div>
-        <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:4px;">Cargo</label>
-        <select id="com-cargo" style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:'Nunito',sans-serif;font-size:13px;outline:none;background:#fff;cursor:pointer;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
-          <option value="">Sin cargo</option>
-        </select>
-      </div>
+      
       <div>
         <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:4px;">Supervisora</label>
         <select id="com-supervisora" style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:'Nunito',sans-serif;font-size:13px;outline:none;background:#fff;cursor:pointer;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
@@ -8847,87 +8676,21 @@ function cfgSaveMaqModal(){
 // ── Filtro de miembros por cargo ───────────────────────────────────
 let _cargoFilterActive = []; // cargos seleccionados actualmente
 
-function openCargoFilterModal(){
-  const modal = document.getElementById('modal-cargo-filter');
-  const list  = document.getElementById('cargo-filter-list');
-  if(!modal || !list) return;
-
-  // Obtener todos los cargos existentes
-  const cargos = cfgGetCargos();
-  if(!cargos.length){
-    list.innerHTML='<div style="padding:20px;text-align:center;color:#94a3b8;font-size:13px;">No hay cargos configurados.<br>Agrega cargos desde Configuraciones.</div>';
-    modal.style.display='flex'; return;
-  }
-
-  list.innerHTML = '';
-  cargos.forEach(c => {
-    const isChecked = _cargoFilterActive.includes(c.nombre);
-    const item = document.createElement('label');
-    item.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;border:1.5px solid '+(isChecked?'#2563eb':'#e2e8f0')+';background:'+(isChecked?'#eff6ff':'#fff')+';transition:all .15s;';
-    item.innerHTML=`
-      <input type="checkbox" value="${c.nombre}" ${isChecked?'checked':''} style="width:16px;height:16px;accent-color:#2563eb;cursor:pointer;">
-      <span style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:.5px;color:#0f172a;">${c.nombre}</span>`;
-    // Actualizar estilo al cambiar
-    const cb = item.querySelector('input');
-    cb.onchange = () => {
-      item.style.borderColor = cb.checked ? '#2563eb' : '#e2e8f0';
-      item.style.background  = cb.checked ? '#eff6ff' : '#fff';
-    };
-    list.appendChild(item);
+// ── Selección de color en modal de novedad ─────────────────────────
+function selectNovColor(el){
+  const container = el.closest('div[style*="display:flex"]') || el.parentNode;
+  container.querySelectorAll('.nov-color-opt').forEach(x=>{
+    x.classList.remove('selected');
+    x.style.transform='';
+    x.style.boxShadow='';
   });
-
-  modal.style.display = 'flex';
-}
-
-function closeCargoFilterModal(){
-  document.getElementById('modal-cargo-filter').style.display='none';
-}
-
-function clearCargoFilter(){
-  _cargoFilterActive = [];
-  // Desmarcar todos los checkboxes
-  document.querySelectorAll('#cargo-filter-list input[type=checkbox]').forEach(cb=>{
-    cb.checked=false;
-    const lbl=cb.closest('label');
-    if(lbl){ lbl.style.borderColor='#e2e8f0'; lbl.style.background='#fff'; }
-  });
-}
-
-function applyCargoFilter(){
-  // Leer seleccionados
-  _cargoFilterActive = [...document.querySelectorAll('#cargo-filter-list input[type=checkbox]:checked')]
-    .map(cb=>cb.value);
-  closeCargoFilterModal();
-
-  // Si no hay filtro activo, mostrar miembros normales del perfil
-  if(!_cargoFilterActive.length){
-    const members = getProfileMembers(_membersCurrentPerfil);
-    renderMembersList(members);
-    document.getElementById('members-header-sub').textContent =
-      members.length+' miembro'+(members.length!==1?'s':'');
-    return;
+  el.classList.add('selected');
+  // Obtener el color del borde para el ring visual
+  const idx = parseInt(el.dataset.idx);
+  if(typeof NOVEDAD_COLORS !== 'undefined' && NOVEDAD_COLORS[idx]){
+    el.style.transform='scale(1.25)';
+    el.style.boxShadow='0 0 0 3px '+NOVEDAD_COLORS[idx].text;
   }
-
-  // Obtener empleados con los cargos seleccionados desde iaState
-  const allEmployees = (typeof iaState!=='undefined' && iaState.employees) ? iaState.employees : [];
-  const filtered = allEmployees
-    .filter(e => !e.disabled && _cargoFilterActive.includes(e.cargo||''))
-    .sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||''));
-
-  // Convertir al formato de miembros para renderMembersList
-  const membersFiltered = filtered.map(e=>({
-    nombre: e.nombre||e.name||'',
-    cargo:  e.cargo||'',
-    disabled: false,
-    _fromCargo: true
-  }));
-
-  renderMembersList(membersFiltered);
-
-  // Actualizar contador con indicador de filtro activo
-  const sub = document.getElementById('members-header-sub');
-  if(sub) sub.innerHTML = membersFiltered.length+' empleado'+(membersFiltered.length!==1?'s':'')+
-    ' · <span style="color:#b45309;font-weight:700;">🏷️ '+_cargoFilterActive.join(', ')+'</span>';
 }
 </script>
 <!-- MODAL: Formulario Guía -->
@@ -9049,24 +8812,6 @@ function applyCargoFilter(){
 </div>
 
 
-<!-- Modal filtro por cargos en Miembros -->
-<div id="modal-cargo-filter" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1100;align-items:center;justify-content:center;" onclick="if(event.target===this)closeCargoFilterModal()">
-  <div style="background:#fff;border-radius:16px;padding:0;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.25);font-family:'Nunito',sans-serif;overflow:hidden;">
-    <!-- Header -->
-    <div style="padding:20px 24px 16px;border-bottom:1px solid #e2e8f0;">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:800;letter-spacing:2px;color:#0f172a;">🏷️ FILTRAR POR CARGO</div>
-      <p style="font-size:12px;color:#64748b;margin:4px 0 0;">Selecciona uno o más cargos para filtrar la lista de miembros.</p>
-    </div>
-    <!-- Lista de cargos con checkboxes -->
-    <div id="cargo-filter-list" style="padding:12px 16px;max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;"></div>
-    <!-- Footer -->
-    <div style="padding:14px 24px;border-top:1px solid #e2e8f0;display:flex;gap:10px;">
-      <button onclick="clearCargoFilter()" style="padding:9px 14px;border-radius:8px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#64748b;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">Limpiar</button>
-      <button onclick="closeCargoFilterModal()" style="flex:1;padding:9px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Cancelar</button>
-      <button onclick="applyCargoFilter()" style="flex:1;padding:9px;border-radius:8px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Aplicar</button>
-    </div>
-  </div>
-</div>
 
 </body>
 </html>
