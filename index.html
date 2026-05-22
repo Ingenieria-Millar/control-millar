@@ -5117,7 +5117,7 @@ function cfgRenderUsuarios(body){
 
   // Encabezados con filtros debajo
   const hdr = document.createElement('div'); hdr.className='cfg-user-hdr'; hdr.style.gridTemplateColumns=COLS;
-  const cargosDisp = cfgGetCargos();
+  const cargosDisp = [];
   let usrSortCol=null, usrSortDir=1;
   const usrCols = [
     {label:'Cédula',      id:'uf-cedula',  type:'text', key:'cedula'},
@@ -5224,9 +5224,7 @@ function cfgOpenUserModal(emp){
   const selMod = document.getElementById('com-modulo');
   selMod.innerHTML='<option value="">Sin módulo</option>'+(typeof MODULES!=='undefined'?MODULES.map(m=>`<option value="${m}"${empMod===m?' selected':''}>${m}</option>`).join(''):'');
   // Poblar cargos
-  const selCargo = document.getElementById('com-cargo');
-  const cargosM = cfgGetCargos();
-  selCargo.innerHTML='<option value="">Sin cargo</option>'+cargosM.map(c=>`<option value="${c.nombre}"${emp.cargo===c.nombre?' selected':''}>${c.nombre}</option>`).join('');
+  // Campo cargo eliminado
   // Poblar supervisoras: usar miembros de perfiles
   const selSup = document.getElementById('com-supervisora');
   const allPerfilMembers = (_appConfig&&_appConfig._perfil_members)
@@ -5259,7 +5257,7 @@ function cfgOpenNuevaOperaria(){
   selMod.innerHTML='<option value="">Sin módulo</option>'+(typeof MODULES!=='undefined'?MODULES.map(m=>`<option value="${m}">${m}</option>`).join(''):'');
   // Poblar cargos
   const selCargoN = document.getElementById('com-cargo');
-  const cargosN = cfgGetCargos();
+  const cargosN = [];
   selCargoN.innerHTML='<option value="">Sin cargo</option>'+cargosN.map(c=>`<option value="${c.nombre}">${c.nombre}</option>`).join('');
   // Poblar supervisoras
   const selSup = document.getElementById('com-supervisora');
@@ -5315,9 +5313,7 @@ function cfgImportUsuariosXLS(file){
         const estado = (r['Estado']||r['estado']||'activa').toString().trim().toLowerCase();
         if(!nombre) return;
         // Validar cargo: debe existir en los cargos creados
-        const cargosCreados = cfgGetCargos();
-        const cargoValido = cargosCreados.find(c=>c.nombre.toLowerCase()===cargoRaw.toLowerCase());
-        const cargo = cargoValido ? cargoValido.nombre : '';
+        const cargo = cargoRaw; // cargo libre sin validación
         // Validar módulo: buscar por ID exacto O por nombre renombrado (ej: "Preparacion" → "M01")
         let modulo = '';
         if(moduloRaw){
