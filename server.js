@@ -62,7 +62,6 @@ const FILES = {
   alertas:        path.join(DATA_DIR, 'alertas.json'),
   app_config:     path.join(DATA_DIR, 'app_config.json'),
   novedades:      path.join(DATA_DIR, 'novedades.json'),
-  cargos:         path.join(DATA_DIR, 'cargos.json'),
   maquinaria:     path.join(DATA_DIR, 'maquinaria.json'),
   guias:          path.join(DATA_DIR, 'guias.json'),
   turnos:         path.join(DATA_DIR, 'turnos.json'),
@@ -929,12 +928,7 @@ app.post('/api/novedades', (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// Cargos
-app.get('/api/cargos',  (req, res) => res.json(readJSON(FILES.cargos, [])));
-app.post('/api/cargos', (req, res) => {
-  try { writeJSON(FILES.cargos, req.body); res.json({ success: true }); }
-  catch(e) { res.status(500).json({ error: e.message }); }
-});
+
 
 // Maquinaria
 app.get('/api/maquinaria',  (req, res) => res.json(readJSON(FILES.maquinaria, [])));
