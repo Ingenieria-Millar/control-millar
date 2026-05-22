@@ -192,6 +192,7 @@ function debounce(fn, ms){ let t; return function(...a){ clearTimeout(t); t=setT
 
 // ── Debug visible en pantalla ────────────────────────
 function dbg(msg){
+  console.log('[ingresos]', msg);
   const el = document.getElementById('ia-debug');
   if(el) el.innerHTML += '• ' + msg + '<br>';
 }
@@ -209,6 +210,9 @@ let MODULES   = ['M01','M02','M03','M04','M05','M06','M07','M08','M09','M10',
                  'M21','M22','M23','M24','M25','M26','M27'];
 
 // ── Función de retorno al index ──────────────────────
+function cerrarControlIngreso(){
+  window.location.href = '/?volver=produccion';
+}
 
 // ── WebSocket ────────────────────────────────────────
 let ws, wsReady=false, reconnectDelay=1000, reconnectTimer=null;
@@ -1951,6 +1955,7 @@ html { overflow-x: hidden; max-width: 100%; }
 function runIngresoScript(){
 
 
+
 // Variables de asistencia — declaradas globalmente (el WS las llena antes de runIngresoScript)
 // (declaradas arriba en el scope global, ver justo antes de connectWS)
 let iaCurrentUser=null, iaEditingRecordId=null, iaEditingSupId=null, iaEditingEmpId=null;
@@ -2005,50 +2010,73 @@ function iaFilterByRange(data,fromId,toId){
 window.iaBuildLoginSelect=function(){
   const sel=document.getElementById('ia-login-user');if(!sel)return;
   sel.innerHTML='<option value="">— Seleccionar usuario —</option>';
-  // Usar miembros del perfil actual si existen, si no usar supervisors del iaState
-  const profileMembers = (typeof getProfileMembers==='function' && currentUser)
-    ? getProfileMembers(currentUser).filter(m=>!m.disabled)
+
+  // 1. Administrador hardcodeado siempre al tope
+  const oAdmin=document.createElement('option');
+  oAdmin.value='admin_hardcoded';
+  oAdmin.textContent='Administrador';
+  sel.appendChild(oAdmin);
+
+  // 2. Miembros del perfil Supervisoras
+  const supMembers = (typeof getProfileMembers==='function')
+    ? (getProfileMembers('Supervisoras')||[]).filter(m=>!m.disabled)
     : [];
-  if(profileMembers.length){
-    profileMembers.forEach((m,i)=>{
-      const nombre = typeof m==='string'?m:m.nombre;
-      const o=document.createElement('option');o.value='member_'+i;o.textContent=nombre;sel.appendChild(o);
-    });
-  } else {
-    iaState.supervisors.forEach(s=>{const o=document.createElement('option');o.value=s.id;o.textContent=s.isAdmin?`${s.name} (Administrador)`:s.name;sel.appendChild(o);});
-  }
+  supMembers.forEach((m,i)=>{
+    const nombre = typeof m==='string'?m:m.nombre;
+    const o=document.createElement('option');
+    o.value='member_sup_'+i;
+    o.textContent=nombre;
+    sel.appendChild(o);
+  });
 };
 window.iaDoLogin=function(){
   const uid=document.getElementById('ia-login-user').value;
   const pass=document.getElementById('ia-login-pass').value;
-  if(!uid){document.getElementById('ia-login-error').style.display='block';return;}
-  // Login con miembro del perfil
-  if(uid.startsWith('member_')){
-    const idx=parseInt(uid.replace('member_',''));
-    const profileMembers=(typeof getProfileMembers==='function'&&currentUser)?getProfileMembers(currentUser):[];
-    const m=profileMembers[idx];
-    const mPass=typeof m==='string'?'':m.pass||'';
-    if(mPass && pass!==mPass){document.getElementById('ia-login-error').style.display='block';return;}
-    document.getElementById('ia-login-error').style.display='none';
-    currentMember = typeof m==='string'?m:m.nombre;
-    const memberIsAdmin = typeof m==='object' && m.isAdmin === true;
-    // Crear o actualizar supervisor temporal en iaState
-    let sup = iaState.supervisors.find(s=>s.name===currentMember);
+  const errEl=document.getElementById('ia-login-error');
+  if(!uid){errEl.style.display='block';return;}
+
+  // Login Administrador hardcodeado (contraseña "1")
+  if(uid==='admin_hardcoded'){
+    if(pass!=='1'){errEl.style.display='block';return;}
+    errEl.style.display='none';
+    currentMember='Administrador';
+    let sup=iaState.supervisors.find(s=>s.name==='Administrador');
     if(!sup){
-      sup={id:'member_tmp_'+idx, name:currentMember, pass:mPass, areas:[], isAdmin:memberIsAdmin};
+      sup={id:'admin_hardcoded',name:'Administrador',pass:'1',areas:[],isAdmin:true};
       iaState.supervisors.push(sup);
-    } else {
-      sup.isAdmin = memberIsAdmin;
     }
+    sup.isAdmin=true;
     iaCurrentUser=sup.id; iaInitApp();
     return;
   }
-  // Login clásico con supervisor iaState
+
+  // Login con miembro del perfil Supervisoras
+  if(uid.startsWith('member_sup_')){
+    const idx=parseInt(uid.replace('member_sup_',''));
+    const supMembers=(typeof getProfileMembers==='function')
+      ?(getProfileMembers('Supervisoras')||[]).filter(m=>!m.disabled):[];
+    const m=supMembers[idx];
+    if(!m){errEl.style.display='block';return;}
+    const mPass=typeof m==='string'?'':m.pass||'';
+    if(mPass && pass!==mPass){errEl.style.display='block';return;}
+    errEl.style.display='none';
+    currentMember=typeof m==='string'?m:m.nombre;
+    const memberIsAdmin=typeof m==='object'&&m.isAdmin===true;
+    let sup=iaState.supervisors.find(s=>s.name===currentMember);
+    if(!sup){
+      sup={id:'member_sup_'+idx,name:currentMember,pass:mPass,areas:[],isAdmin:memberIsAdmin};
+      iaState.supervisors.push(sup);
+    } else { sup.isAdmin=memberIsAdmin; }
+    iaCurrentUser=sup.id; iaInitApp();
+    return;
+  }
+
+  // Login clásico con supervisor iaState (fallback)
   const sup=iaGetSup(uid);
-  if(!sup||sup.pass!==pass){document.getElementById('ia-login-error').style.display='block';return;}
-  document.getElementById('ia-login-error').style.display='none';
+  if(!sup||sup.pass!==pass){errEl.style.display='block';return;}
+  errEl.style.display='none';
   iaCurrentUser=uid; iaInitApp();
-};
+}
 document.getElementById('ia-login-pass').addEventListener('keydown',e=>{if(e.key==='Enter')iaDoLogin();});
 window.iaDoLogout=function(){
   iaCurrentUser=null;
@@ -3034,6 +3062,21 @@ window.iaShowTab = function(tab, btn){
     televisor:    ['tableroGeneral','tableroMec','tableroCI'],
     recogedores:  ['recogedores'],
   };
+
+  function tienePermiso(perfil, clave){
+    const p = perfil.toLowerCase();
+    const perms = PERMISOS[p] || PERMISOS['administrador'];
+    return perms.includes(clave) ||
+           perms.includes('produccion') || perms.includes('tableros') ||
+           perms.includes('mecanicos')  || perms.includes('modulos') ||
+           perms.includes('informes');
+  }
+
+  function esPerfil(perfil, ...claves){
+    const p = perfil.toLowerCase();
+    const perms = PERMISOS[p] || PERMISOS['administrador'];
+    return claves.some(k => perms.includes(k));
+  }
 
   // Íconos SVG
   const ICONS = {
