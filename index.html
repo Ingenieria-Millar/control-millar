@@ -5162,8 +5162,26 @@ function cfgRenderCargos(body){
     body.appendChild(empty); return;
   }
 
+  // Buscador estilo lupa
+  const searchWrapCar=document.createElement('div');
+  searchWrapCar.className='cfg-search-wrap';
+  searchWrapCar.style.cssText='margin-bottom:14px;width:260px;';
+  searchWrapCar.innerHTML='<span>🔍</span>';
+  const fCargo=document.createElement('input');
+  fCargo.className='cfg-search-inp';
+  fCargo.placeholder='Buscar...';
+  fCargo.oninput=()=>{
+    const fq=fCargo.value.trim().toLowerCase();
+    document.querySelectorAll('#cfg-cargos-tbl .cfg-user-row').forEach(row=>{
+      const nm=row.querySelector('.cfg-user-cell');
+      row.style.display=(!fq||(nm&&nm.textContent.toLowerCase().includes(fq)))?'':'none';
+    });
+  };
+  searchWrapCar.appendChild(fCargo);
+  body.appendChild(searchWrapCar);
+
   const COLS='2fr auto';
-  const tbl=document.createElement('div'); tbl.style.cssText='width:100%;';
+  const tbl=document.createElement('div'); tbl.style.cssText='width:100%;'; tbl.id='cfg-cargos-tbl';
 
   // Header
   const hdr=document.createElement('div');
@@ -5949,16 +5967,45 @@ function cfgGetMaquinaria(){ return _maquinariaCache || window._maquinariaComple
 
 function cfgRenderGuias(body){
   const guias = cfgGetGuias();
+  const activas=guias.filter(g=>!g.disabled).length;
+  const inactivas=guias.filter(g=>!!g.disabled).length;
   const statsRow=document.createElement('div'); statsRow.className='cfg-stats-row';
-  statsRow.innerHTML=`<div class="cfg-stat-box"><div class="cfg-stat-num">${guias.length}</div><div class="cfg-stat-lbl">Total</div></div>`;
+  statsRow.innerHTML=`
+    <div class="cfg-stat-box"><div class="cfg-stat-num" style="color:#0f172a;">${guias.length}</div><div class="cfg-stat-lbl">Total</div></div>
+    <div class="cfg-stat-box"><div class="cfg-stat-num" style="color:#16a34a;">${activas}</div><div class="cfg-stat-lbl">Activas</div></div>
+    <div class="cfg-stat-box"><div class="cfg-stat-num" style="color:#dc2626;">${inactivas}</div><div class="cfg-stat-lbl">Inactivas</div></div>`;
   body.appendChild(statsRow);
-  // Filtros por columna
+  // Tabla con headers + filtros estilo avanzado
+  const tblWrap=document.createElement('div');
+  tblWrap.style.cssText='background:#fff;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;';
+  const COLS2=['Referencia','Máquina','Ubicación'];
+  const GRID='1fr 1.5fr 1fr 110px';
+  // Header row con sort arrows
+  const hdrRow=document.createElement('div');
+  hdrRow.style.cssText=`display:grid;grid-template-columns:${GRID};gap:0;padding:10px 16px 4px;background:#f8fafc;border-bottom:1px solid #e2e8f0;`;
+  COLS2.forEach(col=>{
+    const h=document.createElement('div');
+    h.style.cssText='display:flex;align-items:center;gap:4px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;cursor:pointer;user-select:none;';
+    h.innerHTML=`${col} <span style="font-size:10px;color:#94a3b8;">↕</span>`;
+    let asc=true;
+    h.onclick=()=>{
+      const key=col==='Referencia'?'referencia':col==='Máquina'?'maquina':'ubicacion';
+      const sorted=[...cfgGetGuias()].sort((a,b)=>(asc?1:-1)*((a[key]||'').localeCompare(b[key]||'')));
+      asc=!asc;
+      cfgGuiasRenderList(sorted);
+    };
+    hdrRow.appendChild(h);
+  });
+  hdrRow.appendChild(document.createElement('div'));
+  // Filter row
   const fRow=document.createElement('div');
-  fRow.style.cssText='display:grid;grid-template-columns:1fr 1.5fr 1fr 110px;gap:6px;margin-bottom:8px;';
-  ['Referencia...','Máquina...','Ubicación...'].forEach((ph,colIdx)=>{
+  fRow.style.cssText=`display:grid;grid-template-columns:${GRID};gap:6px;padding:6px 16px 8px;background:#f8fafc;border-bottom:1px solid #e2e8f0;`;
+  COLS2.forEach(()=>{
     const inp=document.createElement('input');
-    inp.placeholder='Filtrar '+ph;
-    inp.style.cssText='padding:5px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;font-family:Nunito,sans-serif;outline:none;color:#0f172a;';
+    inp.placeholder='Filtrar...';
+    inp.style.cssText='padding:5px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;font-family:Nunito,sans-serif;outline:none;color:#0f172a;background:#fff;width:100%;box-sizing:border-box;';
+    inp.onfocus=()=>inp.style.borderColor='#2563eb';
+    inp.onblur=()=>inp.style.borderColor='#e2e8f0';
     inp.oninput=()=>{
       const filters=[...fRow.querySelectorAll('input')].map(i=>i.value.trim().toLowerCase());
       document.querySelectorAll('#cfg-guias-list .cfg-user-row').forEach(row=>{
@@ -5970,19 +6017,14 @@ function cfgRenderGuias(body){
     fRow.appendChild(inp);
   });
   fRow.appendChild(document.createElement('div'));
-  body.appendChild(fRow);
+  tblWrap.appendChild(hdrRow);
+  tblWrap.appendChild(fRow);
+  body.appendChild(tblWrap);
 
-  const COLS='1fr 1.5fr 1fr 110px';
   const tbl=document.createElement('div'); tbl.className='cfg-user-table'; tbl.id='cfg-guias-list';
-  const hdr=document.createElement('div'); hdr.className='cfg-user-hdr'; hdr.style.gridTemplateColumns=COLS;
-  ['Referencia','Máquina','Ubicación','Acciones'].forEach(label=>{
-    const cell=document.createElement('div');
-    const lbl=document.createElement('span'); lbl.textContent=label;
-    lbl.style.cssText='font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;';
-    cell.appendChild(lbl); hdr.appendChild(cell);
-  });
-  tbl.appendChild(hdr);
-  body.appendChild(tbl);
+  tbl.style.cssText='padding:0 4px;';
+  tblWrap.appendChild(tbl);
+  body.appendChild(document.createElement('div')); // spacer
   cfgGuiasRenderList(guias);
 }
 
@@ -6273,18 +6315,17 @@ function cfgRenderModulos(body){
     body.appendChild(empty); return;
   }
 
-  // Filtro por columna
-  const filterRow=document.createElement('div');
-  filterRow.style.cssText='display:grid;grid-template-columns:2fr 1.2fr 1.5fr auto;gap:6px;padding:0 16px 10px;';
+  // Buscador estilo lupa
+  const searchWrapMod=document.createElement('div');
+  searchWrapMod.className='cfg-search-wrap';
+  searchWrapMod.style.cssText='margin-bottom:14px;width:260px;';
+  searchWrapMod.innerHTML='<span>🔍</span>';
   const fNombre=document.createElement('input');
-  fNombre.placeholder='Filtrar nombre...';
-  fNombre.style.cssText='padding:5px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;font-family:Nunito,sans-serif;outline:none;color:#0f172a;';
+  fNombre.className='cfg-search-inp';
+  fNombre.placeholder='Buscar...';
   fNombre.oninput=()=>{ cfgRenderModulosFiltered(body, fNombre.value.trim().toLowerCase()); };
-  filterRow.appendChild(fNombre);
-  filterRow.appendChild(document.createElement('div'));
-  filterRow.appendChild(document.createElement('div'));
-  filterRow.appendChild(document.createElement('div'));
-  body.appendChild(filterRow);
+  searchWrapMod.appendChild(fNombre);
+  body.appendChild(searchWrapMod);
 
   // Header
   const hdr=document.createElement('div');
