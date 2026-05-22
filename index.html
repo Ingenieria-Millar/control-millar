@@ -5255,10 +5255,7 @@ function cfgOpenNuevaOperaria(){
   // Poblar módulos
   const selMod = document.getElementById('com-modulo');
   selMod.innerHTML='<option value="">Sin módulo</option>'+(typeof MODULES!=='undefined'?MODULES.map(m=>`<option value="${m}">${m}</option>`).join(''):'');
-  // Poblar cargos
-  const selCargoN = document.getElementById('com-cargo');
-  const cargosN = [];
-  selCargoN.innerHTML='<option value="">Sin cargo</option>'+cargosN.map(c=>`<option value="${c.nombre}">${c.nombre}</option>`).join('');
+  // Campo cargo eliminado
   // Poblar supervisoras
   const selSup = document.getElementById('com-supervisora');
   selSup.innerHTML = '<option value="">Sin supervisora</option>'+supsN.map(s=>`<option value="${s.name}">${s.name}</option>`).join('');
@@ -5274,7 +5271,7 @@ function cfgSaveNuevaOperaria(){
   const cedula = document.getElementById('com-cedula').value.trim();
   const modulo = document.getElementById('com-modulo').value.trim();
   const supId  = document.getElementById('com-supervisora').value;
-  const cargo  = document.getElementById('com-cargo').value;
+  const cargo  = (document.getElementById('com-cargo')||{value:''}).value||'';
   const errEl  = document.getElementById('com-error');
   if(!nombre){ errEl.textContent='El nombre no puede estar vacío'; return; }
   if(idx===-1){
