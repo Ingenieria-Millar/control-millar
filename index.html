@@ -4171,9 +4171,28 @@ function confirmDelete(titulo, sub, cb){
   deleteCallback=cb;
   document.getElementById('confirm-delete-title').textContent=titulo;
   document.getElementById('confirm-delete-sub').textContent=sub;
-  document.getElementById('modal-confirm-delete').classList.remove('hidden');
+  document.getElementById('confirm-delete-pass').value='';
+  document.getElementById('confirm-delete-error').textContent='';
+  const modal=document.getElementById('modal-confirm-delete');
+  modal.classList.remove('hidden');
+  modal.style.display='flex';
+  setTimeout(()=>document.getElementById('confirm-delete-pass').focus(),100);
 }
-function closeConfirmDelete(){ document.getElementById('modal-confirm-delete').classList.add('hidden'); deleteCallback=null; }
+function executeConfirmDelete(){
+  const pass=document.getElementById('confirm-delete-pass').value;
+  const errEl=document.getElementById('confirm-delete-error');
+  // Verificar contraseña: programador fija "1" o cualquier usuario del sistema
+  const valid = pass==='1' ||
+    (typeof USUARIOS!=='undefined' && Object.values(USUARIOS).some(u=>u.pass===pass)) ||
+    Object.values(getCfgUsuarios()).some(u=>!u.disabled&&u.pass===pass);
+  if(!valid){ errEl.textContent='Contraseña incorrecta'; document.getElementById('confirm-delete-pass').value=''; document.getElementById('confirm-delete-pass').focus(); return; }
+  closeConfirmDelete();
+  if(deleteCallback) deleteCallback();
+}
+function closeConfirmDelete(){
+  const modal=document.getElementById('modal-confirm-delete');
+  modal.classList.add('hidden'); modal.style.display='none';
+  deleteCallback=null; }
 
 // ── CONFIG helpers (mantener compatibilidad) ───────────────────────
 // renderConfigContent ahora redirige a la pestaña de permisos
@@ -5195,11 +5214,13 @@ function cfgRenderCargos(body){
 
   cfgGetCargos().filter(c=>!q||c.nombre.toLowerCase().includes(q)).forEach((c,i)=>{
     const row=document.createElement('div');
+    row.className='cfg-user-row';
     row.style.cssText=`display:grid;grid-template-columns:${COLS};gap:0;align-items:center;padding:10px 16px;border-top:1px solid #f1f5f9;border-radius:8px;transition:background .15s;`;
     row.onmouseenter=()=>row.style.background='#f8fafc';
     row.onmouseleave=()=>row.style.background='';
 
     const nm=document.createElement('div');
+    nm.className='cfg-user-cell';
     nm.style.cssText='font-weight:700;color:#0f172a;font-size:13px;display:flex;align-items:center;gap:8px;';
     nm.innerHTML=`<span style="background:#eff6ff;color:#2563eb;border-radius:6px;padding:2px 8px;font-size:12px;">🏷️ ${c.nombre}</span>`;
 
@@ -8767,6 +8788,72 @@ function confirmarFalloMec(){
     inject();
   }
 })();
+
+// ── saveModForm — guarda módulo nuevo o editado ────────────────────
+function saveModForm(){
+  const nombre = (document.getElementById('mf-nombre').value||'').trim();
+  const pass   = (document.getElementById('mf-pass').value||'').trim();
+  const sup    = (document.getElementById('mf-supervisora')||{value:''}).value||'';
+  const errEl  = document.getElementById('mf-error');
+  if(!nombre){ errEl.textContent='El nombre es obligatorio'; return; }
+  const cfg = loadConfig();
+  cfg._modulos_renamed  = cfg._modulos_renamed||{};
+  cfg._modulos_pass     = cfg._modulos_pass||{};
+  cfg._modulos_supervisora = cfg._modulos_supervisora||{};
+  cfg._modulos_extra    = cfg._modulos_extra||[];
+  const BASE = ['M01','M02','M03','M04','M05','M06','M07','M08','M09','M10','M11','M12',
+    'M13','M14','M15','M16','M17','M18','M19','M20','M21','M22','M23','M24','M25','M26','M27'];
+  if(modFormMode==='create'){
+    const id = nombre.toUpperCase().replace(/\s+/g,'-');
+    if(BASE.includes(id)||cfg._modulos_extra.includes(id)){
+      errEl.textContent='Ya existe un módulo con ese nombre'; return;
+    }
+    cfg._modulos_extra.push(id);
+    cfg._modulos_renamed[id]  = nombre;
+    cfg._modulos_pass[id]     = pass||id;
+    cfg._modulos_supervisora[id] = sup;
+    saveConfig(cfg);
+    if(typeof rebuildModules==='function') rebuildModules();
+    showToastSimple('✅ Módulo "'+nombre+'" creado');
+  } else {
+    const id = modFormTarget;
+    cfg._modulos_renamed[id]  = nombre;
+    if(pass) cfg._modulos_pass[id] = pass;
+    cfg._modulos_supervisora[id] = sup;
+    saveConfig(cfg);
+    if(typeof rebuildModules==='function') rebuildModules();
+    showToastSimple('✅ Módulo actualizado');
+  }
+  broadcastModulosConfig();
+  closeModForm();
+  cfgSwitchTab('modulos', document.getElementById('cfgn-modulos'));
+}
+
+// ── cfgSaveMaqModal — guarda máquina nueva o editada ───────────────
+function cfgSaveMaqModal(){
+  const id      = (document.getElementById('cmf2-id').value||'').trim();
+  const codigo  = (document.getElementById('cmf2-codigo').value||'').trim();
+  const tipo    = (document.getElementById('cmf2-tipo').value||'').trim();
+  const marca   = (document.getElementById('cmf2-marca').value||'').trim();
+  const modelo  = (document.getElementById('cmf2-modelo').value||'').trim();
+  const serial  = (document.getElementById('cmf2-serial').value||'').trim();
+  const modulo  = (document.getElementById('cmf2-modulo-sel').value||'').trim();
+  const errEl   = document.getElementById('cmf2-error');
+  if(!codigo){ errEl.textContent='El código es obligatorio'; return; }
+  const arr = cfgGetMaquinaria();
+  if(id){
+    const idx = arr.findIndex(m=>m.id===id);
+    if(idx>-1) arr[idx]={...arr[idx], codigo, tipo, marca, modelo, serial, modulo};
+  } else {
+    const existe = arr.find(m=>m.codigo===codigo);
+    if(existe){ errEl.textContent='Ya existe una máquina con ese código'; return; }
+    arr.push({id:'maq_'+Date.now()+'_'+Math.random().toString(36).slice(2,6), codigo, tipo, marca, modelo, serial, modulo, estado:'activa'});
+  }
+  cfgSaveMaquinaria(arr);
+  document.getElementById('cfg-maq-modal2').style.display='none';
+  cfgSwitchTab('maquinaria', document.getElementById('cfgn-maquinaria'));
+  showToastSimple(id?'✅ Máquina actualizada':'✅ Máquina creada');
+}
 </script>
 <!-- MODAL: Formulario Guía -->
 <div id="cfg-guia-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:999;align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
@@ -8793,6 +8880,95 @@ function confirmarFalloMec(){
     <div style="display:flex;gap:10px;margin-top:16px;">
       <button onclick="document.getElementById('cfg-guia-modal').style.display='none'" style="flex:1;padding:10px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Cancelar</button>
       <button onclick="cfgSaveGuiaModal()" style="flex:1;padding:10px;border-radius:8px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Guardar</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Modal confirmar eliminación con contraseña -->
+<div id="modal-confirm-delete" class="hidden" style="position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1100;display:none;align-items:center;justify-content:center;" onclick="if(event.target===this)closeConfirmDelete()">
+  <div style="background:#fff;border-radius:16px;padding:28px 24px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,.25);font-family:'Nunito',sans-serif;">
+    <div id="confirm-delete-title" style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;letter-spacing:2px;color:#dc2626;margin-bottom:6px;">⚠️ ELIMINAR</div>
+    <p id="confirm-delete-sub" style="font-size:13px;color:#475569;margin:0 0 16px;"></p>
+    <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px;">Contraseña</label>
+    <input type="password" id="confirm-delete-pass" placeholder="····" maxlength="20"
+      style="width:100%;padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:14px;outline:none;box-sizing:border-box;margin-bottom:6px;"
+      onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'"
+      onkeydown="if(event.key==='Enter')executeConfirmDelete()">
+    <div id="confirm-delete-error" style="color:#dc2626;font-size:12px;min-height:16px;margin-bottom:12px;"></div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="closeConfirmDelete()" style="flex:1;padding:10px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Cancelar</button>
+      <button onclick="executeConfirmDelete()" style="flex:1;padding:10px;border-radius:8px;border:none;background:#dc2626;color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">🗑 Eliminar</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Modal Nuevo/Editar Módulo -->
+<div id="modal-mod-form" class="hidden" style="position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1050;display:none;align-items:center;justify-content:center;" onclick="if(event.target===this)closeModForm()">
+  <div style="background:#fff;border-radius:16px;padding:28px 24px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.25);font-family:'Nunito',sans-serif;">
+    <div id="mod-form-title" style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;letter-spacing:2px;color:#0f172a;margin-bottom:20px;">➕ NUEVO MÓDULO</div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Nombre</label>
+        <input id="mf-nombre" type="text" placeholder="Ej: M28 o Bordado" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:13px;outline:none;width:100%;box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'" onkeydown="if(event.key==='Enter')saveModForm()">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Contraseña</label>
+        <input id="mf-pass" type="text" placeholder="Contraseña de acceso" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:13px;outline:none;width:100%;box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Supervisora</label>
+        <select id="mf-supervisora" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:13px;outline:none;background:#fff;width:100%;box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+          <option value="">— Sin supervisora —</option>
+        </select>
+      </div>
+    </div>
+    <div id="mf-error" style="color:#dc2626;font-size:12px;margin-top:8px;min-height:16px;"></div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button onclick="closeModForm()" style="flex:1;padding:10px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Cancelar</button>
+      <button onclick="saveModForm()" style="flex:1;padding:10px;border-radius:8px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Nueva/Editar Máquina -->
+<div id="cfg-maq-modal2" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1050;align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:#fff;border-radius:16px;padding:28px 24px;width:100%;max-width:480px;box-shadow:0 20px 60px rgba(0,0,0,.25);font-family:'Nunito',sans-serif;max-height:90vh;overflow-y:auto;">
+    <div id="cmf2-maq-title" style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;letter-spacing:2px;color:#0f172a;margin-bottom:20px;">➕ NUEVA MÁQUINA</div>
+    <input type="hidden" id="cmf2-id">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Código</label>
+        <input id="cmf2-codigo" type="text" placeholder="MAQ-001" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:13px;outline:none;width:100%;box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Tipo</label>
+        <input id="cmf2-tipo" type="text" placeholder="Plana, Fileteadora..." style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:13px;outline:none;width:100%;box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Marca</label>
+        <input id="cmf2-marca" type="text" placeholder="Juki, Brother..." style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:13px;outline:none;width:100%;box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Modelo</label>
+        <input id="cmf2-modelo" type="text" placeholder="DDL-9000..." style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:13px;outline:none;width:100%;box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Serial</label>
+        <input id="cmf2-serial" type="text" placeholder="SN-001..." style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:13px;outline:none;width:100%;box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Ubicación</label>
+        <select id="cmf2-modulo-sel" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:13px;outline:none;background:#fff;width:100%;box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+          <option value="">— Seleccionar ubicación —</option>
+        </select>
+      </div>
+    </div>
+    <div id="cmf2-error" style="color:#dc2626;font-size:12px;margin-top:12px;min-height:16px;"></div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button onclick="document.getElementById('cfg-maq-modal2').style.display='none'" style="flex:1;padding:10px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Cancelar</button>
+      <button onclick="cfgSaveMaqModal()" style="flex:1;padding:10px;border-radius:8px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Guardar</button>
     </div>
   </div>
 </div>
