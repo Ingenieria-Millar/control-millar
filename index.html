@@ -2233,7 +2233,7 @@ function mostrarAreaScreen(){
 
   // 11. Tablero de Producción
   if(hasPerm('tablero_produccion')){
-    const c=makeCard('🗂️','Tablero Producción','Planeación y seguimiento · Kanban','ac-green',()=>{
+    const c=makeCard('🗂️','Producción','Planeación y seguimiento · Kanban','ac-green',()=>{
       window.location.href='/produccion';
     });
     c.style.animationDelay=(idx*0.07)+'s'; idx++;
@@ -4591,9 +4591,9 @@ function cfgSwitchTab(tab, el){
   if(searchWrap) searchWrap.style.display = CFG_EXCEL_TABS.includes(tab) ? 'none' : '';
   if(btnExcel)   btnExcel.style.display   = CFG_EXCEL_TABS.includes(tab) ? 'flex' : 'none';
   const btnUpload = document.getElementById('cfg-btn-upload2');
-  if(btnUpload)  btnUpload.style.display  = ['usuarios','maquinaria','guias','turnos'].includes(tab) ? 'inline-flex' : 'none';
-  if(btnTpl)     btnTpl.style.display     = ['usuarios','maquinaria','guias','turnos'].includes(tab) ? 'flex' : 'none';
-  if(btnLimpiar) btnLimpiar.style.display = ['usuarios','maquinaria','guias','turnos'].includes(tab) ? 'flex' : 'none';
+  if(btnUpload)  btnUpload.style.display  = ['usuarios','maquinaria','guias','turnos','modulos','novedades','cargos'].includes(tab) ? 'inline-flex' : 'none';
+  if(btnTpl)     btnTpl.style.display     = ['usuarios','maquinaria','guias','turnos','modulos','novedades','cargos'].includes(tab) ? 'flex' : 'none';
+  if(btnLimpiar) btnLimpiar.style.display = ['usuarios','maquinaria','guias','turnos','modulos','novedades','cargos'].includes(tab) ? 'flex' : 'none';
   if(btnCrear){
     btnCrear.style.display = CFG_NO_CREATE_TABS.includes(tab) ? 'none' : '';
     btnCrear.textContent = CFG_CREAR_LABELS[tab]||'+ Crear';
@@ -4662,6 +4662,7 @@ function cfgExcelAction(){
   else if(cfgCurrentTab==='usuarios') cfgExportUsuarios();
   else if(cfgCurrentTab==='cargos') cfgExportCargos();
   else if(cfgCurrentTab==='modulos') cfgExportModulos();
+  else if(cfgCurrentTab==='novedades') cfgExportNovedades();
   else if(cfgCurrentTab==='areas') cfgExportAreas();
 }
 function cfgExportCargos(){
@@ -4718,7 +4719,10 @@ function cfgOnLimpiar(){
     usuarios: 'operarias',
     maquinaria: 'máquinas',
     guias: 'guías',
-    turnos: 'turnos'
+    turnos: 'turnos',
+    modulos: 'módulos extra',
+    novedades: 'novedades',
+    cargos: 'cargos'
   };
   document.getElementById('clm-seccion').textContent = labels[cfgCurrentTab]||cfgCurrentTab;
   document.getElementById('clm-pass').value='';
@@ -4744,6 +4748,12 @@ function cfgConfirmarLimpiar(){
     cfgSaveGuias([]);
   } else if(cfgCurrentTab==='turnos'){
     cfgSaveTurnos([]);
+  } else if(cfgCurrentTab==='modulos'){
+    const c2=loadConfig(); c2._modulos_extra=[]; saveConfig(c2); if(typeof rebuildModules==='function') rebuildModules();
+  } else if(cfgCurrentTab==='novedades'){
+    cfgSaveNovedades([]);
+  } else if(cfgCurrentTab==='cargos'){
+    cfgSaveCargos([]);
   }
   document.getElementById('cfg-limpiar-modal').style.display='none';
   cfgSwitchTab(cfgCurrentTab, document.getElementById('cfgn-'+cfgCurrentTab));
@@ -4754,6 +4764,9 @@ function cfgDownloadPlantilla(){
   else if(cfgCurrentTab==='guias')  cfgPlantillaGuias();
   else if(cfgCurrentTab==='turnos') cfgPlantillaTurnos();
   else if(cfgCurrentTab==='usuarios') cfgPlantillaUsuarios();
+  else if(cfgCurrentTab==='modulos')   cfgPlantillaModulos();
+  else if(cfgCurrentTab==='novedades') cfgPlantillaNovedades();
+  else if(cfgCurrentTab==='cargos')    cfgPlantillaCargos();
 }
 function cfgPlantillaMaq(){
   if(typeof XLSX==='undefined'){alert('Librería Excel no disponible');return;}
@@ -4794,6 +4807,155 @@ function cfgPlantillaUsuarios(){
   XLSX.writeFile(wb,'plantilla_usuarios.xlsx');
   showToastSimple('📥 Plantilla descargada');
 }
+// ── Plantillas nuevas ─────────────────────────────────────────────
+function cfgPlantillaModulos(){
+  if(typeof XLSX==='undefined'){alert('Librería Excel no disponible');return;}
+  const ws=XLSX.utils.aoa_to_sheet([
+    ['Codigo','Nombre','Contrasena','Estado'],
+    ['M01','M01','M01','Activo'],
+    ['M02','M02','M02','Activo'],
+    ['EXTRA-01','Bordado','1234','Activo']
+  ]);
+  ws['!cols']=[{wch:12},{wch:20},{wch:12},{wch:10}];
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Módulos');
+  XLSX.writeFile(wb,'plantilla_modulos.xlsx');
+  showToastSimple('📥 Plantilla descargada');
+}
+function cfgPlantillaNovedades(){
+  if(typeof XLSX==='undefined'){alert('Librería Excel no disponible');return;}
+  const ws=XLSX.utils.aoa_to_sheet([
+    ['Nombre','Emoji'],
+    ['Incapacidad','🏥'],
+    ['Calamidad','🙏'],
+    ['Permiso','📝']
+  ]);
+  ws['!cols']=[{wch:25},{wch:8}];
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Novedades');
+  XLSX.writeFile(wb,'plantilla_novedades.xlsx');
+  showToastSimple('📥 Plantilla descargada');
+}
+function cfgPlantillaCargos(){
+  if(typeof XLSX==='undefined'){alert('Librería Excel no disponible');return;}
+  const ws=XLSX.utils.aoa_to_sheet([
+    ['Nombre'],
+    ['Operaria'],
+    ['Mecánico'],
+    ['Supervisora']
+  ]);
+  ws['!cols']=[{wch:25}];
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Cargos');
+  XLSX.writeFile(wb,'plantilla_cargos.xlsx');
+  showToastSimple('📥 Plantilla descargada');
+}
+function cfgExportNovedades(){
+  if(typeof XLSX==='undefined'){alert('Librería Excel no disponible');return;}
+  const novedades=cfgGetNovedades();
+  if(!novedades.length){showToastSimple('No hay novedades para exportar');return;}
+  const ws=XLSX.utils.json_to_sheet(novedades.map(n=>({Nombre:n.nombre,Emoji:n.emoji||''})));
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Novedades');
+  XLSX.writeFile(wb,'novedades_millar.xlsx');
+  showToastSimple('📥 Novedades exportadas');
+}
+function cfgImportModulosXLS(file){
+  if(!file) return;
+  if(typeof XLSX==='undefined'){alert('Librería Excel no disponible');return;}
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      const wb=XLSX.read(ev.target.result,{type:'binary'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+      if(!rows.length){showToastSimple('⚠️ El archivo está vacío');return;}
+      const cfg2=loadConfig();
+      const renamed=cfg2._modulos_renamed||{};
+      const modPass=cfg2._modulos_pass||{};
+      const disabled=cfg2._modulos_disabled||[];
+      const extra=cfg2._modulos_extra||[];
+      const BASE=['M01','M02','M03','M04','M05','M06','M07','M08','M09','M10','M11','M12',
+        'M13','M14','M15','M16','M17','M18','M19','M20','M21','M22','M23','M24','M25','M26','M27'];
+      let added=0,updated=0;
+      rows.forEach(r=>{
+        const codigo=(r['Codigo']||r['Código']||r['codigo']||'').toString().trim();
+        if(!codigo) return;
+        const nombre=(r['Nombre']||r['nombre']||codigo).toString().trim();
+        const pass=(r['Contrasena']||r['Contraseña']||r['contrasena']||codigo).toString().trim();
+        const estado=(r['Estado']||r['estado']||'Activo').toString().trim().toLowerCase();
+        renamed[codigo]=nombre;
+        modPass[codigo]=pass;
+        if(estado==='inactivo'||estado==='inactiva'){
+          if(!disabled.includes(codigo)) disabled.push(codigo);
+        } else {
+          const idx=disabled.indexOf(codigo);
+          if(idx>-1) disabled.splice(idx,1);
+        }
+        if(!BASE.includes(codigo)&&!extra.includes(codigo)){
+          extra.push(codigo); added++;
+        } else { updated++; }
+      });
+      cfg2._modulos_renamed=renamed; cfg2._modulos_pass=modPass;
+      cfg2._modulos_disabled=disabled; cfg2._modulos_extra=extra;
+      saveConfig(cfg2);
+      if(typeof rebuildModules==='function') rebuildModules();
+      cfgSwitchTab('modulos',document.getElementById('cfgn-modulos'));
+      showToastSimple('✅ Módulos importados: '+added+' nuevos, '+updated+' actualizados');
+    }catch(err){alert('Error al leer el archivo: '+err.message);}
+  };
+  reader.readAsBinaryString(file);
+}
+function cfgImportNovedadesXLS(file){
+  if(!file) return;
+  if(typeof XLSX==='undefined'){alert('Librería Excel no disponible');return;}
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      const wb=XLSX.read(ev.target.result,{type:'binary'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+      if(!rows.length){showToastSimple('⚠️ El archivo está vacío');return;}
+      const novedades=cfgGetNovedades();
+      let added=0,updated=0;
+      rows.forEach(r=>{
+        const nombre=(r['Nombre']||r['nombre']||'').toString().trim();
+        if(!nombre) return;
+        const emoji=(r['Emoji']||r['emoji']||'📋').toString().trim();
+        const existing=novedades.find(n=>n.nombre.toLowerCase()===nombre.toLowerCase());
+        if(existing){ existing.emoji=emoji; updated++; }
+        else{ novedades.push({id:'nov_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),nombre,emoji,color:0}); added++; }
+      });
+      cfgSaveNovedades(novedades);
+      cfgSwitchTab('novedades',document.getElementById('cfgn-novedades'));
+      showToastSimple('✅ Novedades: '+added+' nuevas, '+updated+' actualizadas');
+    }catch(err){alert('Error al leer el archivo: '+err.message);}
+  };
+  reader.readAsBinaryString(file);
+}
+function cfgImportCargosXLS(file){
+  if(!file) return;
+  if(typeof XLSX==='undefined'){alert('Librería Excel no disponible');return;}
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      const wb=XLSX.read(ev.target.result,{type:'binary'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+      if(!rows.length){showToastSimple('⚠️ El archivo está vacío');return;}
+      const cargos=cfgGetCargos();
+      let added=0,updated=0;
+      rows.forEach(r=>{
+        const nombre=(r['Nombre']||r['nombre']||'').toString().trim();
+        if(!nombre) return;
+        const existing=cargos.find(c=>c.nombre.toLowerCase()===nombre.toLowerCase());
+        if(existing){ updated++; }
+        else{ cargos.push({id:'cargo_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),nombre}); added++; }
+      });
+      cfgSaveCargos(cargos);
+      cfgSwitchTab('cargos',document.getElementById('cfgn-cargos'));
+      showToastSimple('✅ Cargos: '+added+' nuevos, '+updated+' actualizados');
+    }catch(err){alert('Error al leer el archivo: '+err.message);}
+  };
+  reader.readAsBinaryString(file);
+}
+
 function cfgExportTurnos(){
   const turnos=cfgGetTurnos();
   if(!turnos.length){showToastSimple('No hay turnos para exportar');return;}
@@ -4925,6 +5087,9 @@ function cfgHandleUpload(file){
   if(!file) return;
   if(cfgCurrentTab==='usuarios')   cfgImportUsuariosXLS(file);
   if(cfgCurrentTab==='maquinaria') cfgImportMaquinariaXLS(file);
+  else if(cfgCurrentTab==='modulos')   cfgImportModulosXLS(file);
+  else if(cfgCurrentTab==='novedades') cfgImportNovedadesXLS(file);
+  else if(cfgCurrentTab==='cargos')    cfgImportCargosXLS(file);
   if(cfgCurrentTab==='guias')      cfgImportGuiasXLS(file);
   if(cfgCurrentTab==='turnos')     cfgImportTurnosXLS(file);
   // reset input so same file can be re-uploaded
@@ -5787,10 +5952,30 @@ function cfgRenderGuias(body){
   const statsRow=document.createElement('div'); statsRow.className='cfg-stats-row';
   statsRow.innerHTML=`<div class="cfg-stat-box"><div class="cfg-stat-num">${guias.length}</div><div class="cfg-stat-lbl">Total</div></div>`;
   body.appendChild(statsRow);
-  const COLS='1fr 2fr 110px';
+  // Filtros por columna
+  const fRow=document.createElement('div');
+  fRow.style.cssText='display:grid;grid-template-columns:1fr 1.5fr 1fr 110px;gap:6px;margin-bottom:8px;';
+  ['Referencia...','Máquina...','Ubicación...'].forEach((ph,colIdx)=>{
+    const inp=document.createElement('input');
+    inp.placeholder='Filtrar '+ph;
+    inp.style.cssText='padding:5px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;font-family:Nunito,sans-serif;outline:none;color:#0f172a;';
+    inp.oninput=()=>{
+      const filters=[...fRow.querySelectorAll('input')].map(i=>i.value.trim().toLowerCase());
+      document.querySelectorAll('#cfg-guias-list .cfg-user-row').forEach(row=>{
+        const cells=[...row.querySelectorAll('.cfg-user-cell')];
+        const match=filters.every((f,i2)=>!f||(cells[i2]&&(cells[i2].textContent||'').toLowerCase().includes(f)));
+        row.style.display=match?'':'none';
+      });
+    };
+    fRow.appendChild(inp);
+  });
+  fRow.appendChild(document.createElement('div'));
+  body.appendChild(fRow);
+
+  const COLS='1fr 1.5fr 1fr 110px';
   const tbl=document.createElement('div'); tbl.className='cfg-user-table'; tbl.id='cfg-guias-list';
   const hdr=document.createElement('div'); hdr.className='cfg-user-hdr'; hdr.style.gridTemplateColumns=COLS;
-  ['Referencia','Máquina','Acciones'].forEach(label=>{
+  ['Referencia','Máquina','Ubicación','Acciones'].forEach(label=>{
     const cell=document.createElement('div');
     const lbl=document.createElement('span'); lbl.textContent=label;
     lbl.style.cssText='font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;';
@@ -5804,7 +5989,7 @@ function cfgRenderGuias(body){
 function cfgGuiasRenderList(guias){
   const tbl=document.getElementById('cfg-guias-list'); if(!tbl) return;
   tbl.querySelectorAll('.cfg-user-row,.cfg-guias-empty').forEach(r=>r.remove());
-  const COLS='1fr 2fr 110px';
+  const COLS='1fr 1.5fr 1fr 110px';
   if(!guias.length){
     const empty=document.createElement('div'); empty.className='cfg-guias-empty';
     empty.style.cssText='padding:40px;text-align:center;color:#94a3b8;font-size:14px;';
@@ -5814,7 +5999,7 @@ function cfgGuiasRenderList(guias){
   guias.forEach(g=>{
     const row=document.createElement('div'); row.className='cfg-user-row';
     row.style.gridTemplateColumns=COLS;
-    row.innerHTML=`<div class="cfg-user-cell" style="font-weight:700;font-family:'Courier New',monospace;font-size:13px;">${g.referencia||'—'}</div><div class="cfg-user-cell">${g.maquina||'—'}</div>`;
+    row.innerHTML=`<div class="cfg-user-cell" style="font-weight:700;font-family:'Courier New',monospace;font-size:13px;">${g.referencia||'—'}</div><div class="cfg-user-cell">${g.maquina||'—'}</div><div class="cfg-user-cell">${g.ubicacion||'—'}</div>`;
     const acts=document.createElement('div'); acts.className='cfg-row-acts'; acts.style.cssText='display:flex;gap:4px;';
     const bE=document.createElement('button'); bE.className='cfg-row-btn'; bE.textContent='✏️'; bE.title='Editar';
     bE.onclick=()=>cfgOpenGuiaModal(g);
@@ -5840,6 +6025,7 @@ function cfgOpenGuiaModal(g){
   }
   document.getElementById('cgm-id').value=(g&&g.id)||'';
   document.getElementById('cgm-referencia').value=(g&&g.referencia)||'';
+  if(document.getElementById('cgm-ubicacion')) document.getElementById('cgm-ubicacion').value=(g&&g.ubicacion)||'';
   document.getElementById('cgm-title').textContent=g?'✏️ EDITAR GUÍA':'➕ NUEVA GUÍA';
   document.getElementById('cgm-error').textContent='';
   modal.style.display='flex';
@@ -5849,10 +6035,11 @@ function cfgOpenGuiaModal(g){
 function cfgSaveGuiaModal(){
   const ref=document.getElementById('cgm-referencia').value.trim();
   const maq=document.getElementById('cgm-maquina-sel').value;
+  const ubicacion=(document.getElementById('cgm-ubicacion')||{value:''}).value.trim();
   const errEl=document.getElementById('cgm-error');
   if(!ref){ errEl.textContent='La referencia es obligatoria'; return; }
   const id=document.getElementById('cgm-id').value||'guia_'+Date.now();
-  const guia={id, referencia:ref, maquina:maq};
+  const guia={id, referencia:ref, maquina:maq, ubicacion};
   const arr=cfgGetGuias(); const idx=arr.findIndex(x=>x.id===id);
   if(idx>-1) arr[idx]={...arr[idx],...guia}; else arr.push(guia);
   cfgSaveGuias(arr);
@@ -5897,8 +6084,8 @@ function cfgImportGuiasXLS(file){
         const maq=(r['Maquina']||r['Máquina']||r['maquina']||'').toString().trim();
         if(!ref) return;
         const existing=arr.find(x=>x.referencia===ref);
-        if(existing){ existing.maquina=maq; updated++; }
-        else{ arr.push({id:'guia_'+Date.now()+'_'+Math.random().toString(36).slice(2),referencia:ref,maquina:maq}); added++; }
+        if(existing){ existing.maquina=maq; existing.ubicacion=ubicacion; updated++; }
+        else{ arr.push({id:'guia_'+Date.now()+'_'+Math.random().toString(36).slice(2),referencia:ref,maquina:maq,ubicacion}); added++; }
       });
       cfgSaveGuias(arr);
       cfgSwitchTab('guias',document.getElementById('cfgn-guias'));
@@ -5956,6 +6143,22 @@ function cfgRenderNovedades(body){
   const q = cfgGetSearch();
   let items = cfgGetNovedades();
   if(q) items = items.filter(n=>n.nombre.toLowerCase().includes(q));
+
+  // Filtro por columna
+  const filterRow=document.createElement('div');
+  filterRow.style.cssText='margin-bottom:12px;';
+  const fNombre=document.createElement('input');
+  fNombre.placeholder='Filtrar nombre...';
+  fNombre.style.cssText='padding:6px 12px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;font-family:Nunito,sans-serif;outline:none;color:#0f172a;width:260px;';
+  fNombre.oninput=()=>{
+    const fq=fNombre.value.trim().toLowerCase();
+    body.querySelectorAll('.cfg-card').forEach(c=>{
+      const nm=c.querySelector('.cfg-name span');
+      c.style.display=(!fq||!nm||(nm.textContent||'').toLowerCase().includes(fq))?'':'none';
+    });
+  };
+  filterRow.appendChild(fNombre);
+  body.appendChild(filterRow);
   if(!items.length){
     body.innerHTML=`<div style="text-align:center;padding:60px 20px;color:#94a3b8;">
       <div style="font-size:40px;margin-bottom:12px;">📋</div>
@@ -6070,6 +6273,19 @@ function cfgRenderModulos(body){
     body.appendChild(empty); return;
   }
 
+  // Filtro por columna
+  const filterRow=document.createElement('div');
+  filterRow.style.cssText='display:grid;grid-template-columns:2fr 1.2fr 1.5fr auto;gap:6px;padding:0 16px 10px;';
+  const fNombre=document.createElement('input');
+  fNombre.placeholder='Filtrar nombre...';
+  fNombre.style.cssText='padding:5px 10px;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;font-family:Nunito,sans-serif;outline:none;color:#0f172a;';
+  fNombre.oninput=()=>{ cfgRenderModulosFiltered(body, fNombre.value.trim().toLowerCase()); };
+  filterRow.appendChild(fNombre);
+  filterRow.appendChild(document.createElement('div'));
+  filterRow.appendChild(document.createElement('div'));
+  filterRow.appendChild(document.createElement('div'));
+  body.appendChild(filterRow);
+
   // Header
   const hdr=document.createElement('div');
   hdr.style.cssText='display:grid;grid-template-columns:2fr 1.2fr 1.5fr auto;gap:0;padding:0 16px 8px;';
@@ -6138,6 +6354,20 @@ function cfgRenderModulos(body){
   }
 
   allMods.forEach(m=>body.appendChild(buildRow(m)));
+  // Guardar referencia a buildRow para el filtro
+  body._buildRow=buildRow;
+  body._allMods=allMods;
+}
+function cfgRenderModulosFiltered(body, q){
+  const buildRow=body._buildRow;
+  const allMods=body._allMods||[];
+  if(!buildRow) return;
+  body.querySelectorAll('[id^="cfg-mod-row-"]').forEach(r=>r.remove());
+  const cfg2=loadConfig();
+  const renamed=cfg2._modulos_renamed||_appConfig._modulos_renamed||{};
+  allMods
+    .filter(m=>!q||(renamed[m]||m).toLowerCase().includes(q))
+    .forEach(m=>body.appendChild(buildRow(m)));
 }
 
 // ── ÁREAS ─────────────────────────────────────────────────────────
@@ -8512,6 +8742,10 @@ function confirmarFalloMec(){
         <select id="cgm-maquina-sel" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:13px;outline:none;background:#fff;cursor:pointer;width:100%;box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
           <option value="">— Seleccionar máquina —</option>
         </select>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Ubicación</label>
+        <input id="cgm-ubicacion" type="text" placeholder="Ej: Piso 1 - Estante A" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:13px;outline:none;width:100%;box-sizing:border-box;font-family:'Nunito',sans-serif;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
       </div>
     </div>
     <div id="cgm-error" style="color:#dc2626;font-size:12px;margin-top:8px;min-height:16px;"></div>
