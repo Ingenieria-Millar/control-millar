@@ -1,0 +1,106 @@
+/* ═══════════════════════════════════════════════════════════════
+   millar-shared.css  —  Confecciones Millar
+   Estilos y scripts comunes a todas las páginas:
+   - Navegación desplegable (millar-nav)
+   - Header compartido (hd-logo, hd-left, hd-right, hd-title)
+   Extraído de los HTML para eliminar duplicación
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Fonts — cargadas una sola vez */
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Nunito:wght@300;400;500;600;700;800&display=swap&font-display=swap');
+
+/* ── HEADER BASE ── */
+header{
+  position:sticky;top:0;z-index:100;
+  background:#fff;border-bottom:1px solid #e2e8f0;
+  box-shadow:0 1px 6px rgba(0,0,0,.07);
+  padding:0 clamp(12px,2.5vw,24px);min-height:64px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+}
+header::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);
+}
+.hd-left{ display:flex;align-items:center;gap:12px; }
+.hd-logo{
+  width:36px;height:36px;border-radius:50%;background:#fff;
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
+  box-shadow:0 0 0 2px #e2e8f0,0 2px 8px rgba(0,0,0,.08);flex-shrink:0;
+}
+.hd-logo img{ width:100%;height:100%;object-fit:contain;padding:3px; }
+.hd-title{
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:clamp(16px,2.5vw,22px);font-weight:800;
+  letter-spacing:2px;text-transform:uppercase;color:#0f172a;line-height:1.1;
+}
+.hd-title span{ color:#2563eb; }
+.hd-right{ display:flex;align-items:center;gap:8px; }
+.hd-back-btn{
+  padding:6px 14px;border-radius:8px;border:1.5px solid #e2e8f0;
+  background:#fff;color:#1e3a8a;font-family:'Barlow Condensed',sans-serif;
+  font-size:13px;font-weight:700;letter-spacing:.5px;cursor:pointer;
+  transition:all .2s;white-space:nowrap;
+}
+.hd-back-btn:hover{ background:#f1f5f9;border-color:#93c5fd; }
+.hd-user-badge{
+  display:flex;align-items:center;gap:7px;padding:6px 14px;border-radius:8px;
+  background:#fff;border:1.5px solid #e2e8f0;
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:clamp(11px,1.3vw,14px);font-weight:700;
+  color:#475569;letter-spacing:1.5px;text-transform:uppercase;
+}
+.hd-user-dot{
+  width:9px;height:9px;border-radius:50%;background:#22c55e;
+  box-shadow:0 0 6px rgba(34,197,94,.7);flex-shrink:0;
+}
+
+/* ── NAV MENÚ DESPLEGABLE ── */
+/* ── NAV MENÚ DESPLEGABLE ── */
+.millar-nav{display:flex;align-items:center;gap:2px;}
+.millar-nav-item{position:relative;}
+.millar-nav-btn{
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:6px 14px;border-radius:8px;border:none;background:transparent;
+  cursor:pointer;transition:background .15s;min-width:60px;
+}
+.millar-nav-btn:hover{background:#f1f5f9;}
+.millar-nav-btn.active{background:#eff6ff;}
+.millar-nav-btn svg{flex-shrink:0;opacity:.65;}
+.millar-nav-btn:hover svg,.millar-nav-btn.active svg{opacity:1;}
+.millar-nav-label{
+  font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;
+  letter-spacing:.5px;text-transform:uppercase;color:#475569;white-space:nowrap;
+}
+.millar-nav-btn:hover .millar-nav-label,.millar-nav-btn.active .millar-nav-label{color:#1e40af;}
+.millar-dropdown{
+  display:none;position:absolute;top:calc(100% + 4px);left:50%;transform:translateX(-50%);
+  min-width:200px;background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;
+  box-shadow:0 8px 24px rgba(0,0,0,.1);z-index:9999;overflow:visible;
+  animation:dropIn .15s ease;
+}
+@keyframes dropIn{from{opacity:0;transform:translateX(-50%) translateY(-6px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
+.millar-dropdown.open{display:block;}
+.millar-dd-inner{padding:6px;}
+.millar-dd-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:9px 12px;border-radius:8px;font-family:'Barlow Condensed',sans-serif;
+  font-size:13px;font-weight:700;letter-spacing:.3px;color:#0f172a;
+  cursor:pointer;transition:background .12s;text-decoration:none;
+  white-space:nowrap;
+}
+.millar-dd-item:hover{background:#f1f5f9;color:#1e40af;}
+.millar-dd-item.has-sub{position:relative;}
+.millar-dd-item.has-sub:hover .millar-sub{display:block;}
+.millar-sub{
+  display:none;position:absolute;left:100%;top:-6px;
+  min-width:180px;background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;
+  box-shadow:0 8px 24px rgba(0,0,0,.1);z-index:10000;padding:6px;
+}
+.millar-sub-item{
+  display:flex;align-items:center;gap:8px;
+  padding:9px 12px;border-radius:8px;font-family:'Barlow Condensed',sans-serif;
+  font-size:13px;font-weight:700;letter-spacing:.3px;color:#0f172a;
+  cursor:pointer;transition:background .12s;text-decoration:none;white-space:nowrap;
+}
+.millar-sub-item:hover{background:#f1f5f9;color:#1e40af;}
+.millar-dd-sep{height:1px;background:#f1f5f9;margin:4px 0;}
