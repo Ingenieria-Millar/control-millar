@@ -4511,7 +4511,7 @@ setInterval(()=>{const n=new Date();document.getElementById('clock').textContent
     <div class="cfg-sidebar">
       <div class="cfg-nav-item cfg-active" id="cfgn-perfiles" onclick="cfgSwitchTab('perfiles',this)"><span>🎭</span> Perfiles</div>
       <div class="cfg-nav-item" id="cfgn-usuarios" onclick="cfgSwitchTab('usuarios',this)"><span>👥</span> Empleados</div>
-      <div class="cfg-nav-item" id="cfgn-cargos" onclick="cfgSwitchTab('cargos',this)"><span>🏷️</span> Cargos</div>
+
       <div class="cfg-nav-item" id="cfgn-turnos" onclick="cfgSwitchTab('turnos',this)"><span>🕐</span> Turnos</div>
       <div class="cfg-nav-item" id="cfgn-maquinaria" onclick="cfgSwitchTab('maquinaria',this)"><span>⚙️</span> Maquinaria</div>
       <div class="cfg-nav-item" id="cfgn-guias" onclick="cfgSwitchTab('guias',this)"><span>📋</span> Guías</div>
@@ -4610,9 +4610,9 @@ function cfgSwitchTab(tab, el){
   if(searchWrap) searchWrap.style.display = CFG_EXCEL_TABS.includes(tab) ? 'none' : '';
   if(btnExcel)   btnExcel.style.display   = CFG_EXCEL_TABS.includes(tab) ? 'flex' : 'none';
   const btnUpload = document.getElementById('cfg-btn-upload2');
-  if(btnUpload)  btnUpload.style.display  = ['usuarios','maquinaria','guias','turnos','modulos','novedades','cargos'].includes(tab) ? 'inline-flex' : 'none';
-  if(btnTpl)     btnTpl.style.display     = ['usuarios','maquinaria','guias','turnos','modulos','novedades','cargos'].includes(tab) ? 'flex' : 'none';
-  if(btnLimpiar) btnLimpiar.style.display = ['usuarios','maquinaria','guias','turnos','modulos','novedades','cargos'].includes(tab) ? 'flex' : 'none';
+  if(btnUpload)  btnUpload.style.display  = ['usuarios','maquinaria','guias','turnos','modulos','novedades'].includes(tab) ? 'inline-flex' : 'none';
+  if(btnTpl)     btnTpl.style.display     = ['usuarios','maquinaria','guias','turnos','modulos','novedades'].includes(tab) ? 'flex' : 'none';
+  if(btnLimpiar) btnLimpiar.style.display = ['usuarios','maquinaria','guias','turnos','modulos','novedades'].includes(tab) ? 'flex' : 'none';
   if(btnCrear){
     btnCrear.style.display = CFG_NO_CREATE_TABS.includes(tab) ? 'none' : '';
     btnCrear.textContent = CFG_CREAR_LABELS[tab]||'+ Crear';
@@ -4640,7 +4640,6 @@ function cfgSwitchTab(tab, el){
   body.innerHTML='';
   if(tab==='perfiles')   cfgRenderPerfiles(body);
   if(tab==='usuarios')   cfgRenderUsuarios(body);
-  if(tab==='cargos')     cfgRenderCargos(body);
   if(tab==='turnos')     cfgRenderTurnos(body);
   if(tab==='maquinaria') cfgRenderMaquinaria(body);
   if(tab==='guias')      cfgRenderGuias(body);
@@ -4657,7 +4656,6 @@ function cfgOnSearch(){
   body.innerHTML='';
   if(cfgCurrentTab==='perfiles')   cfgRenderPerfiles(body);
   if(cfgCurrentTab==='usuarios')   cfgRenderUsuarios(body);
-  if(cfgCurrentTab==='cargos')     cfgRenderCargos(body);
   if(cfgCurrentTab==='modulos')    cfgRenderModulos(body);
   if(cfgCurrentTab==='areas')      cfgRenderAreas(body);
   if(cfgCurrentTab==='novedades')  cfgRenderNovedades(body);
@@ -4666,7 +4664,6 @@ function cfgOnSearch(){
 function cfgOnCrear(){
   if(cfgCurrentTab==='perfiles')   cfgOpenPerfilModal();
   if(cfgCurrentTab==='usuarios')   cfgOpenNuevaOperaria();
-  if(cfgCurrentTab==='cargos')     cfgOpenCargoModal();
   if(cfgCurrentTab==='modulos')    openModForm('create');
   if(cfgCurrentTab==='areas')      openAreaForm('create');
   if(cfgCurrentTab==='maquinaria') cfgOpenMaqModal();
@@ -4679,7 +4676,6 @@ function cfgExcelAction(){
   else if(cfgCurrentTab==='guias') cfgExportGuias();
   else if(cfgCurrentTab==='turnos') cfgExportTurnos();
   else if(cfgCurrentTab==='usuarios') cfgExportUsuarios();
-  else if(cfgCurrentTab==='cargos') cfgExportCargos();
   else if(cfgCurrentTab==='modulos') cfgExportModulos();
   else if(cfgCurrentTab==='novedades') cfgExportNovedades();
   else if(cfgCurrentTab==='areas') cfgExportAreas();
@@ -4771,8 +4767,6 @@ function cfgConfirmarLimpiar(){
     const c2=loadConfig(); c2._modulos_extra=[]; saveConfig(c2); if(typeof rebuildModules==='function') rebuildModules();
   } else if(cfgCurrentTab==='novedades'){
     cfgSaveNovedades([]);
-  } else if(cfgCurrentTab==='cargos'){
-    cfgSaveCargos([]);
   }
   document.getElementById('cfg-limpiar-modal').style.display='none';
   cfgSwitchTab(cfgCurrentTab, document.getElementById('cfgn-'+cfgCurrentTab));
@@ -4785,7 +4779,6 @@ function cfgDownloadPlantilla(){
   else if(cfgCurrentTab==='usuarios') cfgPlantillaUsuarios();
   else if(cfgCurrentTab==='modulos')   cfgPlantillaModulos();
   else if(cfgCurrentTab==='novedades') cfgPlantillaNovedades();
-  else if(cfgCurrentTab==='cargos')    cfgPlantillaCargos();
 }
 function cfgPlantillaMaq(){
   if(typeof XLSX==='undefined'){alert('Librería Excel no disponible');return;}
@@ -5108,7 +5101,6 @@ function cfgHandleUpload(file){
   if(cfgCurrentTab==='maquinaria') cfgImportMaquinariaXLS(file);
   else if(cfgCurrentTab==='modulos')   cfgImportModulosXLS(file);
   else if(cfgCurrentTab==='novedades') cfgImportNovedadesXLS(file);
-  else if(cfgCurrentTab==='cargos')    cfgImportCargosXLS(file);
   if(cfgCurrentTab==='guias')      cfgImportGuiasXLS(file);
   if(cfgCurrentTab==='turnos')     cfgImportTurnosXLS(file);
   // reset input so same file can be re-uploaded
@@ -6662,10 +6654,7 @@ function cfgRenderMiembrosPerfil(body){
       <div id="members-header-sub" style="font-size:12px;color:#94a3b8;margin-top:2px;">${members.length} miembro${members.length!==1?'s':''}</div>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-      <button onclick="downloadMembersTemplate()" title="Descargar plantilla Excel" style="padding:8px 14px;border-radius:8px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#475569;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;">📄 Plantilla</button>
-      <label title="Importar desde Excel" style="padding:8px 14px;border-radius:8px;border:1.5px solid #2563eb;background:#eff6ff;color:#2563eb;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;">
-        📥 Importar<input type="file" accept=".xlsx,.xls,.csv" style="display:none;" onchange="importMembersExcel(event)">
-      </label>
+      <button onclick="openCargoFilterModal()" style="padding:8px 14px;border-radius:8px;border:1.5px solid #f59e0b;background:#fffbeb;color:#b45309;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;">🏷️ Cargos</button>
       <button onclick="exportMembersExcel()" title="Exportar a Excel" style="padding:8px 14px;border-radius:8px;border:1.5px solid #059669;background:#f0fdf4;color:#059669;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;">📤 Exportar</button>
       <button onclick="openMemberModal()" style="padding:9px 18px;border-radius:9px;border:none;background:#059669;color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;">+ Nuevo miembro</button>
     </div>`;
@@ -8854,6 +8843,92 @@ function cfgSaveMaqModal(){
   cfgSwitchTab('maquinaria', document.getElementById('cfgn-maquinaria'));
   showToastSimple(id?'✅ Máquina actualizada':'✅ Máquina creada');
 }
+
+// ── Filtro de miembros por cargo ───────────────────────────────────
+let _cargoFilterActive = []; // cargos seleccionados actualmente
+
+function openCargoFilterModal(){
+  const modal = document.getElementById('modal-cargo-filter');
+  const list  = document.getElementById('cargo-filter-list');
+  if(!modal || !list) return;
+
+  // Obtener todos los cargos existentes
+  const cargos = cfgGetCargos();
+  if(!cargos.length){
+    list.innerHTML='<div style="padding:20px;text-align:center;color:#94a3b8;font-size:13px;">No hay cargos configurados.<br>Agrega cargos desde Configuraciones.</div>';
+    modal.style.display='flex'; return;
+  }
+
+  list.innerHTML = '';
+  cargos.forEach(c => {
+    const isChecked = _cargoFilterActive.includes(c.nombre);
+    const item = document.createElement('label');
+    item.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;border:1.5px solid '+(isChecked?'#2563eb':'#e2e8f0')+';background:'+(isChecked?'#eff6ff':'#fff')+';transition:all .15s;';
+    item.innerHTML=`
+      <input type="checkbox" value="${c.nombre}" ${isChecked?'checked':''} style="width:16px;height:16px;accent-color:#2563eb;cursor:pointer;">
+      <span style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:.5px;color:#0f172a;">${c.nombre}</span>`;
+    // Actualizar estilo al cambiar
+    const cb = item.querySelector('input');
+    cb.onchange = () => {
+      item.style.borderColor = cb.checked ? '#2563eb' : '#e2e8f0';
+      item.style.background  = cb.checked ? '#eff6ff' : '#fff';
+    };
+    list.appendChild(item);
+  });
+
+  modal.style.display = 'flex';
+}
+
+function closeCargoFilterModal(){
+  document.getElementById('modal-cargo-filter').style.display='none';
+}
+
+function clearCargoFilter(){
+  _cargoFilterActive = [];
+  // Desmarcar todos los checkboxes
+  document.querySelectorAll('#cargo-filter-list input[type=checkbox]').forEach(cb=>{
+    cb.checked=false;
+    const lbl=cb.closest('label');
+    if(lbl){ lbl.style.borderColor='#e2e8f0'; lbl.style.background='#fff'; }
+  });
+}
+
+function applyCargoFilter(){
+  // Leer seleccionados
+  _cargoFilterActive = [...document.querySelectorAll('#cargo-filter-list input[type=checkbox]:checked')]
+    .map(cb=>cb.value);
+  closeCargoFilterModal();
+
+  // Si no hay filtro activo, mostrar miembros normales del perfil
+  if(!_cargoFilterActive.length){
+    const members = getProfileMembers(_membersCurrentPerfil);
+    renderMembersList(members);
+    document.getElementById('members-header-sub').textContent =
+      members.length+' miembro'+(members.length!==1?'s':'');
+    return;
+  }
+
+  // Obtener empleados con los cargos seleccionados desde iaState
+  const allEmployees = (typeof iaState!=='undefined' && iaState.employees) ? iaState.employees : [];
+  const filtered = allEmployees
+    .filter(e => !e.disabled && _cargoFilterActive.includes(e.cargo||''))
+    .sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||''));
+
+  // Convertir al formato de miembros para renderMembersList
+  const membersFiltered = filtered.map(e=>({
+    nombre: e.nombre||e.name||'',
+    cargo:  e.cargo||'',
+    disabled: false,
+    _fromCargo: true
+  }));
+
+  renderMembersList(membersFiltered);
+
+  // Actualizar contador con indicador de filtro activo
+  const sub = document.getElementById('members-header-sub');
+  if(sub) sub.innerHTML = membersFiltered.length+' empleado'+(membersFiltered.length!==1?'s':'')+
+    ' · <span style="color:#b45309;font-weight:700;">🏷️ '+_cargoFilterActive.join(', ')+'</span>';
+}
 </script>
 <!-- MODAL: Formulario Guía -->
 <div id="cfg-guia-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:999;align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
@@ -8969,6 +9044,26 @@ function cfgSaveMaqModal(){
     <div style="display:flex;gap:10px;margin-top:16px;">
       <button onclick="document.getElementById('cfg-maq-modal2').style.display='none'" style="flex:1;padding:10px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Cancelar</button>
       <button onclick="cfgSaveMaqModal()" style="flex:1;padding:10px;border-radius:8px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Guardar</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Modal filtro por cargos en Miembros -->
+<div id="modal-cargo-filter" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1100;align-items:center;justify-content:center;" onclick="if(event.target===this)closeCargoFilterModal()">
+  <div style="background:#fff;border-radius:16px;padding:0;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.25);font-family:'Nunito',sans-serif;overflow:hidden;">
+    <!-- Header -->
+    <div style="padding:20px 24px 16px;border-bottom:1px solid #e2e8f0;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:800;letter-spacing:2px;color:#0f172a;">🏷️ FILTRAR POR CARGO</div>
+      <p style="font-size:12px;color:#64748b;margin:4px 0 0;">Selecciona uno o más cargos para filtrar la lista de miembros.</p>
+    </div>
+    <!-- Lista de cargos con checkboxes -->
+    <div id="cargo-filter-list" style="padding:12px 16px;max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;"></div>
+    <!-- Footer -->
+    <div style="padding:14px 24px;border-top:1px solid #e2e8f0;display:flex;gap:10px;">
+      <button onclick="clearCargoFilter()" style="padding:9px 14px;border-radius:8px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#64748b;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">Limpiar</button>
+      <button onclick="closeCargoFilterModal()" style="flex:1;padding:9px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Cancelar</button>
+      <button onclick="applyCargoFilter()" style="flex:1;padding:9px;border-radius:8px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Aplicar</button>
     </div>
   </div>
 </div>
