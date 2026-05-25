@@ -2040,14 +2040,39 @@ window.addEventListener('DOMContentLoaded', async ()=>{
 
   // ── Detectar retorno desde páginas externas ────────────────────
   const _urlParams = new URLSearchParams(location.search);
-  const _volver = _urlParams.get('volver');
+  const _volver    = _urlParams.get('volver');
+  const _tablero   = _urlParams.get('tablero');
+
   if(_volver === 'produccion'){
-    // Limpiar parámetro de la URL sin recargar
     history.replaceState({}, '', '/');
-    // Si hay sesión activa, ir al menú principal
-    if(currentUser){
-      setTimeout(()=>{ mostrarAreaScreen(); }, 300);
-    }
+    if(currentUser){ setTimeout(()=>{ mostrarAreaScreen(); }, 300); }
+  }
+
+  // ── Auto-navegación directa al tablero desde nav de otras páginas ──
+  if(_tablero === 'general' || _tablero === 'mecanicos'){
+    // Determinar perfil: general=Televisor, mecanicos=Mecanicos
+    const _autoUser = _tablero === 'mecanicos' ? 'Mecanicos' : 'Televisor';
+    // Esperar a que USUARIOS y WS estén listos, luego entrar directo
+    const _tryAutoLogin = ()=>{
+      if(typeof USUARIOS === 'undefined' || !Object.keys(USUARIOS).length){
+        setTimeout(_tryAutoLogin, 200); return;
+      }
+      if(!USUARIOS[_autoUser]){ return; } // perfil no existe
+      currentUser = _autoUser;
+      currentUserRol = '';
+      const cfg2 = loadConfig();
+      if(cfg2[_autoUser]&&cfg2[_autoUser].perms) USUARIOS[_autoUser].perms=cfg2[_autoUser].perms;
+      try{ localStorage.setItem('cm_session', JSON.stringify({user:_autoUser,pass:USUARIOS[_autoUser].pass||'',rol:''})); }catch(e){}
+      // Ocultar login, mostrar tablero
+      const ls = document.getElementById('login-screen');
+      if(ls) ls.classList.add('hidden');
+      history.replaceState({},'',' /');
+      setTimeout(()=>{
+        document.getElementById('area-screen')?.classList.add('hidden');
+        entrarTablero();
+      }, 400);
+    };
+    setTimeout(_tryAutoLogin, 300);
   }
 });
 
@@ -2625,7 +2650,7 @@ function entrarTablero(){
   // ── Ocultar "Espera CI" en Tablero Mecánicos ──
   const estatOrange = document.getElementById('stat-orange');
   if(estatOrange){
-    if(currentUser==='Mecanicos'||currentUser==='Televisor'){
+    if(currentUser==='Mecanicos'){
       estatOrange.style.display = 'none';
     } else {
       estatOrange.style.display = '';
@@ -8436,16 +8461,16 @@ function confirmarFalloMec(){
     produccion:     '/produccion',
     asistencia:     '/ingresos',
     recogedores:    '/recogedores',
-    tableroGeneral: '/',
+    tableroGeneral: '/?tablero=general',
     tableroMec:     '/?tablero=mecanicos',
-    tableroCI:      '/tablero-ci',
+    tableroCI:      '/ci',
     insumos:        '/solicitar-insumos',
     alistamiento:   '/alistamiento?seccion=alistamiento',
     mantenimiento:  '/alistamiento?seccion=mantenimiento',
     contador:       '/contador-modulos',
-    informeCI:      '/tablero-ci?seccion=informe',
+    informeCI:      '/ci?seccion=informe',
     informeGeneral: '/?seccion=historico',
-    dashCI:         '/tablero-ci?seccion=dashboard',
+    dashCI:         '/ci?seccion=dashboard',
     dashPlanta:     '/dashboard-planta',
   };
 
