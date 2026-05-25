@@ -700,6 +700,7 @@ input,select,textarea{ font-size:16px !important; }
 </div>
 
 
+
 <!-- TOAST -->
 <div id="ci-toast"></div>
 
@@ -710,6 +711,7 @@ input,select,textarea{ font-size:16px !important; }
 // ══════════════════════════════════════════════════════
 
 function dbg(msg){
+  console.log('[CI]', msg);
   const el = document.getElementById('ci-debug');
   if(el) el.innerHTML += '• ' + msg + '<br>';
 }
@@ -749,8 +751,12 @@ function connectWS(){
     clearTimeout(reconnectTimer);
     setDot(true);
     dbg('WS conectado ✓');
+    // Ocultar pantalla de carga inmediatamente al conectar
+    const loader = document.getElementById('ci-loader');
+    const app    = document.getElementById('ci-app');
+    if(loader) loader.style.display = 'none';
+    if(app)    app.style.display    = 'block';
     // El servidor manda 'init' automáticamente al conectar
-    // pero también pedimos ci_init por si acaso
     setTimeout(() => wsSend({ type: 'ci_init' }), 100);
   };
 
@@ -1251,6 +1257,21 @@ function exportarExcelResumido(){
 
 
 // ── Formato tiempo ──
+function fmtElapsed(ms){
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  const h = Math.floor(m / 60);
+  if(h > 0) return `${h}h ${m % 60}m`;
+  if(m > 0) return `${m}m ${s % 60}s`;
+  return `${s}s`;
+}
+
+function timerClass(ms){
+  const min = ms / 60000;
+  if(min >= 15) return 'danger';
+  if(min >= 7)  return 'warn';
+  return '';
+}
 
 // ── Render principal ──
 function renderCards(){
@@ -1460,6 +1481,7 @@ function startTimers(){
 }
 
 
+
 // ── Filtros ──
 function setFilter(f){
   _filterStatus = f;
@@ -1553,6 +1575,20 @@ function marcarCumplido(id){
 
 // ── Dropdown Observación ──
 let _obsMenuOpen = null;
+
+function toggleObsMenu(id){
+  // Cerrar cualquier menú abierto
+  if(_obsMenuOpen && _obsMenuOpen !== id){
+    const prev = document.getElementById('obs-menu-'+_obsMenuOpen);
+    if(prev) prev.style.display = 'none';
+  }
+  const menu = document.getElementById('obs-menu-'+id);
+  if(!menu) return;
+  const isOpen = menu.style.display === 'block';
+  menu.style.display = isOpen ? 'none' : 'block';
+  _obsMenuOpen = isOpen ? null : id;
+  if(!isOpen) buildObsMenu(id, menu);
+}
 
 function buildObsMenu(id, menu){
   const req = ciRequests.find(r => r._id === id);
@@ -2403,6 +2439,10 @@ document.addEventListener('click', e=>{
 
 // Actualizar dashboard automáticamente con cada nueva solicitud
 const _origRenderCards = typeof renderCards === 'function' ? renderCards : null;
+function renderCardsYDash(){
+  if(_origRenderCards) _origRenderCards();
+  if(document.getElementById('dash-overlay')?.style.display !== 'none') renderDashboard();
+}
 
 // Escuchar eventos CI para auto-actualizar
 document.addEventListener('ci-updated', ()=>{
@@ -2424,16 +2464,16 @@ document.addEventListener('ci-updated', ()=>{
     ordenes:        '/ordenes',
     asistencia:     '/ingresos',
     recogedores:    '/recogedores',
-    tableroGeneral: '/',
+    tableroGeneral: '/?tablero=general',
     tableroMec:     '/?tablero=mecanicos',
-    tableroCI:      '/tablero-ci',
+    tableroCI:      '/ci',
     insumos:        '/solicitar-insumos',
     alistamiento:   '/alistamiento?seccion=alistamiento',
     mantenimiento:  '/alistamiento?seccion=mantenimiento',
     contador:       '/contador-modulos',
-    informeCI:      '/tablero-ci?seccion=informe',
+    informeCI:      '/ci?seccion=informe',
     informeGeneral: '/?seccion=historico',
-    dashCI:         '/tablero-ci?seccion=dashboard',
+    dashCI:         '/ci?seccion=dashboard',
     dashPlanta:     '/dashboard-planta',
   };
 
@@ -2452,6 +2492,21 @@ document.addEventListener('ci-updated', ()=>{
     televisor:    ['tableroGeneral','tableroMec','tableroCI'],
     recogedores:  ['recogedores'],
   };
+
+  function tienePermiso(perfil, clave){
+    const p = perfil.toLowerCase();
+    const perms = PERMISOS[p] || PERMISOS['administrador'];
+    return perms.includes(clave) ||
+           perms.includes('produccion') || perms.includes('tableros') ||
+           perms.includes('mecanicos')  || perms.includes('modulos') ||
+           perms.includes('informes');
+  }
+
+  function esPerfil(perfil, ...claves){
+    const p = perfil.toLowerCase();
+    const perms = PERMISOS[p] || PERMISOS['administrador'];
+    return claves.some(k => perms.includes(k));
+  }
 
   // Íconos SVG
   const ICONS = {
