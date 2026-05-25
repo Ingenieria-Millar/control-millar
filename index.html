@@ -2066,7 +2066,9 @@ window.addEventListener('DOMContentLoaded', async ()=>{
       // Ocultar login, mostrar tablero
       const ls = document.getElementById('login-screen');
       if(ls) ls.classList.add('hidden');
-      history.replaceState({},'',' /');
+      // Actualizar URL con perfil para que el nav muestre los permisos correctos
+      const _perfilNav = _autoUser.toLowerCase();
+      history.replaceState({}, '', '/?tablero='+_tablero+'&perfil='+_perfilNav);
       setTimeout(()=>{
         document.getElementById('area-screen')?.classList.add('hidden');
         entrarTablero();
@@ -2636,7 +2638,7 @@ function ocultarTodo(){
 }
 // ── Entrar al tablero general (activa modo blanco en header) ─────────
 function entrarTablero(){
-  const nombre = (currentUser==='Mecanicos'||currentUser==='Televisor') ? 'Tablero Mecanicos' : 'Tablero General';
+  const nombre = currentUser==='Mecanicos' ? 'Tablero Mecanicos' : 'Tablero General';
   const h1 = document.getElementById('main-header-title');
   if(h1){
     const partes = nombre.split(' ');
@@ -2648,14 +2650,14 @@ function entrarTablero(){
   if(hdRight) hdRight.classList.add('visible');
   
   // ── Ocultar "Espera CI" en Tablero Mecánicos ──
-  const estatOrange = document.getElementById('stat-orange');
-  if(estatOrange){
-    if(currentUser==='Mecanicos'){
-      estatOrange.style.display = 'none';
-    } else {
-      estatOrange.style.display = '';
+  const _ocultarEsperaCI = () => {
+    const estatOrange = document.getElementById('stat-orange');
+    if(estatOrange){
+      estatOrange.style.display = currentUser==='Mecanicos' ? 'none' : '';
     }
-  }
+  };
+  _ocultarEsperaCI();
+  setTimeout(_ocultarEsperaCI, 500); // re-ejecutar tras render
   
   // Limpiar filtros al entrar — evita tablero vacío
   activeFilters.clear();
