@@ -1887,17 +1887,18 @@ function populateLoginSelect(){
   oP.value = 'Programador'; oP.textContent = '🔑 Programador';
   sel.appendChild(oP);
 
-  const cfg = loadConfig();
-  // Mostrar todos los perfiles de _usuarios_extra que no estén deshabilitados
-  const extras = (cfg._usuarios_extra||[])
-    .filter(u => u.nombre && u.nombre !== 'Programador' && !u.disabled)
-    .sort((a,b) => a.nombre.localeCompare(b.nombre));
-
-  extras.forEach(u => {
-    const o = document.createElement('option');
-    o.value = u.nombre; o.textContent = u.nombre;
-    sel.appendChild(o);
-  });
+  // Mostrar todos los perfiles en USUARIOS (base + extras ya aplicados)
+  const mostrados = new Set(['Programador']);
+  Object.entries(USUARIOS)
+    .filter(([n, u]) => n !== 'Programador' && !u.disabled)
+    .sort(([a],[b]) => a.localeCompare(b))
+    .forEach(([nombre]) => {
+      if(mostrados.has(nombre)) return;
+      mostrados.add(nombre);
+      const o = document.createElement('option');
+      o.value = nombre; o.textContent = nombre;
+      sel.appendChild(o);
+    });
 
   if(prev) sel.value = prev;
 }
