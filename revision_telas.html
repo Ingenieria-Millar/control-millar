@@ -9,8 +9,6 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Nunito',sans-serif;background:#f1f5f9;min-height:100vh;}
-
-/* ── HEADER ── */
 header{position:sticky;top:0;z-index:100;background:#fff;border-bottom:1px solid #e2e8f0;
   box-shadow:0 1px 6px rgba(0,0,0,.07);padding:0 clamp(12px,2.5vw,24px);min-height:64px;
   display:flex;align-items:center;justify-content:space-between;gap:12px;}
@@ -28,8 +26,6 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
   color:#1e3a8a;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;
   letter-spacing:.5px;cursor:pointer;transition:all .2s;white-space:nowrap;}
 .hd-back-btn:hover{background:#f1f5f9;border-color:#93c5fd;}
-
-/* ── NAV ── */
 .millar-nav{display:flex;align-items:center;gap:2px;}
 .millar-nav-item{position:relative;}
 .millar-nav-btn{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 14px;
@@ -43,30 +39,15 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
 .millar-dropdown{display:none;position:absolute;top:calc(100% + 4px);left:50%;transform:translateX(-50%);
   min-width:200px;background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;
   box-shadow:0 8px 24px rgba(0,0,0,.1);z-index:9999;animation:dropIn .15s ease;}
-@keyframes dropIn{from{opacity:0;transform:translateX(-50%) translateY(-6px);}
-  to{opacity:1;transform:translateX(-50%) translateY(0);}}
+@keyframes dropIn{from{opacity:0;transform:translateX(-50%) translateY(-6px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
 .millar-dropdown.open{display:block;}
 .millar-dd-inner{padding:6px;}
 .millar-dd-item{display:flex;align-items:center;padding:9px 12px;border-radius:8px;
   font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:.3px;
   color:#0f172a;cursor:pointer;transition:background .12s;text-decoration:none;white-space:nowrap;}
 .millar-dd-item:hover{background:#f1f5f9;color:#1e40af;}
-.millar-dd-sep{height:1px;background:#f1f5f9;margin:4px 6px;}
-.millar-sub{display:none;position:absolute;left:100%;top:0;min-width:180px;background:#fff;
-  border:1.5px solid #e2e8f0;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.1);padding:6px;}
-.has-sub{position:relative;justify-content:space-between;}
-.has-sub:hover .millar-sub{display:block;}
-.millar-sub-item{display:block;padding:8px 12px;border-radius:8px;font-family:'Barlow Condensed',sans-serif;
-  font-size:13px;font-weight:700;color:#0f172a;text-decoration:none;transition:background .12s;}
-.millar-sub-item:hover{background:#f1f5f9;color:#1e40af;}
-
-/* ── MAIN ── */
 .main{max-width:1400px;margin:0 auto;padding:24px clamp(12px,2.5vw,24px);}
-
-/* ── TOOLBAR ── */
 .toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:20px;}
-.toolbar-title{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;
-  letter-spacing:2px;text-transform:uppercase;color:#0f172a;margin-right:auto;}
 .btn{padding:8px 16px;border-radius:8px;font-family:'Barlow Condensed',sans-serif;font-size:13px;
   font-weight:700;letter-spacing:.5px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px;border:none;}
 .btn-primary{background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;}
@@ -77,71 +58,85 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
 .btn-cfg:hover{background:#fef3c7;}
 .btn-outline{background:#fff;color:#475569;border:1.5px solid #e2e8f0;}
 .btn-outline:hover{background:#f8fafc;}
+.btn-danger{background:#fef2f2;color:#dc2626;border:1.5px solid #fca5a5;}
+.btn-danger:hover{background:#fee2e2;}
 
-/* ── FILTROS ── */
-.filters{background:#fff;border-radius:12px;border:1px solid #e2e8f0;padding:14px 18px;
-  margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
-.filter-label{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;
-  letter-spacing:1px;text-transform:uppercase;color:#64748b;}
-.filter-input{padding:7px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;
-  font-family:'Nunito',sans-serif;outline:none;color:#0f172a;background:#f8fafc;}
-.filter-input:focus{border-color:#2563eb;background:#fff;}
+/* Filtro fecha dropdown */
+.date-filter-wrap{position:relative;}
+.date-filter-btn{padding:8px 14px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;
+  color:#0f172a;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;
+  cursor:pointer;display:flex;align-items:center;gap:7px;letter-spacing:.3px;}
+.date-filter-btn:hover{background:#f8fafc;}
+.date-filter-panel{display:none;position:absolute;top:calc(100% + 6px);left:0;
+  background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;padding:16px;
+  box-shadow:0 8px 24px rgba(0,0,0,.1);z-index:200;min-width:220px;}
+.date-filter-panel.open{display:block;}
+.date-filter-label{font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;
+  text-transform:uppercase;display:block;margin-bottom:5px;}
+.date-filter-input{width:100%;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;
+  font-size:13px;outline:none;color:#0f172a;margin-bottom:10px;}
+.date-filter-input:focus{border-color:#2563eb;}
+.date-filter-btns{display:flex;gap:8px;}
 
-/* ── STATS ── */
+/* Stats */
 .stats-row{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;}
 .stat-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px 20px;
   display:flex;flex-direction:column;gap:4px;min-width:120px;}
 .stat-num{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:#0f172a;}
 .stat-lbl{font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#94a3b8;}
 
-/* ── TABLA ── */
+/* Tabla */
 .table-wrap{background:#fff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;}
-.table-header{display:grid;grid-template-columns:100px 1fr 80px 80px 100px 110px 140px 80px 80px 90px 90px;
+.table-header{display:grid;grid-template-columns:100px 130px 1fr 80px 80px 90px 90px 100px 110px 120px;
   gap:0;padding:10px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;}
 .th{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;
   text-transform:uppercase;color:#64748b;display:flex;align-items:center;gap:4px;cursor:pointer;user-select:none;}
 .th:hover{color:#1e40af;}
-.th .sort-arrow{font-size:10px;color:#cbd5e1;}
 .table-body{max-height:calc(100vh - 320px);overflow-y:auto;}
-.table-row{display:grid;grid-template-columns:100px 1fr 80px 80px 100px 110px 140px 80px 80px 90px 90px;
+.table-row{display:grid;grid-template-columns:100px 130px 1fr 80px 80px 90px 90px 100px 110px 120px;
   gap:0;padding:11px 16px;border-bottom:1px solid #f8fafc;transition:background .12s;align-items:center;}
 .table-row:hover{background:#f8fafc;}
 .td{font-size:12px;color:#334155;font-family:'Nunito',sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .td-badge{display:inline-flex;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;
-  font-family:'Barlow Condensed',sans-serif;letter-spacing:.3px;background:#eff6ff;color:#1d4ed8;}
-.td-actions{display:flex;gap:4px;}
+  font-family:'Barlow Condensed',sans-serif;background:#eff6ff;color:#1d4ed8;}
+.badge-ok{background:#f0fdf4;color:#15803d;}
+.badge-rech{background:#fef2f2;color:#dc2626;}
+.badge-pend{background:#fffbeb;color:#b45309;}
+.btn-finalizar{padding:6px 14px;border-radius:8px;border:none;background:#dc2626;color:#fff;
+  font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:.5px;
+  cursor:pointer;white-space:nowrap;transition:all .2s;}
+.btn-finalizar:hover{background:#b91c1c;}
 .btn-action{width:28px;height:28px;border-radius:6px;border:1.5px solid #e2e8f0;background:#fff;
   cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .15s;}
 .btn-action:hover{background:#f1f5f9;}
-.btn-action.del:hover{background:#fef2f2;border-color:#fca5a5;}
+.td-actions{display:flex;gap:4px;align-items:center;}
+.tiempo-badge{display:inline-flex;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;
+  background:#f0fdf4;color:#15803d;border:1px solid #86efac;}
 .empty-state{padding:60px 20px;text-align:center;color:#94a3b8;}
 .empty-icon{font-size:48px;margin-bottom:12px;}
 .empty-text{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;text-transform:uppercase;}
 
-/* ── MODALES ── */
+/* Modales */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1000;
   align-items:center;justify-content:center;padding:16px;}
 .modal-overlay.open{display:flex;}
-.modal-box{background:#fff;border-radius:16px;width:100%;max-width:560px;max-height:90vh;
+.modal-box{background:#fff;border-radius:16px;width:100%;max-width:480px;max-height:90vh;
   overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);font-family:'Nunito',sans-serif;}
-.modal-box.wide{max-width:720px;}
+.modal-box.wide{max-width:560px;}
 .modal-header{padding:20px 24px 16px;border-bottom:1px solid #e2e8f0;position:sticky;top:0;background:#fff;z-index:1;}
-.modal-title{font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:800;
-  letter-spacing:2px;color:#0f172a;}
+.modal-title{font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:800;letter-spacing:2px;color:#0f172a;}
 .modal-body{padding:20px 24px;}
 .modal-footer{padding:16px 24px;border-top:1px solid #e2e8f0;display:flex;gap:10px;justify-content:flex-end;
   position:sticky;bottom:0;background:#fff;}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-.form-grid.single{grid-template-columns:1fr;}
-.form-field{display:flex;flex-direction:column;gap:5px;}
-.form-field.full{grid-column:1/-1;}
+.form-field{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;}
 .field-label{font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;}
 .field-input,.field-select{padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;
   font-size:13px;font-family:'Nunito',sans-serif;outline:none;color:#0f172a;width:100%;background:#fff;}
 .field-input:focus,.field-select:focus{border-color:#2563eb;}
-.field-error{color:#dc2626;font-size:11px;min-height:14px;}
+.field-readonly{padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;
+  background:#f8fafc;color:#64748b;font-family:'Nunito',sans-serif;}
 
-/* ── SEARCHABLE SELECT ── */
+/* Searchable */
 .searchable-wrap{position:relative;}
 .searchable-input{width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;
   font-size:13px;font-family:'Nunito',sans-serif;outline:none;color:#0f172a;}
@@ -150,52 +145,49 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
   border:1.5px solid #e2e8f0;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.1);
   z-index:100;max-height:180px;overflow-y:auto;}
 .searchable-dropdown.open{display:block;}
-.searchable-option{padding:8px 12px;font-size:13px;cursor:pointer;font-family:'Nunito',sans-serif;color:#0f172a;}
-.searchable-option:hover,.searchable-option.selected{background:#eff6ff;color:#1d4ed8;}
+.searchable-option{padding:8px 12px;font-size:13px;cursor:pointer;color:#0f172a;}
+.searchable-option:hover{background:#eff6ff;color:#1d4ed8;}
 .searchable-empty{padding:12px;font-size:12px;color:#94a3b8;text-align:center;}
 
-/* ── CFG MODAL ── */
-.cfg-tabs{display:flex;gap:4px;background:#f8fafc;border-radius:8px;padding:4px;margin-bottom:16px;}
-.cfg-tab{flex:1;padding:7px;border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-size:12px;
-  font-weight:700;letter-spacing:.5px;text-transform:uppercase;border:none;background:transparent;
-  color:#64748b;cursor:pointer;transition:all .15s;}
-.cfg-tab.active{background:#fff;color:#1e3a8a;box-shadow:0 1px 4px rgba(0,0,0,.08);}
-.cfg-list{display:flex;flex-direction:column;gap:4px;max-height:260px;overflow-y:auto;}
-.cfg-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;
-  background:#f8fafc;border:1px solid #e2e8f0;}
-.cfg-item-name{flex:1;font-size:13px;font-weight:600;color:#0f172a;}
-.cfg-item-btn{width:28px;height:28px;border-radius:6px;border:1.5px solid #e2e8f0;background:#fff;
-  cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
-.cfg-item-btn:hover{background:#fef2f2;border-color:#fca5a5;}
-.cfg-add-row{display:flex;gap:8px;margin-top:10px;}
-.cfg-add-input{flex:1;padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:8px;
-  font-size:13px;font-family:'Nunito',sans-serif;outline:none;}
-.cfg-add-input:focus{border-color:#2563eb;}
-.cfg-toolbar{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+/* Defectos en finalizar */
+.defecto-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+.defecto-row select{flex:2;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;
+  font-size:13px;outline:none;background:#fff;}
+.defecto-row input{flex:1;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;
+  font-size:13px;outline:none;text-align:center;}
+.defecto-row button{width:30px;height:30px;border-radius:6px;border:1.5px solid #fca5a5;
+  background:#fef2f2;color:#dc2626;cursor:pointer;font-size:14px;flex-shrink:0;}
 
-/* ── CONFIRM DELETE ── */
+/* Toggle aprobado/rechazado */
+.toggle-wrap{display:flex;gap:0;border-radius:8px;overflow:hidden;border:1.5px solid #e2e8f0;}
+.toggle-btn{flex:1;padding:9px;font-family:'Barlow Condensed',sans-serif;font-size:13px;
+  font-weight:700;letter-spacing:.5px;border:none;cursor:pointer;transition:all .2s;background:#f8fafc;color:#64748b;}
+.toggle-btn.active-ok{background:#dcfce7;color:#15803d;}
+.toggle-btn.active-rech{background:#fee2e2;color:#dc2626;}
+
+/* Confirm delete */
 #modal-confirm-rt{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);
   z-index:1100;align-items:center;justify-content:center;}
 #modal-confirm-rt.open{display:flex;}
 
-/* ── TIEMPO ── */
-.tiempo-badge{display:inline-flex;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;
-  background:#f0fdf4;color:#15803d;border:1px solid #86efac;}
-
-/* ── TOAST ── */
+/* Toast */
 .toast{position:fixed;bottom:24px;right:24px;background:#0f172a;color:#fff;padding:12px 20px;
   border-radius:10px;font-size:13px;font-weight:600;z-index:9999;transform:translateY(80px);
   opacity:0;transition:all .3s;pointer-events:none;}
 .toast.show{transform:translateY(0);opacity:1;}
+
+/* Pantalla CFG */
+#rt-cfg-screen{display:none;position:fixed;inset:0;z-index:500;background:#f1f5f9;flex-direction:column;}
+.cfg-add-input{flex:1;padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:8px;
+  font-size:13px;font-family:'Nunito',sans-serif;outline:none;}
+.cfg-add-input:focus{border-color:#2563eb;}
 </style>
 </head>
 <body>
 
 <header>
   <div class="hd-left">
-    <div class="hd-logo">
-      <img src="/logo.png" alt="Millar" onerror="this.style.display='none'">
-    </div>
+    <div class="hd-logo"><img src="/logo.png" alt="Millar" onerror="this.style.display='none'"></div>
     <div>
       <div class="hd-title">Revisión <span>Telas</span></div>
       <p style="font-size:11px;color:#64748b;font-weight:600;margin-top:1px;" id="rt-date"></p>
@@ -205,125 +197,93 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
     <div data-millar-nav></div>
     <div style="width:1px;height:22px;background:#e2e8f0;flex-shrink:0;"></div>
     <button class="btn btn-cfg" onclick="abrirCfgScreen()">⚙️ Configuraciones</button>
-    <button class="btn btn-success" onclick="exportarExcel()">📊 Exportar Excel</button>
+    <button class="btn btn-success" onclick="exportarExcel()">📊 Exportar</button>
     <button class="btn btn-primary" onclick="openRegistroModal()">+ Nuevo Registro</button>
     <button class="hd-back-btn" onclick="location.href='/'">← Inicio</button>
   </div>
 </header>
 
 <div class="main">
-  <!-- Stats -->
   <div class="stats-row" id="rt-stats"></div>
 
-  <!-- Filtros -->
-  <div class="filters">
-    <span class="filter-label">📅 Filtrar por fecha:</span>
-    <input type="date" class="filter-input" id="filtro-desde" onchange="aplicarFiltros()">
-    <span class="filter-label" style="color:#94a3b8;">—</span>
-    <input type="date" class="filter-input" id="filtro-hasta" onchange="aplicarFiltros()">
-    <button class="btn btn-outline" onclick="limpiarFiltros()" style="padding:6px 12px;">✕ Limpiar</button>
+  <!-- Filtro fecha -->
+  <div style="margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+    <div class="date-filter-wrap">
+      <button class="date-filter-btn" onclick="toggleDatePanel()" id="date-filter-btn">
+        🗓 <span id="date-filter-label">Filtrar por fecha</span> ▾
+      </button>
+      <div class="date-filter-panel" id="date-filter-panel">
+        <label class="date-filter-label">Desde</label>
+        <input type="date" class="date-filter-input" id="filtro-desde">
+        <label class="date-filter-label">Hasta</label>
+        <input type="date" class="date-filter-input" id="filtro-hasta">
+        <div class="date-filter-btns">
+          <button class="btn btn-primary" style="flex:1;padding:8px;" onclick="aplicarFiltroFecha()">Filtrar</button>
+          <button class="btn btn-outline" style="flex:1;padding:8px;" onclick="limpiarFiltros()">Limpiar</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Tabla -->
   <div class="table-wrap">
     <div class="table-header">
-      <div class="th" onclick="sortBy('fecha')">Fecha <span class="sort-arrow">↕</span></div>
-      <div class="th" onclick="sortBy('referencia')">Ref. Tela <span class="sort-arrow">↕</span></div>
-      <div class="th"># Rollo</div>
+      <div class="th" onclick="sortBy('fecha')">Fecha ↕</div>
+      <div class="th">Revisador</div>
+      <div class="th" onclick="sortBy('referencia')">Ref. Tela ↕</div>
       <div class="th">Color</div>
-      <div class="th">Metros</div>
-      <div class="th">Cant. Defectos</div>
-      <div class="th">Tipo Defecto</div>
+      <div class="th"># Rollo</div>
       <div class="th">H. Inicio</div>
       <div class="th">H. Fin</div>
       <div class="th">Tiempo</div>
+      <div class="th">Estado</div>
       <div class="th">Acciones</div>
     </div>
     <div class="table-body" id="rt-table-body"></div>
   </div>
 </div>
 
-<!-- Toast -->
 <div class="toast" id="rt-toast"></div>
 
-<!-- Modal Nuevo/Editar Registro -->
+<!-- Modal Nuevo Registro -->
 <div class="modal-overlay" id="modal-registro" onclick="if(event.target===this)closeRegistroModal()">
-  <div class="modal-box wide">
+  <div class="modal-box">
     <div class="modal-header">
-      <div class="modal-title" id="registro-modal-title">➕ NUEVO REGISTRO</div>
+      <div class="modal-title">➕ NUEVO REGISTRO</div>
     </div>
     <div class="modal-body">
-      <div class="form-grid">
-        <div class="form-field">
-          <label class="field-label">Fecha</label>
-          <input type="date" class="field-input" id="f-fecha">
-        </div>
-        <div class="form-field">
-          <label class="field-label">Referencia Tela</label>
-          <div class="searchable-wrap">
-            <input type="text" class="searchable-input" id="f-ref-input" placeholder="Buscar referencia..." autocomplete="off"
-              oninput="filtrarOpciones('f-ref-input','f-ref-dd','_cfgReferencias')" onfocus="abrirDropdown('f-ref-dd')" onblur="setTimeout(()=>cerrarDropdown('f-ref-dd'),200)">
-            <input type="hidden" id="f-ref-val">
-            <div class="searchable-dropdown" id="f-ref-dd"></div>
-          </div>
-        </div>
-        <div class="form-field">
-          <label class="field-label"># de Rollo</label>
-          <input type="number" min="0" class="field-input" id="f-rollo" placeholder="Ej: 001">
-        </div>
-        <div class="form-field">
-          <label class="field-label">Color</label>
-          <select class="field-select" id="f-color">
-            <option value="">— Seleccionar —</option>
-          </select>
-        </div>
-        <div class="form-field">
-          <label class="field-label">Metros Revisados</label>
-          <input type="number" min="0" step="0.1" class="field-input" id="f-metros" placeholder="Ej: 25.5">
-        </div>
-        <div class="form-field">
-          <label class="field-label">Cantidad Defectos</label>
-          <input type="number" min="0" class="field-input" id="f-defectos" placeholder="Ej: 3">
-        </div>
-        <div class="form-field full">
-          <label class="field-label">Tipo Defecto</label>
-          <select class="field-select" id="f-tipo-defecto">
-            <option value="">— Seleccionar —</option>
-          </select>
-        </div>
-        <div class="form-field">
-          <label class="field-label">Hora Inicio</label>
-          <div style="display:flex;gap:6px;align-items:center;">
-            <input type="number" min="1" max="12" class="field-input" id="f-hi-h" placeholder="HH" style="width:60px;text-align:center;">
-            <span style="color:#64748b;font-weight:700;">:</span>
-            <input type="number" min="0" max="59" class="field-input" id="f-hi-m" placeholder="MM" style="width:60px;text-align:center;">
-            <select class="field-select" id="f-hi-ampm" style="width:70px;">
-              <option value="AM">AM</option>
-              <option value="PM">PM</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-field">
-          <label class="field-label">Hora Fin</label>
-          <div style="display:flex;gap:6px;align-items:center;">
-            <input type="number" min="1" max="12" class="field-input" id="f-hf-h" placeholder="HH" style="width:60px;text-align:center;" oninput="calcularTiempo()">
-            <span style="color:#64748b;font-weight:700;">:</span>
-            <input type="number" min="0" max="59" class="field-input" id="f-hf-m" placeholder="MM" style="width:60px;text-align:center;" oninput="calcularTiempo()">
-            <select class="field-select" id="f-hf-ampm" style="width:70px;" onchange="calcularTiempo()">
-              <option value="AM">AM</option>
-              <option value="PM">PM</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-field full">
-          <label class="field-label">Tiempo Tardado</label>
-          <div id="f-tiempo-preview" style="padding:9px 14px;background:#f0fdf4;border-radius:8px;
-            border:1.5px solid #86efac;font-weight:700;color:#15803d;font-size:14px;min-height:40px;">
-            — Se calcula automáticamente —
-          </div>
+      <div class="form-field">
+        <label class="field-label">Fecha</label>
+        <div class="field-readonly" id="f-fecha-display"></div>
+        <input type="hidden" id="f-fecha">
+      </div>
+      <div class="form-field">
+        <label class="field-label">Revisador</label>
+        <select class="field-select" id="f-revisador">
+          <option value="">— Seleccionar —</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label class="field-label">Referencia Tela</label>
+        <div class="searchable-wrap">
+          <input type="text" class="searchable-input" id="f-ref-input" placeholder="Buscar referencia..."
+            autocomplete="off" oninput="filtrarOpciones('f-ref-input','f-ref-dd','_cfgReferencias')"
+            onfocus="abrirDropdown('f-ref-dd')" onblur="setTimeout(()=>cerrarDropdown('f-ref-dd'),200)">
+          <input type="hidden" id="f-ref-val">
+          <div class="searchable-dropdown" id="f-ref-dd"></div>
         </div>
       </div>
-      <div id="f-error" style="color:#dc2626;font-size:12px;margin-top:8px;min-height:14px;"></div>
+      <div class="form-field">
+        <label class="field-label">Color</label>
+        <select class="field-select" id="f-color">
+          <option value="">— Seleccionar —</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label class="field-label"># de Rollo</label>
+        <input type="number" min="0" class="field-input" id="f-rollo" placeholder="Ej: 001">
+      </div>
+      <div id="f-error" style="color:#dc2626;font-size:12px;min-height:14px;"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeRegistroModal()">Cancelar</button>
@@ -332,543 +292,614 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
   </div>
 </div>
 
-<!-- Modal Configuraciones -->
-<div class="modal-overlay" id="modal-cfg" onclick="if(event.target===this)closeCfgModal()">
-  <div class="modal-box">
+<!-- Modal Finalizar Revisión -->
+<div class="modal-overlay" id="modal-finalizar" onclick="if(event.target===this)closeFinalizar()">
+  <div class="modal-box wide">
     <div class="modal-header">
-      <div class="modal-title">⚙️ CONFIGURACIONES</div>
+      <div class="modal-title">🏁 FINALIZAR REVISIÓN</div>
+      <div style="font-size:12px;color:#64748b;margin-top:4px;" id="fin-ref-label"></div>
     </div>
     <div class="modal-body">
-      <div class="cfg-tabs">
-        <button class="cfg-tab active" onclick="switchCfgTab('defectos',this)">Tipos Defecto</button>
-        <button class="cfg-tab" onclick="switchCfgTab('referencias',this)">Referencias Tela</button>
-        <button class="cfg-tab" onclick="switchCfgTab('colores',this)">Colores</button>
+      <div class="form-field">
+        <label class="field-label">Metros Revisados</label>
+        <input type="number" min="0" step="0.1" class="field-input" id="fin-metros" placeholder="Ej: 25.5">
       </div>
-      <div id="cfg-tab-content"></div>
+      <div class="form-field">
+        <label class="field-label">Defectos encontrados</label>
+        <div id="fin-defectos-list"></div>
+        <button class="btn btn-outline" style="margin-top:6px;width:100%;justify-content:center;"
+          onclick="agregarDefectoRow()">+ Agregar defecto</button>
+      </div>
+      <div class="form-field">
+        <label class="field-label">Resultado</label>
+        <div class="toggle-wrap">
+          <button class="toggle-btn" id="btn-aprobado" onclick="setResultado('aprobado')">✅ Aprobado</button>
+          <button class="toggle-btn" id="btn-rechazado" onclick="setResultado('rechazado')">❌ Rechazado</button>
+        </div>
+        <input type="hidden" id="fin-resultado" value="">
+      </div>
+      <div class="form-field">
+        <label class="field-label">Observaciones</label>
+        <textarea class="field-input" id="fin-observaciones" rows="3"
+          placeholder="Observaciones opcionales..." style="resize:vertical;"></textarea>
+      </div>
+      <div id="fin-error" style="color:#dc2626;font-size:12px;min-height:14px;"></div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeCfgModal()">Cerrar</button>
+      <button class="btn btn-outline" onclick="closeFinalizar()">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarFinalizar()">✅ Finalizar</button>
     </div>
   </div>
 </div>
 
-<!-- Modal Confirmar Eliminar con contraseña -->
+<!-- Modal Confirmar con contraseña -->
 <div id="modal-confirm-rt" onclick="if(event.target===this)closeConfirmRT()">
   <div style="background:#fff;border-radius:16px;padding:24px;width:100%;max-width:380px;
     box-shadow:0 20px 60px rgba(0,0,0,.25);font-family:'Nunito',sans-serif;">
     <div id="rt-confirm-title" style="font-family:'Barlow Condensed',sans-serif;font-size:19px;
-      font-weight:800;letter-spacing:2px;color:#dc2626;margin-bottom:8px;">⚠️ CONFIRMAR</div>
+      font-weight:800;letter-spacing:2px;color:#dc2626;margin-bottom:8px;">⚠️ ELIMINAR</div>
     <p id="rt-confirm-sub" style="font-size:13px;color:#475569;margin-bottom:16px;"></p>
     <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px;">Contraseña</label>
     <input type="password" id="rt-confirm-pass" placeholder="····" maxlength="20"
-      style="width:100%;padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;
-      font-size:14px;outline:none;margin-bottom:6px;"
+      style="width:100%;padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:14px;outline:none;margin-bottom:6px;"
       onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'"
       onkeydown="if(event.key==='Enter')executeConfirmRT()">
     <div id="rt-confirm-error" style="color:#dc2626;font-size:12px;min-height:16px;margin-bottom:12px;"></div>
     <div style="display:flex;gap:10px;">
-      <button onclick="closeConfirmRT()" style="flex:1;padding:10px;border-radius:8px;border:1.5px solid #e2e8f0;
-        background:#fff;color:#64748b;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Cancelar</button>
-      <button onclick="executeConfirmRT()" style="flex:1;padding:10px;border-radius:8px;border:none;
-        background:#dc2626;color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Confirmar</button>
+      <button onclick="closeConfirmRT()" style="flex:1;padding:10px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Cancelar</button>
+      <button onclick="executeConfirmRT()" style="flex:1;padding:10px;border-radius:8px;border:none;background:#dc2626;color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Pantalla Configuraciones -->
+<div id="rt-cfg-screen" style="display:none;position:fixed;inset:0;z-index:500;background:#f1f5f9;flex-direction:column;">
+  <div style="background:#fff;border-bottom:1px solid #e2e8f0;box-shadow:0 1px 6px rgba(0,0,0,.07);
+    padding:0 clamp(12px,2.5vw,24px);min-height:64px;display:flex;align-items:center;
+    justify-content:space-between;gap:12px;position:relative;">
+    <div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);"></div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="hd-logo"><img src="/logo.png" alt="" onerror="this.style.display='none'"></div>
+      <div>
+        <div class="hd-title">⚙️ <span>Configuraciones</span></div>
+        <p style="font-size:11px;color:#64748b;font-weight:600;margin-top:1px;">Revisión de Telas</p>
+      </div>
+    </div>
+    <button class="hd-back-btn" onclick="cerrarCfgScreen()">← Volver</button>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:24px clamp(12px,2.5vw,24px);">
+    <div style="max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;">
+
+      <!-- Referencias Tela -->
+      <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;">
+        <div style="padding:14px 18px;border-bottom:1px solid #e2e8f0;background:#f8fafc;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#0f172a;">🧵 Referencias Tela</div>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-outline" style="font-size:11px;padding:5px 9px;" onclick="importarCfg('referencias')">📥 Importar</button>
+            <button class="btn btn-outline" style="font-size:11px;padding:5px 9px;" onclick="plantillaCfg('referencias')">📄 Plantilla</button>
+          </div>
+        </div>
+        <div style="padding:12px 14px;max-height:300px;overflow-y:auto;" id="cfg-screen-list-referencias"></div>
+        <div style="padding:10px 14px;border-top:1px solid #f1f5f9;display:flex;gap:8px;">
+          <input class="cfg-add-input" id="cfg-screen-add-referencias" placeholder="Nueva referencia..." onkeydown="if(event.key==='Enter')agregarCfgItemScreen('referencias')">
+          <button class="btn btn-primary" style="padding:7px 12px;" onclick="agregarCfgItemScreen('referencias')">+ Agregar</button>
+        </div>
+      </div>
+
+      <!-- Tipos de Defecto -->
+      <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;">
+        <div style="padding:14px 18px;border-bottom:1px solid #e2e8f0;background:#f8fafc;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#0f172a;">⚠️ Tipos de Defecto</div>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-outline" style="font-size:11px;padding:5px 9px;" onclick="importarCfg('defectos')">📥 Importar</button>
+            <button class="btn btn-outline" style="font-size:11px;padding:5px 9px;" onclick="plantillaCfg('defectos')">📄 Plantilla</button>
+          </div>
+        </div>
+        <div style="padding:12px 14px;max-height:300px;overflow-y:auto;" id="cfg-screen-list-defectos"></div>
+        <div style="padding:10px 14px;border-top:1px solid #f1f5f9;display:flex;gap:8px;">
+          <input class="cfg-add-input" id="cfg-screen-add-defectos" placeholder="Nuevo tipo de defecto..." onkeydown="if(event.key==='Enter')agregarCfgItemScreen('defectos')">
+          <button class="btn btn-primary" style="padding:7px 12px;" onclick="agregarCfgItemScreen('defectos')">+ Agregar</button>
+        </div>
+      </div>
+
+      <!-- Colores -->
+      <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;">
+        <div style="padding:14px 18px;border-bottom:1px solid #e2e8f0;background:#f8fafc;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#0f172a;">🎨 Colores</div>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-outline" style="font-size:11px;padding:5px 9px;" onclick="importarCfg('colores')">📥 Importar</button>
+            <button class="btn btn-outline" style="font-size:11px;padding:5px 9px;" onclick="plantillaCfg('colores')">📄 Plantilla</button>
+          </div>
+        </div>
+        <div style="padding:12px 14px;max-height:300px;overflow-y:auto;" id="cfg-screen-list-colores"></div>
+        <div style="padding:10px 14px;border-top:1px solid #f1f5f9;display:flex;gap:8px;">
+          <input class="cfg-add-input" id="cfg-screen-add-colores" placeholder="Nuevo color..." onkeydown="if(event.key==='Enter')agregarCfgItemScreen('colores')">
+          <button class="btn btn-primary" style="padding:7px 12px;" onclick="agregarCfgItemScreen('colores')">+ Agregar</button>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
 
 <script>
 // ── Estado global ──────────────────────────────────────────────────
-let _registros  = [];
-let _filtrados  = [];
-let _sortCol    = 'fecha';
-let _sortDir    = -1;
-let _editingId  = null;
-let _confirmCB  = null;
-let _cfgTab     = 'defectos';
-let _cfgDefectos    = [];
-let _cfgReferencias = [];
-let _cfgColores     = [];
-let ws = null, wsReady = false, wsTimer = null;
+let _registros=[], _filtrados=[], _sortCol='fecha', _sortDir=-1;
+let _confirmCB=null, _finalizandoId=null;
+let _cfgDefectos=[], _cfgReferencias=[], _cfgColores=[];
+let ws=null, wsReady=false, wsTimer=null;
+let _filtroDesde='', _filtroHasta='';
 
 // ── WebSocket ──────────────────────────────────────────────────────
 function connectWS(){
-  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-  ws = new WebSocket(proto + '://' + location.host);
-  ws.onopen = () => { wsReady = true; clearTimeout(wsTimer); };
-  ws.onmessage = e => {
+  const proto=location.protocol==='https:'?'wss':'ws';
+  ws=new WebSocket(proto+'://'+location.host);
+  ws.onopen=()=>{wsReady=true;clearTimeout(wsTimer);};
+  ws.onmessage=e=>{
     try{
-      const msg = JSON.parse(e.data);
-      if(msg.type === 'rt_update'){
-        _registros = msg.registros || [];
-        _cfgDefectos    = msg.defectos    || _cfgDefectos;
-        _cfgReferencias = msg.referencias || _cfgReferencias;
-        _cfgColores     = msg.colores     || _cfgColores;
+      const msg=JSON.parse(e.data);
+      if(msg.type==='rt_update'){
+        _registros=msg.registros||[];
+        _cfgDefectos=msg.defectos||_cfgDefectos;
+        _cfgReferencias=msg.referencias||_cfgReferencias;
+        _cfgColores=msg.colores||_cfgColores;
         aplicarFiltros();
       }
-    }catch(err){ console.warn('WS:',err); }
+    }catch(err){console.warn('WS:',err);}
   };
-  ws.onclose = () => { wsReady = false; wsTimer = setTimeout(connectWS, 4000); };
-  ws.onerror = () => ws.close();
+  ws.onclose=()=>{wsReady=false;wsTimer=setTimeout(connectWS,4000);};
+  ws.onerror=()=>ws.close();
 }
 
 // ── API ────────────────────────────────────────────────────────────
 async function cargarDatos(){
   try{
-    const res = await fetch('/api/revision-telas');
+    const res=await fetch('/api/revision-telas');
     if(res.ok){
-      const data = await res.json();
-      _registros      = data.registros    || [];
-      _cfgDefectos    = data.defectos     || [];
-      _cfgReferencias = data.referencias  || [];
-      _cfgColores     = data.colores      || [];
+      const d=await res.json();
+      _registros=d.registros||[];
+      _cfgDefectos=d.defectos||[];
+      _cfgReferencias=d.referencias||[];
+      _cfgColores=d.colores||[];
     }
-  }catch(e){ console.warn('cargarDatos:',e); }
+  }catch(e){console.warn(e);}
   aplicarFiltros();
-  renderStats();
 }
 
 async function guardarEnServidor(){
   try{
-    await fetch('/api/revision-telas', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ registros: _registros, defectos: _cfgDefectos,
-        referencias: _cfgReferencias, colores: _cfgColores })
+    await fetch('/api/revision-telas',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({registros:_registros,defectos:_cfgDefectos,referencias:_cfgReferencias,colores:_cfgColores})
     });
-  }catch(e){ console.warn('guardar:',e); }
+  }catch(e){console.warn(e);}
 }
 
-// ── Fecha y encabezado ─────────────────────────────────────────────
-document.getElementById('rt-date').textContent =
+// ── Helpers fecha/hora ─────────────────────────────────────────────
+function horaActual(){
+  const n=new Date();
+  let h=n.getHours(), m=n.getMinutes();
+  const ampm=h>=12?'PM':'AM';
+  h=h%12||12;
+  return `${h}:${String(m).padStart(2,'0')} ${ampm}`;
+}
+function fechaHoy(){return new Date().toISOString().split('T')[0];}
+function fechaDisplay(iso){
+  if(!iso) return '';
+  const [y,m,d]=iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+function calcTiempo(inicio,fin){
+  if(!inicio||!fin) return '';
+  const parse=str=>{
+    const m=str.match(/(\d+):(\d+)\s*(AM|PM)/i);
+    if(!m) return 0;
+    let h=parseInt(m[1]),mn=parseInt(m[2]);
+    if(m[3].toUpperCase()==='PM'&&h!==12) h+=12;
+    if(m[3].toUpperCase()==='AM'&&h===12) h=0;
+    return h*60+mn;
+  };
+  let mi=parse(inicio), mf=parse(fin);
+  if(mf<mi) mf+=24*60;
+  const diff=mf-mi;
+  const hh=Math.floor(diff/60), mm=diff%60;
+  return hh>0?`${hh}h ${mm}min`:`${mm}min`;
+}
+
+// ── Revisadores (miembros perfil Telas) ───────────────────────────
+function getRevisadores(){
+  try{
+    if(typeof getProfileMembers==='function'){
+      const members=getProfileMembers('Telas')||[];
+      return members.filter(m=>!m.disabled).map(m=>typeof m==='string'?m:(m.nombre||''));
+    }
+  }catch(e){}
+  return [];
+}
+
+// ── Fecha header ──────────────────────────────────────────────────
+document.getElementById('rt-date').textContent=
   new Date().toLocaleDateString('es-CO',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 
-// ── Filtros ────────────────────────────────────────────────────────
+// ── Filtro fecha ───────────────────────────────────────────────────
+function toggleDatePanel(){
+  document.getElementById('date-filter-panel').classList.toggle('open');
+}
+document.addEventListener('click',e=>{
+  const wrap=document.querySelector('.date-filter-wrap');
+  if(wrap&&!wrap.contains(e.target)) document.getElementById('date-filter-panel').classList.remove('open');
+});
+function aplicarFiltroFecha(){
+  _filtroDesde=document.getElementById('filtro-desde').value;
+  _filtroHasta=document.getElementById('filtro-hasta').value;
+  const lbl=document.getElementById('date-filter-label');
+  if(_filtroDesde||_filtroHasta){
+    lbl.textContent=(_filtroDesde?fechaDisplay(_filtroDesde):'...')+' — '+(_filtroHasta?fechaDisplay(_filtroHasta):'...');
+  } else {
+    lbl.textContent='Filtrar por fecha';
+  }
+  document.getElementById('date-filter-panel').classList.remove('open');
+  aplicarFiltros();
+}
+function limpiarFiltros(){
+  _filtroDesde=''; _filtroHasta='';
+  document.getElementById('filtro-desde').value='';
+  document.getElementById('filtro-hasta').value='';
+  document.getElementById('date-filter-label').textContent='Filtrar por fecha';
+  document.getElementById('date-filter-panel').classList.remove('open');
+  aplicarFiltros();
+}
+
 function aplicarFiltros(){
-  const desde = document.getElementById('filtro-desde').value;
-  const hasta = document.getElementById('filtro-hasta').value;
-  _filtrados = _registros.filter(r => {
-    if(desde && r.fecha < desde) return false;
-    if(hasta && r.fecha > hasta) return false;
+  _filtrados=_registros.filter(r=>{
+    if(_filtroDesde&&r.fecha<_filtroDesde) return false;
+    if(_filtroHasta&&r.fecha>_filtroHasta) return false;
     return true;
   });
-  _filtrados.sort((a,b) => {
-    const va = a[_sortCol]||'', vb = b[_sortCol]||'';
-    return _sortDir * (va > vb ? 1 : va < vb ? -1 : 0);
+  _filtrados.sort((a,b)=>{
+    const va=a[_sortCol]||'',vb=b[_sortCol]||'';
+    return _sortDir*(va>vb?1:va<vb?-1:0);
   });
   renderTabla();
   renderStats();
 }
-
-function limpiarFiltros(){
-  document.getElementById('filtro-desde').value = '';
-  document.getElementById('filtro-hasta').value = '';
-  aplicarFiltros();
-}
-
 function sortBy(col){
-  if(_sortCol === col) _sortDir *= -1;
-  else { _sortCol = col; _sortDir = 1; }
+  if(_sortCol===col) _sortDir*=-1; else{_sortCol=col;_sortDir=1;}
   aplicarFiltros();
 }
 
 // ── Stats ──────────────────────────────────────────────────────────
 function renderStats(){
-  const total = _filtrados.length;
-  const metros = _filtrados.reduce((s,r) => s + parseFloat(r.metros||0), 0);
-  const defectos = _filtrados.reduce((s,r) => s + parseInt(r.cantidad_defectos||0), 0);
-  document.getElementById('rt-stats').innerHTML = `
+  const total=_filtrados.length;
+  const aprobados=_filtrados.filter(r=>r.resultado==='aprobado').length;
+  const rechazados=_filtrados.filter(r=>r.resultado==='rechazado').length;
+  const pendientes=_filtrados.filter(r=>!r.finalizado).length;
+  document.getElementById('rt-stats').innerHTML=`
     <div class="stat-card"><div class="stat-num">${total}</div><div class="stat-lbl">Registros</div></div>
-    <div class="stat-card"><div class="stat-num" style="color:#2563eb;">${metros.toFixed(1)}</div><div class="stat-lbl">Metros</div></div>
-    <div class="stat-card"><div class="stat-num" style="color:#dc2626;">${defectos}</div><div class="stat-lbl">Defectos</div></div>`;
+    <div class="stat-card"><div class="stat-num" style="color:#15803d;">${aprobados}</div><div class="stat-lbl">Aprobados</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:#dc2626;">${rechazados}</div><div class="stat-lbl">Rechazados</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:#b45309;">${pendientes}</div><div class="stat-lbl">En revisión</div></div>`;
 }
 
 // ── Tabla ──────────────────────────────────────────────────────────
 function renderTabla(){
-  const body = document.getElementById('rt-table-body');
+  const body=document.getElementById('rt-table-body');
   if(!_filtrados.length){
-    body.innerHTML = `<div class="empty-state">
-      <div class="empty-icon">🧵</div>
-      <div class="empty-text">No hay registros</div>
-      <div style="font-size:12px;margin-top:6px;color:#cbd5e1;">Agrega el primer registro con el botón + Nuevo Registro</div>
-    </div>`;
+    body.innerHTML=`<div class="empty-state"><div class="empty-icon">🧵</div>
+      <div class="empty-text">Sin registros</div>
+      <div style="font-size:12px;margin-top:6px;color:#cbd5e1;">Agrega el primer registro con + Nuevo Registro</div></div>`;
     return;
   }
-  body.innerHTML = _filtrados.map(r => `
-    <div class="table-row">
-      <div class="td">${r.fecha||'—'}</div>
+  body.innerHTML=_filtrados.map(r=>{
+    const estadoBadge=r.finalizado
+      ?(r.resultado==='aprobado'?`<span class="td-badge badge-ok">✅ Aprobado</span>`:`<span class="td-badge badge-rech">❌ Rechazado</span>`)
+      :`<span class="td-badge badge-pend">🔄 En revisión</span>`;
+    const accionFin=r.finalizado?'':`<button class="btn-finalizar" onclick="openFinalizar('${r.id}')">🏁 FINALIZAR</button>`;
+    return `<div class="table-row">
+      <div class="td">${fechaDisplay(r.fecha)||'—'}</div>
+      <div class="td">${r.revisador||'—'}</div>
       <div class="td"><span class="td-badge">${r.referencia||'—'}</span></div>
-      <div class="td">${r.rollo||'—'}</div>
       <div class="td">${r.color||'—'}</div>
-      <div class="td">${r.metros||'—'}</div>
-      <div class="td">${r.cantidad_defectos||'—'}</div>
-      <div class="td">${r.tipo_defecto||'—'}</div>
+      <div class="td">${r.rollo||'—'}</div>
       <div class="td">${r.hora_inicio||'—'}</div>
       <div class="td">${r.hora_fin||'—'}</div>
-      <div class="td"><span class="tiempo-badge">${r.tiempo||'—'}</span></div>
+      <div class="td">${r.tiempo?`<span class="tiempo-badge">${r.tiempo}</span>`:'—'}</div>
+      <div class="td">${estadoBadge}</div>
       <div class="td td-actions">
-        <button class="btn-action" title="Editar" onclick="editarRegistro('${r.id}')">✏️</button>
-        <button class="btn-action del" title="Eliminar" onclick="confirmarEliminar('${r.id}')">🗑</button>
+        ${accionFin}
+        <button class="btn-action del" title="Eliminar" onclick="confirmarEliminar('${r.id}')" style="margin-left:4px;">🗑</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
-// ── Modal Registro ─────────────────────────────────────────────────
-function openRegistroModal(id){
-  _editingId = id || null;
-  const modal = document.getElementById('modal-registro');
-  const title = document.getElementById('registro-modal-title');
-  title.textContent = id ? '✏️ EDITAR REGISTRO' : '➕ NUEVO REGISTRO';
+// ── Modal Nuevo Registro ───────────────────────────────────────────
+function openRegistroModal(){
+  const hoy=fechaHoy();
+  document.getElementById('f-fecha').value=hoy;
+  document.getElementById('f-fecha-display').textContent=fechaDisplay(hoy);
+  document.getElementById('f-ref-input').value='';
+  document.getElementById('f-ref-val').value='';
+  document.getElementById('f-rollo').value='';
+  document.getElementById('f-color').value='';
+  document.getElementById('f-error').textContent='';
 
-  // Poblar selects
-  poblarSelect('f-color', _cfgColores);
-  poblarSelect('f-tipo-defecto', _cfgDefectos);
-  poblarSearchable('f-ref-input','f-ref-dd','f-ref-val', _cfgReferencias);
+  // Poblar revisadores
+  const selRev=document.getElementById('f-revisador');
+  selRev.innerHTML='<option value="">— Seleccionar —</option>';
+  getRevisadores().forEach(r=>{
+    const o=document.createElement('option');
+    o.value=r; o.textContent=r; selRev.appendChild(o);
+  });
 
-  // Fecha por defecto = hoy
-  const hoy = new Date().toISOString().split('T')[0];
+  // Poblar color
+  const selCol=document.getElementById('f-color');
+  selCol.innerHTML='<option value="">— Seleccionar —</option>'+
+    _cfgColores.map(c=>`<option value="${c}">${c}</option>`).join('');
 
-  if(id){
-    const r = _registros.find(x => x.id === id);
-    if(r){
-      document.getElementById('f-fecha').value = r.fecha || hoy;
-      document.getElementById('f-ref-input').value = r.referencia || '';
-      document.getElementById('f-ref-val').value   = r.referencia || '';
-      document.getElementById('f-rollo').value   = r.rollo || '';
-      document.getElementById('f-color').value   = r.color || '';
-      document.getElementById('f-metros').value  = r.metros || '';
-      document.getElementById('f-defectos').value = r.cantidad_defectos || '';
-      document.getElementById('f-tipo-defecto').value = r.tipo_defecto || '';
-      // Hora inicio
-      const hi = parseHora(r.hora_inicio);
-      document.getElementById('f-hi-h').value    = hi.h;
-      document.getElementById('f-hi-m').value    = hi.m;
-      document.getElementById('f-hi-ampm').value = hi.ampm;
-      // Hora fin
-      const hf = parseHora(r.hora_fin);
-      document.getElementById('f-hf-h').value    = hf.h;
-      document.getElementById('f-hf-m').value    = hf.m;
-      document.getElementById('f-hf-ampm').value = hf.ampm;
-      document.getElementById('f-tiempo-preview').textContent = r.tiempo || '—';
-    }
-  } else {
-    document.getElementById('f-fecha').value = hoy;
-    document.getElementById('f-ref-input').value = '';
-    document.getElementById('f-ref-val').value   = '';
-    ['f-rollo','f-metros','f-defectos'].forEach(id => document.getElementById(id).value = '');
-    document.getElementById('f-color').value = '';
-    document.getElementById('f-tipo-defecto').value = '';
-    document.getElementById('f-hi-h').value = '';
-    document.getElementById('f-hi-m').value = '';
-    document.getElementById('f-hf-h').value = '';
-    document.getElementById('f-hf-m').value = '';
-    document.getElementById('f-hi-ampm').value = 'AM';
-    document.getElementById('f-hf-ampm').value = 'AM';
-    document.getElementById('f-tiempo-preview').textContent = '— Se calcula automáticamente —';
-  }
-  document.getElementById('f-error').textContent = '';
-  modal.classList.add('open');
+  // Poblar searchable ref
+  poblarSearchable('f-ref-input','f-ref-dd','f-ref-val',_cfgReferencias);
+
+  document.getElementById('modal-registro').classList.add('open');
 }
-
 function closeRegistroModal(){
   document.getElementById('modal-registro').classList.remove('open');
 }
-
-function editarRegistro(id){
-  openRegistroModal(id);
-}
-
 function guardarRegistro(){
-  const fecha   = document.getElementById('f-fecha').value.trim();
-  const ref     = document.getElementById('f-ref-val').value.trim() || document.getElementById('f-ref-input').value.trim();
-  const rollo   = document.getElementById('f-rollo').value.trim();
-  const color   = document.getElementById('f-color').value;
-  const metros  = document.getElementById('f-metros').value.trim();
-  const defQty  = document.getElementById('f-defectos').value.trim();
-  const defTipo = document.getElementById('f-tipo-defecto').value;
-  const hiH = document.getElementById('f-hi-h').value;
-  const hiM = document.getElementById('f-hi-m').value.padStart(2,'0');
-  const hiAP= document.getElementById('f-hi-ampm').value;
-  const hfH = document.getElementById('f-hf-h').value;
-  const hfM = document.getElementById('f-hf-m').value.padStart(2,'0');
-  const hfAP= document.getElementById('f-hf-ampm').value;
-  const errEl = document.getElementById('f-error');
-
-  if(!fecha){ errEl.textContent='La fecha es obligatoria'; return; }
-  if(!ref){   errEl.textContent='La referencia es obligatoria'; return; }
-
-  const hora_inicio = hiH ? `${hiH}:${hiM} ${hiAP}` : '';
-  const hora_fin    = hfH ? `${hfH}:${hfM} ${hfAP}` : '';
-  const tiempo      = calcularTiempoStr(hora_inicio, hora_fin);
-
-  const registro = { fecha, referencia: ref, rollo, color, metros, cantidad_defectos: defQty,
-    tipo_defecto: defTipo, hora_inicio, hora_fin, tiempo };
-
-  if(_editingId){
-    const idx = _registros.findIndex(r => r.id === _editingId);
-    if(idx >= 0) _registros[idx] = { ..._registros[idx], ...registro };
-  } else {
-    registro.id = 'rt_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
-    _registros.push(registro);
-  }
-
+  const fecha=document.getElementById('f-fecha').value;
+  const revisador=document.getElementById('f-revisador').value;
+  const ref=document.getElementById('f-ref-val').value.trim()||document.getElementById('f-ref-input').value.trim();
+  const color=document.getElementById('f-color').value;
+  const rollo=document.getElementById('f-rollo').value.trim();
+  const errEl=document.getElementById('f-error');
+  if(!revisador){errEl.textContent='Selecciona un revisador';return;}
+  if(!ref){errEl.textContent='La referencia es obligatoria';return;}
+  const registro={
+    id:'rt_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
+    fecha, revisador, referencia:ref, color, rollo,
+    hora_inicio:horaActual(), hora_fin:'', tiempo:'',
+    metros:'', defectos:[], resultado:'', observaciones:'', finalizado:false
+  };
+  _registros.push(registro);
   guardarEnServidor();
   aplicarFiltros();
   closeRegistroModal();
-  showToast(_editingId ? '✅ Registro actualizado' : '✅ Registro guardado');
+  showToast('✅ Registro creado — Hora inicio: '+registro.hora_inicio);
 }
 
-// ── Cálculo de tiempo ──────────────────────────────────────────────
-function parseHora(str){
-  if(!str) return {h:'',m:'',ampm:'AM'};
-  const m = str.match(/(\d+):(\d+)\s*(AM|PM)/i);
-  if(!m) return {h:'',m:'',ampm:'AM'};
-  return {h: m[1], m: m[2], ampm: m[3].toUpperCase()};
+// ── Modal Finalizar Revisión ───────────────────────────────────────
+function openFinalizar(id){
+  _finalizandoId=id;
+  const r=_registros.find(x=>x.id===id);
+  if(!r) return;
+  document.getElementById('fin-ref-label').textContent=
+    `${r.referencia||''} — Rollo ${r.rollo||''} — ${r.revisador||''}`;
+  document.getElementById('fin-metros').value='';
+  document.getElementById('fin-observaciones').value='';
+  document.getElementById('fin-resultado').value='';
+  document.getElementById('fin-error').textContent='';
+  document.getElementById('btn-aprobado').className='toggle-btn';
+  document.getElementById('btn-rechazado').className='toggle-btn';
+
+  // Limpiar y crear primera fila de defecto
+  document.getElementById('fin-defectos-list').innerHTML='';
+  agregarDefectoRow();
+
+  document.getElementById('modal-finalizar').classList.add('open');
+}
+function closeFinalizar(){
+  document.getElementById('modal-finalizar').classList.remove('open');
+  _finalizandoId=null;
+}
+function setResultado(val){
+  document.getElementById('fin-resultado').value=val;
+  document.getElementById('btn-aprobado').className='toggle-btn'+(val==='aprobado'?' active-ok':'');
+  document.getElementById('btn-rechazado').className='toggle-btn'+(val==='rechazado'?' active-rech':'');
+}
+function agregarDefectoRow(){
+  const list=document.getElementById('fin-defectos-list');
+  const row=document.createElement('div');
+  row.className='defecto-row';
+  const sel=document.createElement('select');
+  sel.innerHTML='<option value="">— Tipo defecto —</option>'+
+    _cfgDefectos.map(d=>`<option value="${d}">${d}</option>`).join('');
+  const inp=document.createElement('input');
+  inp.type='number'; inp.min='1'; inp.placeholder='Cant.';
+  const btn=document.createElement('button');
+  btn.textContent='✕';
+  btn.onclick=()=>row.remove();
+  row.appendChild(sel); row.appendChild(inp); row.appendChild(btn);
+  list.appendChild(row);
+}
+function guardarFinalizar(){
+  const metros=document.getElementById('fin-metros').value.trim();
+  const resultado=document.getElementById('fin-resultado').value;
+  const obs=document.getElementById('fin-observaciones').value.trim();
+  const errEl=document.getElementById('fin-error');
+  if(!metros){errEl.textContent='Ingresa los metros revisados';return;}
+  if(!resultado){errEl.textContent='Selecciona Aprobado o Rechazado';return;}
+
+  // Recoger defectos
+  const defectos=[];
+  document.querySelectorAll('#fin-defectos-list .defecto-row').forEach(row=>{
+    const tipo=row.querySelector('select').value;
+    const cant=row.querySelector('input').value;
+    if(tipo&&cant) defectos.push({tipo,cantidad:parseInt(cant)});
+  });
+
+  const horaFin=horaActual();
+  const idx=_registros.findIndex(x=>x.id===_finalizandoId);
+  if(idx>=0){
+    const r=_registros[idx];
+    _registros[idx]={...r, metros, defectos, resultado, observaciones:obs,
+      hora_fin:horaFin, tiempo:calcTiempo(r.hora_inicio,horaFin), finalizado:true};
+  }
+  guardarEnServidor();
+  aplicarFiltros();
+  closeFinalizar();
+  showToast('✅ Revisión finalizada — Hora fin: '+horaFin);
 }
 
-function to24(h, m, ampm){
-  let hh = parseInt(h);
-  const mm = parseInt(m);
-  if(ampm === 'PM' && hh !== 12) hh += 12;
-  if(ampm === 'AM' && hh === 12) hh = 0;
-  return hh * 60 + mm;
+// ── Confirmar eliminar ─────────────────────────────────────────────
+function confirmarEliminar(id){
+  const r=_registros.find(x=>x.id===id);
+  document.getElementById('rt-confirm-sub').textContent=r?`${r.referencia||''} — ${r.fecha||''}':'Esta acción no se puede deshacer.`;
+  document.getElementById('rt-confirm-pass').value='';
+  document.getElementById('rt-confirm-error').textContent='';
+  _confirmCB=()=>{_registros=_registros.filter(x=>x.id!==id);guardarEnServidor();aplicarFiltros();showToast('🗑 Eliminado');};
+  document.getElementById('modal-confirm-rt').classList.add('open');
+  setTimeout(()=>document.getElementById('rt-confirm-pass').focus(),100);
+}
+function closeConfirmRT(){document.getElementById('modal-confirm-rt').classList.remove('open');_confirmCB=null;}
+function executeConfirmRT(){
+  if(document.getElementById('rt-confirm-pass').value!=='1'){
+    document.getElementById('rt-confirm-error').textContent='Contraseña incorrecta';
+    document.getElementById('rt-confirm-pass').value='';
+    document.getElementById('rt-confirm-pass').focus(); return;
+  }
+  closeConfirmRT(); if(_confirmCB) _confirmCB();
 }
 
-function calcularTiempoStr(inicio, fin){
-  if(!inicio || !fin) return '';
-  const pi = parseHora(inicio), pf = parseHora(fin);
-  if(!pi.h || !pf.h) return '';
-  const mi = to24(pi.h, pi.m, pi.ampm);
-  let mf = to24(pf.h, pf.m, pf.ampm);
-  if(mf < mi) mf += 24 * 60; // pasa medianoche
-  const diff = mf - mi;
-  const hh = Math.floor(diff / 60);
-  const mm = diff % 60;
-  return hh > 0 ? `${hh}h ${mm}min` : `${mm}min`;
-}
-
-function calcularTiempo(){
-  const hiH  = document.getElementById('f-hi-h').value;
-  const hiM  = document.getElementById('f-hi-m').value.padStart(2,'0');
-  const hiAP = document.getElementById('f-hi-ampm').value;
-  const hfH  = document.getElementById('f-hf-h').value;
-  const hfM  = document.getElementById('f-hf-m').value.padStart(2,'0');
-  const hfAP = document.getElementById('f-hf-ampm').value;
-  const inicio = hiH ? `${hiH}:${hiM} ${hiAP}` : '';
-  const fin    = hfH ? `${hfH}:${hfM} ${hfAP}` : '';
-  const t = calcularTiempoStr(inicio, fin);
-  const el = document.getElementById('f-tiempo-preview');
-  el.textContent = t || '— Se calcula automáticamente —';
-}
-
-// ── Searchable select ──────────────────────────────────────────────
-function poblarSearchable(inputId, ddId, valId, lista){
-  const dd = document.getElementById(ddId);
-  dd.innerHTML = lista.map(item =>
+// ── Searchable ─────────────────────────────────────────────────────
+function poblarSearchable(inputId,ddId,valId,lista){
+  const dd=document.getElementById(ddId);
+  dd.innerHTML=lista.map(item=>
     `<div class="searchable-option" onmousedown="seleccionarOpcion('${inputId}','${ddId}','${valId}','${item}')">${item}</div>`
-  ).join('') || `<div class="searchable-empty">Sin opciones</div>`;
+  ).join('')||`<div class="searchable-empty">Sin opciones</div>`;
 }
-
-function filtrarOpciones(inputId, ddId, listaVar){
-  const q = document.getElementById(inputId).value.toLowerCase();
-  const lista = window[listaVar] || [];
-  const dd = document.getElementById(ddId);
-  const filtradas = lista.filter(i => i.toLowerCase().includes(q));
-  dd.innerHTML = filtradas.map(item =>
-    `<div class="searchable-option" onmousedown="seleccionarOpcion('${inputId}','${ddId}','${inputId.replace('-input','-val')}','${item}')">${item}</div>`
-  ).join('') || `<div class="searchable-empty">Sin resultados</div>`;
+function filtrarOpciones(inputId,ddId,listaVar){
+  const q=document.getElementById(inputId).value.toLowerCase();
+  const lista=window[listaVar]||[];
+  const dd=document.getElementById(ddId);
+  const f=lista.filter(i=>i.toLowerCase().includes(q));
+  const valId=inputId.replace('-input','-val');
+  dd.innerHTML=f.map(item=>
+    `<div class="searchable-option" onmousedown="seleccionarOpcion('${inputId}','${ddId}','${valId}','${item}')">${item}</div>`
+  ).join('')||`<div class="searchable-empty">Sin resultados</div>`;
   dd.classList.add('open');
 }
-
-function seleccionarOpcion(inputId, ddId, valId, val){
-  document.getElementById(inputId).value = val;
-  document.getElementById(valId).value   = val;
+function seleccionarOpcion(inputId,ddId,valId,val){
+  document.getElementById(inputId).value=val;
+  document.getElementById(valId).value=val;
   cerrarDropdown(ddId);
 }
+function abrirDropdown(ddId){document.getElementById(ddId)?.classList.add('open');}
+function cerrarDropdown(ddId){document.getElementById(ddId)?.classList.remove('open');}
 
-function abrirDropdown(ddId){
-  document.getElementById(ddId)?.classList.add('open');
-}
-function cerrarDropdown(ddId){
-  document.getElementById(ddId)?.classList.remove('open');
-}
-
-function poblarSelect(selId, lista){
-  const sel = document.getElementById(selId);
-  const cur = sel.value;
-  sel.innerHTML = '<option value="">— Seleccionar —</option>' +
-    lista.map(i => `<option value="${i}">${i}</option>`).join('');
-  sel.value = cur;
-}
-
-// ── Configuraciones ────────────────────────────────────────────────
-let _cfgTabActual = 'defectos';
-
-function openCfgModal(){
-  switchCfgTab('defectos', document.querySelector('.cfg-tab'));
-  document.getElementById('modal-cfg').classList.add('open');
+// ── Exportar Excel ─────────────────────────────────────────────────
+function exportarExcel(){
+  if(!_filtrados.length){showToast('⚠️ Sin registros');return;}
+  const data=_filtrados.map(r=>({
+    'Fecha':fechaDisplay(r.fecha),'Revisador':r.revisador||'','Referencia':r.referencia||'',
+    'Color':r.color||'','# Rollo':r.rollo||'','Metros':r.metros||'',
+    'Defectos':r.defectos?r.defectos.map(d=>`${d.tipo}(${d.cantidad})`).join(', '):'',
+    'H. Inicio':r.hora_inicio||'','H. Fin':r.hora_fin||'','Tiempo':r.tiempo||'',
+    'Resultado':r.resultado||'','Observaciones':r.observaciones||''
+  }));
+  const ws2=XLSX.utils.json_to_sheet(data);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws2,'Revisión Telas');
+  XLSX.writeFile(wb,`revision_telas_${fechaHoy()}.xlsx`);
+  showToast('📊 Excel exportado');
 }
 
-function closeCfgModal(){
-  document.getElementById('modal-cfg').classList.remove('open');
-}
-
+// ── Configuraciones (pantalla) ─────────────────────────────────────
 function getCfgLista(tab){
-  if(tab==='defectos')   return _cfgDefectos;
-  if(tab==='referencias')return _cfgReferencias;
-  if(tab==='colores')    return _cfgColores;
+  if(tab==='defectos') return _cfgDefectos;
+  if(tab==='referencias') return _cfgReferencias;
+  if(tab==='colores') return _cfgColores;
   return [];
 }
-function setCfgLista(tab, lista){
-  if(tab==='defectos')    _cfgDefectos    = lista;
-  if(tab==='referencias') _cfgReferencias = lista;
-  if(tab==='colores')     _cfgColores     = lista;
+function setCfgLista(tab,lista){
+  if(tab==='defectos') _cfgDefectos=lista;
+  if(tab==='referencias') _cfgReferencias=lista;
+  if(tab==='colores') _cfgColores=lista;
 }
-
-function switchCfgTab(tab, btn){
-  _cfgTabActual = tab;
-  document.querySelectorAll('.cfg-tab').forEach(b => b.classList.remove('active'));
-  if(btn) btn.classList.add('active');
-  renderCfgTab(tab);
+function abrirCfgScreen(){
+  document.getElementById('rt-cfg-screen').style.display='flex';
+  ['referencias','defectos','colores'].forEach(t=>renderCfgScreenLista(t));
 }
-
-function renderCfgTab(tab){
-  const lista = getCfgLista(tab);
-  const nombres = {defectos:'Tipo de Defecto', referencias:'Referencia Tela', colores:'Color'};
-  const body = document.getElementById('cfg-tab-content');
-  body.innerHTML = `
-    <div class="cfg-toolbar">
-      <button class="btn btn-outline" style="font-size:12px;padding:6px 10px;" onclick="importarCfg('${tab}')">📥 Importar</button>
-      <button class="btn btn-outline" style="font-size:12px;padding:6px 10px;" onclick="plantillaCfg('${tab}')">📄 Plantilla</button>
-    </div>
-    <div class="cfg-list" id="cfg-list-${tab}">
-      ${lista.map((item, i) => `
-        <div class="cfg-item" id="cfg-item-${tab}-${i}">
-          <span class="cfg-item-name">${item}</span>
-          <button class="cfg-item-btn" onclick="eliminarCfgItem('${tab}',${i})" title="Eliminar">🗑</button>
-        </div>`).join('') || '<div style="padding:16px;text-align:center;color:#94a3b8;font-size:13px;">Sin items. Agrega el primero abajo.</div>'}
-    </div>
-    <div class="cfg-add-row">
-      <input type="text" class="cfg-add-input" id="cfg-add-${tab}" placeholder="Nuevo ${nombres[tab]}..."
-        onkeydown="if(event.key==='Enter')agregarCfgItem('${tab}')">
-      <button class="btn btn-primary" style="padding:8px 14px;" onclick="agregarCfgItem('${tab}')">+ Agregar</button>
-    </div>`;
+function cerrarCfgScreen(){document.getElementById('rt-cfg-screen').style.display='none';}
+function renderCfgScreenLista(tab){
+  const lista=getCfgLista(tab);
+  const el=document.getElementById('cfg-screen-list-'+tab);
+  if(!el) return;
+  if(!lista.length){
+    el.innerHTML='<div style="padding:16px;text-align:center;color:#94a3b8;font-size:13px;">Sin items. Agrega el primero abajo.</div>';
+    return;
+  }
+  el.innerHTML=lista.map((item,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;
+      background:#f8fafc;border:1px solid #e2e8f0;margin-bottom:5px;">
+      <span style="flex:1;font-size:13px;font-weight:600;color:#0f172a;">${item}</span>
+      <button onclick="eliminarCfgItemScreen('${tab}',${i})"
+        style="width:26px;height:26px;border-radius:6px;border:1.5px solid #fca5a5;background:#fef2f2;
+        color:#dc2626;cursor:pointer;font-size:12px;">✕</button>
+    </div>`).join('');
 }
-
-function agregarCfgItem(tab){
-  const inp = document.getElementById(`cfg-add-${tab}`);
-  const val = inp.value.trim();
+function agregarCfgItemScreen(tab){
+  const inp=document.getElementById('cfg-screen-add-'+tab);
+  const val=(inp.value||'').trim();
   if(!val) return;
-  const lista = getCfgLista(tab);
-  if(lista.includes(val)){ showToast('⚠️ Ya existe ese valor'); return; }
+  const lista=getCfgLista(tab);
+  if(lista.includes(val)){showToast('⚠️ Ya existe');return;}
   lista.push(val);
-  setCfgLista(tab, lista);
-  inp.value = '';
+  setCfgLista(tab,lista);
+  inp.value='';
   guardarEnServidor();
-  renderCfgTab(tab);
+  renderCfgScreenLista(tab);
   showToast('✅ Agregado');
 }
-
-function eliminarCfgItem(tab, idx){
-  const lista = getCfgLista(tab);
-  lista.splice(idx, 1);
-  setCfgLista(tab, lista);
+function eliminarCfgItemScreen(tab,idx){
+  const lista=getCfgLista(tab);
+  lista.splice(idx,1);
+  setCfgLista(tab,lista);
   guardarEnServidor();
-  renderCfgTab(tab);
+  renderCfgScreenLista(tab);
   showToast('🗑 Eliminado');
 }
-
 function importarCfg(tab){
-  const inp = document.createElement('input');
-  inp.type = 'file'; inp.accept = '.xlsx,.xls,.csv';
-  inp.onchange = e => {
-    const file = e.target.files[0];
-    if(!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
+  const inp=document.createElement('input');
+  inp.type='file'; inp.accept='.xlsx,.xls,.csv';
+  inp.onchange=e=>{
+    const file=e.target.files[0]; if(!file) return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
       try{
-        const wb = XLSX.read(ev.target.result, {type:'binary'});
-        const ws2 = wb.Sheets[wb.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json(ws2, {header:1});
-        const lista = getCfgLista(tab);
-        let added = 0;
-        rows.forEach(row => {
-          const val = (row[0]||'').toString().trim();
-          if(val && !lista.includes(val)){ lista.push(val); added++; }
+        const wb=XLSX.read(ev.target.result,{type:'binary'});
+        const ws2=wb.Sheets[wb.SheetNames[0]];
+        const rows=XLSX.utils.sheet_to_json(ws2,{header:1});
+        const lista=getCfgLista(tab);
+        let added=0;
+        rows.forEach(row=>{
+          const val=(row[0]||'').toString().trim();
+          if(val&&!lista.includes(val)){lista.push(val);added++;}
         });
-        setCfgLista(tab, lista);
+        setCfgLista(tab,lista);
         guardarEnServidor();
-        renderCfgTab(tab);
+        renderCfgScreenLista(tab);
         showToast(`✅ ${added} items importados`);
-      }catch(err){ alert('Error al leer el archivo: '+err.message); }
+      }catch(err){alert('Error: '+err.message);}
     };
     reader.readAsBinaryString(file);
   };
   inp.click();
 }
-
 function plantillaCfg(tab){
-  const nombres = {defectos:'Tipo_Defecto', referencias:'Referencia_Tela', colores:'Color'};
-  const ws2 = XLSX.utils.aoa_to_sheet([[nombres[tab]], ['Ejemplo 1'], ['Ejemplo 2']]);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws2, 'Plantilla');
-  XLSX.writeFile(wb, `plantilla_${tab}.xlsx`);
-}
-
-// ── Confirmar con contraseña ───────────────────────────────────────
-function confirmarEliminar(id){
-  const r = _registros.find(x => x.id === id);
-  const sub = r ? `Fecha: ${r.fecha} — Ref: ${r.referencia}` : 'Este registro no se puede recuperar.';
-  document.getElementById('rt-confirm-title').textContent = '⚠️ ELIMINAR REGISTRO';
-  document.getElementById('rt-confirm-sub').textContent   = sub;
-  document.getElementById('rt-confirm-pass').value = '';
-  document.getElementById('rt-confirm-error').textContent = '';
-  _confirmCB = () => {
-    _registros = _registros.filter(x => x.id !== id);
-    guardarEnServidor();
-    aplicarFiltros();
-    showToast('🗑 Registro eliminado');
-  };
-  document.getElementById('modal-confirm-rt').classList.add('open');
-  setTimeout(() => document.getElementById('rt-confirm-pass').focus(), 100);
-}
-
-function closeConfirmRT(){
-  document.getElementById('modal-confirm-rt').classList.remove('open');
-  _confirmCB = null;
-}
-
-function executeConfirmRT(){
-  const pass = document.getElementById('rt-confirm-pass').value;
-  const errEl = document.getElementById('rt-confirm-error');
-  if(pass !== '1'){ errEl.textContent = 'Contraseña incorrecta'; document.getElementById('rt-confirm-pass').value=''; document.getElementById('rt-confirm-pass').focus(); return; }
-  closeConfirmRT();
-  if(_confirmCB) _confirmCB();
-}
-
-// ── Exportar Excel ─────────────────────────────────────────────────
-function exportarExcel(){
-  if(!_filtrados.length){ showToast('⚠️ No hay registros para exportar'); return; }
-  const data = _filtrados.map(r => ({
-    'Fecha': r.fecha||'', 'Referencia Tela': r.referencia||'', '# Rollo': r.rollo||'',
-    'Color': r.color||'', 'Metros Revisados': r.metros||'', 'Cantidad Defectos': r.cantidad_defectos||'',
-    'Tipo Defecto': r.tipo_defecto||'', 'Hora Inicio': r.hora_inicio||'',
-    'Hora Fin': r.hora_fin||'', 'Tiempo Tardado': r.tiempo||''
-  }));
-  const ws2 = XLSX.utils.json_to_sheet(data);
-  ws2['!cols'] = [8,16,8,10,10,12,16,10,10,10].map(w=>({wch:w}));
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws2, 'Revisión Telas');
-  XLSX.writeFile(wb, `revision_telas_${new Date().toISOString().slice(0,10)}.xlsx`);
-  showToast('📊 Excel exportado');
+  const nombres={defectos:'Tipo_Defecto',referencias:'Referencia_Tela',colores:'Color'};
+  const ws2=XLSX.utils.aoa_to_sheet([[nombres[tab]],['Ejemplo 1'],['Ejemplo 2']]);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws2,'Plantilla');
+  XLSX.writeFile(wb,`plantilla_${tab}.xlsx`);
 }
 
 // ── Toast ──────────────────────────────────────────────────────────
-let _toastTimer = null;
+let _toastTimer=null;
 function showToast(msg){
-  const t = document.getElementById('rt-toast');
-  t.textContent = msg;
-  t.classList.add('show');
+  const t=document.getElementById('rt-toast');
+  t.textContent=msg; t.classList.add('show');
   clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+  _toastTimer=setTimeout(()=>t.classList.remove('show'),2500);
 }
 
 // ── Init ───────────────────────────────────────────────────────────
@@ -880,28 +911,16 @@ connectWS();
 <script>
 (function(){
   function getNavPerfil(){
-    const p = new URLSearchParams(location.search).get('perfil') ||
-              sessionStorage.getItem('millar_nav_perfil') || '';
+    const p=new URLSearchParams(location.search).get('perfil')||sessionStorage.getItem('millar_nav_perfil')||'';
     return p.toLowerCase();
   }
-  const RUTAS = {
-    ordenes:'/ordenes', produccion:'/produccion', asistencia:'/ingresos',
-    recogedores:'/recogedores', tableroGeneral:'/?tablero=general',
-    tableroMec:'/?tablero=mecanicos', tableroCI:'/ci',
-    insumos:'/solicitar-insumos', alistamiento:'/alistamiento?seccion=alistamiento',
-    mantenimiento:'/alistamiento?seccion=mantenimiento', contador:'/contador-modulos',
-    informeCI:'/ci?seccion=informe', informeGeneral:'/?seccion=historico',
-    dashCI:'/ci?seccion=dashboard',
-  };
-  function ir(ruta){
-    const p=getNavPerfil(), sep=ruta.includes('?')?'&':'?';
-    location.href=p?ruta+sep+'perfil='+encodeURIComponent(p):ruta;
-  }
-  const PERMISOS={
-    programador:['produccion','tableros','mecanicos','modulos','informes'],
-    administrador:['produccion','tableros','mecanicos','modulos','informes'],
-    supervisora:['asistencia'], mecanicos:['tableroMec','insumos','montajes'],
-    televisor:['tableroGeneral','tableroMec','tableroCI'], recogedores:['recogedores'],
+  const RUTAS={
+    ordenes:'/ordenes',produccion:'/produccion',asistencia:'/ingresos',
+    recogedores:'/recogedores',tableroGeneral:'/?tablero=general',
+    tableroMec:'/?tablero=mecanicos',tableroCI:'/ci',
+    insumos:'/solicitar-insumos',alistamiento:'/alistamiento?seccion=alistamiento',
+    mantenimiento:'/alistamiento?seccion=mantenimiento',contador:'/contador-modulos',
+    informeCI:'/ci?seccion=informe',informeGeneral:'/?seccion=historico',dashCI:'/ci?seccion=dashboard',
   };
   const ICONS={
     produccion:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>',
@@ -910,12 +929,11 @@ connectWS();
     modulos:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>',
     informes:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>',
   };
-  const FLECHA='<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4.5 3l3 3-3 3"/></svg>';
   function buildNav(){
     const perfil=getNavPerfil();
     const esAdmin=!perfil||['programador','administrador'].includes(perfil);
-    const esMec=perfil==='mecanicos', esTV=perfil==='televisor';
-    const esSup=perfil==='supervisora', esRec=perfil==='recogedores';
+    const esMec=perfil==='mecanicos',esTV=perfil==='televisor';
+    const esSup=perfil==='supervisora',esRec=perfil==='recogedores';
     function href(r){const p=getNavPerfil(),s=r.includes('?')?'&':'?';return p?r+s+'perfil='+encodeURIComponent(p):r;}
     let html='<div class="millar-nav" id="millar-nav">';
     const prodItems=[];
@@ -929,9 +947,6 @@ connectWS();
     if(esAdmin||esTV||esMec) tabItems.push(`<a class="millar-dd-item" href="${href(RUTAS.tableroMec)}">🔧 Tablero Mecánicos</a>`);
     if(esAdmin||esTV) tabItems.push(`<a class="millar-dd-item" href="${href(RUTAS.tableroCI)}">📦 Tablero CI</a>`);
     if(tabItems.length) html+=buildBtn('tableros','Tableros',tabItems);
-    const mecItems=[];
-    if(esAdmin||esMec) mecItems.push(`<a class="millar-dd-item" href="${href(RUTAS.insumos)}">📦 Solicitar Insumos</a>`);
-    if(mecItems.length) html+=buildBtn('mecanicos','Mecánicos',mecItems);
     if(esAdmin) html+=buildBtn('modulos','Módulos',[`<a class="millar-dd-item" href="${href(RUTAS.contador)}">🟢 Contador Módulos</a>`]);
     if(esAdmin) html+=buildBtn('informes','Informes',[
       `<a class="millar-dd-item" href="${href(RUTAS.informeGeneral)}">📊 Informe General</a>`,
@@ -952,159 +967,10 @@ connectWS();
   document.addEventListener('click',function(e){
     if(!e.target.closest('.millar-nav-item')) document.querySelectorAll('.millar-dropdown').forEach(d=>d.classList.remove('open'));
   });
-  window.ir=ir;
-  function inject(){
-    document.querySelectorAll('[data-millar-nav]').forEach(el=>{el.innerHTML=buildNav();});
-  }
+  function inject(){document.querySelectorAll('[data-millar-nav]').forEach(el=>{el.innerHTML=buildNav();});}
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',inject);
   else inject();
 })();
-
-// ── Pantalla de Configuraciones ────────────────────────────────────
-function abrirCfgScreen(){
-  document.getElementById('rt-cfg-screen').style.display='flex';
-  renderCfgScreenLista('referencias');
-  renderCfgScreenLista('defectos');
-  renderCfgScreenLista('colores');
-}
-
-function cerrarCfgScreen(){
-  document.getElementById('rt-cfg-screen').style.display='none';
-}
-
-function renderCfgScreenLista(tab){
-  const lista = getCfgLista(tab);
-  const el = document.getElementById('cfg-screen-list-'+tab);
-  if(!el) return;
-  if(!lista.length){
-    el.innerHTML='<div style="padding:20px;text-align:center;color:#94a3b8;font-size:13px;">Sin items. Agrega el primero abajo.</div>';
-    return;
-  }
-  el.innerHTML = lista.map((item,i) => `
-    <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;
-      background:#f8fafc;border:1px solid #e2e8f0;margin-bottom:6px;">
-      <span style="flex:1;font-size:13px;font-weight:600;color:#0f172a;">${item}</span>
-      <button onclick="eliminarCfgItemScreen('${tab}',${i})"
-        style="width:28px;height:28px;border-radius:6px;border:1.5px solid #e2e8f0;background:#fff;
-        cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;
-        transition:all .15s;" onmouseover="this.style.background='#fef2f2';this.style.borderColor='#fca5a5'"
-        onmouseout="this.style.background='#fff';this.style.borderColor='#e2e8f0'">🗑</button>
-    </div>`).join('');
-}
-
-function agregarCfgItemScreen(tab){
-  const inp = document.getElementById('cfg-screen-add-'+tab);
-  const val = (inp.value||'').trim();
-  if(!val) return;
-  const lista = getCfgLista(tab);
-  if(lista.includes(val)){ showToast('⚠️ Ya existe ese valor'); return; }
-  lista.push(val);
-  setCfgLista(tab, lista);
-  inp.value='';
-  guardarEnServidor();
-  renderCfgScreenLista(tab);
-  showToast('✅ Agregado');
-}
-
-function eliminarCfgItemScreen(tab, idx){
-  const lista = getCfgLista(tab);
-  lista.splice(idx,1);
-  setCfgLista(tab, lista);
-  guardarEnServidor();
-  renderCfgScreenLista(tab);
-  showToast('🗑 Eliminado');
-}
 </script>
-
-<!-- Pantalla Configuraciones -->
-<div id="rt-cfg-screen" style="display:none;position:fixed;inset:0;z-index:500;background:#f1f5f9;flex-direction:column;">
-
-  <!-- Header cfg -->
-  <div style="background:#fff;border-bottom:1px solid #e2e8f0;box-shadow:0 1px 6px rgba(0,0,0,.07);
-    padding:0 clamp(12px,2.5vw,24px);min-height:64px;display:flex;align-items:center;
-    justify-content:space-between;gap:12px;position:relative;">
-    <div style="position:absolute;bottom:0;left:0;right:0;height:3px;
-      background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);"></div>
-    <div style="display:flex;align-items:center;gap:12px;">
-      <div class="hd-logo"><img src="/logo.png" alt="Millar" onerror="this.style.display='none'"></div>
-      <div>
-        <div class="hd-title">⚙️ <span>Configuraciones</span></div>
-        <p style="font-size:11px;color:#64748b;font-weight:600;margin-top:1px;">Revisión de Telas</p>
-      </div>
-    </div>
-    <button class="hd-back-btn" onclick="cerrarCfgScreen()">← Volver</button>
-  </div>
-
-  <!-- Contenido cfg -->
-  <div style="flex:1;overflow-y:auto;padding:24px clamp(12px,2.5vw,24px);">
-    <div style="max-width:1200px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px;">
-
-      <!-- Referencias Tela -->
-      <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;">
-        <div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;background:#f8fafc;
-          display:flex;align-items:center;justify-content:space-between;">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;
-            letter-spacing:1.5px;text-transform:uppercase;color:#0f172a;">🧵 Referencias Tela</div>
-          <div style="display:flex;gap:6px;">
-            <button class="btn btn-outline" style="font-size:11px;padding:5px 10px;" onclick="importarCfg('referencias')">📥 Importar</button>
-            <button class="btn btn-outline" style="font-size:11px;padding:5px 10px;" onclick="plantillaCfg('referencias')">📄 Plantilla</button>
-          </div>
-        </div>
-        <div style="padding:14px 16px;max-height:340px;overflow-y:auto;" id="cfg-screen-list-referencias"></div>
-        <div style="padding:12px 16px;border-top:1px solid #f1f5f9;display:flex;gap:8px;">
-          <input type="text" class="cfg-add-input" id="cfg-screen-add-referencias"
-            placeholder="Nueva referencia..."
-            onkeydown="if(event.key==='Enter')agregarCfgItemScreen('referencias')">
-          <button class="btn btn-primary" style="padding:8px 14px;white-space:nowrap;"
-            onclick="agregarCfgItemScreen('referencias')">+ Agregar</button>
-        </div>
-      </div>
-
-      <!-- Tipos de Defecto -->
-      <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;">
-        <div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;background:#f8fafc;
-          display:flex;align-items:center;justify-content:space-between;">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;
-            letter-spacing:1.5px;text-transform:uppercase;color:#0f172a;">⚠️ Tipos de Defecto</div>
-          <div style="display:flex;gap:6px;">
-            <button class="btn btn-outline" style="font-size:11px;padding:5px 10px;" onclick="importarCfg('defectos')">📥 Importar</button>
-            <button class="btn btn-outline" style="font-size:11px;padding:5px 10px;" onclick="plantillaCfg('defectos')">📄 Plantilla</button>
-          </div>
-        </div>
-        <div style="padding:14px 16px;max-height:340px;overflow-y:auto;" id="cfg-screen-list-defectos"></div>
-        <div style="padding:12px 16px;border-top:1px solid #f1f5f9;display:flex;gap:8px;">
-          <input type="text" class="cfg-add-input" id="cfg-screen-add-defectos"
-            placeholder="Nuevo tipo de defecto..."
-            onkeydown="if(event.key==='Enter')agregarCfgItemScreen('defectos')">
-          <button class="btn btn-primary" style="padding:8px 14px;white-space:nowrap;"
-            onclick="agregarCfgItemScreen('defectos')">+ Agregar</button>
-        </div>
-      </div>
-
-      <!-- Colores -->
-      <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;">
-        <div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;background:#f8fafc;
-          display:flex;align-items:center;justify-content:space-between;">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;
-            letter-spacing:1.5px;text-transform:uppercase;color:#0f172a;">🎨 Colores</div>
-          <div style="display:flex;gap:6px;">
-            <button class="btn btn-outline" style="font-size:11px;padding:5px 10px;" onclick="importarCfg('colores')">📥 Importar</button>
-            <button class="btn btn-outline" style="font-size:11px;padding:5px 10px;" onclick="plantillaCfg('colores')">📄 Plantilla</button>
-          </div>
-        </div>
-        <div style="padding:14px 16px;max-height:340px;overflow-y:auto;" id="cfg-screen-list-colores"></div>
-        <div style="padding:12px 16px;border-top:1px solid #f1f5f9;display:flex;gap:8px;">
-          <input type="text" class="cfg-add-input" id="cfg-screen-add-colores"
-            placeholder="Nuevo color..."
-            onkeydown="if(event.key==='Enter')agregarCfgItemScreen('colores')">
-          <button class="btn btn-primary" style="padding:8px 14px;white-space:nowrap;"
-            onclick="agregarCfgItemScreen('colores')">+ Agregar</button>
-        </div>
-      </div>
-
-    </div>
-  </div>
-</div>
-
 </body>
 </html>
