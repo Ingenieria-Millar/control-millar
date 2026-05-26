@@ -2063,6 +2063,7 @@ window.addEventListener('DOMContentLoaded', async ()=>{
       const cfg2 = loadConfig();
       if(cfg2[_autoUser]&&cfg2[_autoUser].perms) USUARIOS[_autoUser].perms=cfg2[_autoUser].perms;
       try{ localStorage.setItem('cm_session', JSON.stringify({user:_autoUser,pass:USUARIOS[_autoUser].pass||'',rol:''})); }catch(e){}
+      try{ sessionStorage.setItem('millar_nav_perfil', _autoUser.toLowerCase()); }catch(e){}
       // Ocultar login, mostrar tablero
       const ls = document.getElementById('login-screen');
       if(ls) ls.classList.add('hidden');
@@ -2070,6 +2071,9 @@ window.addEventListener('DOMContentLoaded', async ()=>{
       const _perfilNav = _autoUser.toLowerCase();
       history.replaceState({}, '', '/?tablero='+_tablero+'&perfil='+_perfilNav);
       setTimeout(()=>{
+        // Re-inyectar nav con el perfil correcto ya en la URL
+        const navTargets = document.querySelectorAll('[data-millar-nav]');
+        navTargets.forEach(el=>{ if(typeof buildNav==='function') el.innerHTML=buildNav(); });
         document.getElementById('area-screen')?.classList.add('hidden');
         entrarTablero();
       }, 400);
@@ -2129,6 +2133,14 @@ function submitLogin(){
   }
   
   try{ localStorage.setItem('cm_session', JSON.stringify({user: usuario, pass: pass, rol:'', perms: USUARIOS[usuario]?.perms||[]})); }catch(e){}
+  // Guardar perfil en sessionStorage para que el nav lo use
+  try{ sessionStorage.setItem('millar_nav_perfil', usuario.toLowerCase()); }catch(e){}
+  // Re-inyectar nav con el perfil correcto
+  setTimeout(()=>{
+    document.querySelectorAll('[data-millar-nav]').forEach(el=>{
+      if(typeof buildNav==='function') el.innerHTML=buildNav();
+    });
+  }, 100);
   mostrarAreaScreen();
 }
 
