@@ -8868,6 +8868,51 @@ function aplicarAsignarCargo(){
     ? '✅ '+added+' miembro'+(added!==1?'s':'')+' agregado'+(added!==1?'s':'')+' al perfil'
     : 'ℹ️ Todos los empleados ya eran miembros');
 }
+
+// ── cfgSavePerfilModal — guarda perfil nuevo o editado ─────────────
+function cfgSavePerfilModal(){
+  const target = document.getElementById('cpf-target').value.trim();
+  const nombre = document.getElementById('cpf-nombre').value.trim();
+  const pass   = document.getElementById('cpf-pass').value.trim();
+  const errEl  = document.getElementById('cpf-error');
+
+  if(!nombre){ errEl.textContent='El nombre es obligatorio'; return; }
+
+  const cfg = loadConfig();
+  const extras = cfg._usuarios_extra || [];
+  const allUsers = getCfgUsuarios();
+
+  if(!target){
+    // Crear nuevo perfil
+    if(allUsers[nombre]){ errEl.textContent='Ya existe un perfil con ese nombre'; return; }
+    extras.push({ nombre, pass: pass||'1', perms:[], disabled:false });
+  } else {
+    // Editar perfil existente
+    const idx = extras.findIndex(u => u.nombre === target);
+    if(idx >= 0){
+      extras[idx].pass = pass || extras[idx].pass;
+      if(nombre !== target) extras[idx].nombre = nombre;
+    } else {
+      // Es un perfil base (no extra) — solo actualizar contraseña en USUARIOS
+      if(typeof USUARIOS !== 'undefined' && USUARIOS[target]){
+        USUARIOS[target].pass = pass;
+        try{ const s=JSON.parse(localStorage.getItem('cm_session')||'{}');
+          if(s.user===target){s.pass=pass;localStorage.setItem('cm_session',JSON.stringify(s));}
+        }catch(e){}
+      }
+      document.getElementById('cfg-perfil-modal').style.display='none';
+      cfgSwitchTab('perfiles', document.getElementById('cfgn-perfiles'));
+      showToastSimple('✅ Perfil actualizado');
+      return;
+    }
+  }
+
+  cfg._usuarios_extra = extras;
+  saveConfig(cfg);
+  document.getElementById('cfg-perfil-modal').style.display='none';
+  cfgSwitchTab('perfiles', document.getElementById('cfgn-perfiles'));
+  showToastSimple(target ? '✅ Perfil actualizado' : '✅ Perfil creado');
+}
 </script>
 <!-- MODAL: Formulario Guía -->
 <div id="cfg-guia-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:999;align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
@@ -9001,6 +9046,30 @@ function aplicarAsignarCargo(){
     <div style="padding:14px 24px;border-top:1px solid #e2e8f0;display:flex;gap:10px;">
       <button onclick="closeAsignarCargoModal()" style="flex:1;padding:9px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Cancelar</button>
       <button onclick="aplicarAsignarCargo()" style="flex:1;padding:9px;border-radius:8px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Aplicar</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Modal Nuevo/Editar Perfil -->
+<div id="cfg-perfil-modal" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1050;align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:#fff;border-radius:16px;padding:28px 24px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.25);font-family:'Nunito',sans-serif;">
+    <div id="cfg-perfil-modal-title" style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:2px;color:#0f172a;margin-bottom:20px;">👤 NUEVO PERFIL</div>
+    <input type="hidden" id="cpf-target">
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Nombre del perfil</label>
+        <input id="cpf-nombre" type="text" placeholder="Ej: Supervisoras" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:13px;outline:none;width:100%;box-sizing:border-box;font-family:'Nunito',sans-serif;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'" onkeydown="if(event.key==='Enter')cfgSavePerfilModal()">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;">Contraseña</label>
+        <input id="cpf-pass" type="text" placeholder="Contraseña de acceso" style="padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:13px;outline:none;width:100%;box-sizing:border-box;font-family:'Nunito',sans-serif;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'" onkeydown="if(event.key==='Enter')cfgSavePerfilModal()">
+      </div>
+    </div>
+    <div id="cpf-error" style="color:#dc2626;font-size:12px;margin-top:8px;min-height:16px;"></div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button onclick="document.getElementById('cfg-perfil-modal').style.display='none'" style="flex:1;padding:10px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Cancelar</button>
+      <button onclick="cfgSavePerfilModal()" style="flex:1;padding:10px;border-radius:8px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Guardar</button>
     </div>
   </div>
 </div>
