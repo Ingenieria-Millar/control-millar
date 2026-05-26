@@ -2286,6 +2286,15 @@ function mostrarAreaScreen(){
     btns.appendChild(c);
   }
 
+  // 10b. Control de Revisión de Telas
+  if(hasPerm('revision_telas')){
+    const c=makeCard('🧵','Revisión de Telas','Control de revisión · defectos · telas','ac-teal',()=>{
+      window.location.href='/revision-telas';
+    });
+    c.style.animationDelay=(idx*0.07)+'s'; idx++;
+    btns.appendChild(c);
+  }
+
   // 11. Tablero de Producción
   if(hasPerm('tablero_produccion')){
     const c=makeCard('🗂️','Producción','Planeación y seguimiento · Kanban','ac-green',()=>{
@@ -2669,6 +2678,12 @@ function ocultarTodo(){
 function entrarTablero(modo){
   if(!modo) modo = currentUser==='Mecanicos' ? 'mecanicos' : 'general';
   window._tableroModo = modo;
+  // Asegurar perfil en sessionStorage antes de re-inyectar nav
+  try{ sessionStorage.setItem('millar_nav_perfil', (currentUser||'').toLowerCase()); }catch(e){}
+  // Re-inyectar nav con el perfil correcto del usuario actual
+  document.querySelectorAll('[data-millar-nav]').forEach(el=>{
+    if(typeof buildNav==='function') el.innerHTML=buildNav();
+  });
   const nombre = modo==='mecanicos' ? 'Tablero Mecanicos' : 'Tablero General';
   const h1 = document.getElementById('main-header-title');
   if(h1){
@@ -3579,11 +3594,12 @@ const ALL_PERMS = [
   {key:'tablero',                label:'Tablero general'},
   {key:'tablero_planta',         label:'Tablero mecánicos'},
   {key:'tablero_produccion',     label:'Tablero de producción'},
+  {key:'revision_telas',         label:'Control de Revisión de Telas'},
 ];
 const PERM_LABELS = Object.fromEntries(ALL_PERMS.map(p=>[p.key,p.label]));
 
 // ── Programador: único perfil hardcodeado con todos los permisos ───
-const PROG_PERMS = ALL_PERMS.map(p=>p.key).concat(['fix','tablero','area_asistencia','informes','area_montajes','area_solicitar_insumos','tablero_planta','area_ci','modulos','excel','tablero_produccion']);
+const PROG_PERMS = ALL_PERMS.map(p=>p.key).concat(['fix','tablero','area_asistencia','informes','area_montajes','area_solicitar_insumos','tablero_planta','area_ci','modulos','excel','tablero_produccion','revision_telas']);
 USUARIOS['Programador'] = {pass:'1', perms: PROG_PERMS};
 
 const CONFIG_PERMS = {
@@ -8507,6 +8523,7 @@ function confirmarFalloMec(){
   const RUTAS = {
     ordenes:        '/ordenes',
     produccion:     '/produccion',
+    revisionTelas:  '/revision-telas',
     asistencia:     '/ingresos',
     recogedores:    '/recogedores',
     tableroGeneral: '/?tablero=general',
