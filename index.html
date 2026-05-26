@@ -2122,7 +2122,30 @@ function submitLogin(){
   }
 
   const usuario = rawVal;
-  if(!USUARIOS[usuario]){err.textContent='Usuario no válido';return;}
+
+  // Buscar en _usuarios_extra si no está en USUARIOS
+  const cfg = loadConfig();
+  const extraUser = (cfg._usuarios_extra||[]).find(u=>u.nombre===usuario&&!u.disabled);
+  if(!USUARIOS[usuario] && !extraUser){ err.textContent='Usuario no válido'; return; }
+
+  // Si es un perfil extra, validar contra su contraseña y hacer login
+  if(!USUARIOS[usuario] && extraUser){
+    if(pass !== extraUser.pass){ inp.classList.add('error'); err.textContent='Contraseña incorrecta'; inp.value=''; setTimeout(()=>{inp.classList.remove('error');inp.focus();},400); return; }
+    currentUser = usuario;
+    currentUserRol = '';
+    // Registrar en USUARIOS para que el resto del sistema lo reconozca
+    USUARIOS[usuario] = { pass: extraUser.pass, perms: extraUser.perms||[], extra:true };
+    if(cfg[usuario]&&cfg[usuario].perms) USUARIOS[usuario].perms=cfg[usuario].perms;
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('login-pass').value='';
+    document.getElementById('login-error').textContent='';
+    try{ localStorage.setItem('cm_session', JSON.stringify({user:usuario,pass:pass,rol:'',perms:USUARIOS[usuario].perms||[]})); }catch(e){}
+    try{ sessionStorage.setItem('millar_nav_perfil', usuario.toLowerCase()); }catch(e){}
+    setTimeout(()=>{ document.querySelectorAll('[data-millar-nav]').forEach(el=>{ if(typeof buildNav==='function') el.innerHTML=buildNav(); }); },100);
+    mostrarAreaScreen();
+    return;
+  }
+
   // Usuario Módulos entra sin contraseña
   if(usuario==='Modulos'){
     currentUser=usuario;
