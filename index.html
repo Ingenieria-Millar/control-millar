@@ -1997,7 +1997,7 @@ window.addEventListener('DOMContentLoaded', async ()=>{
             // Esperar a que el WS traiga datos y luego restaurar
             const restoreNav = () => {
               if(screenToRestore === 'tablero_grid' || screenSaved.currentView === 'grid'){
-                entrarTablero();
+                entrarTablero(screenSaved.tableroModo||undefined);
               } else if((screenToRestore === 'tablero_single' || screenSaved.currentView === 'single') && screenSaved.selectedMod){
                 selectedMod = screenSaved.selectedMod;
                 // Ocultar area-screen antes de mostrar el tablero
@@ -2075,7 +2075,7 @@ window.addEventListener('DOMContentLoaded', async ()=>{
         const navTargets = document.querySelectorAll('[data-millar-nav]');
         navTargets.forEach(el=>{ if(typeof buildNav==='function') el.innerHTML=buildNav(); });
         document.getElementById('area-screen')?.classList.add('hidden');
-        entrarTablero();
+        entrarTablero(_tablero === 'mecanicos' ? 'mecanicos' : 'general');
       }, 400);
     };
     setTimeout(_tryAutoLogin, 300);
@@ -2183,7 +2183,7 @@ function mostrarAreaScreen(){
   if(hasPerm('tablero')){
     const c=makeCard('🏭','Tablero General','Vista general · módulos','ac-red',()=>{
       document.getElementById('area-screen').classList.add('hidden');
-      entrarTablero();
+      entrarTablero('general');
     });
     c.style.animationDelay=(idx*0.07)+'s'; idx++;
     btns.appendChild(c);
@@ -2193,7 +2193,7 @@ function mostrarAreaScreen(){
   if(hasPerm('tablero_planta')){
     const c=makeCard('🔊','Tablero Mecánicos','Tablero con notificaciones','ac-orange',()=>{
       document.getElementById('area-screen').classList.add('hidden');
-      entrarTablero();
+      entrarTablero('mecanicos');
     });
     c.style.animationDelay=(idx*0.07)+'s'; idx++;
     btns.appendChild(c);
@@ -2333,7 +2333,7 @@ function mostrarSubMenuMecanicos(){
   if(hasPerm('tablero')){
     const c1=makeCard('🏭','Tablero Mecánicos','Vista general · '+MODULES.length+' módulos','ac-red',()=>{
       document.getElementById('area-screen').classList.add('hidden');
-      entrarTablero();
+      entrarTablero('mecanicos');
     });
     c1.style.animationDelay=(idx*0.07)+'s'; idx++;
     btns.appendChild(c1);
@@ -2343,7 +2343,7 @@ function mostrarSubMenuMecanicos(){
   if(hasPerm('tablero_planta')){
     const c1b=makeCard('🔊','Tablero Mecánicos','Tablero con notificaciones','ac-orange',()=>{
       document.getElementById('area-screen').classList.add('hidden');
-      entrarTablero();
+      entrarTablero('mecanicos');
     });
     c1b.style.animationDelay=(idx*0.07)+'s'; idx++;
     btns.appendChild(c1b);
@@ -2488,7 +2488,7 @@ function onImpProd(){
 function elegirArea(area){
   document.getElementById('area-screen').classList.add('hidden');
   if(area==='mecanicos'){
-    entrarTablero();
+    entrarTablero('mecanicos');
   } else {
     if(currentUser==='Modulos'){
       document.getElementById('modulo-pass').value='';
@@ -2649,8 +2649,10 @@ function ocultarTodo(){
   currentView=null;
 }
 // ── Entrar al tablero general (activa modo blanco en header) ─────────
-function entrarTablero(){
-  const nombre = currentUser==='Mecanicos' ? 'Tablero Mecanicos' : 'Tablero General';
+function entrarTablero(modo){
+  if(!modo) modo = currentUser==='Mecanicos' ? 'mecanicos' : 'general';
+  window._tableroModo = modo;
+  const nombre = modo==='mecanicos' ? 'Tablero Mecanicos' : 'Tablero General';
   const h1 = document.getElementById('main-header-title');
   if(h1){
     const partes = nombre.split(' ');
@@ -2665,7 +2667,7 @@ function entrarTablero(){
   const _ocultarEsperaCI = () => {
     const estatOrange = document.getElementById('stat-orange');
     if(estatOrange){
-      estatOrange.style.display = currentUser==='Mecanicos' ? 'none' : '';
+      estatOrange.style.display = (window._tableroModo==='mecanicos') ? 'none' : '';
     }
   };
   _ocultarEsperaCI();
@@ -2679,6 +2681,8 @@ function entrarTablero(){
     const el = document.getElementById('stat-'+c);
     if(el) el.classList.remove('active-filter');
   });
+  // Guardar modo para restauración de sesión
+  try{ const _ses=JSON.parse(localStorage.getItem('cm_session')||'{}'); _ses.tableroModo=modo; localStorage.setItem('cm_session',JSON.stringify(_ses)); }catch(e){}
   // Entrar de inmediato — el WS actualizará estados cuando conecte
   setView('grid');
   // Re-renderizar cuando lleguen datos del servidor
