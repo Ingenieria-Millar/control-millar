@@ -204,7 +204,7 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
   <div class="hd-right">
     <div data-millar-nav></div>
     <div style="width:1px;height:22px;background:#e2e8f0;flex-shrink:0;"></div>
-    <button class="btn btn-cfg" onclick="openCfgModal()">⚙️ Configuraciones</button>
+    <button class="btn btn-cfg" onclick="abrirCfgScreen()">⚙️ Configuraciones</button>
     <button class="btn btn-success" onclick="exportarExcel()">📊 Exportar Excel</button>
     <button class="btn btn-primary" onclick="openRegistroModal()">+ Nuevo Registro</button>
     <button class="hd-back-btn" onclick="location.href='/'">← Inicio</button>
@@ -959,6 +959,152 @@ connectWS();
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',inject);
   else inject();
 })();
+
+// ── Pantalla de Configuraciones ────────────────────────────────────
+function abrirCfgScreen(){
+  document.getElementById('rt-cfg-screen').style.display='flex';
+  renderCfgScreenLista('referencias');
+  renderCfgScreenLista('defectos');
+  renderCfgScreenLista('colores');
+}
+
+function cerrarCfgScreen(){
+  document.getElementById('rt-cfg-screen').style.display='none';
+}
+
+function renderCfgScreenLista(tab){
+  const lista = getCfgLista(tab);
+  const el = document.getElementById('cfg-screen-list-'+tab);
+  if(!el) return;
+  if(!lista.length){
+    el.innerHTML='<div style="padding:20px;text-align:center;color:#94a3b8;font-size:13px;">Sin items. Agrega el primero abajo.</div>';
+    return;
+  }
+  el.innerHTML = lista.map((item,i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;
+      background:#f8fafc;border:1px solid #e2e8f0;margin-bottom:6px;">
+      <span style="flex:1;font-size:13px;font-weight:600;color:#0f172a;">${item}</span>
+      <button onclick="eliminarCfgItemScreen('${tab}',${i})"
+        style="width:28px;height:28px;border-radius:6px;border:1.5px solid #e2e8f0;background:#fff;
+        cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;
+        transition:all .15s;" onmouseover="this.style.background='#fef2f2';this.style.borderColor='#fca5a5'"
+        onmouseout="this.style.background='#fff';this.style.borderColor='#e2e8f0'">🗑</button>
+    </div>`).join('');
+}
+
+function agregarCfgItemScreen(tab){
+  const inp = document.getElementById('cfg-screen-add-'+tab);
+  const val = (inp.value||'').trim();
+  if(!val) return;
+  const lista = getCfgLista(tab);
+  if(lista.includes(val)){ showToast('⚠️ Ya existe ese valor'); return; }
+  lista.push(val);
+  setCfgLista(tab, lista);
+  inp.value='';
+  guardarEnServidor();
+  renderCfgScreenLista(tab);
+  showToast('✅ Agregado');
+}
+
+function eliminarCfgItemScreen(tab, idx){
+  const lista = getCfgLista(tab);
+  lista.splice(idx,1);
+  setCfgLista(tab, lista);
+  guardarEnServidor();
+  renderCfgScreenLista(tab);
+  showToast('🗑 Eliminado');
+}
 </script>
+
+<!-- Pantalla Configuraciones -->
+<div id="rt-cfg-screen" style="display:none;position:fixed;inset:0;z-index:500;background:#f1f5f9;flex-direction:column;">
+
+  <!-- Header cfg -->
+  <div style="background:#fff;border-bottom:1px solid #e2e8f0;box-shadow:0 1px 6px rgba(0,0,0,.07);
+    padding:0 clamp(12px,2.5vw,24px);min-height:64px;display:flex;align-items:center;
+    justify-content:space-between;gap:12px;position:relative;">
+    <div style="position:absolute;bottom:0;left:0;right:0;height:3px;
+      background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);"></div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="hd-logo"><img src="/logo.png" alt="Millar" onerror="this.style.display='none'"></div>
+      <div>
+        <div class="hd-title">⚙️ <span>Configuraciones</span></div>
+        <p style="font-size:11px;color:#64748b;font-weight:600;margin-top:1px;">Revisión de Telas</p>
+      </div>
+    </div>
+    <button class="hd-back-btn" onclick="cerrarCfgScreen()">← Volver</button>
+  </div>
+
+  <!-- Contenido cfg -->
+  <div style="flex:1;overflow-y:auto;padding:24px clamp(12px,2.5vw,24px);">
+    <div style="max-width:1200px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px;">
+
+      <!-- Referencias Tela -->
+      <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;">
+        <div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;background:#f8fafc;
+          display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;
+            letter-spacing:1.5px;text-transform:uppercase;color:#0f172a;">🧵 Referencias Tela</div>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-outline" style="font-size:11px;padding:5px 10px;" onclick="importarCfg('referencias')">📥 Importar</button>
+            <button class="btn btn-outline" style="font-size:11px;padding:5px 10px;" onclick="plantillaCfg('referencias')">📄 Plantilla</button>
+          </div>
+        </div>
+        <div style="padding:14px 16px;max-height:340px;overflow-y:auto;" id="cfg-screen-list-referencias"></div>
+        <div style="padding:12px 16px;border-top:1px solid #f1f5f9;display:flex;gap:8px;">
+          <input type="text" class="cfg-add-input" id="cfg-screen-add-referencias"
+            placeholder="Nueva referencia..."
+            onkeydown="if(event.key==='Enter')agregarCfgItemScreen('referencias')">
+          <button class="btn btn-primary" style="padding:8px 14px;white-space:nowrap;"
+            onclick="agregarCfgItemScreen('referencias')">+ Agregar</button>
+        </div>
+      </div>
+
+      <!-- Tipos de Defecto -->
+      <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;">
+        <div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;background:#f8fafc;
+          display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;
+            letter-spacing:1.5px;text-transform:uppercase;color:#0f172a;">⚠️ Tipos de Defecto</div>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-outline" style="font-size:11px;padding:5px 10px;" onclick="importarCfg('defectos')">📥 Importar</button>
+            <button class="btn btn-outline" style="font-size:11px;padding:5px 10px;" onclick="plantillaCfg('defectos')">📄 Plantilla</button>
+          </div>
+        </div>
+        <div style="padding:14px 16px;max-height:340px;overflow-y:auto;" id="cfg-screen-list-defectos"></div>
+        <div style="padding:12px 16px;border-top:1px solid #f1f5f9;display:flex;gap:8px;">
+          <input type="text" class="cfg-add-input" id="cfg-screen-add-defectos"
+            placeholder="Nuevo tipo de defecto..."
+            onkeydown="if(event.key==='Enter')agregarCfgItemScreen('defectos')">
+          <button class="btn btn-primary" style="padding:8px 14px;white-space:nowrap;"
+            onclick="agregarCfgItemScreen('defectos')">+ Agregar</button>
+        </div>
+      </div>
+
+      <!-- Colores -->
+      <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;">
+        <div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;background:#f8fafc;
+          display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;
+            letter-spacing:1.5px;text-transform:uppercase;color:#0f172a;">🎨 Colores</div>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-outline" style="font-size:11px;padding:5px 10px;" onclick="importarCfg('colores')">📥 Importar</button>
+            <button class="btn btn-outline" style="font-size:11px;padding:5px 10px;" onclick="plantillaCfg('colores')">📄 Plantilla</button>
+          </div>
+        </div>
+        <div style="padding:14px 16px;max-height:340px;overflow-y:auto;" id="cfg-screen-list-colores"></div>
+        <div style="padding:12px 16px;border-top:1px solid #f1f5f9;display:flex;gap:8px;">
+          <input type="text" class="cfg-add-input" id="cfg-screen-add-colores"
+            placeholder="Nuevo color..."
+            onkeydown="if(event.key==='Enter')agregarCfgItemScreen('colores')">
+          <button class="btn btn-primary" style="padding:8px 14px;white-space:nowrap;"
+            onclick="agregarCfgItemScreen('colores')">+ Agregar</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
