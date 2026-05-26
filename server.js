@@ -69,6 +69,7 @@ const FILES = {
   ordenes:        path.join(DATA_DIR, 'ordenes.json'),
   recogedores:    path.join(DATA_DIR, 'recogedores.json'),
   produccion:     path.join(DATA_DIR, 'produccion.json'),
+  revision_telas: path.join(DATA_DIR, 'revision_telas.json'),
 };
 
 // ── Helpers de persistencia ────────────────────────────────────────
@@ -422,6 +423,10 @@ app.get('/produccion', (req, res) =>
   res.sendFile(path.join(__dirname, 'produccion.html'))
 );
 
+app.get('/revision-telas', (req, res) =>
+  res.sendFile(path.join(__dirname, 'revision_telas.html'))
+);
+
 // GET todos los registros (con filtros opcionales)
 app.get('/api/recogedores', (req, res) => {
   let data = readJSON(FILES.recogedores, []);
@@ -502,6 +507,19 @@ app.post('/api/ordenes', (req, res) => {
   const data = req.body;
   if (!Array.isArray(data)) return res.status(400).json({ error: 'Se esperaba un array' });
   saveDB('ordenes', data);
+  res.json({ ok: true });
+});
+
+// ── API Revisión de Telas ────────────────────────────────────────
+app.get('/api/revision-telas', (req, res) => {
+  res.json(loadDB('revision_telas') || { registros:[], defectos:[], referencias:[], colores:[] });
+});
+
+app.post('/api/revision-telas', (req, res) => {
+  const { registros, defectos, referencias, colores } = req.body || {};
+  if(!Array.isArray(registros)) return res.status(400).json({ error: 'Payload inválido' });
+  saveDB('revision_telas', { registros, defectos: defectos||[], referencias: referencias||[], colores: colores||[] });
+  broadcastLocal({ type: 'rt_update', registros, defectos: defectos||[], referencias: referencias||[], colores: colores||[] });
   res.json({ ok: true });
 });
 
