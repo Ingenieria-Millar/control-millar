@@ -2090,6 +2090,11 @@ function iaInitApp(){
   document.getElementById('ia-login').style.display='none';
   document.getElementById('ia-app').style.display='block';
   const sup=iaGetSup(iaCurrentUser);
+  // Re-inyectar nav con el perfil del usuario logueado
+  try{ sessionStorage.setItem('millar_nav_perfil', (currentMember||sup.name||'').toLowerCase()); }catch(e){}
+  document.querySelectorAll('[data-millar-nav]').forEach(el=>{
+    if(typeof buildNav==='function') el.innerHTML=buildNav();
+  });
   document.getElementById('ia-sup-name').textContent=sup.name;
   document.getElementById('ia-header-date').textContent=iaFormatDateLong(iaTodayStr());
   document.getElementById('ia-stat-date').textContent=iaTodayStr();
