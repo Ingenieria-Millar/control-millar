@@ -87,13 +87,13 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
 
 /* Tabla */
 .table-wrap{background:#fff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;}
-.table-header{display:grid;grid-template-columns:100px 130px 1fr 80px 80px 90px 90px 100px 110px 50px 140px;
+.table-header{display:grid;grid-template-columns:90px 160px 140px 100px 70px 80px 80px 90px 110px 160px 55px 110px;
   gap:0;padding:10px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;}
 .th{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;
   text-transform:uppercase;color:#64748b;display:flex;align-items:center;gap:4px;cursor:pointer;user-select:none;}
 .th:hover{color:#1e40af;}
 .table-body{max-height:calc(100vh - 320px);overflow-y:auto;}
-.table-row{display:grid;grid-template-columns:100px 130px 1fr 80px 80px 90px 90px 100px 110px 50px 140px;
+.table-row{display:grid;grid-template-columns:90px 160px 140px 100px 70px 80px 80px 90px 110px 160px 55px 110px;
   gap:0;padding:11px 16px;border-bottom:1px solid #f8fafc;transition:background .12s;align-items:center;}
 .table-row:hover{background:#f8fafc;}
 .td{font-size:12px;color:#334155;font-family:'Nunito',sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -196,7 +196,7 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
   <div class="hd-right">
     <div data-millar-nav></div>
     <div style="width:1px;height:22px;background:#e2e8f0;flex-shrink:0;"></div>
-    <button class="btn btn-cfg" onclick="abrirCfgScreen()">⚙️ Configuraciones</button>
+    <button class="btn btn-cfg" onclick="pedirPassAccion(abrirCfgScreen)">⚙️ Configuraciones</button>
     <button class="btn btn-success" onclick="exportarExcel()">📊 Exportar</button>
     <button class="hd-back-btn" onclick="location.href='/'">← Inicio</button>
   </div>
@@ -236,6 +236,7 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
       <div class="th">H. Fin</div>
       <div class="th">Tiempo</div>
       <div class="th">Estado</div>
+      <div class="th">Defectos</div>
       <div class="th">Observ.</div>
       <div class="th">Acciones</div>
     </div>
@@ -613,10 +614,11 @@ function renderTabla(){
       <div class="td">${r.hora_fin||'—'}</div>
       <div class="td">${r.tiempo?`<span class="tiempo-badge">${r.tiempo}</span>`:'—'}</div>
       <div class="td">${estadoBadge}</div>
+      <div class="td" style="font-size:11px;line-height:1.5;">${r.defectos&&r.defectos.length?r.defectos.map(d=>`<span style="display:inline-block;background:#fef3c7;color:#92400e;border-radius:4px;padding:1px 5px;margin:1px;font-size:10px;font-weight:700;">${d.tipo}: ${d.cantidad}</span>`).join(''):'—'}</div>
       <div class="td">${r.observaciones?`<button onclick="verObservacion('${r.id}')" title="Ver observación" style="width:28px;height:28px;border-radius:6px;border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;font-size:14px;">💬</button>`:'—'}</div>
       <div class="td td-actions">
         ${accionFin}
-        <button class="btn-action" title="Editar" onclick="editarRegistro('${r.id}')" style="margin-left:${r.finalizado?'4':'0'}px;">✏️</button>
+        <button class="btn-action" title="Editar" onclick="pedirPassAccion(()=>editarRegistro('${r.id}'))" style="margin-left:${r.finalizado?'4':'0'}px;">✏️</button>
         <button class="btn-action del" title="Eliminar" onclick="confirmarEliminar('${r.id}')" style="margin-left:4px;">🗑</button>
       </div>
     </div>`;
@@ -1064,6 +1066,50 @@ function guardarEdicion(id){
   const btnGuardar=document.querySelector('#modal-registro .btn-primary');
   if(btnGuardar) btnGuardar.onclick=guardarRegistro;
   showToast('✅ Registro actualizado');
+}
+
+// ── Pedir contraseña para acción ───────────────────────────────────
+function pedirPassAccion(cb){
+  let m=document.getElementById('modal-pass-accion');
+  if(!m){
+    m=document.createElement('div');
+    m.id='modal-pass-accion';
+    m.style.cssText='display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1200;align-items:center;justify-content:center;';
+    m.innerHTML=`<div style="background:#fff;border-radius:14px;padding:24px;width:100%;max-width:360px;box-shadow:0 20px 60px rgba(0,0,0,.25);font-family:'Nunito',sans-serif;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;letter-spacing:2px;color:#0f172a;margin-bottom:14px;">🔐 CONFIRMAR ACCIÓN</div>
+      <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px;">Contraseña</label>
+      <input type="password" id="pass-accion-inp" placeholder="····" maxlength="20"
+        style="width:100%;padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:14px;outline:none;margin-bottom:6px;"
+        onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'"
+        onkeydown="if(event.key==='Enter')_ejecutarPassAccion()">
+      <div id="pass-accion-error" style="color:#dc2626;font-size:12px;min-height:16px;margin-bottom:12px;"></div>
+      <div style="display:flex;gap:10px;">
+        <button onclick="_cerrarPassAccion()" style="flex:1;padding:9px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Cancelar</button>
+        <button onclick="_ejecutarPassAccion()" style="flex:1;padding:9px;border-radius:8px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Confirmar</button>
+      </div>
+    </div>`;
+    document.body.appendChild(m);
+  }
+  window._passAccionCB = cb;
+  document.getElementById('pass-accion-inp').value='';
+  document.getElementById('pass-accion-error').textContent='';
+  m.style.display='flex';
+  setTimeout(()=>document.getElementById('pass-accion-inp').focus(),100);
+}
+function _ejecutarPassAccion(){
+  const pass=document.getElementById('pass-accion-inp').value;
+  if(pass!=='1'){
+    document.getElementById('pass-accion-error').textContent='Contraseña incorrecta';
+    document.getElementById('pass-accion-inp').value='';
+    document.getElementById('pass-accion-inp').focus(); return;
+  }
+  _cerrarPassAccion();
+  if(window._passAccionCB) window._passAccionCB();
+}
+function _cerrarPassAccion(){
+  const m=document.getElementById('modal-pass-accion');
+  if(m) m.style.display='none';
+  window._passAccionCB=null;
 }
 </script>
 
