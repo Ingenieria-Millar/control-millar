@@ -792,9 +792,15 @@ function poblarSearchable(inputId,ddId,valId,lista){
     `<div class="searchable-option" onmousedown="seleccionarOpcion('${inputId}','${ddId}','${valId}','${item}')">${item}</div>`
   ).join('')||`<div class="searchable-empty">Sin opciones</div>`;
 }
+function getCfgListaPorNombre(nombre){
+  if(nombre==='_cfgReferencias') return _cfgReferencias;
+  if(nombre==='_cfgColores')     return _cfgColores;
+  if(nombre==='_cfgDefectos')    return _cfgDefectos;
+  return window[nombre]||[];
+}
 function filtrarOpciones(inputId,ddId,listaVar){
   const q=document.getElementById(inputId).value.toLowerCase();
-  const lista=window[listaVar]||[];
+  const lista=getCfgListaPorNombre(listaVar);
   const dd=document.getElementById(ddId);
   const f=lista.filter(i=>i.toLowerCase().includes(q));
   const valId=inputId.replace('-input','-val');
