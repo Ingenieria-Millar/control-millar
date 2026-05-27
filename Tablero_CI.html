@@ -779,6 +779,7 @@ function connectWS(){
         if(msg.moduleList)     ciConfig.moduleList     = msg.moduleList;
         if(msg.obsList)        ciConfig.obsList        = msg.obsList;
         arrancar();
+  programarCierreMedianoche();
 
       } else if(msg.type === 'ci_new_request'){
         if(!ciRequests.find(r => r._id === msg.request._id)){
@@ -2635,6 +2636,46 @@ document.addEventListener('ci-updated', ()=>{
     inject();
   }
 })();
+
+// ── Cierre automático de solicitudes a medianoche ─────────────────
+function programarCierreMedianoche(){
+  const ahora = new Date();
+  const medianoche = new Date(ahora);
+  medianoche.setHours(24, 0, 0, 0); // próxima medianoche
+  const msHastaMedianoche = medianoche - ahora;
+
+  setTimeout(()=>{
+    cerrarSolicitudesAbiertas();
+    // Reprogramar para la siguiente medianoche
+    setInterval(cerrarSolicitudesAbiertas, 24 * 60 * 60 * 1000);
+  }, msHastaMedianoche);
+
+  console.log(`[CI] Cierre automático programado en ${Math.round(msHastaMedianoche/60000)} minutos`);
+}
+
+function cerrarSolicitudesAbiertas(){
+  const estadosCerrados = ['cumplido', 'done'];
+  const abiertas = ciRequests.filter(r => !estadosCerrados.includes(r.status));
+  if(!abiertas.length){
+    console.log('[CI] Medianoche: sin solicitudes abiertas.');
+    return;
+  }
+  console.log(`[CI] Medianoche: cerrando ${abiertas.length} solicitud(es) abierta(s).`);
+  abiertas.forEach(req => {
+    const updated = Object.assign({}, req, {
+      status:     'cumplido',
+      resolvedAt: '12:00 AM',
+      cierreAutomatico: true
+    });
+    const idx = ciRequests.findIndex(r => r._id === req._id);
+    if(idx > -1) ciRequests[idx] = updated;
+    // Broadcast igual que marcarCumplido
+    wsSend({ type: 'ci_cumplido_request', request: updated });
+    wsSend({ type: 'ci_update_request',   request: updated });
+  });
+  renderCards();
+  showToast(`🌙 ${abiertas.length} solicitud(es) cerrada(s) automáticamente al llegar la medianoche.`);
+}
 </script>
 </body>
 </html>
