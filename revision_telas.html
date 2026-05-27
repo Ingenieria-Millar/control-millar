@@ -463,6 +463,7 @@ async function cargarDatos(){
       _cfgColores=d.colores||[];
     }
   }catch(e){console.warn(e);}
+  await cargarRevisadores();
   aplicarFiltros();
 }
 
@@ -506,16 +507,19 @@ function calcTiempo(inicio,fin){
   return hh>0?`${hh}h ${mm}min`:`${mm}min`;
 }
 
-// ── Revisadores (miembros perfil Telas) ───────────────────────────
-function getRevisadores(){
+// ── Revisadores (miembros perfil Telas desde servidor) ────────────
+let _revisadores=[];
+async function cargarRevisadores(){
   try{
-    if(typeof getProfileMembers==='function'){
-      const members=getProfileMembers('Telas')||[];
-      return members.filter(m=>!m.disabled).map(m=>typeof m==='string'?m:(m.nombre||''));
+    const res=await fetch('/api/app-config');
+    if(res.ok){
+      const cfg=await res.json();
+      const members=(cfg._perfil_members&&cfg._perfil_members['Telas'])||[];
+      _revisadores=members.filter(m=>!m.disabled).map(m=>typeof m==='string'?m:(m.nombre||'')).filter(Boolean);
     }
-  }catch(e){}
-  return [];
+  }catch(e){console.warn('cargarRevisadores:',e);}
 }
+function getRevisadores(){ return _revisadores; }
 
 // ── Fecha header ──────────────────────────────────────────────────
 document.getElementById('rt-date').textContent=
@@ -654,6 +658,8 @@ function guardarRegistro(){
   const errEl=document.getElementById('f-error');
   if(!revisador){errEl.textContent='Selecciona un revisador';return;}
   if(!ref){errEl.textContent='La referencia es obligatoria';return;}
+  if(!color){errEl.textContent='Selecciona un color';return;}
+  if(!rollo){errEl.textContent='Ingresa el # de rollo';return;}
   const registro={
     id:'rt_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
     fecha, revisador, referencia:ref, color, rollo,
@@ -718,6 +724,14 @@ function guardarFinalizar(){
   const errEl=document.getElementById('fin-error');
   if(!metros){errEl.textContent='Ingresa los metros revisados';return;}
   if(!resultado){errEl.textContent='Selecciona Aprobado o Rechazado';return;}
+  // Verificar que cada defecto agregado tenga tipo y cantidad
+  let defErr=false;
+  document.querySelectorAll('#fin-defectos-list .defecto-row').forEach(row=>{
+    const tipo=row.querySelector('select').value;
+    const cant=row.querySelector('input').value;
+    if((tipo&&!cant)||(cant&&!tipo)) defErr=true;
+  });
+  if(defErr){errEl.textContent='Completa tipo y cantidad en cada defecto';return;}
 
   // Recoger defectos
   const defectos=[];
