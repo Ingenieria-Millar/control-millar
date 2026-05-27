@@ -5,7 +5,9 @@
 <!-- ╠══════════════════════════════════════════════════════════════╣ -->
 <!-- ║  ÍNDICE DE SECCIONES                                         ║ -->
 <!-- ║  1.  <head>  Dependencias + CSS global (línea ~10)           ║ -->
-<!-- ║  2.  <body>  Header principal  (línea ~1036)                 ║ -->
+<!-- ║  2.  <body>
+<!-- Capa de transición para evitar parpadeo al navegar -->
+<div id="nav-transition" style="display:none;position:fixed;inset:0;background:#f1f5f9;z-index:9999;"></div>  Header principal  (línea ~1036)                 ║ -->
 <!-- ║  3.  Pantalla 1 — Login de perfil (línea ~1084)              ║ -->
 <!-- ║  4.  Script init — Live-dot / heartbeat (línea ~1145)        ║ -->
 <!-- ║  5.  Pantalla 2 — Selección de área (línea ~1165)            ║ -->
@@ -2000,7 +2002,7 @@ window.addEventListener('DOMContentLoaded', async ()=>{
             // Esperar a que el WS traiga datos y luego restaurar
             const restoreNav = () => {
               if(screenToRestore === 'tablero_grid' || screenSaved.currentView === 'grid'){
-                entrarTablero(screenSaved.tableroModo||undefined);
+                entrarTablero(screenSaved.tableroModo || (currentUser==='Mecanicos'?'mecanicos':'general'));
               } else if((screenToRestore === 'tablero_single' || screenSaved.currentView === 'single') && screenSaved.selectedMod){
                 selectedMod = screenSaved.selectedMod;
                 // Ocultar area-screen antes de mostrar el tablero
@@ -2045,6 +2047,11 @@ window.addEventListener('DOMContentLoaded', async ()=>{
   const _urlParams = new URLSearchParams(location.search);
   const _volver    = _urlParams.get('volver');
   const _tablero   = _urlParams.get('tablero');
+  // Mostrar capa de transición inmediatamente si viene de navegación entre tableros
+  if(_tablero){
+    const _trans = document.getElementById('nav-transition');
+    if(_trans) _trans.style.display='block';
+  }
 
   if(_volver === 'produccion'){
     history.replaceState({}, '', '/');
@@ -2087,14 +2094,17 @@ window.addEventListener('DOMContentLoaded', async ()=>{
       if(ls) ls.classList.add('hidden');
       history.replaceState({}, '', '/?perfil='+currentUser.toLowerCase());
 
+      // Re-inyectar nav con el perfil correcto ANTES de mostrar tablero
+      document.querySelectorAll('[data-millar-nav]').forEach(el=>{
+        if(typeof buildNav==='function') el.innerHTML=buildNav();
+      });
+      document.getElementById('area-screen')?.classList.add('hidden');
+      entrarTablero(_tablero === 'mecanicos' ? 'mecanicos' : 'general');
+      // Ocultar capa de transición
       setTimeout(()=>{
-        // Re-inyectar nav con el perfil correcto
-        document.querySelectorAll('[data-millar-nav]').forEach(el=>{
-          if(typeof buildNav==='function') el.innerHTML=buildNav();
-        });
-        document.getElementById('area-screen')?.classList.add('hidden');
-        entrarTablero(_tablero === 'mecanicos' ? 'mecanicos' : 'general');
-      }, 400);
+        const _trans=document.getElementById('nav-transition');
+        if(_trans) _trans.style.display='none';
+      }, 150);
     };
     setTimeout(_tryAutoLogin, 300);
   }
@@ -2727,7 +2737,8 @@ function entrarTablero(modo){
     }
   };
   _ocultarEsperaCI();
-  setTimeout(_ocultarEsperaCI, 500); // re-ejecutar tras render
+  setTimeout(_ocultarEsperaCI, 300);
+  setTimeout(_ocultarEsperaCI, 800); // triple seguro
   
   // Limpiar filtros al entrar — evita tablero vacío
   activeFilters.clear();
@@ -8538,9 +8549,18 @@ function confirmarFalloMec(){
 (function(){
   // Detectar perfil desde URL o sessionStorage
   function getNavPerfil(){
-    const p = new URLSearchParams(location.search).get('perfil') ||
-              sessionStorage.getItem('millar_nav_perfil') || '';
-    return p.toLowerCase();
+    // Si viene ?tablero=, inferir el perfil del usuario desde cm_session
+    // para no mostrar nav vacío o con permisos incorrectos
+    const urlPerfil = new URLSearchParams(location.search).get('perfil');
+    if(urlPerfil) return urlPerfil.toLowerCase();
+    const ssPerfil = sessionStorage.getItem('millar_nav_perfil');
+    if(ssPerfil) return ssPerfil.toLowerCase();
+    // Fallback: leer perfil desde cm_session en localStorage
+    try{
+      const s = JSON.parse(localStorage.getItem('cm_session')||'{}');
+      if(s.user) return s.user.toLowerCase();
+    }catch(e){}
+    return '';
   }
 
   // Rutas
@@ -8714,6 +8734,14 @@ function confirmarFalloMec(){
   } else {
     inject();
   }
+  // Mostrar capa de transición al navegar a otro tablero
+  document.addEventListener('click', function(e){
+    const link = e.target.closest('a.millar-dd-item');
+    if(link && link.href && (link.href.includes('tablero=') || link.href.includes('/ci'))){
+      const trans = document.getElementById('nav-transition');
+      if(trans) trans.style.display='block';
+    }
+  }, true);
 })();
 
 // ── saveModForm — guarda módulo nuevo o editado ────────────────────
