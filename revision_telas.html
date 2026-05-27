@@ -87,13 +87,13 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
 
 /* Tabla */
 .table-wrap{background:#fff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;}
-.table-header{display:grid;grid-template-columns:90px 160px 140px 100px 70px 80px 80px 90px 110px 160px 55px 110px;
+.table-header{display:grid;grid-template-columns:90px 200px 180px 100px 65px 80px 80px 85px 110px 170px 50px 110px;
   gap:0;padding:10px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;}
 .th{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;
   text-transform:uppercase;color:#64748b;display:flex;align-items:center;gap:4px;cursor:pointer;user-select:none;}
 .th:hover{color:#1e40af;}
 .table-body{max-height:calc(100vh - 320px);overflow-y:auto;}
-.table-row{display:grid;grid-template-columns:90px 160px 140px 100px 70px 80px 80px 90px 110px 160px 55px 110px;
+.table-row{display:grid;grid-template-columns:90px 200px 180px 100px 65px 80px 80px 85px 110px 170px 50px 110px;
   gap:0;padding:11px 16px;border-bottom:1px solid #f8fafc;transition:background .12s;align-items:center;}
 .table-row:hover{background:#f8fafc;}
 .td{font-size:12px;color:#334155;font-family:'Nunito',sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -113,6 +113,9 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
 .tiempo-badge{display:inline-flex;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;
   background:#f0fdf4;color:#15803d;border:1px solid #86efac;}
 .empty-state{padding:60px 20px;text-align:center;color:#94a3b8;}
+.table-filters{display:grid;grid-template-columns:90px 200px 180px 100px 65px 80px 80px 85px 110px 170px 50px 110px;gap:0;padding:5px 16px 8px;background:#f8fafc;border-bottom:1px solid #e2e8f0;}
+.tf{padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:11px;font-family:'Nunito',sans-serif;outline:none;color:#0f172a;width:100%;box-sizing:border-box;}
+.tf:focus{border-color:#2563eb;}
 .empty-icon{font-size:48px;margin-bottom:12px;}
 .empty-text{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;text-transform:uppercase;}
 
@@ -228,7 +231,7 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
   <div class="table-wrap">
     <div class="table-header">
       <div class="th" onclick="sortBy('fecha')">Fecha ↕</div>
-      <div class="th">Revisador</div>
+      <div class="th" onclick="sortBy('revisador')">Revisador ↕</div>
       <div class="th" onclick="sortBy('referencia')">Ref. Tela ↕</div>
       <div class="th">Color</div>
       <div class="th"># Rollo</div>
@@ -239,6 +242,15 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
       <div class="th">Defectos</div>
       <div class="th">Observ.</div>
       <div class="th">Acciones</div>
+    </div>
+    <div class="table-filters">
+      <input placeholder="Filtrar..." oninput="filtrarTabla(0,this.value)" class="tf">
+      <input placeholder="Filtrar..." oninput="filtrarTabla(1,this.value)" class="tf">
+      <input placeholder="Filtrar..." oninput="filtrarTabla(2,this.value)" class="tf">
+      <input placeholder="Filtrar..." oninput="filtrarTabla(3,this.value)" class="tf">
+      <input placeholder="Filtrar..." oninput="filtrarTabla(4,this.value)" class="tf">
+      <div></div><div></div><div></div>
+      <div></div><div></div><div></div><div></div>
     </div>
     <div class="table-body" id="rt-table-body"></div>
   </div>
@@ -566,9 +578,21 @@ function aplicarFiltros(){
     return true;
   });
   _filtrados.sort((a,b)=>{
+    // Siempre ordenar por hora_inicio descendente como sort secundario
     const va=a[_sortCol]||'',vb=b[_sortCol]||'';
-    return _sortDir*(va>vb?1:va<vb?-1:0);
+    const primary=_sortDir*(va>vb?1:va<vb?-1:0);
+    if(primary!==0) return primary;
+    // Secundario: hora_inicio descendente
+    return (b.hora_inicio||'').localeCompare(a.hora_inicio||'');
   });
+  // Si no hay sort activo, ordenar por fecha+hora_inicio desc (más reciente primero)
+  if(_sortCol==='fecha'&&_sortDir===-1){
+    _filtrados.sort((a,b)=>{
+      const fd=(b.fecha||'').localeCompare(a.fecha||'');
+      if(fd!==0) return fd;
+      return (b.hora_inicio||'').localeCompare(a.hora_inicio||'');
+    });
+  }
   renderTabla();
   renderStats();
 }
@@ -614,12 +638,19 @@ function renderTabla(){
       <div class="td">${r.hora_fin||'—'}</div>
       <div class="td">${r.tiempo?`<span class="tiempo-badge">${r.tiempo}</span>`:'—'}</div>
       <div class="td">${estadoBadge}</div>
-      <div class="td" style="font-size:11px;line-height:1.5;">${r.defectos&&r.defectos.length?r.defectos.map(d=>`<span style="display:inline-block;background:#fef3c7;color:#92400e;border-radius:4px;padding:1px 5px;margin:1px;font-size:10px;font-weight:700;">${d.tipo}: ${d.cantidad}</span>`).join(''):'—'}</div>
+      <div class="td">${(()=>{
+        if(!r.defectos||!r.defectos.length) return '—';
+        const total=r.defectos.reduce((s,d)=>s+parseInt(d.cantidad||0),0);
+        return `<span style="display:inline-flex;align-items:center;gap:5px;">
+          <span style="font-weight:700;color:#92400e;font-size:13px;">${total}</span>
+          <button onclick="verDefectos('${r.id}')" title="Ver detalle" style="width:24px;height:24px;border-radius:6px;border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;">👁</button>
+        </span>`;
+      })()}</div>
       <div class="td">${r.observaciones?`<button onclick="verObservacion('${r.id}')" title="Ver observación" style="width:28px;height:28px;border-radius:6px;border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;font-size:14px;">💬</button>`:'—'}</div>
       <div class="td td-actions">
         ${accionFin}
         <button class="btn-action" title="Editar" onclick="pedirPassAccion(()=>editarRegistro('${r.id}'))" style="margin-left:${r.finalizado?'4':'0'}px;">✏️</button>
-        <button class="btn-action del" title="Eliminar" onclick="confirmarEliminar('${r.id}')" style="margin-left:4px;">🗑</button>
+        <button title="Eliminar" onclick="confirmarEliminar('${r.id}')" style="width:28px;height:28px;border-radius:6px;border:none;background:#dc2626;color:#fff;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;margin-left:4px;transition:all .15s;" onmouseover="this.style.background='#b91c1c'" onmouseout="this.style.background='#dc2626'">🗑</button>
       </div>
     </div>`;
   }).join('');
@@ -772,10 +803,11 @@ function confirmarEliminar(id){
   document.getElementById('rt-confirm-pass').value='';
   document.getElementById('rt-confirm-error').textContent='';
   _confirmCB=()=>{_registros=_registros.filter(x=>x.id!==id);guardarEnServidor();aplicarFiltros();showToast('🗑 Eliminado');};
-  document.getElementById('modal-confirm-rt').classList.add('open');
+  const _mrt=document.getElementById('modal-confirm-rt');
+  _mrt.classList.add('open'); _mrt.style.display='flex';
   setTimeout(()=>document.getElementById('rt-confirm-pass').focus(),100);
 }
-function closeConfirmRT(){document.getElementById('modal-confirm-rt').classList.remove('open');_confirmCB=null;}
+function closeConfirmRT(){const _mrt=document.getElementById('modal-confirm-rt');_mrt.classList.remove('open');_mrt.style.display='none';_confirmCB=null;}
 function executeConfirmRT(){
   if(document.getElementById('rt-confirm-pass').value!=='1'){
     document.getElementById('rt-confirm-error').textContent='Contraseña incorrecta';
@@ -1033,23 +1065,19 @@ function verObservacion(id){
 function editarRegistro(id){
   const r=_registros.find(x=>x.id===id);
   if(!r) return;
-  // Abrir modal de registro con datos precargados
   openRegistroModal();
-  // Sobrescribir con datos del registro
-  setTimeout(()=>{
-    document.getElementById('f-fecha').value=r.fecha||'';
-    document.getElementById('f-fecha-display').textContent=fechaDisplay(r.fecha||'');
-    document.getElementById('f-revisador').value=r.revisador||'';
-    document.getElementById('f-ref-input').value=r.referencia||'';
-    document.getElementById('f-ref-val').value=r.referencia||'';
-    document.getElementById('f-color-input').value=r.color||'';
-    document.getElementById('f-color-val').value=r.color||'';
-    document.getElementById('f-rollo').value=r.rollo||'';
-    // Cambiar botón guardar para modo edición
-    const btnGuardar=document.getElementById('btn-guardar-registro');
-    if(btnGuardar) btnGuardar.onclick=()=>guardarEdicion(id);
-    document.querySelector('#modal-registro .modal-title').textContent='✏️ EDITAR REGISTRO';
-  },50);
+  // Precargar datos sin setTimeout
+  document.getElementById('f-fecha').value=r.fecha||'';
+  document.getElementById('f-fecha-display').textContent=fechaDisplay(r.fecha||'');
+  document.getElementById('f-revisador').value=r.revisador||'';
+  document.getElementById('f-ref-input').value=r.referencia||'';
+  document.getElementById('f-ref-val').value=r.referencia||'';
+  document.getElementById('f-color-input').value=r.color||'';
+  document.getElementById('f-color-val').value=r.color||'';
+  document.getElementById('f-rollo').value=r.rollo||'';
+  const btnGuardar=document.getElementById('btn-guardar-registro');
+  if(btnGuardar) btnGuardar.onclick=()=>guardarEdicion(id);
+  document.querySelector('#modal-registro .modal-title').textContent='✏️ EDITAR REGISTRO';
 }
 
 function guardarEdicion(id){
@@ -1116,6 +1144,53 @@ function _cerrarPassAccion(){
   const m=document.getElementById('modal-pass-accion');
   if(m) m.style.display='none';
   window._passAccionCB=null;
+}
+
+// ── Filtros de columna ────────────────────────────────────────────
+let _colFilters=['','','','',''];
+function filtrarTabla(colIdx, val){
+  _colFilters[colIdx]=val.toLowerCase();
+  const cols=['fecha','revisador','referencia','color','rollo'];
+  const body=document.getElementById('rt-table-body');
+  body.querySelectorAll('.table-row').forEach(row=>{
+    const cells=[...row.querySelectorAll('.td')];
+    const match=_colFilters.every((f,i)=>!f||(cells[i]&&cells[i].textContent.toLowerCase().includes(f)));
+    row.style.display=match?'':'none';
+  });
+}
+
+// ── Ver defectos desglosados ──────────────────────────────────────
+function verDefectos(id){
+  const r=_registros.find(x=>x.id===id);
+  if(!r||!r.defectos||!r.defectos.length) return;
+  let m=document.getElementById('modal-defectos-rt');
+  if(!m){
+    m=document.createElement('div');
+    m.id='modal-defectos-rt';
+    m.style.cssText='display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1100;align-items:center;justify-content:center;';
+    m.onclick=e=>{if(e.target===m)m.style.display='none';};
+    m.innerHTML=`<div style="background:#fff;border-radius:14px;padding:24px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,.25);">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;letter-spacing:1.5px;color:#0f172a;margin-bottom:14px;">👁 DETALLE DEFECTOS</div>
+      <div id="defectos-rt-list"></div>
+      <div style="margin-top:14px;text-align:right;">
+        <button onclick="document.getElementById('modal-defectos-rt').style.display='none'"
+          style="padding:8px 20px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Cerrar</button>
+      </div>
+    </div>`;
+    document.body.appendChild(m);
+  }
+  const total=r.defectos.reduce((s,d)=>s+parseInt(d.cantidad||0),0);
+  document.getElementById('defectos-rt-list').innerHTML=
+    r.defectos.map(d=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-radius:8px;background:#f8fafc;margin-bottom:6px;border:1px solid #e2e8f0;">
+        <span style="font-size:13px;font-weight:600;color:#0f172a;">${d.tipo}</span>
+        <span style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;color:#92400e;background:#fef3c7;padding:2px 10px;border-radius:6px;">${d.cantidad}</span>
+      </div>`).join('')+
+    `<div style="display:flex;justify-content:space-between;padding:8px 12px;border-top:2px solid #e2e8f0;margin-top:4px;">
+      <span style="font-size:13px;font-weight:700;color:#0f172a;">Total</span>
+      <span style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;color:#1e3a8a;">${total}</span>
+    </div>`;
+  m.style.display='flex';
 }
 </script>
 
