@@ -291,7 +291,7 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeRegistroModal()">Cancelar</button>
-      <button class="btn btn-primary" onclick="guardarRegistro()">💾 Guardar</button>
+      <button class="btn btn-primary" id="btn-guardar-registro" onclick="guardarRegistro()">💾 Guardar</button>
     </div>
   </div>
 </div>
@@ -631,7 +631,6 @@ function openRegistroModal(){
   document.getElementById('f-ref-input').value='';
   document.getElementById('f-ref-val').value='';
   document.getElementById('f-rollo').value='';
-  document.getElementById('f-color').value='';
   document.getElementById('f-error').textContent='';
 
   // Poblar revisadores
@@ -654,6 +653,10 @@ function openRegistroModal(){
 }
 function closeRegistroModal(){
   document.getElementById('modal-registro').classList.remove('open');
+  // Restaurar botón guardar a modo creación
+  const btn=document.getElementById('btn-guardar-registro');
+  if(btn){ btn.onclick=guardarRegistro; }
+  document.querySelector('#modal-registro .modal-title').textContent='➕ NUEVO REGISTRO';
 }
 function guardarRegistro(){
   const fecha=document.getElementById('f-fecha').value;
@@ -1035,7 +1038,7 @@ function editarRegistro(id){
     document.getElementById('f-color-val').value=r.color||'';
     document.getElementById('f-rollo').value=r.rollo||'';
     // Cambiar botón guardar para modo edición
-    const btnGuardar=document.querySelector('#modal-registro .btn-primary');
+    const btnGuardar=document.getElementById('btn-guardar-registro');
     if(btnGuardar) btnGuardar.onclick=()=>guardarEdicion(id);
     document.querySelector('#modal-registro .modal-title').textContent='✏️ EDITAR REGISTRO';
   },50);
