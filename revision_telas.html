@@ -209,7 +209,7 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
       <span id="rt-user-name" style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:#0f172a;letter-spacing:.5px;"></span>
     </div>
     <button onclick="rtCerrarSesion()" style="padding:6px 14px;border-radius:8px;border:1.5px solid #fca5a5;background:#fef2f2;color:#dc2626;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;" id="rt-logout-btn" style="display:none;">↩ Cerrar sesión</button>
-    <button class="hd-back-btn" onclick="location.href='/'" id="rt-inicio-btn">← Inicio</button>
+
   </div>
 </header>
 
@@ -240,6 +240,7 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
     </div>
     <div id="rt-login-error" style="color:#dc2626;font-size:12px;min-height:16px;margin-bottom:10px;text-align:center;"></div>
     <button onclick="rtDoLogin()" style="width:100%;padding:12px;border-radius:10px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;letter-spacing:1px;cursor:pointer;transition:opacity .2s;" onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">INGRESAR →</button>
+    <button onclick="location.href='/'" style="width:100%;padding:11px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;color:#475569;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;cursor:pointer;margin-top:10px;transition:all .2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'">← VOLVER AL MENÚ</button>
     <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;">© 2026 Ingeniería Confecciones Millar S.A.S.</div>
   </div>
 </div>
@@ -324,6 +325,24 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
         </div>
       </div>
       <div class="form-field">
+        <label class="field-label">Proveedor</label>
+        <div class="searchable-wrap">
+          <input type="text" class="searchable-input" id="f-proveedor-input" placeholder="Buscar proveedor..."
+            autocomplete="off" oninput="filtrarOpciones('f-proveedor-input','f-proveedor-dd','_cfgProveedores')"
+            onfocus="abrirDropdown('f-proveedor-dd')" onblur="setTimeout(()=>cerrarDropdown('f-proveedor-dd'),200)">
+          <input type="hidden" id="f-proveedor-val">
+          <div class="searchable-dropdown" id="f-proveedor-dd"></div>
+        </div>
+      </div>
+      <div class="form-field">
+        <label class="field-label">Lote</label>
+        <input type="text" class="field-input" id="f-lote" placeholder="Ej: L-2026-001">
+      </div>
+      <div class="form-field">
+        <label class="field-label"># de Rollo</label>
+        <input type="number" min="0" class="field-input" id="f-rollo" placeholder="Ej: 001">
+      </div>
+      <div class="form-field">
         <label class="field-label">Color</label>
         <div class="searchable-wrap">
           <input type="text" class="searchable-input" id="f-color-input" placeholder="Buscar color..."
@@ -332,10 +351,6 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
           <input type="hidden" id="f-color-val">
           <div class="searchable-dropdown" id="f-color-dd"></div>
         </div>
-      </div>
-      <div class="form-field">
-        <label class="field-label"># de Rollo</label>
-        <input type="number" min="0" class="field-input" id="f-rollo" placeholder="Ej: 001">
       </div>
       <div id="f-error" style="color:#dc2626;font-size:12px;min-height:14px;"></div>
     </div>
@@ -440,6 +455,21 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
         </div>
       </div>
 
+      <!-- Proveedores -->
+      <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;">
+        <div style="padding:14px 18px;border-bottom:1px solid #e2e8f0;background:#f8fafc;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#0f172a;">🏭 Proveedores</div>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-outline" style="font-size:11px;padding:5px 9px;" onclick="importarCfg('proveedores')">📥 Importar</button>
+            <button class="btn btn-outline" style="font-size:11px;padding:5px 9px;" onclick="plantillaCfg('proveedores')">📄 Plantilla</button>
+          </div>
+        </div>
+        <div style="padding:12px 14px;max-height:300px;overflow-y:auto;" id="cfg-screen-list-proveedores"></div>
+        <div style="padding:10px 14px;border-top:1px solid #f1f5f9;display:flex;gap:8px;">
+          <input class="cfg-add-input" id="cfg-screen-add-proveedores" placeholder="Nuevo proveedor..." onkeydown="if(event.key==='Enter')agregarCfgItemScreen('proveedores')">
+          <button class="btn btn-primary" style="padding:7px 12px;" onclick="agregarCfgItemScreen('proveedores')">+ Agregar</button>
+        </div>
+      </div>
       <!-- Tipos de Defecto -->
       <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;">
         <div style="padding:14px 18px;border-bottom:1px solid #e2e8f0;background:#f8fafc;display:flex;align-items:center;justify-content:space-between;">
@@ -480,7 +510,7 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
 // ── Estado global ──────────────────────────────────────────────────
 let _registros=[], _filtrados=[], _sortCol='fecha', _sortDir=-1;
 let _confirmCB=null, _finalizandoId=null;
-let _cfgDefectos=[], _cfgReferencias=[], _cfgColores=[];
+let _cfgDefectos=[], _cfgReferencias=[], _cfgColores=[], _cfgProveedores=[];
 let ws=null, wsReady=false, wsTimer=null;
 let _filtroDesde='', _filtroHasta='';
 
@@ -711,6 +741,12 @@ function openRegistroModal(){
     o.value=r; o.textContent=r; selRev.appendChild(o);
   });
 
+  // Poblar proveedor searchable
+  document.getElementById('f-proveedor-input').value='';
+  document.getElementById('f-proveedor-val').value='';
+  poblarSearchable('f-proveedor-input','f-proveedor-dd','f-proveedor-val',_cfgProveedores);
+  // Limpiar lote
+  document.getElementById('f-lote').value='';
   // Poblar color searchable
   document.getElementById('f-color-input').value='';
   document.getElementById('f-color-val').value='';
@@ -739,9 +775,11 @@ function guardarRegistro(){
   if(!ref){errEl.textContent='La referencia es obligatoria';return;}
   if(!color){errEl.textContent='Ingresa o selecciona un color';return;}
   if(!rollo){errEl.textContent='Ingresa el # de rollo';return;}
+  const proveedor=document.getElementById('f-proveedor-val').value.trim()||document.getElementById('f-proveedor-input').value.trim();
+  const lote=document.getElementById('f-lote').value.trim();
   const registro={
     id:'rt_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
-    fecha, revisador, referencia:ref, color, rollo,
+    fecha, revisador, referencia:ref, proveedor, lote, color, rollo,
     hora_inicio:horaActual(), hora_fin:'', tiempo:'',
     metros:'', defectos:[], resultado:'', observaciones:'', finalizado:false
   };
@@ -785,15 +823,25 @@ function agregarDefectoRow(){
   const list=document.getElementById('fin-defectos-list');
   const row=document.createElement('div');
   row.className='defecto-row';
+  // Metro
+  const inpMetro=document.createElement('input');
+  inpMetro.type='number'; inpMetro.min='0'; inpMetro.placeholder='Metro';
+  inpMetro.style.cssText='flex:1;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;';
+  // Tipo defecto
   const sel=document.createElement('select');
+  sel.style.cssText='flex:2;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;background:#fff;';
   sel.innerHTML='<option value="">— Tipo defecto —</option>'+
     _cfgDefectos.map(d=>`<option value="${d}">${d}</option>`).join('');
+  // Cantidad
   const inp=document.createElement('input');
   inp.type='number'; inp.min='1'; inp.placeholder='Cant.';
+  inp.style.cssText='width:65px;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;text-align:center;';
+  // Botón eliminar
   const btn=document.createElement('button');
   btn.textContent='✕';
+  btn.style.cssText='width:30px;height:30px;border-radius:6px;border:1.5px solid #fca5a5;background:#fef2f2;color:#dc2626;cursor:pointer;font-size:14px;flex-shrink:0;';
   btn.onclick=()=>row.remove();
-  row.appendChild(sel); row.appendChild(inp); row.appendChild(btn);
+  row.appendChild(inpMetro); row.appendChild(sel); row.appendChild(inp); row.appendChild(btn);
   list.appendChild(row);
 }
 function guardarFinalizar(){
@@ -815,9 +863,11 @@ function guardarFinalizar(){
   // Recoger defectos
   const defectos=[];
   document.querySelectorAll('#fin-defectos-list .defecto-row').forEach(row=>{
+    const inputs=row.querySelectorAll('input');
+    const metro=inputs[0]?.value||'';
     const tipo=row.querySelector('select').value;
-    const cant=row.querySelector('input').value;
-    if(tipo&&cant) defectos.push({tipo,cantidad:parseInt(cant)});
+    const cant=inputs[1]?.value||'';
+    if(tipo&&cant) defectos.push({metro,tipo,cantidad:parseInt(cant)});
   });
 
   const horaFin=horaActual();
@@ -864,9 +914,10 @@ function poblarSearchable(inputId,ddId,valId,lista){
   ).join('')||`<div class="searchable-empty">Sin opciones</div>`;
 }
 function getCfgListaPorNombre(nombre){
-  if(nombre==='_cfgReferencias') return _cfgReferencias;
-  if(nombre==='_cfgColores')     return _cfgColores;
-  if(nombre==='_cfgDefectos')    return _cfgDefectos;
+  if(nombre==='_cfgReferencias')  return _cfgReferencias;
+  if(nombre==='_cfgColores')      return _cfgColores;
+  if(nombre==='_cfgDefectos')     return _cfgDefectos;
+  if(nombre==='_cfgProveedores')  return _cfgProveedores;
   return window[nombre]||[];
 }
 function filtrarOpciones(inputId,ddId,listaVar){
@@ -892,7 +943,7 @@ function cerrarDropdown(ddId){document.getElementById(ddId)?.classList.remove('o
 function exportarExcel(){
   if(!_filtrados.length){showToast('⚠️ Sin registros');return;}
   const data=_filtrados.map(r=>({
-    'Fecha':fechaDisplay(r.fecha),'Revisador':r.revisador||'','Referencia':r.referencia||'',
+    'Fecha':fechaDisplay(r.fecha),'Revisador':r.revisador||'','Referencia':r.referencia||'','Proveedor':r.proveedor||'','Lote':r.lote||'',
     'Color':r.color||'','# Rollo':r.rollo||'','Metros':r.metros||'',
     'Defectos':r.defectos?r.defectos.map(d=>`${d.tipo}(${d.cantidad})`).join(', '):'',
     'H. Inicio':r.hora_inicio||'','H. Fin':r.hora_fin||'','Tiempo':r.tiempo||'',
@@ -910,16 +961,18 @@ function getCfgLista(tab){
   if(tab==='defectos') return _cfgDefectos;
   if(tab==='referencias') return _cfgReferencias;
   if(tab==='colores') return _cfgColores;
+  if(tab==='proveedores') return _cfgProveedores;
   return [];
 }
 function setCfgLista(tab,lista){
   if(tab==='defectos') _cfgDefectos=lista;
   if(tab==='referencias') _cfgReferencias=lista;
   if(tab==='colores') _cfgColores=lista;
+  if(tab==='proveedores') _cfgProveedores=lista;
 }
 function abrirCfgScreen(){
   document.getElementById('rt-cfg-screen').style.display='flex';
-  ['referencias','defectos','colores'].forEach(t=>renderCfgScreenLista(t));
+  ['referencias','defectos','colores','proveedores'].forEach(t=>renderCfgScreenLista(t));
 }
 function cerrarCfgScreen(){document.getElementById('rt-cfg-screen').style.display='none';}
 function renderCfgScreenLista(tab){
@@ -1005,6 +1058,11 @@ function showToast(msg){
 }
 
 // ── Init ───────────────────────────────────────────────────────────
+// Poner fecha de hoy por defecto
+const _hoyInit = new Date().toISOString().split('T')[0];
+document.getElementById('filtro-desde').value=_hoyInit;
+document.getElementById('filtro-hasta').value=_hoyInit;
+_filtroDesde=_hoyInit; _filtroHasta=_hoyInit;
 cargarDatos().then(()=>rtInitLogin());
 connectWS();
 </script>
@@ -1111,6 +1169,9 @@ function editarRegistro(id){
   document.getElementById('f-revisador').value=r.revisador||'';
   document.getElementById('f-ref-input').value=r.referencia||'';
   document.getElementById('f-ref-val').value=r.referencia||'';
+  document.getElementById('f-proveedor-input').value=r.proveedor||'';
+  document.getElementById('f-proveedor-val').value=r.proveedor||'';
+  document.getElementById('f-lote').value=r.lote||'';
   document.getElementById('f-color-input').value=r.color||'';
   document.getElementById('f-color-val').value=r.color||'';
   document.getElementById('f-rollo').value=r.rollo||'';
@@ -1123,6 +1184,8 @@ function guardarEdicion(id){
   const fecha=document.getElementById('f-fecha').value;
   const revisador=document.getElementById('f-revisador').value;
   const ref=document.getElementById('f-ref-val').value.trim()||document.getElementById('f-ref-input').value.trim();
+  const proveedor=document.getElementById('f-proveedor-val').value.trim()||document.getElementById('f-proveedor-input').value.trim();
+  const lote=document.getElementById('f-lote').value.trim();
   const color=document.getElementById('f-color-val').value.trim()||document.getElementById('f-color-input').value.trim();
   const rollo=document.getElementById('f-rollo').value.trim();
   const errEl=document.getElementById('f-error');
@@ -1131,7 +1194,7 @@ function guardarEdicion(id){
   if(!color){errEl.textContent='Ingresa o selecciona un color';return;}
   if(!rollo){errEl.textContent='Ingresa el # de rollo';return;}
   const idx=_registros.findIndex(x=>x.id===id);
-  if(idx>=0) _registros[idx]={..._registros[idx], fecha, revisador, referencia:ref, color, rollo};
+  if(idx>=0) _registros[idx]={..._registros[idx], fecha, revisador, referencia:ref, proveedor, lote, color, rollo};
   guardarEnServidor();
   aplicarFiltros();
   closeRegistroModal();
@@ -1265,6 +1328,12 @@ function rtDoLogin(){
 }
 
 function rtEntrarApp(){
+  // Por defecto mostrar solo los registros de hoy
+  const _hoy = fechaHoy();
+  _filtroDesde=_hoy; _filtroHasta=_hoy;
+  document.getElementById('filtro-desde').value=_hoy;
+  document.getElementById('filtro-hasta').value=_hoy;
+  document.getElementById('date-filter-label').textContent=fechaDisplay(_hoy)+' — '+fechaDisplay(_hoy);
   // Ocultar login
   document.getElementById('rt-login-screen').style.display='none';
   // Mostrar badge usuario
