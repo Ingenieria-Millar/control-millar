@@ -534,16 +534,51 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
       <div style="font-size:12px;color:#64748b;margin-top:4px;" id="fin-ref-label"></div>
     </div>
     <div class="modal-body">
+      <!-- Metros -->
       <div class="form-field">
         <label class="field-label">Metros Revisados</label>
         <input type="number" min="0" step="0.1" class="field-input" id="fin-metros" placeholder="Ej: 25.5">
       </div>
+      <!-- Ancho y Peso en grid -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-field">
+          <label class="field-label">Ancho Útil (cm)</label>
+          <input type="number" min="0" step="0.1" class="field-input" id="fin-ancho" placeholder="Ej: 145.5">
+        </div>
+        <div class="form-field">
+          <label class="field-label">Peso Rodaja (g)</label>
+          <input type="number" min="0" step="0.1" class="field-input" id="fin-peso" placeholder="Ej: 850">
+        </div>
+      </div>
+      <!-- Defectos -->
       <div class="form-field">
         <label class="field-label">Defectos encontrados</label>
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr 30px;gap:6px;padding:6px 0;margin-bottom:4px;">
+          <span style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;">Tipo Defecto</span>
+          <span style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;">Metro</span>
+          <span style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;">Cantidad</span>
+          <span></span>
+        </div>
         <div id="fin-defectos-list"></div>
         <button class="btn btn-outline" style="margin-top:6px;width:100%;justify-content:center;"
           onclick="agregarDefectoRow()">+ Agregar defecto</button>
       </div>
+      <!-- Proceso a 3ro -->
+      <div class="form-field">
+        <label class="field-label">Proceso a Tercero</label>
+        <div class="toggle-wrap" style="max-width:200px;">
+          <button class="toggle-btn" id="btn-proc-no" onclick="setProcTercero('no')" style="background:#f8fafc;">No</button>
+          <button class="toggle-btn" id="btn-proc-si" onclick="setProcTercero('si')">Sí</button>
+        </div>
+        <input type="hidden" id="fin-proc-tercero" value="no">
+        <div id="fin-prov-tercero-wrap" style="display:none;margin-top:10px;">
+          <label class="field-label">Proveedor Tercero</label>
+          <select class="field-select" id="fin-prov-tercero-sel">
+            <option value="">— Seleccionar —</option>
+          </select>
+        </div>
+      </div>
+      <!-- Resultado -->
       <div class="form-field">
         <label class="field-label">Resultado</label>
         <div class="toggle-wrap">
@@ -552,6 +587,7 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
         </div>
         <input type="hidden" id="fin-resultado" value="">
       </div>
+      <!-- Observaciones -->
       <div class="form-field">
         <label class="field-label">Observaciones</label>
         <textarea class="field-input" id="fin-observaciones" rows="3"
@@ -1029,13 +1065,28 @@ function guardarEdicion(id){
 function openFinalizar(id){
   _finalizandoId=id;const r=_registros.find(x=>x.id===id);if(!r)return;
   document.getElementById('fin-ref-label').textContent=(r.referencia||'')+' — Rollo '+(r.rollo||'')+' — '+(r.revisador||'');
-  document.getElementById('fin-metros').value='';document.getElementById('fin-observaciones').value='';
+  document.getElementById('fin-metros').value='';
+  document.getElementById('fin-ancho').value='';
+  document.getElementById('fin-peso').value='';
+  document.getElementById('fin-observaciones').value='';
   document.getElementById('fin-resultado').value='';document.getElementById('fin-error').textContent='';
   document.getElementById('btn-aprobado').className='toggle-btn';
   document.getElementById('btn-rechazado').className='toggle-btn';
+  // Resetear proceso a tercero
+  setProcTercero('no');
+  // Poblar proveedores terceros
+  const sel=document.getElementById('fin-prov-tercero-sel');
+  sel.innerHTML='<option value="">— Seleccionar —</option>'+_cfgProveedoresTerceros.map(p=>'<option value="'+p+'">'+p+'</option>').join('');
   document.getElementById('fin-defectos-list').innerHTML='';
   agregarDefectoRow();
   document.getElementById('modal-finalizar').classList.add('open');
+}
+
+function setProcTercero(val){
+  document.getElementById('fin-proc-tercero').value=val;
+  document.getElementById('btn-proc-no').className='toggle-btn'+(val==='no'?' active-ok':'');
+  document.getElementById('btn-proc-si').className='toggle-btn'+(val==='si'?' active-ok':'');
+  document.getElementById('fin-prov-tercero-wrap').style.display=val==='si'?'block':'none';
 }
 function closeFinalizar(){document.getElementById('modal-finalizar').classList.remove('open');_finalizandoId=null;}
 function setResultado(val){
@@ -1045,40 +1096,52 @@ function setResultado(val){
 }
 function agregarDefectoRow(){
   const list=document.getElementById('fin-defectos-list');
-  const row=document.createElement('div');row.className='defecto-row';
+  const row=document.createElement('div');
+  row.style.cssText='display:grid;grid-template-columns:2fr 1fr 1fr 30px;gap:6px;margin-bottom:6px;align-items:center;';
+  // Tipo defecto
+  const sel=document.createElement('select');
+  sel.style.cssText='padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;background:#fff;width:100%;';
+  sel.innerHTML='<option value="">— Tipo defecto —</option>'+getDefectoOptions();
+  // Metro
   const inpMetro=document.createElement('input');
   inpMetro.type='number';inpMetro.min='0';inpMetro.placeholder='Metro';
-  inpMetro.style.cssText='flex:1;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;min-width:60px;';
-  const sel=document.createElement('select');
-  sel.style.cssText='flex:2;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;background:#fff;';
-  sel.innerHTML='<option value="">— Tipo defecto —</option>'+getDefectoOptions();
+  inpMetro.style.cssText='padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;width:100%;text-align:center;';
+  // Cantidad
   const inp=document.createElement('input');inp.type='number';inp.min='1';inp.placeholder='Cant.';
-  inp.style.cssText='width:65px;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;text-align:center;';
+  inp.style.cssText='padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;width:100%;text-align:center;';
+  // Botón eliminar
   const btn=document.createElement('button');btn.textContent='✕';
-  btn.style.cssText='width:30px;height:30px;border-radius:6px;border:1.5px solid #fca5a5;background:#fef2f2;color:#dc2626;cursor:pointer;font-size:14px;flex-shrink:0;';
+  btn.style.cssText='width:28px;height:28px;border-radius:6px;border:1.5px solid #fca5a5;background:#fef2f2;color:#dc2626;cursor:pointer;font-size:13px;';
   btn.onclick=()=>row.remove();
-  row.appendChild(inpMetro);row.appendChild(sel);row.appendChild(inp);row.appendChild(btn);
+  row.appendChild(sel);row.appendChild(inpMetro);row.appendChild(inp);row.appendChild(btn);
   list.appendChild(row);
 }
 function guardarFinalizar(){
   const metros=document.getElementById('fin-metros').value.trim();
+  const ancho=document.getElementById('fin-ancho').value.trim();
+  const peso=document.getElementById('fin-peso').value.trim();
   const resultado=document.getElementById('fin-resultado').value;
   const obs=document.getElementById('fin-observaciones').value.trim();
+  const procTercero=document.getElementById('fin-proc-tercero').value;
+  const provTercero=procTercero==='si'?document.getElementById('fin-prov-tercero-sel').value:'';
   const errEl=document.getElementById('fin-error');
   if(!metros){errEl.textContent='Ingresa los metros revisados';return;}
   if(!resultado){errEl.textContent='Selecciona Aprobado o Rechazado';return;}
   let defErr=false;
   const defectos=[];
-  document.querySelectorAll('#fin-defectos-list .defecto-row').forEach(row=>{
+  document.querySelectorAll('#fin-defectos-list > div').forEach(row=>{
+    const sel=row.querySelector('select');
     const inputs=row.querySelectorAll('input');
-    const metro=inputs[0]?.value||'';const tipo=row.querySelector('select').value;const cant=inputs[1]?.value||'';
+    const tipo=sel?sel.value:'';
+    const metro=inputs[0]?inputs[0].value:'';
+    const cant=inputs[1]?inputs[1].value:'';
     if((tipo&&!cant)||(cant&&!tipo))defErr=true;
-    if(tipo&&cant)defectos.push({metro,tipo,cantidad:parseInt(cant)});
+    if(tipo&&cant)defectos.push({tipo,metro,cantidad:parseInt(cant)});
   });
   if(defErr){errEl.textContent='Completa tipo y cantidad en cada defecto';return;}
   const horaFin=horaActual();
   const idx=_registros.findIndex(x=>x.id===_finalizandoId);
-  if(idx>=0){const r=_registros[idx];_registros[idx]={...r,metros,defectos,resultado,observaciones:obs,hora_fin:horaFin,tiempo:calcTiempo(r.hora_inicio,horaFin),finalizado:true};}
+  if(idx>=0){const r=_registros[idx];_registros[idx]={...r,metros,ancho,peso,defectos,resultado,observaciones:obs,proc_tercero:procTercero,prov_tercero:provTercero,hora_fin:horaFin,tiempo:calcTiempo(r.hora_inicio,horaFin),finalizado:true};}
   guardarEnServidor();aplicarFiltros();closeFinalizar();
   showToast('✅ Revisión finalizada — Hora fin: '+horaFin);
 }
