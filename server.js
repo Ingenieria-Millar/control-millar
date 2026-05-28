@@ -518,8 +518,9 @@ app.get('/api/revision-telas', (req, res) => {
 app.post('/api/revision-telas', (req, res) => {
   const { registros, defectos, referencias, colores } = req.body || {};
   if(!Array.isArray(registros)) return res.status(400).json({ error: 'Payload inválido' });
-  saveDB('revision_telas', { registros, defectos: defectos||[], referencias: referencias||[], colores: colores||[] });
-  broadcastLocal({ type: 'rt_update', registros, defectos: defectos||[], referencias: referencias||[], colores: colores||[] });
+  const proveedores = req.body.proveedores||[];
+  saveDB('revision_telas', { registros, defectos: defectos||[], referencias: referencias||[], colores: colores||[], proveedores });
+  broadcastLocal({ type: 'rt_update', registros, defectos: defectos||[], referencias: referencias||[], colores: colores||[], proveedores });
   res.json({ ok: true });
 });
 
