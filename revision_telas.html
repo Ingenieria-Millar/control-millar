@@ -199,11 +199,50 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
   <div class="hd-right">
     <div data-millar-nav></div>
     <div style="width:1px;height:22px;background:#e2e8f0;flex-shrink:0;"></div>
-    <button class="btn btn-cfg" onclick="pedirPassAccion(abrirCfgScreen)">⚙️ Configuraciones</button>
-    <button class="btn btn-success" onclick="exportarExcel()">📊 Exportar</button>
-    <button class="hd-back-btn" onclick="location.href='/'">← Inicio</button>
+    <div id="rt-admin-btns" style="display:none;align-items:center;gap:8px;">
+      <button class="btn btn-cfg" onclick="pedirPassAccion(abrirCfgScreen)">⚙️ Configuraciones</button>
+      <button class="btn btn-success" onclick="exportarExcel()">📊 Exportar</button>
+      <button class="btn btn-outline" onclick="abrirDashboard()" style="background:#f0f9ff;color:#0369a1;border-color:#7dd3fc;">📈 Dashboard</button>
+    </div>
+    <div id="rt-user-badge" style="display:none;align-items:center;gap:8px;padding:5px 12px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:8px;">
+      <span style="font-size:12px;color:#15803d;">🟢</span>
+      <span id="rt-user-name" style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:#0f172a;letter-spacing:.5px;"></span>
+    </div>
+    <button onclick="rtCerrarSesion()" style="padding:6px 14px;border-radius:8px;border:1.5px solid #fca5a5;background:#fef2f2;color:#dc2626;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;" id="rt-logout-btn" style="display:none;">↩ Cerrar sesión</button>
+    <button class="hd-back-btn" onclick="location.href='/'" id="rt-inicio-btn">← Inicio</button>
   </div>
 </header>
+
+
+<!-- Pantalla Login -->
+<div id="rt-login-screen" style="position:fixed;inset:0;z-index:600;background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 60%,#1d4ed8 100%);display:flex;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:20px;padding:40px 36px;width:100%;max-width:380px;box-shadow:0 24px 80px rgba(0,0,0,.4);">
+    <div style="text-align:center;margin-bottom:28px;">
+      <div style="width:72px;height:72px;border-radius:50%;background:#fff;box-shadow:0 0 0 3px #e2e8f0,0 4px 16px rgba(0,0,0,.12);margin:0 auto 14px;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+        <img id="rt-login-logo" style="width:100%;height:100%;object-fit:contain;padding:6px;" src="">
+      </div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:3px;color:#94a3b8;text-transform:uppercase;margin-bottom:4px;">CONFECCIONES MILLAR</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800;letter-spacing:2px;color:#0f172a;">REVISIÓN <span style="color:#2563eb;">TELAS</span></div>
+      <div style="font-size:12px;color:#64748b;margin-top:4px;">Inicia sesión para continuar</div>
+    </div>
+    <div style="margin-bottom:14px;">
+      <label style="font-size:11px;font-weight:800;color:#0f172a;letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px;">Usuario</label>
+      <select id="rt-login-user" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:'Nunito',sans-serif;outline:none;color:#0f172a;background:#fff;cursor:pointer;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+        <option value="">— Selecciona un usuario —</option>
+      </select>
+    </div>
+    <div style="margin-bottom:20px;">
+      <label style="font-size:11px;font-weight:800;color:#0f172a;letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px;">Contraseña</label>
+      <input type="password" id="rt-login-pass" placeholder="····" maxlength="30"
+        style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;font-family:'Nunito',sans-serif;outline:none;color:#0f172a;"
+        onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'"
+        onkeydown="if(event.key==='Enter')rtDoLogin()">
+    </div>
+    <div id="rt-login-error" style="color:#dc2626;font-size:12px;min-height:16px;margin-bottom:10px;text-align:center;"></div>
+    <button onclick="rtDoLogin()" style="width:100%;padding:12px;border-radius:10px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;letter-spacing:1px;cursor:pointer;transition:opacity .2s;" onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">INGRESAR →</button>
+    <div style="text-align:center;margin-top:14px;font-size:11px;color:#94a3b8;">© 2026 Ingeniería Confecciones Millar S.A.S.</div>
+  </div>
+</div>
 
 <div class="main">
   <div class="stats-row" id="rt-stats"></div>
@@ -268,7 +307,7 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
         <div class="field-readonly" id="f-fecha-display"></div>
         <input type="hidden" id="f-fecha">
       </div>
-      <div class="form-field">
+      <div class="form-field" id="f-revisador-field">
         <label class="field-label">Revisador</label>
         <select class="field-select" id="f-revisador">
           <option value="">— Seleccionar —</option>
@@ -573,6 +612,8 @@ function aplicarFiltros(){
   _filtrados=_registros.filter(r=>{
     if(_filtroDesde&&r.fecha<_filtroDesde) return false;
     if(_filtroHasta&&r.fecha>_filtroHasta) return false;
+    // Revisadores solo ven sus propios registros
+    if(_rtCurrentUser && !_rtIsAdmin && r.revisador !== _rtCurrentUser) return false;
     return true;
   });
   _filtrados.sort((a,b)=>{
@@ -689,7 +730,7 @@ function closeRegistroModal(){
 }
 function guardarRegistro(){
   const fecha=document.getElementById('f-fecha').value;
-  const revisador=document.getElementById('f-revisador').value;
+  const revisador=_rtIsAdmin ? document.getElementById('f-revisador').value : _rtCurrentUser;
   const ref=document.getElementById('f-ref-val').value.trim()||document.getElementById('f-ref-input').value.trim();
   const color=document.getElementById('f-color-val').value.trim()||document.getElementById('f-color-input').value.trim();
   const rollo=document.getElementById('f-rollo').value.trim();
@@ -964,7 +1005,7 @@ function showToast(msg){
 }
 
 // ── Init ───────────────────────────────────────────────────────────
-cargarDatos();
+cargarDatos().then(()=>rtInitLogin());
 connectWS();
 </script>
 
@@ -1171,6 +1212,246 @@ function verDefectos(id){
     </div>`;
   m.style.display='flex';
 }
+
+// ── Variables de sesión RT ─────────────────────────────────────────
+let _rtCurrentUser = null; // null = no logueado
+let _rtIsAdmin     = false;
+
+// ── Login ──────────────────────────────────────────────────────────
+async function rtInitLogin(){
+  // Cargar logo
+  const logoSrc = document.querySelector('.hd-logo img')?.src || '';
+  const loginLogo = document.getElementById('rt-login-logo');
+  if(loginLogo && logoSrc) loginLogo.src = logoSrc;
+  const dashLogo = document.getElementById('dash-logo');
+  if(dashLogo && logoSrc) dashLogo.src = logoSrc;
+
+  // Poblar select de usuarios
+  const sel = document.getElementById('rt-login-user');
+  sel.innerHTML = '<option value="">— Selecciona un usuario —</option>';
+  // Administrador hardcodeado
+  sel.innerHTML += '<option value="__admin__">👑 Administrador</option>';
+  // Miembros del perfil Telas
+  await cargarRevisadores();
+  getRevisadores().forEach(r => {
+    const o = document.createElement('option');
+    o.value = r; o.textContent = r;
+    sel.appendChild(o);
+  });
+}
+
+function rtDoLogin(){
+  const uid  = document.getElementById('rt-login-user').value;
+  const pass = document.getElementById('rt-login-pass').value;
+  const errEl = document.getElementById('rt-login-error');
+  if(!uid){ errEl.textContent='Selecciona un usuario'; return; }
+  if(!pass){ errEl.textContent='Ingresa la contraseña'; return; }
+
+  if(uid === '__admin__'){
+    if(pass !== '1'){ errEl.textContent='Contraseña incorrecta'; return; }
+    _rtCurrentUser = 'Administrador';
+    _rtIsAdmin = true;
+  } else {
+    // Buscar contraseña del miembro en app-config
+    const member = _rtMembersData.find(m => (typeof m==='string'?m:m.nombre) === uid);
+    const mPass  = member && typeof member==='object' ? (member.pass||'') : '';
+    if(mPass && pass !== mPass){ errEl.textContent='Contraseña incorrecta'; return; }
+    _rtCurrentUser = uid;
+    _rtIsAdmin = false;
+  }
+
+  errEl.textContent = '';
+  rtEntrarApp();
+}
+
+function rtEntrarApp(){
+  // Ocultar login
+  document.getElementById('rt-login-screen').style.display='none';
+  // Mostrar badge usuario
+  const badge = document.getElementById('rt-user-badge');
+  const userName = document.getElementById('rt-user-name');
+  if(badge){ badge.style.display='flex'; }
+  if(userName) userName.textContent = _rtCurrentUser;
+  // Mostrar botones admin solo para Administrador
+  const adminBtns = document.getElementById('rt-admin-btns');
+  if(adminBtns) adminBtns.style.display = _rtIsAdmin ? 'flex' : 'none';
+  // Ocultar campo revisador para revisadores (se pone automáticamente)
+  const revField = document.getElementById('f-revisador-field');
+  if(revField) revField.style.display = _rtIsAdmin ? '' : 'none';
+  // Re-renderizar tabla con filtro de usuario
+  aplicarFiltros();
+}
+
+function rtCerrarSesion(){
+  _rtCurrentUser = null;
+  _rtIsAdmin = false;
+  // Ocultar badge y botones
+  document.getElementById('rt-user-badge').style.display='none';
+  document.getElementById('rt-admin-btns').style.display='none';
+  // Limpiar campos login
+  document.getElementById('rt-login-user').value='';
+  document.getElementById('rt-login-pass').value='';
+  document.getElementById('rt-login-error').textContent='';
+  // Mostrar login
+  document.getElementById('rt-login-screen').style.display='flex';
+}
+
+// ── Datos de miembros para validar contraseñas ─────────────────────
+let _rtMembersData = [];
+async function cargarRevisadores(){
+  try{
+    const res = await fetch('/api/app-config');
+    if(res.ok){
+      const cfg = await res.json();
+      const members = (cfg._perfil_members && cfg._perfil_members['Telas']) || [];
+      _rtMembersData = members.filter(m => !m.disabled);
+      _revisadores = _rtMembersData.map(m => typeof m==='string'?m:(m.nombre||'')).filter(Boolean);
+    }
+  }catch(e){ console.warn('cargarRevisadores:',e); }
+}
+
+// ── Dashboard ──────────────────────────────────────────────────────
+function abrirDashboard(){
+  renderDashboard();
+  document.getElementById('rt-dashboard-screen').style.display='flex';
+}
+function cerrarDashboard(){
+  document.getElementById('rt-dashboard-screen').style.display='none';
+}
+
+function barChart(data, colorFn){
+  if(!data.length) return '<div style="color:#94a3b8;font-size:12px;padding:10px;">Sin datos</div>';
+  const max = Math.max(...data.map(d=>d.val));
+  return data.map(d=>{
+    const pct = max>0 ? (d.val/max*100) : 0;
+    const color = colorFn ? colorFn(d) : '#2563eb';
+    return `<div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+        <span style="font-size:12px;font-weight:600;color:#334155;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.label}</span>
+        <span style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;color:#0f172a;">${typeof d.val==='number'&&!Number.isInteger(d.val)?d.val.toFixed(1):d.val}${d.unit||''}</span>
+      </div>
+      <div style="background:#f1f5f9;border-radius:6px;height:10px;overflow:hidden;">
+        <div style="width:${pct}%;height:100%;background:${color};border-radius:6px;transition:width .5s;"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderDashboard(){
+  const registros = _registros;
+  const finalizados = registros.filter(r=>r.finalizado);
+  const totalMetros = registros.reduce((s,r)=>s+parseFloat(r.metros||0),0);
+  const totalDefectos = finalizados.reduce((s,r)=>s+(r.defectos||[]).reduce((ss,d)=>ss+parseInt(d.cantidad||0),0),0);
+  const aprobados = finalizados.filter(r=>r.resultado==='aprobado').length;
+  const rechazados = finalizados.filter(r=>r.resultado==='rechazado').length;
+  const enRevision = registros.filter(r=>!r.finalizado).length;
+
+  // Stats generales
+  document.getElementById('dash-stats-row').innerHTML = [
+    {n:'Total Registros', v:registros.length, c:'#0f172a'},
+    {n:'Finalizados', v:finalizados.length, c:'#2563eb'},
+    {n:'En Revisión', v:enRevision, c:'#b45309'},
+    {n:'Aprobados', v:aprobados, c:'#15803d'},
+    {n:'Rechazados', v:rechazados, c:'#dc2626'},
+    {n:'Metros Totales', v:totalMetros.toFixed(1)+'m', c:'#7c3aed'},
+    {n:'Defectos Totales', v:totalDefectos, c:'#c2410c'},
+  ].map(s=>`<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px 18px;min-width:110px;flex:1;">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:${s.c};">${s.v}</div>
+    <div style="font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#94a3b8;">${s.n}</div>
+  </div>`).join('');
+
+  // Por revisador
+  const porRev = {};
+  registros.forEach(r=>{ porRev[r.revisador||'—']=(porRev[r.revisador||'—']||0)+1; });
+  document.getElementById('dash-por-revisador').innerHTML = barChart(
+    Object.entries(porRev).sort((a,b)=>b[1]-a[1]).map(([l,v])=>({label:l,val:v})),
+    ()=>'#2563eb');
+
+  // Resultados
+  const pctAprobados = finalizados.length ? Math.round(aprobados/finalizados.length*100) : 0;
+  const pctRechazados = finalizados.length ? Math.round(rechazados/finalizados.length*100) : 0;
+  document.getElementById('dash-resultados').innerHTML = `
+    <div style="display:flex;gap:12px;margin-bottom:16px;">
+      <div style="flex:1;background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:14px;text-align:center;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:800;color:#15803d;">${pctAprobados}%</div>
+        <div style="font-size:11px;font-weight:700;color:#15803d;text-transform:uppercase;">Aprobados</div>
+        <div style="font-size:12px;color:#64748b;">${aprobados} de ${finalizados.length}</div>
+      </div>
+      <div style="flex:1;background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;padding:14px;text-align:center;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:800;color:#dc2626;">${pctRechazados}%</div>
+        <div style="font-size:11px;font-weight:700;color:#dc2626;text-transform:uppercase;">Rechazados</div>
+        <div style="font-size:12px;color:#64748b;">${rechazados} de ${finalizados.length}</div>
+      </div>
+    </div>` + barChart(
+    [{label:'Aprobados',val:aprobados},{label:'Rechazados',val:rechazados},{label:'En revisión',val:enRevision}],
+    d=>d.label==='Aprobados'?'#15803d':d.label==='Rechazados'?'#dc2626':'#f59e0b');
+
+  // Metros por revisador
+  const metrosPorRev = {};
+  registros.forEach(r=>{ metrosPorRev[r.revisador||'—']=(metrosPorRev[r.revisador||'—']||0)+parseFloat(r.metros||0); });
+  document.getElementById('dash-metros').innerHTML = barChart(
+    Object.entries(metrosPorRev).sort((a,b)=>b[1]-a[1]).map(([l,v])=>({label:l,val:v,unit:'m'})),
+    ()=>'#7c3aed');
+
+  // Defectos más frecuentes
+  const defMap = {};
+  finalizados.forEach(r=>(r.defectos||[]).forEach(d=>{
+    defMap[d.tipo]=(defMap[d.tipo]||0)+parseInt(d.cantidad||0);
+  }));
+  document.getElementById('dash-defectos').innerHTML = Object.keys(defMap).length ?
+    barChart(Object.entries(defMap).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([l,v])=>({label:l,val:v})),
+    ()=>'#c2410c') :
+    '<div style="color:#94a3b8;font-size:12px;padding:10px;">Sin defectos registrados</div>';
+
+  // Referencias más revisadas
+  const refMap = {};
+  registros.forEach(r=>{ refMap[r.referencia||'—']=(refMap[r.referencia||'—']||0)+1; });
+  document.getElementById('dash-referencias').innerHTML = barChart(
+    Object.entries(refMap).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([l,v])=>({label:l,val:v})),
+    ()=>'#0891b2');
+
+  // Tiempo promedio por revisador (en minutos)
+  const tiempoMap = {}, cntMap = {};
+  finalizados.forEach(r=>{
+    if(!r.tiempo) return;
+    const m = r.tiempo.match(/(?:(\d+)h\s*)?(\d+)min/);
+    if(m){ const mins=(parseInt(m[1]||0)*60+parseInt(m[2]||0)); tiempoMap[r.revisador||'—']=(tiempoMap[r.revisador||'—']||0)+mins; cntMap[r.revisador||'—']=(cntMap[r.revisador||'—']||0)+1; }
+  });
+  const promedios = Object.entries(tiempoMap).map(([rev,total])=>{
+    const avg = Math.round(total/(cntMap[rev]||1));
+    const label = avg>=60?`${Math.floor(avg/60)}h ${avg%60}min`:`${avg}min`;
+    return {label:rev, val:avg, display:label};
+  }).sort((a,b)=>b.val-a.val);
+  document.getElementById('dash-tiempos').innerHTML = promedios.length ?
+    promedios.map(d=>`<div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+        <span style="font-size:12px;font-weight:600;color:#334155;">${d.label}</span>
+        <span style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;color:#0f172a;">${d.display}</span>
+      </div>
+      <div style="background:#f1f5f9;border-radius:6px;height:10px;overflow:hidden;">
+        <div style="width:${Math.round(d.val/Math.max(...promedios.map(x=>x.val))*100)}%;height:100%;background:#0891b2;border-radius:6px;"></div>
+      </div>
+    </div>`).join('') :
+    '<div style="color:#94a3b8;font-size:12px;padding:10px;">Sin datos de tiempo</div>';
+
+  // Actividad por fecha
+  const fechaMap = {};
+  registros.forEach(r=>{ fechaMap[r.fecha||'—']=(fechaMap[r.fecha||'—']||0)+1; });
+  const fechasOrdenadas = Object.entries(fechaMap).sort((a,b)=>a[0].localeCompare(b[0]));
+  document.getElementById('dash-fechas').innerHTML = fechasOrdenadas.length ?
+    `<div style="display:flex;align-items:flex-end;gap:6px;height:120px;padding:0 4px;">
+    ${fechasOrdenadas.map(([f,c])=>{
+      const h=Math.round(c/Math.max(...fechasOrdenadas.map(x=>x[1]))*100);
+      const [y,m,d]=f.split('-');
+      return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:30px;">
+        <span style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:800;color:#0f172a;">${c}</span>
+        <div style="width:100%;background:#2563eb;border-radius:4px 4px 0 0;height:${h}px;min-height:4px;"></div>
+        <span style="font-size:9px;color:#94a3b8;text-align:center;">${d}/${m}</span>
+      </div>`;
+    }).join('')}
+    </div>` :
+    '<div style="color:#94a3b8;font-size:12px;padding:10px;">Sin actividad registrada</div>';
+}
 </script>
 
 <!-- Botón flotante + Nuevo Registro -->
@@ -1198,6 +1479,68 @@ function verDefectos(id){
     <div style="display:flex;gap:10px;">
       <button onclick="_cerrarPassAccion()" style="flex:1;padding:9px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Cancelar</button>
       <button onclick="_ejecutarPassAccion()" style="flex:1;padding:9px;border-radius:8px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Pantalla Dashboard -->
+<div id="rt-dashboard-screen" style="display:none;position:fixed;inset:0;z-index:500;background:#f1f5f9;flex-direction:column;">
+  <div style="background:#fff;border-bottom:1px solid #e2e8f0;box-shadow:0 1px 6px rgba(0,0,0,.07);
+    padding:0 clamp(12px,2.5vw,24px);min-height:64px;display:flex;align-items:center;
+    justify-content:space-between;gap:12px;position:relative;">
+    <div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);"></div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="hd-logo"><img id="dash-logo" src="" style="width:100%;height:100%;object-fit:contain;padding:3px;"></div>
+      <div>
+        <div class="hd-title">📈 <span>Dashboard</span></div>
+        <p style="font-size:11px;color:#64748b;font-weight:600;margin-top:1px;">Revisión de Telas — Estadísticas</p>
+      </div>
+    </div>
+    <button class="hd-back-btn" onclick="cerrarDashboard()">← Volver</button>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:24px clamp(12px,2.5vw,24px);" id="rt-dash-content">
+    <div style="max-width:1200px;margin:0 auto;">
+      <!-- Stats generales -->
+      <div id="dash-stats-row" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;"></div>
+      <!-- Gráficas -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:20px;">
+        <!-- Por revisador -->
+        <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;padding:20px;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:14px;">👤 Registros por Revisador</div>
+          <div id="dash-por-revisador"></div>
+        </div>
+        <!-- Aprobados vs Rechazados -->
+        <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;padding:20px;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:14px;">✅ Resultados</div>
+          <div id="dash-resultados"></div>
+        </div>
+        <!-- Metros por revisador -->
+        <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;padding:20px;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:14px;">📏 Metros por Revisador</div>
+          <div id="dash-metros"></div>
+        </div>
+        <!-- Defectos más frecuentes -->
+        <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;padding:20px;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:14px;">⚠️ Defectos más Frecuentes</div>
+          <div id="dash-defectos"></div>
+        </div>
+        <!-- Telas más revisadas -->
+        <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;padding:20px;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:14px;">🧵 Referencias más Revisadas</div>
+          <div id="dash-referencias"></div>
+        </div>
+        <!-- Tiempo promedio por revisador -->
+        <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;padding:20px;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:14px;">⏱ Tiempo Promedio por Revisador</div>
+          <div id="dash-tiempos"></div>
+        </div>
+        <!-- Actividad por fecha -->
+        <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;padding:20px;grid-column:1/-1;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:14px;">📅 Actividad por Fecha</div>
+          <div id="dash-fechas"></div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
