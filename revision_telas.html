@@ -354,6 +354,10 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
 .cfg-tab-btn{padding:12px 20px;border:none;background:transparent;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#64748b;cursor:pointer;border-bottom:3px solid transparent;transition:all .2s;white-space:nowrap;}
 .cfg-tab-btn:hover{color:#1e40af;background:#f8fafc;}
 .cfg-tab-btn.active{color:#1e3a8a;border-bottom-color:#2563eb;}
+/* Ocultar flechas de inputs number */
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+input[type=number]{-moz-appearance:textfield;}
 .cfg-add-input{flex:1;padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:8px;
   font-size:13px;font-family:'Nunito',sans-serif;outline:none;}
 .cfg-add-input:focus{border-color:#2563eb;}
@@ -514,7 +518,11 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
       </div>
       <div class="form-field">
         <label class="field-label"># de Rollo</label>
-        <input type="number" min="0" class="field-input" id="f-rollo" placeholder="Ej: 001">
+        <input type="number" min="0" class="field-input" id="f-rollo" >
+      </div>
+      <div class="form-field">
+        <label class="field-label">Ancho (cm)</label>
+        <input type="number" min="0" step="0.1" class="field-input" id="f-ancho" >
       </div>
 
       <div id="f-error" style="color:#dc2626;font-size:12px;min-height:14px;"></div>
@@ -537,17 +545,17 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
       <!-- Metros -->
       <div class="form-field">
         <label class="field-label">Metros Revisados</label>
-        <input type="number" min="0" step="0.1" class="field-input" id="fin-metros" placeholder="Ej: 25.5">
+        <input type="number" min="0" step="0.1" class="field-input" id="fin-metros" >
       </div>
       <!-- Ancho y Peso en grid -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <div class="form-field">
           <label class="field-label">Ancho Útil (cm)</label>
-          <input type="number" min="0" step="0.1" class="field-input" id="fin-ancho" placeholder="Ej: 145.5">
+          <input type="number" min="0" step="0.1" class="field-input" id="fin-ancho" >
         </div>
         <div class="form-field">
           <label class="field-label">Peso Rodaja (g)</label>
-          <input type="number" min="0" step="0.1" class="field-input" id="fin-peso" placeholder="Ej: 850">
+          <input type="number" min="0" step="0.1" class="field-input" id="fin-peso" >
         </div>
       </div>
       <!-- Defectos -->
@@ -996,6 +1004,7 @@ function openRegistroModal(){
   document.getElementById('f-proveedor-input').value='';document.getElementById('f-proveedor-val').value='';
   document.getElementById('f-lote').value='';
   document.getElementById('f-rollo').value='';
+  document.getElementById('f-ancho').value='';  
   document.getElementById('f-error').textContent='';
   const selRev=document.getElementById('f-revisador');
   selRev.innerHTML='<option value="">— Seleccionar —</option>';
@@ -1020,11 +1029,12 @@ function guardarRegistro(){
   const proveedor=document.getElementById('f-proveedor-val').value.trim()||document.getElementById('f-proveedor-input').value.trim();
   const lote=document.getElementById('f-lote').value.trim();
   const rollo=document.getElementById('f-rollo').value.trim();
+  const ancho_reg=document.getElementById('f-ancho').value.trim();
   const errEl=document.getElementById('f-error');
   if(!revisador){errEl.textContent='Selecciona un revisador';return;}
   if(!ref){errEl.textContent='La referencia es obligatoria';return;}
   if(!rollo){errEl.textContent='Ingresa el # de rollo';return;}
-  const registro={id:'rt_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),fecha,revisador,referencia:ref,proveedor,lote,color:'',rollo,hora_inicio:horaActual(),hora_fin:'',tiempo:'',metros:'',defectos:[],resultado:'',observaciones:'',finalizado:false};
+  const registro={id:'rt_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),fecha,revisador,referencia:ref,proveedor,lote,color:'',rollo,ancho:document.getElementById('f-ancho').value.trim(),hora_inicio:horaActual(),hora_fin:'',tiempo:'',metros:'',defectos:[],resultado:'',observaciones:'',finalizado:false};
   _registros.push(registro);guardarEnServidor();aplicarFiltros();closeRegistroModal();
   showToast('✅ Registro creado — Hora inicio: '+registro.hora_inicio);
 }
@@ -1040,6 +1050,7 @@ function editarRegistro(id){
   document.getElementById('f-proveedor-input').value=r.proveedor||'';document.getElementById('f-proveedor-val').value=r.proveedor||'';
   document.getElementById('f-lote').value=r.lote||'';
   document.getElementById('f-rollo').value=r.rollo||'';
+  document.getElementById('f-ancho').value=r.ancho||'';
   const btn=document.getElementById('btn-guardar-registro');
   if(btn)btn.onclick=()=>guardarEdicion(id);
   document.querySelector('#modal-registro .modal-title').textContent='✏️ EDITAR REGISTRO';
@@ -1056,7 +1067,7 @@ function guardarEdicion(id){
   if(!ref){errEl.textContent='La referencia es obligatoria';return;}
   if(!rollo){errEl.textContent='Ingresa el # de rollo';return;}
   const idx=_registros.findIndex(x=>x.id===id);
-  if(idx>=0)_registros[idx]={..._registros[idx],fecha,revisador,referencia:ref,proveedor,lote,rollo};
+  if(idx>=0)_registros[idx]={..._registros[idx],fecha,revisador,referencia:ref,proveedor,lote,rollo,ancho:ancho_reg};
   guardarEnServidor();aplicarFiltros();closeRegistroModal();
   showToast('✅ Registro actualizado');
 }
@@ -1074,9 +1085,11 @@ function openFinalizar(id){
   document.getElementById('btn-rechazado').className='toggle-btn';
   // Resetear proceso a tercero
   setProcTercero('no');
-  // Poblar proveedores terceros
+  // Poblar proveedores terceros desde configuraciones
   const sel=document.getElementById('fin-prov-tercero-sel');
-  sel.innerHTML='<option value="">— Seleccionar —</option>'+_cfgProveedoresTerceros.map(p=>'<option value="'+p+'">'+p+'</option>').join('');
+  const opts=_cfgProveedoresTerceros.length?_cfgProveedoresTerceros:[];
+  sel.innerHTML='<option value="">— Seleccionar —</option>'+opts.map(p=>'<option value="'+p+'">'+p+'</option>').join('');
+  if(!opts.length) sel.innerHTML+='<option value="" disabled style="color:#94a3b8;">Sin proveedores en Configuraciones</option>';
   document.getElementById('fin-defectos-list').innerHTML='';
   agregarDefectoRow();
   document.getElementById('modal-finalizar').classList.add('open');
