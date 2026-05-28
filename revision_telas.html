@@ -5,7 +5,177 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Revisión de Telas — Confecciones Millar</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Nunito:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js">
+// ── CFG 3 pestañas ─────────────────────────────────────────────────
+function abrirCfgScreen(){
+  const logo=document.querySelector('.hd-logo img')?.src||'';
+  const cl=document.getElementById('cfg-logo'); if(cl&&logo) cl.src=logo;
+  document.getElementById('rt-cfg-screen').style.display='flex';
+  switchCfgTab(1);
+}
+function cerrarCfgScreen(){ document.getElementById('rt-cfg-screen').style.display='none'; }
+function switchCfgTab(n){
+  [1,2,3].forEach(i=>{
+    document.getElementById('cfg-panel-'+i).style.display=i===n?'block':'none';
+    document.getElementById('cfg-tab-btn-'+i).classList.toggle('active',i===n);
+  });
+  if(n===1) renderRefsTable();
+  if(n===2) renderDefectosList();
+  if(n===3) renderProvTercerosList();
+}
+// Pestaña 1
+function renderRefsTable(){
+  const el=document.getElementById('cfg-refs-content');
+  const provs=Object.keys(_cfgReferencias);
+  if(!provs.length){ el.innerHTML='<div style="color:#94a3b8;font-size:13px;text-align:center;padding:30px;">Sin datos. Importa una plantilla Excel con columnas Proveedor | Referencia.</div>'; return; }
+  el.innerHTML=provs.sort().map(prov=>{
+    const refs=_cfgReferencias[prov]||[];
+    return `<div style="margin-bottom:16px;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;"><span style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;color:#1e3a8a;">📦 ${prov}</span><span style="font-size:11px;color:#94a3b8;">${refs.length} ref(s)</span></div><div style="display:flex;flex-wrap:wrap;gap:6px;">${refs.map(r=>`<span style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:6px;padding:3px 10px;font-size:12px;font-weight:600;">${r}</span>`).join('')}</div></div>`;
+  }).join('<hr style="border:none;border-top:1px solid #f1f5f9;margin:8px 0;">');
+}
+function importarReferencias(){
+  const inp=document.createElement('input'); inp.type='file'; inp.accept='.xlsx,.xls,.csv';
+  inp.onchange=e=>{ const file=e.target.files[0]; if(!file) return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      try{
+        const wb=XLSX.read(ev.target.result,{type:'binary'});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        const rows=XLSX.utils.sheet_to_json(ws,{header:1});
+        const newRefs={};
+        rows.forEach((row,i)=>{ if(i===0) return;
+          const prov=(row[0]||'').toString().trim(), ref=(row[1]||'').toString().trim();
+          if(prov&&ref){ if(!newRefs[prov]) newRefs[prov]=[]; if(!newRefs[prov].includes(ref)) newRefs[prov].push(ref); }
+        });
+        _cfgReferencias=newRefs; _cfgProveedores=Object.keys(newRefs).sort();
+        guardarEnServidor(); renderRefsTable();
+        const total=Object.values(newRefs).reduce((s,a)=>s+a.length,0);
+        showToast('✅ '+_cfgProveedores.length+' proveedores, '+total+' referencias');
+      }catch(err){ alert('Error: '+err.message); }
+    }; reader.readAsBinaryString(file);
+  }; inp.click();
+}
+function plantillaReferencias(){
+  const ws=XLSX.utils.aoa_to_sheet([['Proveedor','Referencia'],['Proveedor A','REF-001'],['Proveedor A','REF-002'],['Proveedor B','REF-010']]);
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Referencias');
+  XLSX.writeFile(wb,'plantilla_referencias.xlsx');
+}
+function limpiarReferencias(){
+  if(!confirm('¿Limpiar todas las referencias?')) return;
+  _cfgReferencias={}; _cfgProveedores=[]; guardarEnServidor(); renderRefsTable(); showToast('🗑 Limpiado');
+}
+function filtrarRefsPorProveedor(){
+  const prov=document.getElementById('f-proveedor-val').value||document.getElementById('f-proveedor-input').value;
+  const refs=prov?(_cfgReferencias[prov]||[]):Object.values(_cfgReferencias).flat();
+  document.getElementById('f-ref-input').value='';
+  document.getElementById('f-ref-val').value='';
+  const dd=document.getElementById('f-ref-dd');
+  dd.innerHTML=refs.length?refs.map(r=>`<div class="searchable-option" onmousedown="seleccionarOpcion('f-ref-input','f-ref-dd','f-ref-val','${r}')">${r}</div>`).join(''):'<div class="searchable-empty">Sin referencias para este proveedor</div>';
+}
+// Pestaña 2
+function getDefectoOptions(){
+  return _cfgDefectos.map(d=>{ const l=typeof d==='object'?d.codigo+' - '+d.nombre:d; return '<option value="'+l+'">'+l+'</option>'; }).join('');
+}
+function renderDefectosList(){
+  const el=document.getElementById('cfg-defectos-list');
+  if(!_cfgDefectos.length){ el.innerHTML='<div style="color:#94a3b8;font-size:13px;text-align:center;padding:20px;">Sin defectos.</div>'; return; }
+  el.innerHTML=_cfgDefectos.map((d,i)=>{ const label=typeof d==='object'?d.nombre:d; const cod=typeof d==='object'?d.codigo:'';
+    return '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0;margin-bottom:5px;"><span style="font-family:Barlow Condensed,sans-serif;font-size:12px;font-weight:800;color:#64748b;min-width:36px;">'+cod+'</span><span style="flex:1;font-size:13px;font-weight:600;color:#0f172a;">'+label+'</span><button onclick="eliminarDefecto('+i+')" style="width:26px;height:26px;border-radius:6px;border:1.5px solid #fca5a5;background:#fef2f2;color:#dc2626;cursor:pointer;font-size:12px;">✕</button></div>';
+  }).join('');
+}
+function agregarDefectoManual(){
+  const cod=(document.getElementById('cfg-add-codigo').value||'').trim();
+  const nom=(document.getElementById('cfg-add-defecto-nombre').value||'').trim();
+  if(!nom){ showToast('⚠️ Ingresa el nombre'); return; }
+  _cfgDefectos.push({codigo:cod||String(_cfgDefectos.length+1).padStart(2,'0'),nombre:nom});
+  document.getElementById('cfg-add-codigo').value='';
+  document.getElementById('cfg-add-defecto-nombre').value='';
+  guardarEnServidor(); renderDefectosList(); showToast('✅ Defecto agregado');
+}
+function eliminarDefecto(idx){ _cfgDefectos.splice(idx,1); guardarEnServidor(); renderDefectosList(); showToast('🗑 Eliminado'); }
+function importarDefectos(){
+  const inp=document.createElement('input'); inp.type='file'; inp.accept='.xlsx,.xls,.csv';
+  inp.onchange=e=>{ const file=e.target.files[0]; if(!file) return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      try{
+        const wb=XLSX.read(ev.target.result,{type:'binary'});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        const rows=XLSX.utils.sheet_to_json(ws,{header:1});
+        let added=0;
+        rows.forEach((row,i)=>{ if(i===0) return;
+          const cod=(row[0]||'').toString().trim(), nom=(row[1]||'').toString().trim();
+          if(nom){ _cfgDefectos.push({codigo:cod||String(_cfgDefectos.length+1).padStart(2,'0'),nombre:nom}); added++; }
+        });
+        guardarEnServidor(); renderDefectosList(); showToast('✅ '+added+' defectos importados');
+      }catch(err){ alert('Error: '+err.message); }
+    }; reader.readAsBinaryString(file);
+  }; inp.click();
+}
+function plantillaDefectos(){
+  const ws=XLSX.utils.aoa_to_sheet([['Código','Nombre'],['01','Roto'],['02','Mancha'],['03','Agujero']]);
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Defectos');
+  XLSX.writeFile(wb,'plantilla_defectos.xlsx');
+}
+// Pestaña 3
+function renderProvTercerosList(){
+  const el=document.getElementById('cfg-prov-terceros-list');
+  if(!_cfgProveedoresTerceros.length){ el.innerHTML='<div style="color:#94a3b8;font-size:13px;text-align:center;padding:20px;">Sin proveedores terceros.</div>'; return; }
+  el.innerHTML=_cfgProveedoresTerceros.map((p,i)=>'<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0;margin-bottom:5px;"><span style="flex:1;font-size:13px;font-weight:600;color:#0f172a;">'+p+'</span><button onclick="eliminarProvTercero('+i+')" style="width:26px;height:26px;border-radius:6px;border:1.5px solid #fca5a5;background:#fef2f2;color:#dc2626;cursor:pointer;font-size:12px;">✕</button></div>').join('');
+}
+function agregarProvTercero(){
+  const val=(document.getElementById('cfg-add-prov-tercero').value||'').trim();
+  if(!val) return;
+  if(_cfgProveedoresTerceros.includes(val)){ showToast('⚠️ Ya existe'); return; }
+  _cfgProveedoresTerceros.push(val);
+  document.getElementById('cfg-add-prov-tercero').value='';
+  guardarEnServidor(); renderProvTercerosList(); showToast('✅ Agregado');
+}
+function eliminarProvTercero(idx){ _cfgProveedoresTerceros.splice(idx,1); guardarEnServidor(); renderProvTercerosList(); showToast('🗑 Eliminado'); }
+function importarProvTerceros(){
+  const inp=document.createElement('input'); inp.type='file'; inp.accept='.xlsx,.xls,.csv';
+  inp.onchange=e=>{ const file=e.target.files[0]; if(!file) return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      try{
+        const wb=XLSX.read(ev.target.result,{type:'binary'});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        const rows=XLSX.utils.sheet_to_json(ws,{header:1});
+        let added=0;
+        rows.forEach((row,i)=>{ if(i===0) return;
+          const val=(row[0]||'').toString().trim();
+          if(val&&!_cfgProveedoresTerceros.includes(val)){ _cfgProveedoresTerceros.push(val); added++; }
+        });
+        guardarEnServidor(); renderProvTercerosList(); showToast('✅ '+added+' proveedores');
+      }catch(err){ alert('Error: '+err.message); }
+    }; reader.readAsBinaryString(file);
+  }; inp.click();
+}
+function plantillaProvTerceros(){
+  const ws=XLSX.utils.aoa_to_sheet([['Proveedor'],['Textiles S.A.'],['Confecciones XYZ']]);
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Proveedores');
+  XLSX.writeFile(wb,'plantilla_proveedores_terceros.xlsx');
+}
+// agregarDefectoRow
+function agregarDefectoRow(){
+  const list=document.getElementById('fin-defectos-list');
+  const row=document.createElement('div'); row.className='defecto-row';
+  const inpMetro=document.createElement('input');
+  inpMetro.type='number'; inpMetro.min='0'; inpMetro.placeholder='Metro';
+  inpMetro.style.cssText='flex:1;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;min-width:60px;';
+  const sel=document.createElement('select');
+  sel.style.cssText='flex:2;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;background:#fff;';
+  sel.innerHTML='<option value="">— Tipo defecto —</option>'+getDefectoOptions();
+  const inp=document.createElement('input');
+  inp.type='number'; inp.min='1'; inp.placeholder='Cant.';
+  inp.style.cssText='width:65px;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;text-align:center;';
+  const btn=document.createElement('button'); btn.textContent='✕';
+  btn.style.cssText='width:30px;height:30px;border-radius:6px;border:1.5px solid #fca5a5;background:#fef2f2;color:#dc2626;cursor:pointer;font-size:14px;flex-shrink:0;';
+  btn.onclick=()=>row.remove();
+  row.appendChild(inpMetro); row.appendChild(sel); row.appendChild(inp); row.appendChild(btn);
+  list.appendChild(row);
+}
+</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Nunito',sans-serif;background:#f1f5f9;min-height:100vh;}
@@ -181,6 +351,9 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
 
 /* Pantalla CFG */
 #rt-cfg-screen{display:none;position:fixed;inset:0;z-index:500;background:#f1f5f9;flex-direction:column;}
+.cfg-tab-btn{padding:12px 20px;border:none;background:transparent;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#64748b;cursor:pointer;border-bottom:3px solid transparent;transition:all .2s;white-space:nowrap;}
+.cfg-tab-btn:hover{color:#1e40af;background:#f8fafc;}
+.cfg-tab-btn.active{color:#1e3a8a;border-bottom-color:#2563eb;}
 .cfg-add-input{flex:1;padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:8px;
   font-size:13px;font-family:'Nunito',sans-serif;outline:none;}
 .cfg-add-input:focus{border-color:#2563eb;}
@@ -316,6 +489,16 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
         </select>
       </div>
       <div class="form-field">
+        <label class="field-label">Proveedor</label>
+        <div class="searchable-wrap">
+          <input type="text" class="searchable-input" id="f-proveedor-input" placeholder="Buscar proveedor..."
+            autocomplete="off" oninput="filtrarOpciones('f-proveedor-input','f-proveedor-dd','_cfgProveedores')"
+            onfocus="abrirDropdown('f-proveedor-dd')" onblur="setTimeout(()=>{cerrarDropdown('f-proveedor-dd');filtrarRefsPorProveedor();},200)">
+          <input type="hidden" id="f-proveedor-val">
+          <div class="searchable-dropdown" id="f-proveedor-dd"></div>
+        </div>
+      </div>
+      <div class="form-field">
         <label class="field-label">Referencia Tela</label>
         <div class="searchable-wrap">
           <input type="text" class="searchable-input" id="f-ref-input" placeholder="Buscar referencia..."
@@ -326,16 +509,6 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
         </div>
       </div>
       <div class="form-field">
-        <label class="field-label">Proveedor</label>
-        <div class="searchable-wrap">
-          <input type="text" class="searchable-input" id="f-proveedor-input" placeholder="Buscar proveedor..."
-            autocomplete="off" oninput="filtrarOpciones('f-proveedor-input','f-proveedor-dd','_cfgProveedores')"
-            onfocus="abrirDropdown('f-proveedor-dd')" onblur="setTimeout(()=>cerrarDropdown('f-proveedor-dd'),200)">
-          <input type="hidden" id="f-proveedor-val">
-          <div class="searchable-dropdown" id="f-proveedor-dd"></div>
-        </div>
-      </div>
-      <div class="form-field">
         <label class="field-label">Lote</label>
         <input type="text" class="field-input" id="f-lote" placeholder="Ej: L-2026-001">
       </div>
@@ -343,16 +516,7 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
         <label class="field-label"># de Rollo</label>
         <input type="number" min="0" class="field-input" id="f-rollo" placeholder="Ej: 001">
       </div>
-      <div class="form-field">
-        <label class="field-label">Color</label>
-        <div class="searchable-wrap">
-          <input type="text" class="searchable-input" id="f-color-input" placeholder="Buscar color..."
-            autocomplete="off" oninput="filtrarOpciones('f-color-input','f-color-dd','_cfgColores')"
-            onfocus="abrirDropdown('f-color-dd')" onblur="setTimeout(()=>cerrarDropdown('f-color-dd'),200)">
-          <input type="hidden" id="f-color-val">
-          <div class="searchable-dropdown" id="f-color-dd"></div>
-        </div>
-      </div>
+
       <div id="f-error" style="color:#dc2626;font-size:12px;min-height:14px;"></div>
     </div>
     <div class="modal-footer">
@@ -424,1130 +588,72 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
 
 <!-- Pantalla Configuraciones -->
 <div id="rt-cfg-screen" style="display:none;position:fixed;inset:0;z-index:500;background:#f1f5f9;flex-direction:column;">
-  <div style="background:#fff;border-bottom:1px solid #e2e8f0;box-shadow:0 1px 6px rgba(0,0,0,.07);
-    padding:0 clamp(12px,2.5vw,24px);min-height:64px;display:flex;align-items:center;
-    justify-content:space-between;gap:12px;position:relative;">
+  <div style="background:#fff;border-bottom:1px solid #e2e8f0;box-shadow:0 1px 6px rgba(0,0,0,.07);padding:0 clamp(12px,2.5vw,24px);min-height:64px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:relative;">
     <div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);"></div>
     <div style="display:flex;align-items:center;gap:12px;">
-      <div class="hd-logo"><img src="/logo.png" alt="" onerror="this.style.display='none'"></div>
-      <div>
-        <div class="hd-title">⚙️ <span>Configuraciones</span></div>
-        <p style="font-size:11px;color:#64748b;font-weight:600;margin-top:1px;">Revisión de Telas</p>
-      </div>
+      <div class="hd-logo"><img id="cfg-logo" src="" style="width:100%;height:100%;object-fit:contain;padding:3px;"></div>
+      <div><div class="hd-title">⚙️ <span>Configuraciones</span></div><p style="font-size:11px;color:#64748b;font-weight:600;margin-top:1px;">Revisión de Telas</p></div>
     </div>
     <button class="hd-back-btn" onclick="cerrarCfgScreen()">← Volver</button>
   </div>
+  <!-- Pestañas -->
+  <div style="background:#fff;border-bottom:1px solid #e2e8f0;padding:0 24px;display:flex;gap:0;">
+    <button class="cfg-tab-btn active" id="cfg-tab-btn-1" onclick="switchCfgTab(1)">🧵 Referencias por Proveedor</button>
+    <button class="cfg-tab-btn" id="cfg-tab-btn-2" onclick="switchCfgTab(2)">⚠️ Defectos</button>
+    <button class="cfg-tab-btn" id="cfg-tab-btn-3" onclick="switchCfgTab(3)">🏭 Proveedores Terceros</button>
+  </div>
   <div style="flex:1;overflow-y:auto;padding:24px clamp(12px,2.5vw,24px);">
-    <div style="max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px;">
-
-      <!-- Referencias Tela -->
+    <!-- Pestaña 1 -->
+    <div id="cfg-panel-1" style="max-width:900px;margin:0 auto;">
       <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;">
-        <div style="padding:14px 18px;border-bottom:1px solid #e2e8f0;background:#f8fafc;display:flex;align-items:center;justify-content:space-between;">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#0f172a;">🧵 Referencias Tela</div>
-          <div style="display:flex;gap:6px;">
-            <button class="btn btn-outline" style="font-size:11px;padding:5px 9px;" onclick="importarCfg('referencias')">📥 Importar</button>
-            <button class="btn btn-outline" style="font-size:11px;padding:5px 9px;" onclick="plantillaCfg('referencias')">📄 Plantilla</button>
+        <div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;background:#f8fafc;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <div><div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#0f172a;">🧵 Referencias por Proveedor</div><div style="font-size:12px;color:#64748b;margin-top:2px;">Plantilla Excel: columnas <strong>Proveedor</strong> | <strong>Referencia</strong></div></div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-outline" style="font-size:12px;padding:7px 12px;" onclick="importarReferencias()">📥 Importar Excel</button>
+            <button class="btn btn-outline" style="font-size:12px;padding:7px 12px;" onclick="plantillaReferencias()">📄 Plantilla</button>
+            <button class="btn btn-danger" style="font-size:12px;padding:7px 12px;" onclick="limpiarReferencias()">🗑 Limpiar</button>
           </div>
         </div>
-        <div style="padding:12px 14px;max-height:300px;overflow-y:auto;" id="cfg-screen-list-referencias"></div>
-        <div style="padding:10px 14px;border-top:1px solid #f1f5f9;display:flex;gap:8px;">
-          <input class="cfg-add-input" id="cfg-screen-add-referencias" placeholder="Nueva referencia..." onkeydown="if(event.key==='Enter')agregarCfgItemScreen('referencias')">
-          <button class="btn btn-primary" style="padding:7px 12px;" onclick="agregarCfgItemScreen('referencias')">+ Agregar</button>
-        </div>
+        <div style="padding:16px 20px;" id="cfg-refs-content"><div style="color:#94a3b8;font-size:13px;text-align:center;padding:30px;">Sin datos. Importa una plantilla Excel.</div></div>
       </div>
-
-      <!-- Proveedores -->
+    </div>
+    <!-- Pestaña 2 -->
+    <div id="cfg-panel-2" style="display:none;max-width:700px;margin:0 auto;">
       <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;">
-        <div style="padding:14px 18px;border-bottom:1px solid #e2e8f0;background:#f8fafc;display:flex;align-items:center;justify-content:space-between;">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#0f172a;">🏭 Proveedores</div>
-          <div style="display:flex;gap:6px;">
-            <button class="btn btn-outline" style="font-size:11px;padding:5px 9px;" onclick="importarCfg('proveedores')">📥 Importar</button>
-            <button class="btn btn-outline" style="font-size:11px;padding:5px 9px;" onclick="plantillaCfg('proveedores')">📄 Plantilla</button>
+        <div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;background:#f8fafc;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <div><div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#0f172a;">⚠️ Tipos de Defecto</div><div style="font-size:12px;color:#64748b;margin-top:2px;">Plantilla Excel: columnas <strong>Código</strong> | <strong>Nombre</strong></div></div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-outline" style="font-size:12px;padding:7px 12px;" onclick="importarDefectos()">📥 Importar Excel</button>
+            <button class="btn btn-outline" style="font-size:12px;padding:7px 12px;" onclick="plantillaDefectos()">📄 Plantilla</button>
           </div>
         </div>
-        <div style="padding:12px 14px;max-height:300px;overflow-y:auto;" id="cfg-screen-list-proveedores"></div>
-        <div style="padding:10px 14px;border-top:1px solid #f1f5f9;display:flex;gap:8px;">
-          <input class="cfg-add-input" id="cfg-screen-add-proveedores" placeholder="Nuevo proveedor..." onkeydown="if(event.key==='Enter')agregarCfgItemScreen('proveedores')">
-          <button class="btn btn-primary" style="padding:7px 12px;" onclick="agregarCfgItemScreen('proveedores')">+ Agregar</button>
+        <div style="padding:12px 16px;max-height:400px;overflow-y:auto;" id="cfg-defectos-list"></div>
+        <div style="padding:12px 16px;border-top:1px solid #f1f5f9;display:flex;gap:8px;">
+          <input class="cfg-add-input" id="cfg-add-codigo" placeholder="Código (ej: 01)" style="max-width:100px;flex:none;">
+          <input class="cfg-add-input" id="cfg-add-defecto-nombre" placeholder="Nombre del defecto..." onkeydown="if(event.key==='Enter')agregarDefectoManual()">
+          <button class="btn btn-primary" style="padding:7px 12px;" onclick="agregarDefectoManual()">+ Agregar</button>
         </div>
       </div>
-      <!-- Tipos de Defecto -->
+    </div>
+    <!-- Pestaña 3 -->
+    <div id="cfg-panel-3" style="display:none;max-width:700px;margin:0 auto;">
       <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;">
-        <div style="padding:14px 18px;border-bottom:1px solid #e2e8f0;background:#f8fafc;display:flex;align-items:center;justify-content:space-between;">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#0f172a;">⚠️ Tipos de Defecto</div>
-          <div style="display:flex;gap:6px;">
-            <button class="btn btn-outline" style="font-size:11px;padding:5px 9px;" onclick="importarCfg('defectos')">📥 Importar</button>
-            <button class="btn btn-outline" style="font-size:11px;padding:5px 9px;" onclick="plantillaCfg('defectos')">📄 Plantilla</button>
+        <div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;background:#f8fafc;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <div><div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#0f172a;">🏭 Proveedores Terceros</div><div style="font-size:12px;color:#64748b;margin-top:2px;">Lista de proveedores de referencia</div></div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-outline" style="font-size:12px;padding:7px 12px;" onclick="importarProvTerceros()">📥 Importar</button>
+            <button class="btn btn-outline" style="font-size:12px;padding:7px 12px;" onclick="plantillaProvTerceros()">📄 Plantilla</button>
           </div>
         </div>
-        <div style="padding:12px 14px;max-height:300px;overflow-y:auto;" id="cfg-screen-list-defectos"></div>
-        <div style="padding:10px 14px;border-top:1px solid #f1f5f9;display:flex;gap:8px;">
-          <input class="cfg-add-input" id="cfg-screen-add-defectos" placeholder="Nuevo tipo de defecto..." onkeydown="if(event.key==='Enter')agregarCfgItemScreen('defectos')">
-          <button class="btn btn-primary" style="padding:7px 12px;" onclick="agregarCfgItemScreen('defectos')">+ Agregar</button>
+        <div style="padding:12px 16px;max-height:400px;overflow-y:auto;" id="cfg-prov-terceros-list"></div>
+        <div style="padding:12px 16px;border-top:1px solid #f1f5f9;display:flex;gap:8px;">
+          <input class="cfg-add-input" id="cfg-add-prov-tercero" placeholder="Nombre del proveedor..." onkeydown="if(event.key==='Enter')agregarProvTercero()">
+          <button class="btn btn-primary" style="padding:7px 12px;" onclick="agregarProvTercero()">+ Agregar</button>
         </div>
       </div>
-
-      <!-- Colores -->
-      <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;">
-        <div style="padding:14px 18px;border-bottom:1px solid #e2e8f0;background:#f8fafc;display:flex;align-items:center;justify-content:space-between;">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#0f172a;">🎨 Colores</div>
-          <div style="display:flex;gap:6px;">
-            <button class="btn btn-outline" style="font-size:11px;padding:5px 9px;" onclick="importarCfg('colores')">📥 Importar</button>
-            <button class="btn btn-outline" style="font-size:11px;padding:5px 9px;" onclick="plantillaCfg('colores')">📄 Plantilla</button>
-          </div>
-        </div>
-        <div style="padding:12px 14px;max-height:300px;overflow-y:auto;" id="cfg-screen-list-colores"></div>
-        <div style="padding:10px 14px;border-top:1px solid #f1f5f9;display:flex;gap:8px;">
-          <input class="cfg-add-input" id="cfg-screen-add-colores" placeholder="Nuevo color..." onkeydown="if(event.key==='Enter')agregarCfgItemScreen('colores')">
-          <button class="btn btn-primary" style="padding:7px 12px;" onclick="agregarCfgItemScreen('colores')">+ Agregar</button>
-        </div>
-      </div>
-
     </div>
   </div>
 </div>
-
-<script>
-// ── Estado global ──────────────────────────────────────────────────
-let _registros=[], _filtrados=[], _sortCol='fecha', _sortDir=-1;
-let _confirmCB=null, _finalizandoId=null;
-let _cfgDefectos=[], _cfgReferencias=[], _cfgColores=[], _cfgProveedores=[];
-let ws=null, wsReady=false, wsTimer=null;
-let _filtroDesde='', _filtroHasta='';
-
-// ── WebSocket ──────────────────────────────────────────────────────
-function connectWS(){
-  const proto=location.protocol==='https:'?'wss':'ws';
-  ws=new WebSocket(proto+'://'+location.host);
-  ws.onopen=()=>{wsReady=true;clearTimeout(wsTimer);};
-  ws.onmessage=e=>{
-    try{
-      const msg=JSON.parse(e.data);
-      if(msg.type==='rt_update'){
-        _registros=msg.registros||[];
-        _cfgDefectos=msg.defectos||_cfgDefectos;
-        _cfgReferencias=msg.referencias||_cfgReferencias;
-        _cfgColores=msg.colores||_cfgColores;
-        aplicarFiltros();
-      }
-    }catch(err){console.warn('WS:',err);}
-  };
-  ws.onclose=()=>{wsReady=false;wsTimer=setTimeout(connectWS,4000);};
-  ws.onerror=()=>ws.close();
-}
-
-// ── API ────────────────────────────────────────────────────────────
-async function cargarDatos(){
-  try{
-    const res=await fetch('/api/revision-telas');
-    if(res.ok){
-      const d=await res.json();
-      _registros=d.registros||[];
-      _cfgDefectos=d.defectos||[];
-      _cfgReferencias=d.referencias||[];
-      _cfgColores=d.colores||[];
-    }
-  }catch(e){console.warn(e);}
-  await cargarRevisadores();
-  aplicarFiltros();
-}
-
-async function guardarEnServidor(){
-  try{
-    await fetch('/api/revision-telas',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({registros:_registros,defectos:_cfgDefectos,referencias:_cfgReferencias,colores:_cfgColores})
-    });
-  }catch(e){console.warn(e);}
-}
-
-// ── Helpers fecha/hora ─────────────────────────────────────────────
-function horaActual(){
-  const n=new Date();
-  let h=n.getHours(), m=n.getMinutes();
-  const ampm=h>=12?'PM':'AM';
-  h=h%12||12;
-  return `${h}:${String(m).padStart(2,'0')} ${ampm}`;
-}
-function fechaHoy(){return new Date().toISOString().split('T')[0];}
-function fechaDisplay(iso){
-  if(!iso) return '';
-  const [y,m,d]=iso.split('-');
-  return `${d}/${m}/${y}`;
-}
-function calcTiempo(inicio,fin){
-  if(!inicio||!fin) return '';
-  const parse=str=>{
-    const m=str.match(/(\d+):(\d+)\s*(AM|PM)/i);
-    if(!m) return 0;
-    let h=parseInt(m[1]),mn=parseInt(m[2]);
-    if(m[3].toUpperCase()==='PM'&&h!==12) h+=12;
-    if(m[3].toUpperCase()==='AM'&&h===12) h=0;
-    return h*60+mn;
-  };
-  let mi=parse(inicio), mf=parse(fin);
-  if(mf<mi) mf+=24*60;
-  const diff=mf-mi;
-  const hh=Math.floor(diff/60), mm=diff%60;
-  return hh>0?`${hh}h ${mm}min`:`${mm}min`;
-}
-
-// ── Revisadores (miembros perfil Telas desde servidor) ────────────
-let _revisadores=[];
-async function cargarRevisadores(){
-  try{
-    const res=await fetch('/api/app-config');
-    if(res.ok){
-      const cfg=await res.json();
-      const members=(cfg._perfil_members&&cfg._perfil_members['Telas'])||[];
-      _revisadores=members.filter(m=>!m.disabled).map(m=>typeof m==='string'?m:(m.nombre||'')).filter(Boolean);
-    }
-  }catch(e){console.warn('cargarRevisadores:',e);}
-}
-function getRevisadores(){ return _revisadores; }
-
-// ── Fecha header ──────────────────────────────────────────────────
-document.getElementById('rt-date').textContent=
-  new Date().toLocaleDateString('es-CO',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-
-// ── Filtro fecha ───────────────────────────────────────────────────
-function toggleDatePanel(){
-  document.getElementById('date-filter-panel').classList.toggle('open');
-}
-document.addEventListener('click',e=>{
-  const wrap=document.querySelector('.date-filter-wrap');
-  if(wrap&&!wrap.contains(e.target)) document.getElementById('date-filter-panel').classList.remove('open');
-});
-function aplicarFiltroFecha(){
-  _filtroDesde=document.getElementById('filtro-desde').value;
-  _filtroHasta=document.getElementById('filtro-hasta').value;
-  const lbl=document.getElementById('date-filter-label');
-  if(_filtroDesde||_filtroHasta){
-    lbl.textContent=(_filtroDesde?fechaDisplay(_filtroDesde):'...')+' — '+(_filtroHasta?fechaDisplay(_filtroHasta):'...');
-  } else {
-    lbl.textContent='Filtrar por fecha';
-  }
-  document.getElementById('date-filter-panel').classList.remove('open');
-  aplicarFiltros();
-}
-function limpiarFiltros(){
-  _filtroDesde=''; _filtroHasta='';
-  document.getElementById('filtro-desde').value='';
-  document.getElementById('filtro-hasta').value='';
-  document.getElementById('date-filter-label').textContent='Filtrar por fecha';
-  document.getElementById('date-filter-panel').classList.remove('open');
-  aplicarFiltros();
-}
-
-function aplicarFiltros(){
-  _filtrados=_registros.filter(r=>{
-    if(_filtroDesde&&r.fecha<_filtroDesde) return false;
-    if(_filtroHasta&&r.fecha>_filtroHasta) return false;
-    // Revisadores solo ven sus propios registros
-    if(_rtCurrentUser && !_rtIsAdmin && r.revisador !== _rtCurrentUser) return false;
-    return true;
-  });
-  _filtrados.sort((a,b)=>{
-    // Siempre ordenar por hora_inicio descendente como sort secundario
-    const va=a[_sortCol]||'',vb=b[_sortCol]||'';
-    const primary=_sortDir*(va>vb?1:va<vb?-1:0);
-    if(primary!==0) return primary;
-    // Secundario: hora_inicio descendente
-    return (b.hora_inicio||'').localeCompare(a.hora_inicio||'');
-  });
-  // Si no hay sort activo, ordenar por fecha+hora_inicio desc (más reciente primero)
-  if(_sortCol==='fecha'&&_sortDir===-1){
-    _filtrados.sort((a,b)=>{
-      const fd=(b.fecha||'').localeCompare(a.fecha||'');
-      if(fd!==0) return fd;
-      return (b.hora_inicio||'').localeCompare(a.hora_inicio||'');
-    });
-  }
-  renderTabla();
-  renderStats();
-}
-function sortBy(col){
-  if(_sortCol===col) _sortDir*=-1; else{_sortCol=col;_sortDir=1;}
-  aplicarFiltros();
-}
-
-// ── Stats ──────────────────────────────────────────────────────────
-function renderStats(){
-  const total=_filtrados.length;
-  const aprobados=_filtrados.filter(r=>r.resultado==='aprobado').length;
-  const rechazados=_filtrados.filter(r=>r.resultado==='rechazado').length;
-  const pendientes=_filtrados.filter(r=>!r.finalizado).length;
-  document.getElementById('rt-stats').innerHTML=`
-    <div class="stat-card"><div class="stat-num">${total}</div><div class="stat-lbl">Registros</div></div>
-    <div class="stat-card"><div class="stat-num" style="color:#15803d;">${aprobados}</div><div class="stat-lbl">Aprobados</div></div>
-    <div class="stat-card"><div class="stat-num" style="color:#dc2626;">${rechazados}</div><div class="stat-lbl">Rechazados</div></div>
-    <div class="stat-card"><div class="stat-num" style="color:#b45309;">${pendientes}</div><div class="stat-lbl">En revisión</div></div>`;
-}
-
-// ── Tabla ──────────────────────────────────────────────────────────
-function renderTabla(){
-  const body=document.getElementById('rt-table-body');
-  if(!_filtrados.length){
-    body.innerHTML=`<div class="empty-state"><div class="empty-icon">🧵</div>
-      <div class="empty-text">Sin registros</div>
-      <div style="font-size:12px;margin-top:6px;color:#cbd5e1;">Agrega el primer registro con + Nuevo Registro</div></div>`;
-    return;
-  }
-  body.innerHTML=_filtrados.map(r=>{
-    const estadoBadge=r.finalizado
-      ?(r.resultado==='aprobado'?`<span class="td-badge badge-ok">✅ Aprobado</span>`:`<span class="td-badge badge-rech">❌ Rechazado</span>`)
-      :`<span class="td-badge badge-pend">🔄 En revisión</span>`;
-    const accionFin=r.finalizado?'':`<button class="btn-finalizar" onclick="openFinalizar('${r.id}')">🏁 FINALIZAR</button>`;
-    return `<div class="table-row">
-      <div class="td">${fechaDisplay(r.fecha)||'—'}</div>
-      <div class="td">${r.revisador||'—'}</div>
-      <div class="td"><span class="td-badge">${r.referencia||'—'}</span></div>
-      <div class="td">${r.color||'—'}</div>
-      <div class="td">${r.tiempo?`<span class="tiempo-badge">${r.tiempo}</span>`:'—'}</div>
-      <div class="td">${r.metros?r.metros+' m':'—'}</div>
-      <div class="td">${estadoBadge}</div>
-      <div class="td">${(()=>{
-        if(!r.defectos||!r.defectos.length) return '—';
-        const total=r.defectos.reduce((s,d)=>s+parseInt(d.cantidad||0),0);
-        return `<span style="display:inline-flex;align-items:center;gap:5px;">
-          <span style="font-weight:700;color:#92400e;font-size:13px;">${total}</span>
-          <button onclick="verDefectos('${r.id}')" title="Ver detalle" style="width:24px;height:24px;border-radius:6px;border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;">👁</button>
-        </span>`;
-      })()}</div>
-      <div class="td">${r.observaciones?`<button onclick="verObservacion('${r.id}')" title="Ver observación" style="width:28px;height:28px;border-radius:6px;border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;font-size:14px;">💬</button>`:'—'}</div>
-      <div class="td td-actions">
-        ${accionFin}
-        <button class="btn-action" title="Editar" onclick="pedirPassAccion(()=>editarRegistro('${r.id}'))" style="margin-left:${r.finalizado?'4':'0'}px;">✏️</button>
-        <button class="btn-action del" title="Eliminar" onclick="confirmarEliminar('${r.id}')" style="margin-left:4px;">🗑</button>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-// ── Modal Nuevo Registro ───────────────────────────────────────────
-function openRegistroModal(){
-  const hoy=fechaHoy();
-  document.getElementById('f-fecha').value=hoy;
-  document.getElementById('f-fecha-display').textContent=fechaDisplay(hoy);
-  document.getElementById('f-ref-input').value='';
-  document.getElementById('f-ref-val').value='';
-  document.getElementById('f-rollo').value='';
-  document.getElementById('f-error').textContent='';
-
-  // Poblar revisadores
-  const selRev=document.getElementById('f-revisador');
-  selRev.innerHTML='<option value="">— Seleccionar —</option>';
-  getRevisadores().forEach(r=>{
-    const o=document.createElement('option');
-    o.value=r; o.textContent=r; selRev.appendChild(o);
-  });
-
-  // Poblar proveedor searchable
-  document.getElementById('f-proveedor-input').value='';
-  document.getElementById('f-proveedor-val').value='';
-  poblarSearchable('f-proveedor-input','f-proveedor-dd','f-proveedor-val',_cfgProveedores);
-  // Limpiar lote
-  document.getElementById('f-lote').value='';
-  // Poblar color searchable
-  document.getElementById('f-color-input').value='';
-  document.getElementById('f-color-val').value='';
-  poblarSearchable('f-color-input','f-color-dd','f-color-val',_cfgColores);
-
-  // Poblar searchable ref
-  poblarSearchable('f-ref-input','f-ref-dd','f-ref-val',_cfgReferencias);
-
-  document.getElementById('modal-registro').classList.add('open');
-}
-function closeRegistroModal(){
-  document.getElementById('modal-registro').classList.remove('open');
-  // Restaurar botón guardar a modo creación
-  const btn=document.getElementById('btn-guardar-registro');
-  if(btn){ btn.onclick=guardarRegistro; }
-  document.querySelector('#modal-registro .modal-title').textContent='➕ NUEVO REGISTRO';
-}
-function guardarRegistro(){
-  const fecha=document.getElementById('f-fecha').value;
-  const revisador=_rtIsAdmin ? document.getElementById('f-revisador').value : _rtCurrentUser;
-  const ref=document.getElementById('f-ref-val').value.trim()||document.getElementById('f-ref-input').value.trim();
-  const color=document.getElementById('f-color-val').value.trim()||document.getElementById('f-color-input').value.trim();
-  const rollo=document.getElementById('f-rollo').value.trim();
-  const errEl=document.getElementById('f-error');
-  if(!revisador){errEl.textContent='Selecciona un revisador';return;}
-  if(!ref){errEl.textContent='La referencia es obligatoria';return;}
-  if(!color){errEl.textContent='Ingresa o selecciona un color';return;}
-  if(!rollo){errEl.textContent='Ingresa el # de rollo';return;}
-  const proveedor=document.getElementById('f-proveedor-val').value.trim()||document.getElementById('f-proveedor-input').value.trim();
-  const lote=document.getElementById('f-lote').value.trim();
-  const registro={
-    id:'rt_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
-    fecha, revisador, referencia:ref, proveedor, lote, color, rollo,
-    hora_inicio:horaActual(), hora_fin:'', tiempo:'',
-    metros:'', defectos:[], resultado:'', observaciones:'', finalizado:false
-  };
-  _registros.push(registro);
-  guardarEnServidor();
-  aplicarFiltros();
-  closeRegistroModal();
-  showToast('✅ Registro creado — Hora inicio: '+registro.hora_inicio);
-}
-
-// ── Modal Finalizar Revisión ───────────────────────────────────────
-function openFinalizar(id){
-  _finalizandoId=id;
-  const r=_registros.find(x=>x.id===id);
-  if(!r) return;
-  document.getElementById('fin-ref-label').textContent=
-    `${r.referencia||''} — Rollo ${r.rollo||''} — ${r.revisador||''}`;
-  document.getElementById('fin-metros').value='';
-  document.getElementById('fin-observaciones').value='';
-  document.getElementById('fin-resultado').value='';
-  document.getElementById('fin-error').textContent='';
-  document.getElementById('btn-aprobado').className='toggle-btn';
-  document.getElementById('btn-rechazado').className='toggle-btn';
-
-  // Limpiar y crear primera fila de defecto
-  document.getElementById('fin-defectos-list').innerHTML='';
-  agregarDefectoRow();
-
-  document.getElementById('modal-finalizar').classList.add('open');
-}
-function closeFinalizar(){
-  document.getElementById('modal-finalizar').classList.remove('open');
-  _finalizandoId=null;
-}
-function setResultado(val){
-  document.getElementById('fin-resultado').value=val;
-  document.getElementById('btn-aprobado').className='toggle-btn'+(val==='aprobado'?' active-ok':'');
-  document.getElementById('btn-rechazado').className='toggle-btn'+(val==='rechazado'?' active-rech':'');
-}
-function agregarDefectoRow(){
-  const list=document.getElementById('fin-defectos-list');
-  const row=document.createElement('div');
-  row.className='defecto-row';
-  // Metro
-  const inpMetro=document.createElement('input');
-  inpMetro.type='number'; inpMetro.min='0'; inpMetro.placeholder='Metro';
-  inpMetro.style.cssText='flex:1;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;';
-  // Tipo defecto
-  const sel=document.createElement('select');
-  sel.style.cssText='flex:2;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;background:#fff;';
-  sel.innerHTML='<option value="">— Tipo defecto —</option>'+
-    _cfgDefectos.map(d=>`<option value="${d}">${d}</option>`).join('');
-  // Cantidad
-  const inp=document.createElement('input');
-  inp.type='number'; inp.min='1'; inp.placeholder='Cant.';
-  inp.style.cssText='width:65px;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;text-align:center;';
-  // Botón eliminar
-  const btn=document.createElement('button');
-  btn.textContent='✕';
-  btn.style.cssText='width:30px;height:30px;border-radius:6px;border:1.5px solid #fca5a5;background:#fef2f2;color:#dc2626;cursor:pointer;font-size:14px;flex-shrink:0;';
-  btn.onclick=()=>row.remove();
-  row.appendChild(inpMetro); row.appendChild(sel); row.appendChild(inp); row.appendChild(btn);
-  list.appendChild(row);
-}
-function guardarFinalizar(){
-  const metros=document.getElementById('fin-metros').value.trim();
-  const resultado=document.getElementById('fin-resultado').value;
-  const obs=document.getElementById('fin-observaciones').value.trim();
-  const errEl=document.getElementById('fin-error');
-  if(!metros){errEl.textContent='Ingresa los metros revisados';return;}
-  if(!resultado){errEl.textContent='Selecciona Aprobado o Rechazado';return;}
-  // Verificar que cada defecto agregado tenga tipo y cantidad
-  let defErr=false;
-  document.querySelectorAll('#fin-defectos-list .defecto-row').forEach(row=>{
-    const tipo=row.querySelector('select').value;
-    const cant=row.querySelector('input').value;
-    if((tipo&&!cant)||(cant&&!tipo)) defErr=true;
-  });
-  if(defErr){errEl.textContent='Completa tipo y cantidad en cada defecto';return;}
-
-  // Recoger defectos
-  const defectos=[];
-  document.querySelectorAll('#fin-defectos-list .defecto-row').forEach(row=>{
-    const inputs=row.querySelectorAll('input');
-    const metro=inputs[0]?.value||'';
-    const tipo=row.querySelector('select').value;
-    const cant=inputs[1]?.value||'';
-    if(tipo&&cant) defectos.push({metro,tipo,cantidad:parseInt(cant)});
-  });
-
-  const horaFin=horaActual();
-  const idx=_registros.findIndex(x=>x.id===_finalizandoId);
-  if(idx>=0){
-    const r=_registros[idx];
-    _registros[idx]={...r, metros, defectos, resultado, observaciones:obs,
-      hora_fin:horaFin, tiempo:calcTiempo(r.hora_inicio,horaFin), finalizado:true};
-  }
-  guardarEnServidor();
-  aplicarFiltros();
-  closeFinalizar();
-  showToast('✅ Revisión finalizada — Hora fin: '+horaFin);
-}
-
-// ── Confirmar eliminar ─────────────────────────────────────────────
-function confirmarEliminar(id){
-  const r=_registros.find(x=>x.id===id);
-  document.getElementById('rt-confirm-sub').textContent=r?(r.referencia||'')+' — '+(r.fecha||''):'Esta acción no se puede deshacer.';
-  document.getElementById('rt-confirm-pass').value='';
-  document.getElementById('rt-confirm-error').textContent='';
-  _confirmCB=()=>{_registros=_registros.filter(x=>x.id!==id);guardarEnServidor();aplicarFiltros();showToast('🗑 Eliminado');};
-  const _mrt=document.getElementById('modal-confirm-rt');
-  _mrt.classList.add('open'); _mrt.style.display='flex';
-  setTimeout(()=>document.getElementById('rt-confirm-pass').focus(),100);
-}
-function closeConfirmRT(){const _mrt=document.getElementById('modal-confirm-rt');_mrt.classList.remove('open');_mrt.style.display='none';_confirmCB=null;}
-function executeConfirmRT(){
-  if(document.getElementById('rt-confirm-pass').value!=='1'){
-    document.getElementById('rt-confirm-error').textContent='Contraseña incorrecta';
-    document.getElementById('rt-confirm-pass').value='';
-    document.getElementById('rt-confirm-pass').focus(); return;
-  }
-  const _cbRT = _confirmCB;
-  closeConfirmRT();
-  if(_cbRT) _cbRT();
-}
-
-// ── Searchable ─────────────────────────────────────────────────────
-function poblarSearchable(inputId,ddId,valId,lista){
-  const dd=document.getElementById(ddId);
-  dd.innerHTML=lista.map(item=>
-    `<div class="searchable-option" onmousedown="seleccionarOpcion('${inputId}','${ddId}','${valId}','${item}')">${item}</div>`
-  ).join('')||`<div class="searchable-empty">Sin opciones</div>`;
-}
-function getCfgListaPorNombre(nombre){
-  if(nombre==='_cfgReferencias')  return _cfgReferencias;
-  if(nombre==='_cfgColores')      return _cfgColores;
-  if(nombre==='_cfgDefectos')     return _cfgDefectos;
-  if(nombre==='_cfgProveedores')  return _cfgProveedores;
-  return window[nombre]||[];
-}
-function filtrarOpciones(inputId,ddId,listaVar){
-  const q=document.getElementById(inputId).value.toLowerCase();
-  const lista=getCfgListaPorNombre(listaVar);
-  const dd=document.getElementById(ddId);
-  const f=lista.filter(i=>i.toLowerCase().includes(q));
-  const valId=inputId.replace('-input','-val');
-  dd.innerHTML=f.map(item=>
-    `<div class="searchable-option" onmousedown="seleccionarOpcion('${inputId}','${ddId}','${valId}','${item}')">${item}</div>`
-  ).join('')||`<div class="searchable-empty">Sin resultados</div>`;
-  dd.classList.add('open');
-}
-function seleccionarOpcion(inputId,ddId,valId,val){
-  document.getElementById(inputId).value=val;
-  document.getElementById(valId).value=val;
-  cerrarDropdown(ddId);
-}
-function abrirDropdown(ddId){document.getElementById(ddId)?.classList.add('open');}
-function cerrarDropdown(ddId){document.getElementById(ddId)?.classList.remove('open');}
-
-// ── Exportar Excel ─────────────────────────────────────────────────
-function exportarExcel(){
-  if(!_filtrados.length){showToast('⚠️ Sin registros');return;}
-  const data=_filtrados.map(r=>({
-    'Fecha':fechaDisplay(r.fecha),'Revisador':r.revisador||'','Referencia':r.referencia||'','Proveedor':r.proveedor||'','Lote':r.lote||'',
-    'Color':r.color||'','# Rollo':r.rollo||'','Metros':r.metros||'',
-    'Defectos':r.defectos?r.defectos.map(d=>`${d.tipo}(${d.cantidad})`).join(', '):'',
-    'H. Inicio':r.hora_inicio||'','H. Fin':r.hora_fin||'','Tiempo':r.tiempo||'',
-    'Resultado':r.resultado||'','Observaciones':r.observaciones||''
-  }));
-  const ws2=XLSX.utils.json_to_sheet(data);
-  const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,ws2,'Revisión Telas');
-  XLSX.writeFile(wb,`revision_telas_${fechaHoy()}.xlsx`);
-  showToast('📊 Excel exportado');
-}
-
-// ── Configuraciones (pantalla) ─────────────────────────────────────
-function getCfgLista(tab){
-  if(tab==='defectos') return _cfgDefectos;
-  if(tab==='referencias') return _cfgReferencias;
-  if(tab==='colores') return _cfgColores;
-  if(tab==='proveedores') return _cfgProveedores;
-  return [];
-}
-function setCfgLista(tab,lista){
-  if(tab==='defectos') _cfgDefectos=lista;
-  if(tab==='referencias') _cfgReferencias=lista;
-  if(tab==='colores') _cfgColores=lista;
-  if(tab==='proveedores') _cfgProveedores=lista;
-}
-function abrirCfgScreen(){
-  document.getElementById('rt-cfg-screen').style.display='flex';
-  ['referencias','defectos','colores','proveedores'].forEach(t=>renderCfgScreenLista(t));
-}
-function cerrarCfgScreen(){document.getElementById('rt-cfg-screen').style.display='none';}
-function renderCfgScreenLista(tab){
-  const lista=getCfgLista(tab);
-  const el=document.getElementById('cfg-screen-list-'+tab);
-  if(!el) return;
-  if(!lista.length){
-    el.innerHTML='<div style="padding:16px;text-align:center;color:#94a3b8;font-size:13px;">Sin items. Agrega el primero abajo.</div>';
-    return;
-  }
-  el.innerHTML=lista.map((item,i)=>`
-    <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;
-      background:#f8fafc;border:1px solid #e2e8f0;margin-bottom:5px;">
-      <span style="flex:1;font-size:13px;font-weight:600;color:#0f172a;">${item}</span>
-      <button onclick="eliminarCfgItemScreen('${tab}',${i})"
-        style="width:26px;height:26px;border-radius:6px;border:1.5px solid #fca5a5;background:#fef2f2;
-        color:#dc2626;cursor:pointer;font-size:12px;">✕</button>
-    </div>`).join('');
-}
-function agregarCfgItemScreen(tab){
-  const inp=document.getElementById('cfg-screen-add-'+tab);
-  const val=(inp.value||'').trim();
-  if(!val) return;
-  const lista=getCfgLista(tab);
-  if(lista.includes(val)){showToast('⚠️ Ya existe');return;}
-  lista.push(val);
-  setCfgLista(tab,lista);
-  inp.value='';
-  guardarEnServidor();
-  renderCfgScreenLista(tab);
-  showToast('✅ Agregado');
-}
-function eliminarCfgItemScreen(tab,idx){
-  const lista=getCfgLista(tab);
-  lista.splice(idx,1);
-  setCfgLista(tab,lista);
-  guardarEnServidor();
-  renderCfgScreenLista(tab);
-  showToast('🗑 Eliminado');
-}
-function importarCfg(tab){
-  const inp=document.createElement('input');
-  inp.type='file'; inp.accept='.xlsx,.xls,.csv';
-  inp.onchange=e=>{
-    const file=e.target.files[0]; if(!file) return;
-    const reader=new FileReader();
-    reader.onload=ev=>{
-      try{
-        const wb=XLSX.read(ev.target.result,{type:'binary'});
-        const ws2=wb.Sheets[wb.SheetNames[0]];
-        const rows=XLSX.utils.sheet_to_json(ws2,{header:1});
-        const lista=getCfgLista(tab);
-        let added=0;
-        rows.forEach(row=>{
-          const val=(row[0]||'').toString().trim();
-          if(val&&!lista.includes(val)){lista.push(val);added++;}
-        });
-        setCfgLista(tab,lista);
-        guardarEnServidor();
-        renderCfgScreenLista(tab);
-        showToast(`✅ ${added} items importados`);
-      }catch(err){alert('Error: '+err.message);}
-    };
-    reader.readAsBinaryString(file);
-  };
-  inp.click();
-}
-function plantillaCfg(tab){
-  const nombres={defectos:'Tipo_Defecto',referencias:'Referencia_Tela',colores:'Color'};
-  const ws2=XLSX.utils.aoa_to_sheet([[nombres[tab]],['Ejemplo 1'],['Ejemplo 2']]);
-  const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,ws2,'Plantilla');
-  XLSX.writeFile(wb,`plantilla_${tab}.xlsx`);
-}
-
-// ── Toast ──────────────────────────────────────────────────────────
-let _toastTimer=null;
-function showToast(msg){
-  const t=document.getElementById('rt-toast');
-  t.textContent=msg; t.classList.add('show');
-  clearTimeout(_toastTimer);
-  _toastTimer=setTimeout(()=>t.classList.remove('show'),2500);
-}
-
-// ── Init ───────────────────────────────────────────────────────────
-// Poner fecha de hoy por defecto
-const _hoyInit = new Date().toISOString().split('T')[0];
-document.getElementById('filtro-desde').value=_hoyInit;
-document.getElementById('filtro-hasta').value=_hoyInit;
-_filtroDesde=_hoyInit; _filtroHasta=_hoyInit;
-cargarDatos().then(()=>rtInitLogin());
-connectWS();
-</script>
-
-<!-- Nav Millar -->
-<script>
-(function(){
-  function getNavPerfil(){
-    const p=new URLSearchParams(location.search).get('perfil')||sessionStorage.getItem('millar_nav_perfil')||'';
-    return p.toLowerCase();
-  }
-  const RUTAS={
-    ordenes:'/ordenes',produccion:'/produccion',asistencia:'/ingresos',
-    recogedores:'/recogedores',tableroGeneral:'/?tablero=general',
-    tableroMec:'/?tablero=mecanicos',tableroCI:'/ci',
-    insumos:'/solicitar-insumos',alistamiento:'/alistamiento?seccion=alistamiento',
-    mantenimiento:'/alistamiento?seccion=mantenimiento',contador:'/contador-modulos',
-    informeCI:'/ci?seccion=informe',informeGeneral:'/?seccion=historico',dashCI:'/ci?seccion=dashboard',
-  };
-  const ICONS={
-    produccion:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>',
-    tableros:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
-    mecanicos:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>',
-    modulos:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>',
-    informes:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>',
-  };
-  function buildNav(){
-    const perfil=getNavPerfil();
-    const esAdmin=!perfil||['programador','administrador'].includes(perfil);
-    const esMec=perfil==='mecanicos',esTV=perfil==='televisor';
-    const esSup=perfil==='supervisora',esRec=perfil==='recogedores';
-    function href(r){const p=getNavPerfil(),s=r.includes('?')?'&':'?';return p?r+s+'perfil='+encodeURIComponent(p):r;}
-    let html='<div class="millar-nav" id="millar-nav">';
-    const prodItems=[];
-    if(esAdmin) prodItems.push(`<a class="millar-dd-item" href="${href(RUTAS.produccion)}">🗂 Tablero Producción</a>`);
-    if(esAdmin) prodItems.push(`<a class="millar-dd-item" href="${href(RUTAS.ordenes)}">📋 Órdenes</a>`);
-    if(esAdmin||esSup) prodItems.push(`<a class="millar-dd-item" href="${href(RUTAS.asistencia)}">⏱ Control Asistencia</a>`);
-    if(esAdmin||esRec) prodItems.push(`<a class="millar-dd-item" href="${href(RUTAS.recogedores)}">🧺 Conteo Recogedores</a>`);
-    if(prodItems.length) html+=buildBtn('produccion','Producción',prodItems);
-    const tabItems=[];
-    if(esAdmin||esTV) tabItems.push(`<a class="millar-dd-item" href="${href(RUTAS.tableroGeneral)}">🏭 Tablero General</a>`);
-    if(esAdmin||esTV||esMec) tabItems.push(`<a class="millar-dd-item" href="${href(RUTAS.tableroMec)}">🔧 Tablero Mecánicos</a>`);
-    if(esAdmin||esTV) tabItems.push(`<a class="millar-dd-item" href="${href(RUTAS.tableroCI)}">📦 Tablero CI</a>`);
-    if(tabItems.length) html+=buildBtn('tableros','Tableros',tabItems);
-    if(esAdmin) html+=buildBtn('modulos','Módulos',[`<a class="millar-dd-item" href="${href(RUTAS.contador)}">🟢 Contador Módulos</a>`]);
-    if(esAdmin) html+=buildBtn('informes','Informes',[
-      `<a class="millar-dd-item" href="${href(RUTAS.informeGeneral)}">📊 Informe General</a>`,
-      `<a class="millar-dd-item" href="${href(RUTAS.informeCI)}">📋 Informe CI</a>`,
-      `<a class="millar-dd-item" href="${href(RUTAS.dashCI)}">📈 Dashboard CI</a>`,
-    ]);
-    html+='</div>';
-    return html;
-  }
-  function buildBtn(key,label,items){
-    const ddId='millar-dd-'+key;
-    return `<div class="millar-nav-item"><button class="millar-nav-btn" onclick="millarNavToggle('${ddId}')">${ICONS[key]||''}<span class="millar-nav-label">${label}</span></button><div class="millar-dropdown" id="${ddId}"><div class="millar-dd-inner">${items.join('')}</div></div></div>`;
-  }
-  window.millarNavToggle=function(id){
-    document.querySelectorAll('.millar-dropdown').forEach(d=>{if(d.id!==id)d.classList.remove('open');});
-    document.getElementById(id)?.classList.toggle('open');
-  };
-  document.addEventListener('click',function(e){
-    if(!e.target.closest('.millar-nav-item')) document.querySelectorAll('.millar-dropdown').forEach(d=>d.classList.remove('open'));
-  });
-  function inject(){document.querySelectorAll('[data-millar-nav]').forEach(el=>{el.innerHTML=buildNav();});}
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',inject);
-  else inject();
-})();
-
-// ── Ver observación ────────────────────────────────────────────────
-function verObservacion(id){
-  const r=_registros.find(x=>x.id===id);
-  if(!r||!r.observaciones) return;
-  showToast('💬 '+r.observaciones);
-  // Mini modal de observación
-  let m=document.getElementById('modal-obs-rt');
-  if(!m){
-    m=document.createElement('div');
-    m.id='modal-obs-rt';
-    m.style.cssText='display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1100;align-items:center;justify-content:center;';
-    m.onclick=e=>{if(e.target===m)m.style.display='none';};
-    m.innerHTML=`<div style="background:#fff;border-radius:14px;padding:24px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.25);">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;letter-spacing:1.5px;color:#0f172a;margin-bottom:12px;">💬 OBSERVACIONES</div>
-      <div id="obs-rt-text" style="font-size:14px;color:#334155;line-height:1.6;white-space:pre-wrap;background:#f8fafc;border-radius:8px;padding:12px;border:1px solid #e2e8f0;"></div>
-      <div style="margin-top:16px;text-align:right;">
-        <button onclick="document.getElementById('modal-obs-rt').style.display='none'"
-          style="padding:8px 20px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Cerrar</button>
-      </div>
-    </div>`;
-    document.body.appendChild(m);
-  }
-  document.getElementById('obs-rt-text').textContent=r.observaciones;
-  m.style.display='flex';
-}
-
-// ── Editar registro ────────────────────────────────────────────────
-function editarRegistro(id){
-  const r=_registros.find(x=>x.id===id);
-  if(!r) return;
-  openRegistroModal();
-  // Precargar datos sin setTimeout
-  document.getElementById('f-fecha').value=r.fecha||'';
-  document.getElementById('f-fecha-display').textContent=fechaDisplay(r.fecha||'');
-  document.getElementById('f-revisador').value=r.revisador||'';
-  document.getElementById('f-ref-input').value=r.referencia||'';
-  document.getElementById('f-ref-val').value=r.referencia||'';
-  document.getElementById('f-proveedor-input').value=r.proveedor||'';
-  document.getElementById('f-proveedor-val').value=r.proveedor||'';
-  document.getElementById('f-lote').value=r.lote||'';
-  document.getElementById('f-color-input').value=r.color||'';
-  document.getElementById('f-color-val').value=r.color||'';
-  document.getElementById('f-rollo').value=r.rollo||'';
-  const btnGuardar=document.getElementById('btn-guardar-registro');
-  if(btnGuardar) btnGuardar.onclick=()=>guardarEdicion(id);
-  document.querySelector('#modal-registro .modal-title').textContent='✏️ EDITAR REGISTRO';
-}
-
-function guardarEdicion(id){
-  const fecha=document.getElementById('f-fecha').value;
-  const revisador=document.getElementById('f-revisador').value;
-  const ref=document.getElementById('f-ref-val').value.trim()||document.getElementById('f-ref-input').value.trim();
-  const proveedor=document.getElementById('f-proveedor-val').value.trim()||document.getElementById('f-proveedor-input').value.trim();
-  const lote=document.getElementById('f-lote').value.trim();
-  const color=document.getElementById('f-color-val').value.trim()||document.getElementById('f-color-input').value.trim();
-  const rollo=document.getElementById('f-rollo').value.trim();
-  const errEl=document.getElementById('f-error');
-  if(!revisador){errEl.textContent='Selecciona un revisador';return;}
-  if(!ref){errEl.textContent='La referencia es obligatoria';return;}
-  if(!color){errEl.textContent='Ingresa o selecciona un color';return;}
-  if(!rollo){errEl.textContent='Ingresa el # de rollo';return;}
-  const idx=_registros.findIndex(x=>x.id===id);
-  if(idx>=0) _registros[idx]={..._registros[idx], fecha, revisador, referencia:ref, proveedor, lote, color, rollo};
-  guardarEnServidor();
-  aplicarFiltros();
-  closeRegistroModal();
-  // Restaurar botón guardar
-  const btnGuardar=document.querySelector('#modal-registro .btn-primary');
-  if(btnGuardar) btnGuardar.onclick=guardarRegistro;
-  showToast('✅ Registro actualizado');
-}
-
-// ── Pedir contraseña para acción ─────────────────────────────────
-function pedirPassAccion(cb){
-  window._passAccionCB=cb;
-  document.getElementById('pass-accion-inp').value='';
-  document.getElementById('pass-accion-error').textContent='';
-  const m=document.getElementById('modal-pass-accion');
-  m.style.display='flex';
-  setTimeout(()=>document.getElementById('pass-accion-inp').focus(),100);
-}
-function _ejecutarPassAccion(){
-  const pass=document.getElementById('pass-accion-inp').value;
-  if(pass!=='1'){
-    document.getElementById('pass-accion-error').textContent='Contraseña incorrecta';
-    document.getElementById('pass-accion-inp').value='';
-    document.getElementById('pass-accion-inp').focus();
-    return;
-  }
-  const _cb = window._passAccionCB;
-  _cerrarPassAccion();
-  if(_cb) _cb();
-}
-function _cerrarPassAccion(){
-  document.getElementById('modal-pass-accion').style.display='none';
-  window._passAccionCB=null;
-}
-// ── Filtros de columna ────────────────────────────────────────────
-let _colFilters=['','','','',''];
-function filtrarTabla(colIdx, val){
-  _colFilters[colIdx]=val.toLowerCase();
-  const cols=['fecha','revisador','referencia','color','rollo'];
-  const body=document.getElementById('rt-table-body');
-  body.querySelectorAll('.table-row').forEach(row=>{
-    const cells=[...row.querySelectorAll('.td')];
-    const match=_colFilters.every((f,i)=>!f||(cells[i]&&cells[i].textContent.toLowerCase().includes(f)));
-    row.style.display=match?'':'none';
-  });
-}
-
-// ── Ver defectos desglosados ──────────────────────────────────────
-function verDefectos(id){
-  const r=_registros.find(x=>x.id===id);
-  if(!r||!r.defectos||!r.defectos.length) return;
-  let m=document.getElementById('modal-defectos-rt');
-  if(!m){
-    m=document.createElement('div');
-    m.id='modal-defectos-rt';
-    m.style.cssText='display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1100;align-items:center;justify-content:center;';
-    m.onclick=e=>{if(e.target===m)m.style.display='none';};
-    m.innerHTML=`<div style="background:#fff;border-radius:14px;padding:24px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,.25);">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;letter-spacing:1.5px;color:#0f172a;margin-bottom:14px;">👁 DETALLE DEFECTOS</div>
-      <div id="defectos-rt-list"></div>
-      <div style="margin-top:14px;text-align:right;">
-        <button onclick="document.getElementById('modal-defectos-rt').style.display='none'"
-          style="padding:8px 20px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Cerrar</button>
-      </div>
-    </div>`;
-    document.body.appendChild(m);
-  }
-  const total=r.defectos.reduce((s,d)=>s+parseInt(d.cantidad||0),0);
-  document.getElementById('defectos-rt-list').innerHTML=
-    r.defectos.map(d=>`
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-radius:8px;background:#f8fafc;margin-bottom:6px;border:1px solid #e2e8f0;">
-        <span style="font-size:13px;font-weight:600;color:#0f172a;">${d.tipo}</span>
-        <span style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;color:#92400e;background:#fef3c7;padding:2px 10px;border-radius:6px;">${d.cantidad}</span>
-      </div>`).join('')+
-    `<div style="display:flex;justify-content:space-between;padding:8px 12px;border-top:2px solid #e2e8f0;margin-top:4px;">
-      <span style="font-size:13px;font-weight:700;color:#0f172a;">Total</span>
-      <span style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;color:#1e3a8a;">${total}</span>
-    </div>`;
-  m.style.display='flex';
-}
-
-// ── Variables de sesión RT ─────────────────────────────────────────
-let _rtCurrentUser = null; // null = no logueado
-let _rtIsAdmin     = false;
-
-// ── Login ──────────────────────────────────────────────────────────
-async function rtInitLogin(){
-  // Cargar logo
-  const logoSrc = document.querySelector('.hd-logo img')?.src || '';
-  const loginLogo = document.getElementById('rt-login-logo');
-  if(loginLogo && logoSrc) loginLogo.src = logoSrc;
-  const dashLogo = document.getElementById('dash-logo');
-  if(dashLogo && logoSrc) dashLogo.src = logoSrc;
-
-  // Poblar select de usuarios
-  const sel = document.getElementById('rt-login-user');
-  sel.innerHTML = '<option value="">— Selecciona un usuario —</option>';
-  // Administrador hardcodeado
-  sel.innerHTML += '<option value="__admin__">👑 Administrador</option>';
-  // Miembros del perfil Telas
-  await cargarRevisadores();
-  getRevisadores().forEach(r => {
-    const o = document.createElement('option');
-    o.value = r; o.textContent = r;
-    sel.appendChild(o);
-  });
-}
-
-function rtDoLogin(){
-  const uid  = document.getElementById('rt-login-user').value;
-  const pass = document.getElementById('rt-login-pass').value;
-  const errEl = document.getElementById('rt-login-error');
-  if(!uid){ errEl.textContent='Selecciona un usuario'; return; }
-  if(!pass){ errEl.textContent='Ingresa la contraseña'; return; }
-
-  if(uid === '__admin__'){
-    if(pass !== '1'){ errEl.textContent='Contraseña incorrecta'; return; }
-    _rtCurrentUser = 'Administrador';
-    _rtIsAdmin = true;
-  } else {
-    // Buscar contraseña del miembro en app-config
-    const member = _rtMembersData.find(m => (typeof m==='string'?m:m.nombre) === uid);
-    const mPass  = member && typeof member==='object' ? (member.pass||'') : '';
-    if(mPass && pass !== mPass){ errEl.textContent='Contraseña incorrecta'; return; }
-    _rtCurrentUser = uid;
-    _rtIsAdmin = false;
-  }
-
-  errEl.textContent = '';
-  rtEntrarApp();
-}
-
-function rtEntrarApp(){
-  // Por defecto mostrar solo los registros de hoy
-  const _hoy = fechaHoy();
-  _filtroDesde=_hoy; _filtroHasta=_hoy;
-  document.getElementById('filtro-desde').value=_hoy;
-  document.getElementById('filtro-hasta').value=_hoy;
-  document.getElementById('date-filter-label').textContent=fechaDisplay(_hoy)+' — '+fechaDisplay(_hoy);
-  // Ocultar login
-  document.getElementById('rt-login-screen').style.display='none';
-  // Mostrar badge usuario
-  const badge = document.getElementById('rt-user-badge');
-  const userName = document.getElementById('rt-user-name');
-  if(badge){ badge.style.display='flex'; }
-  if(userName) userName.textContent = _rtCurrentUser;
-  // Mostrar botones admin solo para Administrador
-  const adminBtns = document.getElementById('rt-admin-btns');
-  if(adminBtns) adminBtns.style.display = _rtIsAdmin ? 'flex' : 'none';
-  // Ocultar campo revisador para revisadores (se pone automáticamente)
-  const revField = document.getElementById('f-revisador-field');
-  if(revField) revField.style.display = _rtIsAdmin ? '' : 'none';
-  // Mostrar botón nuevo registro
-  const nuevoBtn = document.getElementById('rt-nuevo-btn');
-  if(nuevoBtn) nuevoBtn.style.display='block';
-  // Re-renderizar tabla con filtro de usuario
-  aplicarFiltros();
-}
-
-function rtCerrarSesion(){
-  _rtCurrentUser = null;
-  _rtIsAdmin = false;
-  // Ocultar badge y botones
-  document.getElementById('rt-user-badge').style.display='none';
-  document.getElementById('rt-admin-btns').style.display='none';
-  const _nb=document.getElementById('rt-nuevo-btn');
-  if(_nb) _nb.style.display='none';
-  // Limpiar campos login
-  document.getElementById('rt-login-user').value='';
-  document.getElementById('rt-login-pass').value='';
-  document.getElementById('rt-login-error').textContent='';
-  // Mostrar login
-  document.getElementById('rt-login-screen').style.display='flex';
-}
-
-// ── Datos de miembros para validar contraseñas ─────────────────────
-let _rtMembersData = [];
-async function cargarRevisadores(){
-  try{
-    const res = await fetch('/api/app-config');
-    if(res.ok){
-      const cfg = await res.json();
-      const members = (cfg._perfil_members && cfg._perfil_members['Telas']) || [];
-      _rtMembersData = members.filter(m => !m.disabled);
-      _revisadores = _rtMembersData.map(m => typeof m==='string'?m:(m.nombre||'')).filter(Boolean);
-    }
-  }catch(e){ console.warn('cargarRevisadores:',e); }
-}
-
-// ── Dashboard ──────────────────────────────────────────────────────
-function abrirDashboard(){
-  renderDashboard();
-  document.getElementById('rt-dashboard-screen').style.display='flex';
-}
-function cerrarDashboard(){
-  document.getElementById('rt-dashboard-screen').style.display='none';
-}
-
-function barChart(data, colorFn){
-  if(!data.length) return '<div style="color:#94a3b8;font-size:12px;padding:10px;">Sin datos</div>';
-  const max = Math.max(...data.map(d=>d.val));
-  return data.map(d=>{
-    const pct = max>0 ? (d.val/max*100) : 0;
-    const color = colorFn ? colorFn(d) : '#2563eb';
-    return `<div style="margin-bottom:10px;">
-      <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
-        <span style="font-size:12px;font-weight:600;color:#334155;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.label}</span>
-        <span style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;color:#0f172a;">${typeof d.val==='number'&&!Number.isInteger(d.val)?d.val.toFixed(1):d.val}${d.unit||''}</span>
-      </div>
-      <div style="background:#f1f5f9;border-radius:6px;height:10px;overflow:hidden;">
-        <div style="width:${pct}%;height:100%;background:${color};border-radius:6px;transition:width .5s;"></div>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function renderDashboard(){
-  const registros = _registros;
-  const finalizados = registros.filter(r=>r.finalizado);
-  const totalMetros = registros.reduce((s,r)=>s+parseFloat(r.metros||0),0);
-  const totalDefectos = finalizados.reduce((s,r)=>s+(r.defectos||[]).reduce((ss,d)=>ss+parseInt(d.cantidad||0),0),0);
-  const aprobados = finalizados.filter(r=>r.resultado==='aprobado').length;
-  const rechazados = finalizados.filter(r=>r.resultado==='rechazado').length;
-  const enRevision = registros.filter(r=>!r.finalizado).length;
-
-  // Stats generales
-  document.getElementById('dash-stats-row').innerHTML = [
-    {n:'Total Registros', v:registros.length, c:'#0f172a'},
-    {n:'Finalizados', v:finalizados.length, c:'#2563eb'},
-    {n:'En Revisión', v:enRevision, c:'#b45309'},
-    {n:'Aprobados', v:aprobados, c:'#15803d'},
-    {n:'Rechazados', v:rechazados, c:'#dc2626'},
-    {n:'Metros Totales', v:totalMetros.toFixed(1)+'m', c:'#7c3aed'},
-    {n:'Defectos Totales', v:totalDefectos, c:'#c2410c'},
-  ].map(s=>`<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px 18px;min-width:110px;flex:1;">
-    <div style="font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:${s.c};">${s.v}</div>
-    <div style="font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#94a3b8;">${s.n}</div>
-  </div>`).join('');
-
-  // Por revisador
-  const porRev = {};
-  registros.forEach(r=>{ porRev[r.revisador||'—']=(porRev[r.revisador||'—']||0)+1; });
-  document.getElementById('dash-por-revisador').innerHTML = barChart(
-    Object.entries(porRev).sort((a,b)=>b[1]-a[1]).map(([l,v])=>({label:l,val:v})),
-    ()=>'#2563eb');
-
-  // Resultados
-  const pctAprobados = finalizados.length ? Math.round(aprobados/finalizados.length*100) : 0;
-  const pctRechazados = finalizados.length ? Math.round(rechazados/finalizados.length*100) : 0;
-  document.getElementById('dash-resultados').innerHTML = `
-    <div style="display:flex;gap:12px;margin-bottom:16px;">
-      <div style="flex:1;background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:14px;text-align:center;">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:800;color:#15803d;">${pctAprobados}%</div>
-        <div style="font-size:11px;font-weight:700;color:#15803d;text-transform:uppercase;">Aprobados</div>
-        <div style="font-size:12px;color:#64748b;">${aprobados} de ${finalizados.length}</div>
-      </div>
-      <div style="flex:1;background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;padding:14px;text-align:center;">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:800;color:#dc2626;">${pctRechazados}%</div>
-        <div style="font-size:11px;font-weight:700;color:#dc2626;text-transform:uppercase;">Rechazados</div>
-        <div style="font-size:12px;color:#64748b;">${rechazados} de ${finalizados.length}</div>
-      </div>
-    </div>` + barChart(
-    [{label:'Aprobados',val:aprobados},{label:'Rechazados',val:rechazados},{label:'En revisión',val:enRevision}],
-    d=>d.label==='Aprobados'?'#15803d':d.label==='Rechazados'?'#dc2626':'#f59e0b');
-
-  // Metros por revisador
-  const metrosPorRev = {};
-  registros.forEach(r=>{ metrosPorRev[r.revisador||'—']=(metrosPorRev[r.revisador||'—']||0)+parseFloat(r.metros||0); });
-  document.getElementById('dash-metros').innerHTML = barChart(
-    Object.entries(metrosPorRev).sort((a,b)=>b[1]-a[1]).map(([l,v])=>({label:l,val:v,unit:'m'})),
-    ()=>'#7c3aed');
-
-  // Defectos más frecuentes
-  const defMap = {};
-  finalizados.forEach(r=>(r.defectos||[]).forEach(d=>{
-    defMap[d.tipo]=(defMap[d.tipo]||0)+parseInt(d.cantidad||0);
-  }));
-  document.getElementById('dash-defectos').innerHTML = Object.keys(defMap).length ?
-    barChart(Object.entries(defMap).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([l,v])=>({label:l,val:v})),
-    ()=>'#c2410c') :
-    '<div style="color:#94a3b8;font-size:12px;padding:10px;">Sin defectos registrados</div>';
-
-  // Referencias más revisadas
-  const refMap = {};
-  registros.forEach(r=>{ refMap[r.referencia||'—']=(refMap[r.referencia||'—']||0)+1; });
-  document.getElementById('dash-referencias').innerHTML = barChart(
-    Object.entries(refMap).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([l,v])=>({label:l,val:v})),
-    ()=>'#0891b2');
-
-  // Tiempo promedio por revisador (en minutos)
-  const tiempoMap = {}, cntMap = {};
-  finalizados.forEach(r=>{
-    if(!r.tiempo) return;
-    const m = r.tiempo.match(/(?:(\d+)h\s*)?(\d+)min/);
-    if(m){ const mins=(parseInt(m[1]||0)*60+parseInt(m[2]||0)); tiempoMap[r.revisador||'—']=(tiempoMap[r.revisador||'—']||0)+mins; cntMap[r.revisador||'—']=(cntMap[r.revisador||'—']||0)+1; }
-  });
-  const promedios = Object.entries(tiempoMap).map(([rev,total])=>{
-    const avg = Math.round(total/(cntMap[rev]||1));
-    const label = avg>=60?`${Math.floor(avg/60)}h ${avg%60}min`:`${avg}min`;
-    return {label:rev, val:avg, display:label};
-  }).sort((a,b)=>b.val-a.val);
-  document.getElementById('dash-tiempos').innerHTML = promedios.length ?
-    promedios.map(d=>`<div style="margin-bottom:10px;">
-      <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
-        <span style="font-size:12px;font-weight:600;color:#334155;">${d.label}</span>
-        <span style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;color:#0f172a;">${d.display}</span>
-      </div>
-      <div style="background:#f1f5f9;border-radius:6px;height:10px;overflow:hidden;">
-        <div style="width:${Math.round(d.val/Math.max(...promedios.map(x=>x.val))*100)}%;height:100%;background:#0891b2;border-radius:6px;"></div>
-      </div>
-    </div>`).join('') :
-    '<div style="color:#94a3b8;font-size:12px;padding:10px;">Sin datos de tiempo</div>';
-
-  // Actividad por fecha
-  const fechaMap = {};
-  registros.forEach(r=>{ fechaMap[r.fecha||'—']=(fechaMap[r.fecha||'—']||0)+1; });
-  const fechasOrdenadas = Object.entries(fechaMap).sort((a,b)=>a[0].localeCompare(b[0]));
-  document.getElementById('dash-fechas').innerHTML = fechasOrdenadas.length ?
-    `<div style="display:flex;align-items:flex-end;gap:6px;height:120px;padding:0 4px;">
-    ${fechasOrdenadas.map(([f,c])=>{
-      const h=Math.round(c/Math.max(...fechasOrdenadas.map(x=>x[1]))*100);
-      const [y,m,d]=f.split('-');
-      return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:30px;">
-        <span style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:800;color:#0f172a;">${c}</span>
-        <div style="width:100%;background:#2563eb;border-radius:4px 4px 0 0;height:${h}px;min-height:4px;"></div>
-        <span style="font-size:9px;color:#94a3b8;text-align:center;">${d}/${m}</span>
-      </div>`;
-    }).join('')}
-    </div>` :
-    '<div style="color:#94a3b8;font-size:12px;padding:10px;">Sin actividad registrada</div>';
-}
-</script>
-
-
-
-
-<!-- Modal contraseña para acciones -->
-<div id="modal-pass-accion" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1200;align-items:center;justify-content:center;">
-  <div style="background:#fff;border-radius:14px;padding:24px;width:100%;max-width:360px;box-shadow:0 20px 60px rgba(0,0,0,.25);font-family:'Nunito',sans-serif;">
-    <div style="font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;letter-spacing:2px;color:#0f172a;margin-bottom:14px;">🔐 CONFIRMAR ACCIÓN</div>
-    <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px;">Contraseña</label>
-    <input type="password" id="pass-accion-inp" placeholder="····" maxlength="20"
-      style="width:100%;padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:14px;outline:none;margin-bottom:6px;box-sizing:border-box;"
-      onkeydown="if(event.key==='Enter')_ejecutarPassAccion()">
-    <div id="pass-accion-error" style="color:#dc2626;font-size:12px;min-height:16px;margin-bottom:12px;"></div>
-    <div style="display:flex;gap:10px;">
-      <button onclick="_cerrarPassAccion()" style="flex:1;padding:9px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Cancelar</button>
-      <button onclick="_ejecutarPassAccion()" style="flex:1;padding:9px;border-radius:8px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Confirmar</button>
-    </div>
-  </div>
-</div>
-
 
 <!-- Pantalla Dashboard -->
 <div id="rt-dashboard-screen" style="display:none;position:fixed;inset:0;z-index:500;background:#f1f5f9;flex-direction:column;">
