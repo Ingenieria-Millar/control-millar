@@ -896,7 +896,17 @@ async async function rtInitLogin(){
   const sel=document.getElementById('rt-login-user');
   sel.innerHTML='<option value="">— Selecciona un usuario —</option><option value="__admin__">👑 Administrador</option>';
   await cargarRevisadores();
-  getRevisadores().forEach(r=>{const o=document.createElement('option');o.value=r;o.textContent=r;sel.appendChild(o);});
+  const revs=getRevisadores();
+  if(revs.length){
+    revs.forEach(r=>{const o=document.createElement('option');o.value=r;o.textContent=r;sel.appendChild(o);});
+  } else {
+    // Si no hay revisadores del perfil Telas, agregar opción informativa
+    const o=document.createElement('option');
+    o.value='';o.disabled=true;
+    o.textContent='— Sin revisadores configurados —';
+    sel.appendChild(o);
+    console.warn('[RT] No se encontraron revisadores en el perfil Telas');
+  }
 }
 
 function rtDoLogin(){
@@ -954,11 +964,19 @@ async async function cargarRevisadores(){
     const res=await fetch('/api/app-config');
     if(res.ok){
       const cfg=await res.json();
-      const members=(cfg._perfil_members&&cfg._perfil_members['Telas'])||[];
-      _rtMembersData=members.filter(m=>!m.disabled);
+      const perfiles=cfg._perfil_members||{};
+      // Buscar perfil 'Telas' sin importar mayúsculas/minúsculas
+      const key=Object.keys(perfiles).find(k=>k.toLowerCase()==='telas')||'';
+      let members=key?perfiles[key]:[];
+      // Fallback: si no hay perfil Telas, intentar con _usuarios_extra
+      if(!members.length && cfg._usuarios_extra){
+        members=cfg._usuarios_extra;
+      }
+      _rtMembersData=(members||[]).filter(m=>!m.disabled);
       _revisadores=_rtMembersData.map(m=>typeof m==='string'?m:(m.nombre||'')).filter(Boolean);
+      console.log('[RT] Revisadores cargados:', _revisadores.length, _revisadores);
     }
-  }catch(e){console.warn(e);}
+  }catch(e){console.warn('[RT] Error cargando revisadores:',e);}
 }
 function getRevisadores(){return _revisadores;}
 
