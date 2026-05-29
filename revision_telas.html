@@ -376,11 +376,7 @@ input[type=number]{-moz-appearance:textfield;}
   <div class="hd-right">
     <div data-millar-nav></div>
     <div style="width:1px;height:22px;background:#e2e8f0;flex-shrink:0;"></div>
-    <div id="rt-admin-btns" style="display:none;align-items:center;gap:8px;">
-      <button class="btn btn-cfg" onclick="pedirPassAccion(abrirCfgScreen)">⚙️ Configuraciones</button>
-      <button class="btn btn-success" onclick="exportarExcel()">📊 Exportar</button>
-      <button class="btn btn-outline" onclick="abrirDashboard()" style="background:#f0f9ff;color:#0369a1;border-color:#7dd3fc;">📈 Dashboard</button>
-    </div>
+    <div id="rt-admin-btns" style="display:none;"></div>
     <div id="rt-user-badge" style="display:none;align-items:center;gap:8px;padding:5px 12px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:8px;">
       <span style="font-size:12px;color:#15803d;">🟢</span>
       <span id="rt-user-name" style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:#0f172a;letter-spacing:.5px;"></span>
@@ -428,6 +424,11 @@ input[type=number]{-moz-appearance:textfield;}
   <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
     <div class="stats-row" id="rt-stats" style="margin-bottom:0;"></div>
     <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+      <div id="rt-admin-btns-row" style="display:none;align-items:center;gap:8px;">
+        <button onclick="pedirPassAccion(abrirCfgScreen)" style="padding:8px 14px;border-radius:8px;border:1.5px solid #fde68a;background:#fefce8;color:#b45309;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">⚙️ Configuraciones</button>
+        <button onclick="exportarExcel()" style="padding:8px 14px;border-radius:8px;border:1.5px solid #86efac;background:#f0fdf4;color:#15803d;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">📊 Exportar</button>
+        <button onclick="abrirDashboard()" style="padding:8px 14px;border-radius:8px;border:1.5px solid #bfdbfe;background:#eff6ff;color:#1d4ed8;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">📈 Dashboard</button>
+      </div>
       <div class="date-filter-wrap">
         <button onclick="toggleDatePanel()" id="date-filter-btn"
           style="padding:8px 16px;border-radius:8px;border:none;background:#2563eb;color:#fff;
@@ -923,6 +924,8 @@ function rtEntrarApp(){
   if(badge)badge.style.display='flex';if(userName)userName.textContent=_rtCurrentUser;
   const adminBtns=document.getElementById('rt-admin-btns');
   if(adminBtns)adminBtns.style.display=_rtIsAdmin?'flex':'none';
+  const adminBtnsRow=document.getElementById('rt-admin-btns-row');
+  if(adminBtnsRow)adminBtnsRow.style.display=_rtIsAdmin?'flex':'none';
   const revField=document.getElementById('f-revisador-field');
   if(revField)revField.style.display=_rtIsAdmin?'':'none';
   const nuevoBtn=document.getElementById('rt-nuevo-btn');
@@ -935,6 +938,7 @@ function rtCerrarSesion(){
   document.getElementById('rt-user-badge').style.display='none';
   document.getElementById('rt-admin-btns').style.display='none';
   const nb=document.getElementById('rt-nuevo-btn');if(nb)nb.style.display='none';
+  const abr=document.getElementById('rt-admin-btns-row');if(abr)abr.style.display='none';
   document.getElementById('rt-login-user').value='';
   document.getElementById('rt-login-pass').value='';
   document.getElementById('rt-login-error').textContent='';
