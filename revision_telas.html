@@ -250,8 +250,8 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
 
 /* Stats */
 .stats-row{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;}
-.stat-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px 20px;
-  display:flex;flex-direction:column;gap:4px;min-width:120px;}
+.stat-card{background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;padding:14px 20px;
+  display:flex;flex-direction:column;gap:4px;min-width:120px;box-shadow:0 1px 4px rgba(0,0,0,.04);}
 .stat-num{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:#0f172a;}
 .stat-lbl{font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#94a3b8;}
 
@@ -967,7 +967,10 @@ function aplicarFiltroFecha(){
   _filtroDesde=document.getElementById('filtro-desde').value;
   _filtroHasta=document.getElementById('filtro-hasta').value;
   const lbl=document.getElementById('date-filter-label');
-  lbl.textContent=(_filtroDesde?fechaDisplay(_filtroDesde):'...')+' — '+(_filtroHasta?fechaDisplay(_filtroHasta):'...');
+  if(_filtroDesde===_filtroHasta&&_filtroDesde)
+    lbl.textContent=fechaDisplay(_filtroDesde);
+  else
+    lbl.textContent=(_filtroDesde?fechaDisplay(_filtroDesde):'...')+' — '+(_filtroHasta?fechaDisplay(_filtroHasta):'...');
   document.getElementById('date-filter-panel').classList.remove('open');
   aplicarFiltros();
 }
@@ -1000,8 +1003,27 @@ function aplicarFiltros(){
 function sortBy(col){if(_sortCol===col)_sortDir*=-1;else{_sortCol=col;_sortDir=1;}aplicarFiltros();}
 
 function renderStats(){
-  const total=_filtrados.length,aprobados=_filtrados.filter(r=>r.resultado==='aprobado').length,rechazados=_filtrados.filter(r=>r.resultado==='rechazado').length,pendientes=_filtrados.filter(r=>!r.finalizado).length;
-  document.getElementById('rt-stats').innerHTML=`<div class="stat-card"><div class="stat-num">${total}</div><div class="stat-lbl">Registros</div></div><div class="stat-card"><div class="stat-num" style="color:#15803d;">${aprobados}</div><div class="stat-lbl">Aprobados</div></div><div class="stat-card"><div class="stat-num" style="color:#dc2626;">${rechazados}</div><div class="stat-lbl">Rechazados</div></div><div class="stat-card"><div class="stat-num" style="color:#b45309;">${pendientes}</div><div class="stat-lbl">En revisión</div></div>`;
+  const total=_filtrados.length,
+    aprobados=_filtrados.filter(r=>r.resultado==='aprobado').length,
+    rechazados=_filtrados.filter(r=>r.resultado==='rechazado').length,
+    pendientes=_filtrados.filter(r=>!r.finalizado).length;
+  document.getElementById('rt-stats').innerHTML=`
+    <div class="stat-card" style="background:#fff;">
+      <div class="stat-num" style="color:#0f172a;">${total}</div>
+      <div class="stat-lbl">Registros</div>
+    </div>
+    <div class="stat-card" style="background:#f0fdf4;border-color:#86efac;">
+      <div class="stat-num" style="color:#15803d;">${aprobados}</div>
+      <div class="stat-lbl" style="color:#15803d;">Aprobados</div>
+    </div>
+    <div class="stat-card" style="background:#fef2f2;border-color:#fca5a5;">
+      <div class="stat-num" style="color:#dc2626;">${rechazados}</div>
+      <div class="stat-lbl" style="color:#dc2626;">Rechazados</div>
+    </div>
+    <div class="stat-card" style="background:#fefce8;border-color:#fde68a;">
+      <div class="stat-num" style="color:#b45309;">${pendientes}</div>
+      <div class="stat-lbl" style="color:#b45309;">En Revisión</div>
+    </div>`;
 }
 
 function renderTabla(){
