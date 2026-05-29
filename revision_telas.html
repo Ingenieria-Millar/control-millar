@@ -257,13 +257,13 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
 
 /* Tabla */
 .table-wrap{background:#fff;border-radius:12px;border:1px solid #e2e8f0;overflow-x:auto;}
-.table-header{display:grid;grid-template-columns:80px 2fr 2fr 1.2fr 80px 70px 100px 80px 50px 100px;min-width:900px;
+.table-header{display:grid;grid-template-columns:80px 2fr 2fr 80px 100px 80px 50px 85px 130px;min-width:900px;
   gap:0;padding:10px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;}
 .th{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;
   text-transform:uppercase;color:#0f172a;display:flex;align-items:center;gap:4px;cursor:pointer;user-select:none;}
 .th:hover{color:#1e40af;}
 .table-body{max-height:calc(100vh - 320px);overflow-y:auto;}
-.table-row{display:grid;grid-template-columns:80px 2fr 2fr 1.2fr 80px 70px 100px 80px 50px 100px;min-width:900px;
+.table-row{display:grid;grid-template-columns:80px 2fr 2fr 80px 100px 80px 50px 85px 130px;min-width:900px;
   gap:0;padding:11px 16px;border-bottom:1px solid #f8fafc;transition:background .12s;align-items:center;}
 .table-row:hover{background:#f8fafc;}
 .td{font-size:12px;color:#334155;font-family:'Nunito',sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -283,7 +283,7 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
 .tiempo-badge{display:inline-flex;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;
   background:#f0fdf4;color:#15803d;border:1px solid #86efac;}
 .empty-state{padding:60px 20px;text-align:center;color:#94a3b8;}
-.table-filters{display:grid;grid-template-columns:80px 2fr 2fr 1.2fr 80px 70px 100px 80px 50px 100px;gap:0;padding:5px 16px 8px;background:#f8fafc;border-bottom:1px solid #e2e8f0;}
+.table-filters{display:grid;grid-template-columns:80px 2fr 2fr 80px 100px 80px 50px 85px 130px;gap:0;padding:5px 16px 8px;background:#f8fafc;border-bottom:1px solid #e2e8f0;}
 .tf{padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:11px;font-family:'Nunito',sans-serif;outline:none;color:#0f172a;width:100%;box-sizing:border-box;}
 .tf:focus{border-color:#2563eb;}
 .empty-icon{font-size:48px;margin-bottom:12px;}
@@ -1045,16 +1045,16 @@ function renderTabla(){
       <div class="td">${fechaDisplay(r.fecha)||'—'}</div>
       <div class="td">${r.revisador||'—'}</div>
       <div class="td"><span class="td-badge">${r.referencia||'—'}</span></div>
-      <div class="td">${r.color||'—'}</div>
-      <div class="td">${r.tiempo?'<span class="tiempo-badge">'+r.tiempo+'</span>':'—'}</div>
       <div class="td">${r.metros?r.metros+' m':'—'}</div>
       <div class="td">${estadoBadge}</div>
-      <div class="td">${totalDef?'<span style="display:inline-flex;align-items:center;gap:5px;"><span style="font-weight:700;color:#92400e;font-size:13px;">'+totalDef+'</span><button onclick="verDefectos(\''+r.id+'\')" style="width:24px;height:24px;border-radius:6px;border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;font-size:12px;">👁</button></span>':'—'}</div>
-      <div class="td">${r.observaciones?'<button onclick="verObservacion(\''+r.id+'\')" style="width:28px;height:28px;border-radius:6px;border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;font-size:14px;">💬</button>':'—'}</div>
+      <div class="td">${totalDef?'<span style="display:inline-flex;align-items:center;gap:5px;"><span style="font-weight:700;color:#92400e;font-size:13px;">'+totalDef+'</span><button onclick="verDefectos(''+r.id+'')" style="width:24px;height:24px;border-radius:6px;border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;font-size:12px;">👁</button></span>':'—'}</div>
+      <div class="td">${r.observaciones?'<button onclick="verObservacion(''+r.id+'')" style="width:28px;height:28px;border-radius:6px;border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;font-size:14px;">💬</button>':'—'}</div>
+      <div class="td">${r.tiempo?'<span class="tiempo-badge">'+r.tiempo+'</span>':'—'}</div>
       <div class="td td-actions">
+        <button title="Ver detalles" onclick="verDetalles('${r.id}')" style="width:28px;height:28px;border-radius:6px;border:1.5px solid #bfdbfe;background:#eff6ff;color:#1d4ed8;cursor:pointer;font-size:13px;">🔍</button>
         ${accionFin}
-        <button class="btn-action" title="Editar" onclick="pedirPassAccion(()=>editarRegistro('${r.id}'))" style="margin-left:${r.finalizado?'4':'0'}px;">✏️</button>
-        <button class="btn-action del" title="Eliminar" onclick="confirmarEliminar('${r.id}')" style="margin-left:4px;">🗑</button>
+        <button class="btn-action" title="Editar" onclick="pedirPassAccion(()=>editarRegistro('${r.id}'))" style="margin-left:2px;">✏️</button>
+        <button class="btn-action del" title="Eliminar" onclick="confirmarEliminar('${r.id}')" style="margin-left:2px;">🗑</button>
       </div>
     </div>`;
   }).join('');
@@ -1530,5 +1530,139 @@ function guardarEditProvTercero(i){
 function limpiarProvTerceros(){
   if(!confirm('¿Limpiar todos los proveedores terceros?'))return;
   _cfgProveedoresTerceros=[];guardarEnServidor();renderProvTercerosList();showToast('🗑 Eliminados');
+}
+
+// ── Ver detalles completos (hoja imprimible) ──────────────────────
+function verDetalles(id){
+  const r=_registros.find(x=>x.id===id);
+  if(!r) return;
+
+  const defectosHtml = r.defectos&&r.defectos.length
+    ? r.defectos.map(d=>`<tr>
+        <td style="padding:6px 12px;border-bottom:1px solid #f1f5f9;">${d.tipo||'—'}</td>
+        <td style="padding:6px 12px;border-bottom:1px solid #f1f5f9;text-align:center;">${d.metro||'—'}</td>
+        <td style="padding:6px 12px;border-bottom:1px solid #f1f5f9;text-align:center;">${d.cantidad||'—'}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="3" style="padding:10px 12px;color:#94a3b8;text-align:center;">Sin defectos registrados</td></tr>';
+
+  const totalDef = r.defectos ? r.defectos.reduce((s,d)=>s+parseInt(d.cantidad||0),0) : 0;
+
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Revisión Tela — ${r.referencia||''} — ${r.fecha||''}</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Segoe UI',Arial,sans-serif;background:#f8fafc;color:#0f172a;padding:32px;}
+  .page{max-width:820px;margin:0 auto;background:#fff;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.08);overflow:hidden;}
+  .hd{background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;padding:24px 32px;display:flex;justify-content:space-between;align-items:flex-start;}
+  .hd-title{font-size:22px;font-weight:800;letter-spacing:2px;text-transform:uppercase;}
+  .hd-sub{font-size:12px;opacity:.8;margin-top:4px;}
+  .hd-date{font-size:13px;text-align:right;opacity:.9;}
+  .section{padding:20px 32px;border-bottom:1px solid #f1f5f9;}
+  .section:last-child{border-bottom:none;}
+  .section-title{font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#64748b;margin-bottom:12px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+  .field{background:#f8fafc;border-radius:8px;padding:10px 14px;}
+  .field-label{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#94a3b8;margin-bottom:3px;}
+  .field-value{font-size:14px;font-weight:600;color:#0f172a;}
+  .badge-ok{display:inline-block;background:#f0fdf4;color:#15803d;border:1px solid #86efac;border-radius:6px;padding:3px 12px;font-size:13px;font-weight:700;}
+  .badge-rech{display:inline-block;background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;border-radius:6px;padding:3px 12px;font-size:13px;font-weight:700;}
+  .badge-pend{display:inline-block;background:#fefce8;color:#b45309;border:1px solid #fde68a;border-radius:6px;padding:3px 12px;font-size:13px;font-weight:700;}
+  table{width:100%;border-collapse:collapse;}
+  th{background:#f1f5f9;padding:8px 12px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;}
+  .footer{background:#f8fafc;padding:14px 32px;text-align:center;font-size:11px;color:#94a3b8;}
+  @media print{body{padding:0;background:#fff;}.page{box-shadow:none;border-radius:0;}.no-print{display:none;}}
+</style>
+</head>
+<body>
+<div class="page">
+  <!-- Header -->
+  <div class="hd">
+    <div>
+      <div class="hd-title">🧵 Revisión de Tela</div>
+      <div class="hd-sub">Informe de revisión detallado</div>
+    </div>
+    <div class="hd-date">
+      <div style="font-size:16px;font-weight:800;">${fechaDisplay(r.fecha)||'—'}</div>
+      <div style="font-size:11px;margin-top:2px;">${r.hora_inicio||''} → ${r.hora_fin||''}</div>
+    </div>
+  </div>
+
+  <!-- Info principal -->
+  <div class="section">
+    <div class="section-title">📋 Información del Registro</div>
+    <div class="grid3">
+      <div class="field"><div class="field-label">Revisador</div><div class="field-value">${r.revisador||'—'}</div></div>
+      <div class="field"><div class="field-label">Proveedor</div><div class="field-value">${r.proveedor||'—'}</div></div>
+      <div class="field"><div class="field-label">Referencia Tela</div><div class="field-value">${r.referencia||'—'}</div></div>
+      <div class="field"><div class="field-label">Lote</div><div class="field-value">${r.lote||'—'}</div></div>
+      <div class="field"><div class="field-label"># Rollo</div><div class="field-value">${r.rollo||'—'}</div></div>
+      <div class="field"><div class="field-label">Color</div><div class="field-value">${r.color||'—'}</div></div>
+    </div>
+  </div>
+
+  <!-- Medidas -->
+  <div class="section">
+    <div class="section-title">📏 Medidas y Tiempos</div>
+    <div class="grid3">
+      <div class="field"><div class="field-label">Metros Revisados</div><div class="field-value">${r.metros?r.metros+' m':'—'}</div></div>
+      <div class="field"><div class="field-label">Ancho Útil</div><div class="field-value">${r.ancho?r.ancho+' cm':'—'}</div></div>
+      <div class="field"><div class="field-label">Peso Rodaja</div><div class="field-value">${r.peso?r.peso+' g':'—'}</div></div>
+      <div class="field"><div class="field-label">Hora Inicio</div><div class="field-value">${r.hora_inicio||'—'}</div></div>
+      <div class="field"><div class="field-label">Hora Fin</div><div class="field-value">${r.hora_fin||'—'}</div></div>
+      <div class="field"><div class="field-label">Tiempo Total</div><div class="field-value">${r.tiempo||'—'}</div></div>
+    </div>
+  </div>
+
+  <!-- Resultado -->
+  <div class="section">
+    <div class="section-title">✅ Resultado</div>
+    <div class="grid2">
+      <div class="field">
+        <div class="field-label">Resultado</div>
+        <div class="field-value" style="margin-top:4px;">
+          ${r.resultado==='aprobado'?'<span class="badge-ok">✅ Aprobado</span>':r.resultado==='rechazado'?'<span class="badge-rech">❌ Rechazado</span>':'<span class="badge-pend">🔄 En Revisión</span>'}
+        </div>
+      </div>
+      <div class="field">
+        <div class="field-label">Proceso a Tercero</div>
+        <div class="field-value">${r.proc_tercero==='si'?'✅ Sí — '+(r.prov_tercero||''):'No'}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Defectos -->
+  <div class="section">
+    <div class="section-title">⚠️ Defectos Encontrados ${totalDef>0?'(Total: '+totalDef+')':''}</div>
+    <table>
+      <thead><tr><th>Tipo Defecto</th><th style="text-align:center;">Metro</th><th style="text-align:center;">Cantidad</th></tr></thead>
+      <tbody>${defectosHtml}</tbody>
+    </table>
+  </div>
+
+  <!-- Observaciones -->
+  ${r.observaciones?`<div class="section">
+    <div class="section-title">💬 Observaciones</div>
+    <div style="background:#f8fafc;border-radius:8px;padding:12px 14px;font-size:14px;line-height:1.6;color:#334155;">${r.observaciones}</div>
+  </div>`:''}
+
+  <!-- Footer -->
+  <div class="footer">
+    <div style="margin-bottom:4px;">Confecciones Millar S.A.S. — Revisión de Telas</div>
+    <div>Generado el ${new Date().toLocaleDateString('es-CO',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>
+  </div>
+</div>
+<div class="no-print" style="text-align:center;margin-top:20px;">
+  <button onclick="window.print()" style="padding:10px 28px;border-radius:8px;border:none;background:#1e3a8a;color:#fff;font-size:14px;font-weight:700;cursor:pointer;">🖨️ Imprimir</button>
+  <button onclick="window.close()" style="padding:10px 28px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:14px;font-weight:700;cursor:pointer;margin-left:10px;">✕ Cerrar</button>
+</div>
+</body></html>`;
+
+  const win = window.open('','_blank','width=900,height=700');
+  win.document.write(html);
+  win.document.close();
 }
 </script>
