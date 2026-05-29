@@ -740,6 +740,7 @@ function wsSend(obj){
 }
 
 function connectWS(){
+  if(!location.host){ dbg('Sin host — WS desactivado'); return; }
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   const url   = `${proto}://${location.host}`;
   dbg('Conectando WS → ' + url);
@@ -2663,15 +2664,20 @@ function cerrarSolicitudesAbiertas(){
   console.log(`[CI] Medianoche: cerrando ${abiertas.length} solicitud(es) abierta(s).`);
   abiertas.forEach(req => {
     const updated = Object.assign({}, req, {
-      status:     'cumplido',
+      status:     'done',
       resolvedAt: '12:00 AM',
-      cierreAutomatico: true
+      cierreAutomatico: true,
+      waitTime: req.alertStart ? (Date.now() - req.alertStart) : 0
     });
     const idx = ciRequests.findIndex(r => r._id === req._id);
     if(idx > -1) ciRequests[idx] = updated;
-    // Broadcast igual que marcarCumplido
+    // Broadcast: marcar como done y resetear módulo a verde
     wsSend({ type: 'ci_cumplido_request', request: updated });
     wsSend({ type: 'ci_update_request',   request: updated });
+    // Enviar señal explícita para resetear estado del módulo a verde
+    if(updated.module){
+      wsSend({ type: 'change', id: updated.module, color: 'green', mec: null, fromCI: true });
+    }
   });
   renderCards();
   showToast(`🌙 ${abiertas.length} solicitud(es) cerrada(s) automáticamente al llegar la medianoche.`);
