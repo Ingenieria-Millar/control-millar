@@ -1714,8 +1714,14 @@ function connectWS(){
         const idx = window._ciRequests.findIndex(r=>r._id===req._id);
         if(idx>-1) window._ciRequests[idx]=req; else window._ciRequests.unshift(req);
 
-        // Mismo flujo para todos los tipos: mostrar modal de confirmación al módulo
-        if(req && req.module && (req.module === selectedMod || req.module === currentUser)){
+        // Cierre automático de medianoche — resetear módulo a verde sin confirmación
+        if(req && req.cierreAutomatico && req.module){
+          if(states[req.module]==='orange'||states[req.module]==='purple')
+            commitChange(req.module,'green',null);
+          if(typeof states2!=='undefined'&&(states2[req.module]==='orange'||states2[req.module]==='purple'))
+            commitChange(req.module,'green',null);
+        } else if(req && req.module && (req.module === selectedMod || req.module === currentUser)){
+          // Flujo normal: mostrar modal de confirmación al módulo
           showCiCumplidoModal(req);
         }
       } else if(msg.type==='ci_update_request'){
