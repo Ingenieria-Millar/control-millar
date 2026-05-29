@@ -602,6 +602,75 @@ function requireFields(obj, fields) {
 // Se declara después de que wss sea creado (ver abajo), pero la función
 // queda disponible globalmente para todas las rutas REST.
 let wss; // se asigna después de http.createServer
+// ── Job de medianoche — limpiar solicitudes CI y resetear módulos ─────────────────────
+function programarCierreMedianoche() {
+  const ahora = new Date();
+  const medianoche = new Date(ahora);
+  medianoche.setHours(24, 0, 0, 0);
+  const msHasta = medianoche - ahora;
+
+  setTimeout(() => {
+    ejecutarCierreMedianoche();
+    // Reprogramar cada 24h
+    setInterval(ejecutarCierreMedianoche, 24 * 60 * 60 * 1000);
+  }, msHasta);
+
+  console.log(`[SERVER] Cierre medianoche programado en ${Math.round(msHasta/60000)} minutos`);
+}
+
+function ejecutarCierreMedianoche() {
+  const hora = new Date().toLocaleTimeString('es-CO');
+  console.log(`[SERVER] Ejecutando cierre medianoche a las ${hora}`);
+
+  // 1. Cerrar todas las solicitudes CI abiertas
+  const estadosCerrados = ['cumplido', 'done'];
+  let solicitudesCerradas = 0;
+  ciRequests.forEach((req, idx) => {
+    if (!estadosCerrados.includes(req.status)) {
+      ciRequests[idx] = Object.assign({}, req, {
+        status: 'done',
+        resolvedAt: '12:00 AM',
+        cierreAutomatico: true,
+        waitTime: req.alertStart ? (Date.now() - req.alertStart) : 0
+      });
+      solicitudesCerradas++;
+      // Broadcast a todos los clientes
+      broadcast({ type: 'ci_cumplido_request', request: ciRequests[idx] });
+      broadcast({ type: 'ci_update_request',   request: ciRequests[idx] });
+    }
+  });
+  if (solicitudesCerradas > 0) saveCiRequests();
+
+  // 2. Resetear todos los módulos en purple u orange a green
+  const modulosReset = [];
+  MODULES.forEach(modId => {
+    if (states[modId] === 'orange' || states[modId] === 'purple') {
+      const prevState = states[modId];
+      states[modId]     = 'green';
+      lastMec[modId]    = '';
+      stateTimes[modId] = Date.now();
+      modulosReset.push(modId);
+      // Broadcast cambio de estado a todos los clientes
+      broadcast({
+        type: 'change',
+        id: modId,
+        state: 'green',
+        mecanico: '',
+        limite: null,
+        empleada: lastEmpleada[modId] || '',
+        stateTime: stateTimes[modId],
+        fromMidnight: true
+      });
+    }
+  });
+  if (modulosReset.length > 0) saveFloorState();
+
+  console.log(`[SERVER] Medianoche: ${solicitudesCerradas} solicitudes cerradas, ${modulosReset.length} módulos reseteados a verde`);
+}
+
+// Iniciar el job al arrancar el servidor
+programarCierreMedianoche();
+
 function broadcast(payload, excludeWs = null) {
   if (!wss) return;
   const str = JSON.stringify(payload);
