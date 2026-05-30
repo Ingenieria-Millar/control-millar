@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Revisión de Telas — Confecciones Millar</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Nunito:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
 // ── CFG 3 pestañas ─────────────────────────────────────────────────
 function abrirCfgScreen(){
   const logo=document.querySelector('.hd-logo img')?.src||'';
@@ -874,7 +875,7 @@ let _confirmCB=null, _finalizandoId=null;
 let _cfgDefectos=[], _cfgReferencias={}, _cfgColores=[], _cfgProveedores=[], _cfgProveedoresTerceros=[];
 let ws=null, wsReady=false, wsTimer=null;
 let _filtroDesde='', _filtroHasta='';
-let _rtCurrentUser=null, _rtIsAdmin=false, _rtMembersData=[], _revisadores=[];
+let _rtCurrentUser=null, _rtIsAdmin=false, _rtMembersData=[], _revisadores=[], _rtAdminPass='1';
 
 // ── WebSocket ──────────────────────────────────────────────────────
 function connectWS(){
@@ -964,7 +965,7 @@ function rtDoLogin(){
   if(!uid){errEl.textContent='Selecciona un usuario';return;}
   if(!pass){errEl.textContent='Ingresa la contraseña';return;}
   if(uid==='__admin__'){
-    if(pass!=='1'){errEl.textContent='Contraseña incorrecta';return;}
+    if(pass!==_rtAdminPass){errEl.textContent='Contraseña incorrecta';return;}
     _rtCurrentUser='Administrador';_rtIsAdmin=true;
   } else {
     const member=_rtMembersData.find(m=>(typeof m==='string'?m:m.nombre)===uid);
@@ -1822,7 +1823,8 @@ function verDetalles(id){
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Revisión de Telas — Confecciones Millar</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Nunito:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
 // ── CFG 3 pestañas ─────────────────────────────────────────────────
 function abrirCfgScreen(){
   const logo=document.querySelector('.hd-logo img')?.src||'';
@@ -1854,7 +1856,8 @@ function renderRefsTable(){
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Revisión de Telas — Confecciones Millar</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Nunito:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
 // ── CFG 3 pestañas ─────────────────────────────────────────────────
 function abrirCfgScreen(){
   const logo=document.querySelector('.hd-logo img')?.src||'';
@@ -2725,7 +2728,7 @@ let _confirmCB=null, _finalizandoId=null;
 let _cfgDefectos=[], _cfgReferencias={}, _cfgColores=[], _cfgProveedores=[], _cfgProveedoresTerceros=[];
 let ws=null, wsReady=false, wsTimer=null;
 let _filtroDesde='', _filtroHasta='';
-let _rtCurrentUser=null, _rtIsAdmin=false, _rtMembersData=[], _revisadores=[];
+let _rtCurrentUser=null, _rtIsAdmin=false, _rtMembersData=[], _revisadores=[], _rtAdminPass='1';
 
 // ── WebSocket ──────────────────────────────────────────────────────
 function connectWS(){
@@ -2815,7 +2818,7 @@ function rtDoLogin(){
   if(!uid){errEl.textContent='Selecciona un usuario';return;}
   if(!pass){errEl.textContent='Ingresa la contraseña';return;}
   if(uid==='__admin__'){
-    if(pass!=='1'){errEl.textContent='Contraseña incorrecta';return;}
+    if(pass!==_rtAdminPass){errEl.textContent='Contraseña incorrecta';return;}
     _rtCurrentUser='Administrador';_rtIsAdmin=true;
   } else {
     const member=_rtMembersData.find(m=>(typeof m==='string'?m:m.nombre)===uid);
@@ -3659,5 +3662,3 @@ function verDetalles(id){
   win.document.close();
 }
 </script>
-
-          
