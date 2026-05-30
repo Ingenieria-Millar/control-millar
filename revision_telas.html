@@ -175,6 +175,95 @@ function agregarDefectoRow(){
   row.appendChild(inpMetro); row.appendChild(sel); row.appendChild(inp); row.appendChild(btn);
   list.appendChild(row);
 }
+
+// ── MILLAR NAV — navegación global ──────────────────────────────
+(function(){
+  function getNavPerfil(){
+    const urlPerfil=new URLSearchParams(location.search).get('perfil');
+    if(urlPerfil) return urlPerfil.toLowerCase();
+    const ssPerfil=sessionStorage.getItem('millar_nav_perfil');
+    if(ssPerfil) return ssPerfil.toLowerCase();
+    try{ const s=JSON.parse(localStorage.getItem('cm_session')||'{}'); if(s.user) return s.user.toLowerCase(); }catch(e){}
+    return '';
+  }
+  const RUTAS={
+    ordenes:'/ordenes', produccion:'/produccion', revisionTelas:'/revision-telas',
+    asistencia:'/ingresos', recogedores:'/recogedores',
+    tableroGeneral:'/?tablero=general', tableroMec:'/?tablero=mecanicos', tableroCI:'/ci',
+    insumos:'/solicitar-insumos', alistamiento:'/alistamiento?seccion=alistamiento',
+    mantenimiento:'/alistamiento?seccion=mantenimiento', contador:'/contador-modulos',
+    informeCI:'/ci?seccion=informe', informeGeneral:'/?seccion=historico',
+    dashCI:'/ci?seccion=dashboard', dashPlanta:'/dashboard-planta',
+  };
+  function ir(ruta){ const p=getNavPerfil(); const sep=ruta.includes('?')?'&':'?'; location.href=p?ruta+sep+'perfil='+encodeURIComponent(p):ruta; }
+  const ICONS={
+    produccion:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>',
+    tableros:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>',
+    mecanicos:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>',
+    modulos:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5.22 5.22l2.12 2.12M16.66 16.66l2.12 2.12M5.22 18.78l2.12-2.12M16.66 7.34l2.12-2.12"/></svg>',
+    informes:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>',
+  };
+  const FLECHA='<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4.5 3l3 3-3 3"/></svg>';
+
+  function buildBtn(key,label,items){
+    const ddId='millar-dd-'+key;
+    return `<div class="millar-nav-item"><button class="millar-nav-btn" onclick="millarNavToggle('${ddId}')">${ICONS[key]||''}<span class="millar-nav-label">${label}</span></button><div class="millar-dropdown" id="${ddId}"><div class="millar-dd-inner">${items.join('')}</div></div></div>`;
+  }
+  function href(ruta){ const p=getNavPerfil(); const sep=ruta.includes('?')?'&':'?'; return p?ruta+sep+'perfil='+encodeURIComponent(p):ruta; }
+
+  function buildNav(){
+    const perfil=getNavPerfil();
+    const esAdmin=!perfil||['programador','administrador'].includes(perfil);
+    const esMec=perfil==='mecanicos';
+    const esTV=perfil==='televisor';
+    const esSup=perfil==='supervisora';
+    const esRec=perfil==='recogedores';
+    let html='<div class="millar-nav" id="millar-nav">';
+    // PRODUCCIÓN
+    const prodItems=[];
+    if(esAdmin) prodItems.push(`<a class="millar-dd-item" href="${href(RUTAS.produccion)}">🗂 Tablero Producción</a>`);
+    if(esAdmin) prodItems.push(`<a class="millar-dd-item" href="${href(RUTAS.ordenes)}">📋 Órdenes</a>`);
+    if(esAdmin||esSup) prodItems.push(`<a class="millar-dd-item" href="${href(RUTAS.asistencia)}">⏱ Control Asistencia</a>`);
+    if(esAdmin||esRec) prodItems.push(`<a class="millar-dd-item" href="${href(RUTAS.recogedores)}">🧺 Conteo Recogedores</a>`);
+    if(prodItems.length) html+=buildBtn('produccion','Producción',prodItems);
+    // TABLEROS
+    const tabItems=[];
+    if(esAdmin||esTV) tabItems.push(`<a class="millar-dd-item" href="${href(RUTAS.tableroGeneral)}">🏭 Tablero General</a>`);
+    if(esAdmin||esTV||esMec) tabItems.push(`<a class="millar-dd-item" href="${href(RUTAS.tableroMec)}">🔧 Tablero Mecánicos</a>`);
+    if(esAdmin||esTV) tabItems.push(`<a class="millar-dd-item" href="${href(RUTAS.tableroCI)}">📦 Tablero CI</a>`);
+    if(tabItems.length) html+=buildBtn('tableros','Tableros',tabItems);
+    // MECÁNICOS
+    const mecItems=[];
+    if(esAdmin||esMec) mecItems.push(`<a class="millar-dd-item" href="${href(RUTAS.insumos)}">📦 Solicitar Insumos</a>`);
+    if(esAdmin||esMec) mecItems.push(`<div class="millar-dd-item has-sub">🔩 Montajes ${FLECHA}<div class="millar-sub"><a class="millar-sub-item" href="${href(RUTAS.alistamiento)}">⚙️ Alistamiento</a><a class="millar-sub-item" href="${href(RUTAS.mantenimiento)}">🛠 Mantenimiento</a></div></div>`);
+    if(mecItems.length) html+=buildBtn('mecanicos','Mecánicos',mecItems);
+    // MÓDULOS
+    if(esAdmin) html+=buildBtn('modulos','Módulos',[`<a class="millar-dd-item" href="${href(RUTAS.contador)}">🟢 Contador Módulos</a>`]);
+    // INFORMES
+    if(esAdmin) html+=buildBtn('informes','Informes',[
+      `<div class="millar-dd-sep"></div><div style="padding:4px 12px;font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#94a3b8;">Informes</div>`,
+      `<a class="millar-dd-item" href="${href(RUTAS.informeGeneral)}">📊 Informe General</a>`,
+      `<a class="millar-dd-item" href="${href(RUTAS.informeCI)}">📋 Informe CI</a>`,
+      `<div class="millar-dd-sep"></div><div style="padding:4px 12px;font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#94a3b8;">Dashboard</div>`,
+      `<a class="millar-dd-item" href="${href(RUTAS.dashCI)}">📈 Dashboard CI</a>`,
+      `<a class="millar-dd-item" href="${href(RUTAS.dashPlanta)}">🏭 Dashboard Planta</a>`,
+    ]);
+    html+='</div>';
+    return html;
+  }
+
+  window.millarNavToggle=function(id){
+    document.querySelectorAll('.millar-dropdown').forEach(d=>{if(d.id!==id)d.classList.remove('open');});
+    document.getElementById(id)?.classList.toggle('open');
+  };
+  document.addEventListener('click',function(e){
+    if(!e.target.closest('.millar-nav-item')) document.querySelectorAll('.millar-dropdown').forEach(d=>d.classList.remove('open'));
+  });
+  window.RUTAS=RUTAS; window.ir=ir;
+  function inject(){ document.querySelectorAll('[data-millar-nav]').forEach(el=>{el.innerHTML=buildNav();}); }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',inject);
+  else inject();
+})();
 </script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -1445,17 +1534,56 @@ function verObservacion(id){
 function verDefectos(id){
   const r=_registros.find(x=>x.id===id);if(!r||!r.defectos||!r.defectos.length)return;
   let m=document.getElementById('modal-defectos-rt');
-  if(!m){m=document.createElement('div');m.id='modal-defectos-rt';m.style.cssText='display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1100;align-items:center;justify-content:center;';m.onclick=e=>{if(e.target===m)m.style.display='none';};m.innerHTML='<div style="background:#fff;border-radius:14px;padding:24px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,.25);"><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:16px;font-weight:800;letter-spacing:1.5px;color:#0f172a;margin-bottom:14px;">👁 DETALLE DEFECTOS</div><div id="defectos-rt-list"></div><div style="margin-top:14px;text-align:right;"><button onclick="document.getElementById(\'modal-defectos-rt\').style.display=\'none\'" style="padding:8px 20px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;cursor:pointer;">Cerrar</button></div></div>';document.body.appendChild(m);}
+  if(!m){m=document.createElement('div');m.id='modal-defectos-rt';m.style.cssText='display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1100;align-items:center;justify-content:center;';m.onclick=e=>{if(e.target===m)m.style.display='none';};m.innerHTML='<div style="background:#fff;border-radius:14px;padding:24px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.25);font-family:\'Nunito\',sans-serif;"><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:16px;font-weight:800;letter-spacing:1.5px;color:#0f172a;margin-bottom:14px;">👁 DETALLE DEFECTOS</div><div id="defectos-rt-list"></div><div style="margin-top:14px;text-align:right;"><button onclick="document.getElementById(\'modal-defectos-rt\').style.display=\'none\'" style="padding:8px 20px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;cursor:pointer;font-family:\'Nunito\',sans-serif;font-size:13px;">Cerrar</button></div></div>';document.body.appendChild(m);}
   const total=r.defectos.reduce((s,d)=>s+parseInt(d.cantidad||0),0);
-  document.getElementById('defectos-rt-list').innerHTML=r.defectos.map(d=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-radius:8px;background:#f8fafc;margin-bottom:6px;border:1px solid #e2e8f0;"><span style="font-size:12px;color:#64748b;margin-right:8px;">m'+d.metro+'</span><span style="flex:1;font-size:13px;font-weight:600;color:#0f172a;">'+d.tipo+'</span><span style="background:#fef3c7;color:#92400e;padding:2px 10px;border-radius:6px;font-weight:800;">'+d.cantidad+'</span></div>').join('')+'<div style="display:flex;justify-content:space-between;padding:8px 12px;border-top:2px solid #e2e8f0;margin-top:4px;"><span style="font-size:13px;font-weight:700;">Total</span><span style="font-size:16px;font-weight:800;color:#1e3a8a;">'+total+'</span></div>';
+  const TH='padding:8px 12px;font-family:\'Nunito\',sans-serif;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;background:#f8fafc;border-bottom:2px solid #e2e8f0;';
+  const TD='padding:8px 12px;font-family:\'Nunito\',sans-serif;font-size:12px;font-weight:500;color:#0f172a;border-bottom:1px solid #f1f5f9;';
+  document.getElementById('defectos-rt-list').innerHTML='<table style="width:100%;border-collapse:collapse;"><thead><tr><th style="'+TH+'text-align:left;">Metro</th><th style="'+TH+'text-align:left;">Defecto</th><th style="'+TH+'text-align:center;">Cantidad</th></tr></thead><tbody>'+r.defectos.map(d=>'<tr><td style="'+TD+'">m'+d.metro+'</td><td style="'+TD+'">'+d.tipo+'</td><td style="'+TD+'text-align:center;">'+d.cantidad+'</td></tr>').join('')+'</tbody><tfoot><tr><td colspan="2" style="padding:8px 12px;font-family:\'Nunito\',sans-serif;font-size:12px;font-weight:700;border-top:2px solid #e2e8f0;">Total</td><td style="padding:8px 12px;font-family:\'Nunito\',sans-serif;font-size:12px;font-weight:700;text-align:center;border-top:2px solid #e2e8f0;">'+total+'</td></tr></tfoot></table>';
   m.style.display='flex';
 }
 
 // ── Exportar Excel ─────────────────────────────────────────────────
 function exportarExcel(){
   if(!_filtrados.length){showToast('⚠️ Sin registros');return;}
-  const data=_filtrados.map(r=>({'Fecha':fechaDisplay(r.fecha),'Revisador':r.revisador||'','Referencia':r.referencia||'','Proveedor':r.proveedor||'','Lote':r.lote||'','# Rollo':r.rollo||'','Metros':r.metros||'','Defectos':r.defectos?r.defectos.map(d=>'m'+(d.metro||'?')+'-'+d.tipo+'('+d.cantidad+')').join(', '):'','H. Inicio':r.hora_inicio||'','H. Fin':r.hora_fin||'','Tiempo':r.tiempo||'','Resultado':r.resultado||'','Observaciones':r.observaciones||''}));
-  const ws=XLSX.utils.json_to_sheet(data);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Revisión Telas');
+  // Una fila por defecto (si no hay defectos, una fila con los datos del registro)
+  const rows=[];
+  _filtrados.forEach(r=>{
+    const base={
+      'Fecha':fechaDisplay(r.fecha),
+      'Revisador':r.revisador||'',
+      'Proveedor':r.proveedor||'',
+      'Referencia':r.referencia||'',
+      'Lote':r.lote||'',
+      '# Rollo':r.rollo||'',
+      'Ancho (cm)':r.ancho||'',
+      'Metros Revisados':r.metros||'',
+      'Peso Rodaja (g)':r.peso||'',
+      'H. Inicio':r.hora_inicio||'',
+      'H. Fin':r.hora_fin||'',
+      'Tiempo':r.tiempo||'',
+      'Resultado':r.resultado||'',
+      'Proceso Tercero':r.proc_tercero==='si'?'Sí':'No',
+      'Proveedor Tercero':r.prov_tercero||'',
+      'Observaciones':r.observaciones||'',
+      'Metro Defecto':'',
+      'Tipo Defecto':'',
+      'Cantidad Defecto':''
+    };
+    if(r.defectos&&r.defectos.length){
+      r.defectos.forEach((d,i)=>{
+        rows.push({...base,
+          'Metro Defecto':d.metro||'',
+          'Tipo Defecto':d.tipo||'',
+          'Cantidad Defecto':d.cantidad||''
+        });
+        // Solo poner datos del registro en la primera fila de cada grupo
+        if(i===0) Object.keys(base).forEach(k=>base[k]='');
+      });
+    } else {
+      rows.push(base);
+    }
+  });
+  const ws=XLSX.utils.json_to_sheet(rows);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Revisión Telas');
   XLSX.writeFile(wb,'revision_telas_'+fechaHoy()+'.xlsx');showToast('📊 Excel exportado');
 }
 
