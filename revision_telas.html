@@ -1014,14 +1014,14 @@ async function cargarRevisadores(){
       const cfg=await res.json();
       const perfiles=cfg._perfil_members||{};
       // Buscar perfil 'Telas' sin importar mayúsculas/minúsculas
-      const key=Object.keys(perfiles).find(k=>k.toLowerCase()==='telas')||'';
+      const key=Object.keys(perfiles).find(k=>{const kl=k.toLowerCase();return kl==='telas'||kl==='tela'||kl.includes('tela')||kl.includes('revision');})||'';console.log('[RT] Perfiles disponibles:',Object.keys(perfiles),'| Perfil encontrado:',key||'ninguno');
       let members=key?perfiles[key]:[];
       // Fallback: si no hay perfil Telas, intentar con _usuarios_extra
       if(!members.length && cfg._usuarios_extra){
         members=cfg._usuarios_extra;
       }
       _rtMembersData=(members||[]).filter(m=>!m.disabled);
-      _revisadores=_rtMembersData.map(m=>typeof m==='string'?m:(m.nombre||'')).filter(Boolean);
+      _revisadores=_rtMembersData.map(m=>typeof m==='string'?m:(m.nombre||m.name||'')).filter(Boolean);
       console.log('[RT] Revisadores cargados:', _revisadores.length, _revisadores);
     }
   }catch(e){console.warn('[RT] Error cargando revisadores:',e);}
@@ -2865,14 +2865,14 @@ async function cargarRevisadores(){
       const cfg=await res.json();
       const perfiles=cfg._perfil_members||{};
       // Buscar perfil 'Telas' sin importar mayúsculas/minúsculas
-      const key=Object.keys(perfiles).find(k=>k.toLowerCase()==='telas')||'';
+      const key=Object.keys(perfiles).find(k=>{const kl=k.toLowerCase();return kl==='telas'||kl==='tela'||kl.includes('tela')||kl.includes('revision');})||'';console.log('[RT] Perfiles disponibles:',Object.keys(perfiles),'| Perfil encontrado:',key||'ninguno');
       let members=key?perfiles[key]:[];
       // Fallback: si no hay perfil Telas, intentar con _usuarios_extra
       if(!members.length && cfg._usuarios_extra){
         members=cfg._usuarios_extra;
       }
       _rtMembersData=(members||[]).filter(m=>!m.disabled);
-      _revisadores=_rtMembersData.map(m=>typeof m==='string'?m:(m.nombre||'')).filter(Boolean);
+      _revisadores=_rtMembersData.map(m=>typeof m==='string'?m:(m.nombre||m.name||'')).filter(Boolean);
       console.log('[RT] Revisadores cargados:', _revisadores.length, _revisadores);
     }
   }catch(e){console.warn('[RT] Error cargando revisadores:',e);}
@@ -3659,3 +3659,5 @@ function verDetalles(id){
   win.document.close();
 }
 </script>
+
+          
