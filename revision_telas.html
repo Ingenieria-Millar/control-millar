@@ -1706,40 +1706,55 @@ function importarReferencias(){
     const wb=XLSX.read(ev.target.result,{type:'binary'});
     const ws=wb.Sheets[wb.SheetNames[0]];
     const rows=XLSX.utils.sheet_to_json(ws,{header:1});
+    // Detectar columnas por encabezado (fila 0)
+    const header=(rows[0]||[]).map(h=>(h||'').toString().toLowerCase().trim());
+    const ci={
+      factura:  header.findIndex(h=>h.includes('factura')),
+      cliente:  header.findIndex(h=>h.includes('cliente')),
+      ref:      header.findIndex(h=>h.includes('referencia')||h.includes('ref')),
+      color:    header.findIndex(h=>h.includes('color')),
+      lote:     header.findIndex(h=>h.includes('lote')&&!h.includes('prov')),
+      rollo:    header.findIndex(h=>h.includes('rollo')&&!h.includes('peso')&&!h.includes('mts')),
+      ancho:    header.findIndex(h=>h.includes('ancho')),
+      lote_prov:header.findIndex(h=>h.includes('lote')&&h.includes('prov')),
+      peso:     header.findIndex(h=>h.includes('peso')),
+      mts:      header.findIndex(h=>h.includes('mts')||h.includes('metros')),
+    };
+    const g=(row,idx)=>idx>=0?(row[idx]||'').toString().trim():'';
     const nr={};
     rows.forEach((row,i)=>{
       if(i===0)return;
-      const prov=(row[0]||'').toString().trim();
-      const ref=(row[1]||'').toString().trim();
+      // Proveedor = Cliente si existe, si no Factura
+      const prov=g(row,ci.cliente)||g(row,ci.factura);
+      const ref=g(row,ci.ref);
       if(!prov||!ref)return;
       if(!nr[prov])nr[prov]=[];
-      const existe=nr[prov].some(r=>(typeof r==='object'?r.referencia:r)===ref);
-      if(!existe)nr[prov].push({
-        referencia:ref,
-        color:(row[2]||'').toString().trim(),
-        lote:(row[3]||'').toString().trim(),
-        rollo:(row[4]||'').toString().trim(),
-        ancho:(row[5]||'').toString().trim(),
-        lote_prov:(row[6]||'').toString().trim(),
-        peso:(row[7]||'').toString().trim(),
-        mts:(row[8]||'').toString().trim()
+      // Sin deduplicación — cada fila es un registro independiente
+      nr[prov].push({
+        referencia: ref,
+        color:      g(row,ci.color),
+        lote:       g(row,ci.lote),
+        rollo:      g(row,ci.rollo),
+        ancho:      g(row,ci.ancho),
+        lote_prov:  g(row,ci.lote_prov),
+        peso:       g(row,ci.peso),
+        mts:        g(row,ci.mts)
       });
     });
     _cfgReferencias=nr;_cfgProveedores=Object.keys(nr).sort();
     guardarEnServidor();renderRefsTable();
     const total=Object.values(nr).reduce((s,a)=>s+a.length,0);
-    showToast('✅ '+_cfgProveedores.length+' proveedores, '+total+' referencias');
+    showToast('✅ '+_cfgProveedores.length+' proveedores, '+total+' filas importadas');
   }catch(err){alert('Error: '+err.message);}};
   reader.readAsBinaryString(file);};inp.click();
 }
 function plantillaReferencias(){
   const ws=XLSX.utils.aoa_to_sheet([
-    ['Proveedor','Referencia','Color','No. Lote','No. Rollo','Ancho Tela','Lote Proveedor','Peso Rollo','Mts Rollo'],
-    ['ALLTEX S.A.S','T-AMELIA CRUDO 1409','CRUDO - CRUDO','TL26467','1','15040','21.8','82.84',''],
-    ['ALLTEX S.A.S','T-BARCELONA 144500TPX','ROSADO - ROSADO','TL26468','2','15040','21.8','82.84',''],
-    ['Proveedor B','REF-010','AZUL','LT001','3','14000','20.5','75.00','']
+    ['Factura','Cliente','Referencia','Color','No. Lote','No. Rollo','Ancho Tela','Lote Proveedor','Peso Rollo','Mts Rollo'],
+    ['26877','MICRODENIER S.A.','T-CHANEL ROSADO 13-2010-5','ROSADO - ROSADO','TL26467','1','1','15040','21.8','82.84'],
+    ['26877','MICRODENIER S.A.','T-CHANEL ROSADO 13-2010-5','ROSADO - ROSADO','TL26467','2','1','15040','21.8','82.84'],
   ]);
-  ws['!cols']=[{wch:20},{wch:28},{wch:18},{wch:12},{wch:10},{wch:12},{wch:16},{wch:12},{wch:10}];
+  ws['!cols']=[{wch:10},{wch:20},{wch:28},{wch:18},{wch:12},{wch:10},{wch:12},{wch:16},{wch:12},{wch:10}];
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Referencias');
   XLSX.writeFile(wb,'plantilla_referencias.xlsx');
 }
