@@ -538,6 +538,59 @@ input[type=number]{-moz-appearance:textfield;}
 
       <div id="f-error" style="color:#dc2626;font-size:12px;min-height:14px;"></div>
     </div>
+    <!-- Sección datos finalización (solo visible al editar registros finalizados) -->
+    <div id="edit-fin-section" style="display:none;border-top:2px solid #e2e8f0;padding:20px 24px;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#1e3a8a;margin-bottom:14px;">🏁 Datos de Finalización</div>
+      <div class="form-field">
+        <label class="field-label">Metros Revisados</label>
+        <input type="number" min="0" step="0.1" class="field-input" id="edit-fin-metros">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-field">
+          <label class="field-label">Ancho Útil (cm)</label>
+          <input type="number" min="0" step="0.1" class="field-input" id="edit-fin-ancho">
+        </div>
+        <div class="form-field">
+          <label class="field-label">Peso Rodaja (g)</label>
+          <input type="number" min="0" step="0.1" class="field-input" id="edit-fin-peso">
+        </div>
+      </div>
+      <div class="form-field">
+        <label class="field-label">Resultado</label>
+        <div class="toggle-wrap">
+          <button type="button" id="edit-btn-aprobado" class="toggle-btn" onclick="setEditResultado('aprobado')">✅ Aprobado</button>
+          <button type="button" id="edit-btn-rechazado" class="toggle-btn" onclick="setEditResultado('rechazado')">❌ Rechazado</button>
+        </div>
+        <input type="hidden" id="edit-fin-resultado">
+      </div>
+      <div class="form-field">
+        <label class="field-label">Proceso a Tercero</label>
+        <div class="toggle-wrap">
+          <button type="button" id="edit-btn-proc-no" class="toggle-btn active-ok" onclick="setEditProcTercero('no')">No</button>
+          <button type="button" id="edit-btn-proc-si" class="toggle-btn" onclick="setEditProcTercero('si')">Sí</button>
+        </div>
+        <input type="hidden" id="edit-fin-proc-tercero" value="no">
+      </div>
+      <div id="edit-fin-prov-tercero-wrap" style="display:none;" class="form-field">
+        <label class="field-label">Proveedor Tercero</label>
+        <select class="field-select" id="edit-fin-prov-tercero-sel"></select>
+      </div>
+      <div class="form-field">
+        <label class="field-label">Defectos encontrados</label>
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr 30px;gap:6px;padding:6px 0;margin-bottom:4px;">
+          <span style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;">Tipo Defecto</span>
+          <span style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;">Metro</span>
+          <span style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;">Cantidad</span>
+          <span></span>
+        </div>
+        <div id="edit-fin-defectos-list"></div>
+        <button class="btn btn-outline" style="margin-top:6px;width:100%;justify-content:center;" onclick="agregarDefectoRowEdit()">+ Agregar defecto</button>
+      </div>
+      <div class="form-field">
+        <label class="field-label">Observaciones</label>
+        <textarea class="field-input" id="edit-fin-observaciones" rows="3" style="resize:vertical;"></textarea>
+      </div>
+    </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeRegistroModal()">Cancelar</button>
       <button class="btn btn-primary" id="btn-guardar-registro" onclick="guardarRegistro()">💾 Guardar</button>
@@ -1070,8 +1123,7 @@ function renderTabla(){
       </div>
       <div class="td td-actions">
         ${accionFin}
-        <button class="btn-action" title="Editar" onclick="pedirPassAccion(()=>editarRegistro('${r.id}'))" style="margin-left:2px;">✏️</button>
-        <button class="btn-action del" title="Eliminar" onclick="confirmarEliminar('${r.id}')" style="margin-left:2px;">🗑</button>
+        ${_rtIsAdmin?'<button class="btn-action" title="Editar" onclick="pedirPassAccion(()=>editarRegistro(\''+r.id+'\'))" style="margin-left:2px;">✏️</button><button class="btn-action del" title="Eliminar" onclick="confirmarEliminar(\''+r.id+'\')" style="margin-left:2px;">🗑</button>':''} 
       </div>
     </div>`;
   }).join('');
@@ -1133,9 +1185,65 @@ function editarRegistro(id){
   document.getElementById('f-lote').value=r.lote||'';
   document.getElementById('f-rollo').value=r.rollo||'';
   document.getElementById('f-ancho').value=r.ancho||'';
+  // Mostrar sección de datos de finalización si el registro ya fue finalizado
+  const secFin=document.getElementById('edit-fin-section');
+  if(secFin){
+    secFin.style.display=r.finalizado?'block':'none';
+    if(r.finalizado){
+      document.getElementById('edit-fin-metros').value=r.metros||'';
+      document.getElementById('edit-fin-ancho').value=r.ancho||'';
+      document.getElementById('edit-fin-peso').value=r.peso||'';
+      document.getElementById('edit-fin-observaciones').value=r.observaciones||'';
+      document.getElementById('edit-fin-resultado').value=r.resultado||'';
+      document.getElementById('edit-btn-aprobado').className='toggle-btn'+(r.resultado==='aprobado'?' active-ok':'');
+      document.getElementById('edit-btn-rechazado').className='toggle-btn'+(r.resultado==='rechazado'?' active-rech':'');
+      setEditProcTercero(r.proc_tercero||'no');
+      const sel=document.getElementById('edit-fin-prov-tercero-sel');
+      const opts=_cfgProveedoresTerceros.length?_cfgProveedoresTerceros:[];
+      sel.innerHTML='<option value="">— Seleccionar —</option>'+opts.map(p=>'<option value="'+p+'">'+p+'</option>').join('');
+      sel.value=r.prov_tercero||'';
+      // Cargar defectos existentes
+      const list=document.getElementById('edit-fin-defectos-list');
+      list.innerHTML='';
+      if(r.defectos&&r.defectos.length){r.defectos.forEach(d=>{agregarDefectoRowEdit(d);});}
+      else{agregarDefectoRowEdit();}
+    }
+  }
   const btn=document.getElementById('btn-guardar-registro');
   if(btn)btn.onclick=()=>guardarEdicion(id);
   document.querySelector('#modal-registro .modal-title').textContent='✏️ EDITAR REGISTRO';
+}
+function setEditResultado(val){
+  document.getElementById('edit-fin-resultado').value=val;
+  document.getElementById('edit-btn-aprobado').className='toggle-btn'+(val==='aprobado'?' active-ok':'');
+  document.getElementById('edit-btn-rechazado').className='toggle-btn'+(val==='rechazado'?' active-rech':'');
+}
+function setEditProcTercero(val){
+  document.getElementById('edit-fin-proc-tercero').value=val;
+  document.getElementById('edit-btn-proc-no').className='toggle-btn'+(val==='no'?' active-ok':'');
+  document.getElementById('edit-btn-proc-si').className='toggle-btn'+(val==='si'?' active-ok':'');
+  document.getElementById('edit-fin-prov-tercero-wrap').style.display=val==='si'?'block':'none';
+}
+function agregarDefectoRowEdit(data){
+  const list=document.getElementById('edit-fin-defectos-list');
+  const row=document.createElement('div');
+  row.style.cssText='display:grid;grid-template-columns:2fr 1fr 1fr 30px;gap:6px;margin-bottom:6px;align-items:center;';
+  const sel=document.createElement('select');
+  sel.style.cssText='padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;background:#fff;width:100%;';
+  sel.innerHTML='<option value="">— Tipo defecto —</option>'+getDefectoOptions();
+  if(data&&data.tipo)sel.value=data.tipo;
+  const inpMetro=document.createElement('input');
+  inpMetro.type='number';inpMetro.min='0';inpMetro.placeholder='Metro';
+  inpMetro.style.cssText='padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;width:100%;text-align:center;';
+  if(data&&data.metro)inpMetro.value=data.metro;
+  const inp=document.createElement('input');inp.type='number';inp.min='1';inp.placeholder='Cant.';
+  inp.style.cssText='padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;width:100%;text-align:center;';
+  if(data&&data.cantidad)inp.value=data.cantidad;
+  const btn=document.createElement('button');btn.textContent='✕';
+  btn.style.cssText='width:28px;height:28px;border-radius:6px;border:1.5px solid #fca5a5;background:#fef2f2;color:#dc2626;cursor:pointer;font-size:13px;';
+  btn.onclick=()=>row.remove();
+  row.appendChild(sel);row.appendChild(inpMetro);row.appendChild(inp);row.appendChild(btn);
+  list.appendChild(row);
 }
 function guardarEdicion(id){
   const fecha=document.getElementById('f-fecha').value;
@@ -1144,12 +1252,34 @@ function guardarEdicion(id){
   const proveedor=document.getElementById('f-proveedor-val').value.trim()||document.getElementById('f-proveedor-input').value.trim();
   const lote=document.getElementById('f-lote').value.trim();
   const rollo=document.getElementById('f-rollo').value.trim();
+  const ancho_reg=document.getElementById('f-ancho').value.trim();
   const errEl=document.getElementById('f-error');
   if(!revisador){errEl.textContent='Selecciona un revisador';return;}
   if(!ref){errEl.textContent='La referencia es obligatoria';return;}
   if(!rollo){errEl.textContent='Ingresa el # de rollo';return;}
   const idx=_registros.findIndex(x=>x.id===id);
-  if(idx>=0)_registros[idx]={..._registros[idx],fecha,revisador,referencia:ref,proveedor,lote,rollo,ancho:ancho_reg};
+  if(idx<0)return;
+  const r=_registros[idx];
+  let updates={fecha,revisador,referencia:ref,proveedor,lote,rollo,ancho:ancho_reg};
+  // Si el registro está finalizado, guardar también los datos de finalización
+  const secFin=document.getElementById('edit-fin-section');
+  if(r.finalizado&&secFin&&secFin.style.display!=='none'){
+    const metros=document.getElementById('edit-fin-metros').value.trim();
+    const anchoutil=document.getElementById('edit-fin-ancho').value.trim();
+    const peso=document.getElementById('edit-fin-peso').value.trim();
+    const resultado=document.getElementById('edit-fin-resultado').value;
+    const obs=document.getElementById('edit-fin-observaciones').value.trim();
+    const procTercero=document.getElementById('edit-fin-proc-tercero').value;
+    const provTercero=procTercero==='si'?document.getElementById('edit-fin-prov-tercero-sel').value:'';
+    const defectos=[];
+    document.querySelectorAll('#edit-fin-defectos-list > div').forEach(row=>{
+      const sel=row.querySelector('select');const inputs=row.querySelectorAll('input');
+      const tipo=sel?sel.value:'';const metro=inputs[0]?inputs[0].value:'';const cant=inputs[1]?inputs[1].value:'';
+      if(tipo&&cant)defectos.push({tipo,metro,cantidad:parseInt(cant)});
+    });
+    Object.assign(updates,{metros,ancho:anchoutil||ancho_reg,peso,resultado,observaciones:obs,proc_tercero:procTercero,prov_tercero:provTercero,defectos});
+  }
+  _registros[idx]={...r,...updates};
   guardarEnServidor();aplicarFiltros();closeRegistroModal();
   showToast('✅ Registro actualizado');
 }
@@ -1314,7 +1444,7 @@ function verDefectos(id){
   let m=document.getElementById('modal-defectos-rt');
   if(!m){m=document.createElement('div');m.id='modal-defectos-rt';m.style.cssText='display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1100;align-items:center;justify-content:center;';m.onclick=e=>{if(e.target===m)m.style.display='none';};m.innerHTML='<div style="background:#fff;border-radius:14px;padding:24px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,.25);"><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:16px;font-weight:800;letter-spacing:1.5px;color:#0f172a;margin-bottom:14px;">👁 DETALLE DEFECTOS</div><div id="defectos-rt-list"></div><div style="margin-top:14px;text-align:right;"><button onclick="document.getElementById(\'modal-defectos-rt\').style.display=\'none\'" style="padding:8px 20px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;cursor:pointer;">Cerrar</button></div></div>';document.body.appendChild(m);}
   const total=r.defectos.reduce((s,d)=>s+parseInt(d.cantidad||0),0);
-  document.getElementById('defectos-rt-list').innerHTML=r.defectos.map(d=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-radius:8px;background:#f8fafc;margin-bottom:6px;border:1px solid #e2e8f0;"><span style="font-size:12px;color:#64748b;margin-right:8px;">m'+d.metro+'</span><span style="flex:1;font-size:13px;font-weight:600;color:#0f172a;">'+d.tipo+'</span><span style="background:#fef3c7;color:#92400e;padding:2px 10px;border-radius:6px;font-weight:800;">'+d.cantidad+'</span></div>').join('')+'<div style="display:flex;justify-content:space-between;padding:8px 12px;border-top:2px solid #e2e8f0;margin-top:4px;"><span style="font-size:13px;font-weight:700;">Total</span><span style="font-size:16px;font-weight:800;color:#1e3a8a;">'+total+'</span></div>';
+  document.getElementById('defectos-rt-list').innerHTML='<table style="width:100%;border-collapse:collapse;"><thead><tr><th style="padding:7px 12px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;background:#f8fafc;border-bottom:1px solid #e2e8f0;">Metro</th><th style="padding:7px 12px;text-align:left;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;background:#f8fafc;border-bottom:1px solid #e2e8f0;">Defecto</th><th style="padding:7px 12px;text-align:center;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;background:#f8fafc;border-bottom:1px solid #e2e8f0;">Cantidad</th></tr></thead><tbody>'+r.defectos.map(d=>'<tr><td style="padding:7px 12px;font-size:13px;color:#64748b;border-bottom:1px solid #f1f5f9;">'+d.metro+'</td><td style="padding:7px 12px;font-size:13px;font-weight:600;color:#0f172a;border-bottom:1px solid #f1f5f9;">'+d.tipo+'</td><td style="padding:7px 12px;text-align:center;border-bottom:1px solid #f1f5f9;"><span style="background:#fef3c7;color:#92400e;padding:2px 10px;border-radius:6px;font-weight:800;">'+d.cantidad+'</span></td></tr>').join('')+'</tbody><tfoot><tr><td colspan="2" style="padding:8px 12px;font-size:13px;font-weight:700;border-top:2px solid #e2e8f0;">Total</td><td style="padding:8px 12px;text-align:center;font-size:15px;font-weight:800;color:#1e3a8a;border-top:2px solid #e2e8f0;">'+total+'</td></tr></tfoot></table>';
   m.style.display='flex';
 }
 
@@ -1617,7 +1747,7 @@ function verDetalles(id){
       <div class="field"><div class="field-label">Referencia Tela</div><div class="field-value">${r.referencia||'—'}</div></div>
       <div class="field"><div class="field-label">Lote</div><div class="field-value">${r.lote||'—'}</div></div>
       <div class="field"><div class="field-label"># Rollo</div><div class="field-value">${r.rollo||'—'}</div></div>
-      <div class="field"><div class="field-label">Color</div><div class="field-value">${r.color||'—'}</div></div>
+      <div class="field"><div class="field-label">Ancho</div><div class="field-value">${r.ancho?r.ancho+' cm':'—'}</div></div>
     </div>
   </div>
 
