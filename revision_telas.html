@@ -1034,7 +1034,12 @@ async function cargarDatos(){
       const d=await res.json();
       _registros=d.registros||[];
       _cfgDefectos=d.defectos||[];
-      _cfgReferencias=d.referencias||{};
+      // Normalizar referencias: strings viejos → objetos nuevos
+      const raw=d.referencias||{};
+      Object.keys(raw).forEach(prov=>{
+        raw[prov]=(raw[prov]||[]).map(r=>typeof r==='object'?r:{referencia:String(r||'')});
+      });
+      _cfgReferencias=raw;
       _cfgColores=d.colores||[];
       _cfgProveedores=d.proveedores||[];
       _cfgProveedoresTerceros=d.proveedoresTerceros||[];
@@ -1674,12 +1679,12 @@ function renderRefsTable(){
   const GR='display:grid;grid-template-columns:1.5fr 2fr 1fr 1fr 0.8fr 1fr 1fr 1fr 1fr auto;gap:0;padding:9px 16px;border-bottom:1px solid #f1f5f9;align-items:center;';
   const TD='font-size:12px;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:8px;';
   el.innerHTML=rows.map(({prov,ref,ri},i)=>{
-    const r=typeof ref==='object'?ref:{referencia:ref};
+    // Normalizar: puede venir como string (datos viejos) o como objeto (datos nuevos)
+    const r=typeof ref==='object'?ref:{referencia:String(ref||'')};
     const esc=s=>(s||'').toString().replace(/'/g,"\'");
-    const refData=JSON.stringify(r).replace(/"/g,'&quot;');
     return `<div style="${GR}" id="cfg-ref-row-${i}">
       <div style="${TD}font-weight:600;color:#1e3a8a;">${prov}</div>
-      <div style="${TD}font-weight:600;" id="cfg-ref-text-${i}">${r.referencia||ref}</div>
+      <div style="${TD}font-weight:600;" id="cfg-ref-text-${i}">${r.referencia||''}</div>
       <div style="${TD}">${r.color||'—'}</div>
       <div style="${TD}">${r.lote||'—'}</div>
       <div style="${TD}">${r.rollo||'—'}</div>
@@ -1818,7 +1823,7 @@ function guardarNuevaRef(){
   const ref=(document.getElementById('cfg-ref-new-ref').value||'').trim();
   if(!prov||!ref){showToast('⚠️ Completa proveedor y referencia');return;}
   if(!_cfgReferencias[prov])_cfgReferencias[prov]=[];
-  const existe=_cfgReferencias[prov].some(r=>(typeof r==='object'?r.referencia:r)===ref);
+  const existe=_cfgReferencias[prov].some(r=>(typeof r==='object'?r.referencia:String(r||''))===ref);
   if(existe){showToast('⚠️ Ya existe esa referencia para este proveedor');return;}
   const g=id=>( document.getElementById(id)?.value||'').trim();
   _cfgReferencias[prov].push({
