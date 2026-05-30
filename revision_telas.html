@@ -1783,30 +1783,6 @@ _filtroDesde=_hoyInit;_filtroHasta=_hoyInit;
 cargarDatos().then(()=>rtInitLogin());
 connectWS();
 
-// ── Referencias por Proveedor — tabla con editar/eliminar ─────────
-function renderRefsTable(){
-  const el=document.getElementById('cfg-refs-content');
-  const provs=Object.keys(_cfgReferencias);
-  if(!provs.length){
-    el.innerHTML='<div style="color:#94a3b8;font-size:13px;text-align:center;padding:30px;">Sin datos. Importa una plantilla o crea una nueva.</div>';
-    return;
-  }
-  // Construir lista plana de filas
-  const rows=[];
-  provs.sort().forEach(prov=>{
-    (_cfgReferencias[prov]||[]).forEach((ref,ri)=>rows.push({prov,ref,ri}));
-  });
-  el.innerHTML=rows.map(({prov,ref,ri},i)=>`
-    <div style="display:grid;grid-template-columns:1fr 2fr auto;gap:0;padding:9px 16px;border-bottom:1px solid #f1f5f9;align-items:center;" id="cfg-ref-row-${i}">
-      <div style="font-size:13px;font-weight:600;color:#1e3a8a;">${prov}</div>
-      <div style="font-size:13px;color:#0f172a;" id="cfg-ref-text-${i}">${ref}</div>
-      <div style="display:flex;gap:6px;">
-        <button onclick="editarRef(${i},'${prov.replace(/'/g,"\'")}','${ref.replace(/'/g,"\'")}',${ri})" style="width:28px;height:28px;border-radius:6px;border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;font-size:12px;">✏️</button>
-        <button onclick="eliminarRef('${prov.replace(/'/g,"\'")}',${ri})" style="width:28px;height:28px;border-radius:6px;border:1.5px solid #fca5a5;background:#fef2f2;color:#dc2626;cursor:pointer;font-size:12px;">🗑</button>
-      </div>
-    </div>`).join('');
-}
-
 function abrirNuevaRef(){
   const f=document.getElementById('cfg-nueva-ref-form');
   f.style.display='flex';
