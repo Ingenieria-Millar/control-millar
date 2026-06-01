@@ -830,6 +830,10 @@ input[type=number]{-moz-appearance:textfield;}
         <div id="cfg-nueva-ref-form" style="display:none;padding:14px 20px;border-bottom:1px solid #e2e8f0;background:#fffbeb;flex-wrap:wrap;align-items:flex-end;">
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;width:100%;margin-bottom:10px;">
             <div>
+              <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:4px;">Factura</label>
+              <input id="cfg-ref-new-factura" class="cfg-add-input" placeholder="Factura...">
+            </div>
+            <div>
               <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:4px;">Proveedor</label>
               <input id="cfg-ref-new-prov" class="cfg-add-input" placeholder="Proveedor...">
             </div>
@@ -873,7 +877,8 @@ input[type=number]{-moz-appearance:textfield;}
         </div>
         <!-- Tabla de referencias -->
         <div style="max-height:500px;overflow-y:auto;">
-          <div style="display:grid;grid-template-columns:1.5fr 2fr 1fr 1fr 0.8fr 1fr 1fr 1fr 1fr auto;gap:0;padding:8px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;">
+          <div style="display:grid;grid-template-columns:0.8fr 1.5fr 2fr 1fr 1fr 0.8fr 1fr 1fr 1fr 1fr auto;gap:0;padding:8px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">Factura</div>
             <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">Proveedor</div>
             <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">Referencia</div>
             <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">Color</div>
@@ -1676,13 +1681,14 @@ function renderRefsTable(){
   if(!provs.length){el.innerHTML='<div style="color:#94a3b8;font-size:13px;text-align:center;padding:30px;">Sin datos. Importa una plantilla o crea una nueva.</div>';return;}
   const rows=[];
   provs.sort().forEach(prov=>{(_cfgReferencias[prov]||[]).forEach((ref,ri)=>rows.push({prov,ref,ri}));});
-  const GR='display:grid;grid-template-columns:1.5fr 2fr 1fr 1fr 0.8fr 1fr 1fr 1fr 1fr auto;gap:0;padding:9px 16px;border-bottom:1px solid #f1f5f9;align-items:center;';
+  const GR='display:grid;grid-template-columns:0.8fr 1.5fr 2fr 1fr 1fr 0.8fr 1fr 1fr 1fr 1fr auto;gap:0;padding:9px 16px;border-bottom:1px solid #f1f5f9;align-items:center;';
   const TD='font-size:12px;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:8px;';
   el.innerHTML=rows.map(({prov,ref,ri},i)=>{
     // Normalizar: puede venir como string (datos viejos) o como objeto (datos nuevos)
     const r=typeof ref==='object'?ref:{referencia:String(ref||'')};
     const esc=s=>(s||'').toString().replace(/'/g,"\'");
     return `<div style="${GR}" id="cfg-ref-row-${i}">
+      <div style="${TD}">${r.factura||'—'}</div>
       <div style="${TD}font-weight:600;color:#1e3a8a;">${prov}</div>
       <div style="${TD}font-weight:600;" id="cfg-ref-text-${i}">${r.referencia||''}</div>
       <div style="${TD}">${r.color||'—'}</div>
@@ -1705,47 +1711,43 @@ function importarReferencias(){
   reader.onload=ev=>{try{
     const wb=XLSX.read(ev.target.result,{type:'binary'});
     const ws=wb.Sheets[wb.SheetNames[0]];
-    const rows=XLSX.utils.sheet_to_json(ws,{header:1});
-    // Detectar columnas por encabezado (fila 0)
-    const header=(rows[0]||[]).map(h=>(h||'').toString().toLowerCase().trim());
-    const ci={
-      factura:  header.findIndex(h=>h.includes('factura')),
-      cliente:  header.findIndex(h=>h.includes('cliente')),
-      ref:      header.findIndex(h=>h.includes('referencia')||h.includes('ref')),
-      color:    header.findIndex(h=>h.includes('color')),
-      lote:     header.findIndex(h=>h.includes('lote')&&!h.includes('prov')),
-      rollo:    header.findIndex(h=>h.includes('rollo')&&!h.includes('peso')&&!h.includes('mts')),
-      ancho:    header.findIndex(h=>h.includes('ancho')),
-      lote_prov:header.findIndex(h=>h.includes('lote')&&h.includes('prov')),
-      peso:     header.findIndex(h=>h.includes('peso')),
-      mts:      header.findIndex(h=>h.includes('mts')||h.includes('metros')),
-    };
-    const g=(row,idx)=>idx>=0?(row[idx]||'').toString().trim():'';
+    const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+    if(!rows.length){showToast('⚠️ Archivo vacío');return;}
+    // Detectar si la primera fila es encabezado o dato
+    const fila0=(rows[0]||[]).map(h=>(h||'').toString().toLowerCase().trim());
+    const tieneHeader=fila0.some(h=>h.includes('factura')||h.includes('cliente')||h.includes('referencia')||h.includes('ref'));
+    const inicio=tieneHeader?1:0;
+    // Mapeo de columnas por posición según formato real:
+    // Col 0: Factura, Col 1: Cliente, Col 2: Referencia, Col 3: Color,
+    // Col 4: No. Lote, Col 5: No. Rollo, Col 6: Ancho Tela,
+    // Col 7: Lote Proveedor, Col 8: Peso Rollo, Col 9: Mts Rollo
+    const g=(row,idx)=>(row[idx]!==undefined&&row[idx]!==null?row[idx].toString().trim():'');
     const nr={};
+    let count=0;
     rows.forEach((row,i)=>{
-      if(i===0)return;
-      // Proveedor = Cliente si existe, si no Factura
-      const prov=g(row,ci.cliente)||g(row,ci.factura);
-      const ref=g(row,ci.ref);
-      if(!prov||!ref)return;
-      if(!nr[prov])nr[prov]=[];
-      // Sin deduplicación — cada fila es un registro independiente
-      nr[prov].push({
-        referencia: ref,
-        color:      g(row,ci.color),
-        lote:       g(row,ci.lote),
-        rollo:      g(row,ci.rollo),
-        ancho:      g(row,ci.ancho),
-        lote_prov:  g(row,ci.lote_prov),
-        peso:       g(row,ci.peso),
-        mts:        g(row,ci.mts)
+      if(i<inicio)return;
+      const prov=g(row,1)||g(row,0); // Cliente o Factura
+      const ref=g(row,2);
+      if(!prov&&!ref)return; // fila vacía
+      const provKey=prov||'Sin proveedor';
+      const refVal=ref||g(row,1)||g(row,0);
+      if(!nr[provKey])nr[provKey]=[];
+      nr[provKey].push({
+        referencia: refVal,
+        color:      g(row,3),
+        lote:       g(row,4),
+        rollo:      g(row,5),
+        ancho:      g(row,6),
+        lote_prov:  g(row,7),
+        peso:       g(row,8),
+        mts:        g(row,9)
       });
+      count++;
     });
     _cfgReferencias=nr;_cfgProveedores=Object.keys(nr).sort();
     guardarEnServidor();renderRefsTable();
-    const total=Object.values(nr).reduce((s,a)=>s+a.length,0);
-    showToast('✅ '+_cfgProveedores.length+' proveedores, '+total+' filas importadas');
-  }catch(err){alert('Error: '+err.message);}};
+    showToast('✅ '+_cfgProveedores.length+' proveedores, '+count+' filas importadas');
+  }catch(err){alert('Error al importar: '+err.message);}};
   reader.readAsBinaryString(file);};inp.click();
 }
 function plantillaReferencias(){
@@ -1801,7 +1803,7 @@ connectWS();
 function abrirNuevaRef(){
   const f=document.getElementById('cfg-nueva-ref-form');
   f.style.display='flex';
-  ['cfg-ref-new-prov','cfg-ref-new-ref','cfg-ref-new-color','cfg-ref-new-lote',
+  ['cfg-ref-new-factura','cfg-ref-new-prov','cfg-ref-new-ref','cfg-ref-new-color','cfg-ref-new-lote',
    'cfg-ref-new-rollo','cfg-ref-new-ancho','cfg-ref-new-lote-prov','cfg-ref-new-peso','cfg-ref-new-mts']
   .forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('cfg-ref-new-prov').focus();
@@ -1818,6 +1820,7 @@ function guardarNuevaRef(){
   if(existe){showToast('⚠️ Ya existe esa referencia para este proveedor');return;}
   const g=id=>( document.getElementById(id)?.value||'').trim();
   _cfgReferencias[prov].push({
+    factura:g('cfg-ref-new-factura'),
     referencia:ref,
     color:g('cfg-ref-new-color'),
     lote:g('cfg-ref-new-lote'),
@@ -1837,7 +1840,7 @@ function editarRef(rowIdx,prov,ri){
   const r=typeof row==='object'?row:{referencia:row};
   const old=document.getElementById('cfg-ref-row-'+rowIdx);if(!old)return;
   const COLS=[
-    {key:'referencia',val:r.referencia||''},{key:'color',val:r.color||''},
+    {key:'factura',val:r.factura||''},{key:'referencia',val:r.referencia||''},{key:'color',val:r.color||''},
     {key:'lote',val:r.lote||''},{key:'rollo',val:r.rollo||''},
     {key:'ancho',val:r.ancho||''},{key:'lote_prov',val:r.lote_prov||''},
     {key:'peso',val:r.peso||''},{key:'mts',val:r.mts||''},
@@ -1860,7 +1863,7 @@ function guardarEditRef(rowIdx,prov,ri){
   if(!newRef){showToast('⚠️ La referencia no puede estar vacía');return;}
   if(_cfgReferencias[prov]&&_cfgReferencias[prov][ri]!==undefined){
     _cfgReferencias[prov][ri]={
-      referencia:newRef,color:g('color'),lote:g('lote'),rollo:g('rollo'),
+      factura:g('factura'),referencia:newRef,color:g('color'),lote:g('lote'),rollo:g('rollo'),
       ancho:g('ancho'),lote_prov:g('lote_prov'),peso:g('peso'),mts:g('mts')
     };
     guardarEnServidor();renderRefsTable();showToast('✅ Referencia actualizada');
