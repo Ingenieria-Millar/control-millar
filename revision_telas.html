@@ -596,11 +596,11 @@ input[type=number]{-moz-appearance:textfield;}
           <option value="">— Seleccionar —</option>
         </select>
       </div>
-      <!-- Paso 1: Factura -->
+      <!-- Paso 1: No. Lote -->
       <div class="form-field">
-        <label class="field-label"># Factura</label>
+        <label class="field-label">No. Lote</label>
         <div class="searchable-wrap">
-          <input type="text" class="searchable-input" id="f-factura-input" placeholder="Buscar factura..."
+          <input type="text" class="searchable-input" id="f-factura-input" placeholder="Buscar lote..."
             autocomplete="off" oninput="filtrarFacturas(this.value)"
             onfocus="abrirDropdown('f-factura-dd')" onblur="setTimeout(()=>{cerrarDropdown('f-factura-dd');onFacturaSeleccionada();},200)">
           <input type="hidden" id="f-factura-val">
@@ -631,6 +631,10 @@ input[type=number]{-moz-appearance:textfield;}
       </div>
       <!-- Campos autocompletados (readonly) -->
       <div id="f-autocomplete-fields" style="display:none;">
+        <div class="form-field">
+          <label class="field-label">Factura</label>
+          <div class="field-readonly" id="f-factura-real-display"></div>
+        </div>
         <div class="form-field">
           <label class="field-label">Proveedor</label>
           <div class="field-readonly" id="f-proveedor-display"></div>
@@ -1305,16 +1309,16 @@ function renderTabla(){
 // ── Modal Nuevo Registro ───────────────────────────────────────────
 // ── Helpers flujo nuevo registro ──────────────────────────────────
 function getFacturasDisponibles(){
-  // Facturas únicas de configuración
-  const facts=new Set();
-  Object.values(_cfgReferencias).flat().forEach(r=>{if(typeof r==='object'&&r.factura)facts.add(r.factura.toString());});
-  return [...facts].sort();
+  // Lotes únicos de configuración
+  const lotes=new Set();
+  Object.values(_cfgReferencias).flat().forEach(r=>{if(typeof r==='object'&&r.lote)lotes.add(r.lote.toString());});
+  return [...lotes].sort();
 }
-function getProveedoresPorFactura(factura){
+function getProveedoresPorFactura(lote){
   const provs=new Set();
   Object.keys(_cfgReferencias).forEach(prov=>{
     _cfgReferencias[prov].forEach(r=>{
-      if(typeof r==='object'&&r.factura&&r.factura.toString()===factura) provs.add(prov);
+      if(typeof r==='object'&&r.lote&&r.lote.toString()===lote) provs.add(prov);
     });
   });
   return [...provs].sort();
@@ -1385,9 +1389,9 @@ function onProveedorSeleccionado(){
   document.getElementById('f-rollo-field').style.display='block';
 }
 function poblarRollosDD(factura,proveedor){
-  const usados=new Set(_registros.map(r=>r.factura+'|'+r.proveedor+'|'+r.rollo));
+  const usados=new Set(_registros.map(r=>r.lote+'|'+r.proveedor+'|'+r.rollo));
   const lista=_cfgReferencias[proveedor]||[];
-  const rollos=lista.filter(r=>typeof r==='object'&&r.factura&&r.factura.toString()===factura&&!usados.has(r.factura+'|'+proveedor+'|'+r.rollo));
+  const rollos=lista.filter(r=>typeof r==='object'&&r.lote&&r.lote.toString()===factura&&!usados.has(r.lote+'|'+proveedor+'|'+r.rollo));
   const dd=document.getElementById('f-rollo-dd');
   if(!rollos.length){dd.innerHTML='<div class="searchable-empty">Sin rollos disponibles</div>';dd.classList.add('open');return;}
   dd.innerHTML=rollos.map(r=>'<div class="searchable-option" onmousedown="seleccionarRollo(\''+r.rollo+'\')" >Rollo '+r.rollo+'</div>').join('');
@@ -1415,7 +1419,7 @@ function autocompletarCampos(){
   const proveedor=document.getElementById('f-proveedor-val').value||document.getElementById('f-proveedor-input').value.trim();
   const rollo=document.getElementById('f-rollo-val').value;
   const lista=_cfgReferencias[proveedor]||[];
-  const r=lista.find(x=>typeof x==='object'&&x.factura&&x.factura.toString()===factura&&x.rollo===rollo);
+  const r=lista.find(x=>typeof x==='object'&&x.lote&&x.lote.toString()===factura&&x.rollo===rollo);
   if(!r){document.getElementById('f-autocomplete-fields').style.display='none';return;}
   document.getElementById('f-autocomplete-fields').style.display='block';
   document.getElementById('f-proveedor-display').textContent=proveedor;
@@ -1430,6 +1434,9 @@ function autocompletarCampos(){
   document.getElementById('f-lote-prov-display').textContent=r.lote_prov||'—';
   document.getElementById('f-peso-display').textContent=r.peso||'—';
   document.getElementById('f-mts-display').textContent=r.mts||'—';
+  // Guardar factura real para el registro
+  const factDisp=document.getElementById('f-factura-real-display');
+  if(factDisp) factDisp.textContent=r.factura||'—';
 }
 function openRegistroModal(){
   const hoy=fechaHoy();
@@ -1448,7 +1455,7 @@ function openRegistroModal(){
   // Poblar facturas
   const facts=getFacturasDisponibles();
   const ddFact=document.getElementById('f-factura-dd');
-  ddFact.innerHTML=facts.map(f=>'<div class="searchable-option" onmousedown="seleccionarOpcion(\'f-factura-input\',\'f-factura-dd\',\'f-factura-val\',\''+f+'\')" >'+f+'</div>').join('');
+  ddFact.innerHTML=facts.length?facts.map(f=>'<div class="searchable-option" onmousedown="seleccionarOpcion(\'f-factura-input\',\'f-factura-dd\',\'f-factura-val\',\''+f+'\')">'+f+'</div>').join(''):'<div class="searchable-empty">Sin lotes disponibles</div>';
   const selRev=document.getElementById('f-revisador');
   selRev.innerHTML='<option value="">— Seleccionar —</option>';
   getRevisadores().forEach(r=>{const o=document.createElement('option');o.value=r;o.textContent=r;selRev.appendChild(o);});
@@ -1474,12 +1481,14 @@ function guardarRegistro(){
   const ancho_reg=document.getElementById('f-ancho').value.trim();
   const errEl=document.getElementById('f-error');
   if(!revisador){errEl.textContent='Selecciona un revisador';return;}
-  if(!factura){errEl.textContent='Selecciona la factura';return;}
+  if(!factura){errEl.textContent='Selecciona el No. Lote';return;}
   if(!rollo){errEl.textContent='Selecciona el # de rollo';return;}
   if(!ref){errEl.textContent='No se pudo autocompletar la referencia';return;}
   const registro={
     id:'rt_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
-    fecha,revisador,factura,proveedor,referencia:ref,lote,rollo,ancho:ancho_reg,
+    fecha,revisador,
+    factura:(document.getElementById('f-factura-real-display')?.textContent||'').replace('—','').trim()||factura,
+    proveedor,referencia:ref,lote:factura,rollo,ancho:ancho_reg,
     color:document.getElementById('f-color-display').textContent||'',
     lote_prov:document.getElementById('f-lote-prov-display').textContent||'',
     peso:document.getElementById('f-peso-display').textContent||'',
@@ -1864,8 +1873,8 @@ function renderRefsTable(){
     const r=typeof ref==='object'?ref:{referencia:String(ref||'')};
     const esc=s=>(s||'').toString().replace(/'/g,"\'");
     return `<div style="${GR}" id="cfg-ref-row-${i}">
-      <div style="${TD}">${r.factura||'—'}</div>
       <div style="${TD}font-weight:600;color:#1e3a8a;">${prov}</div>
+      <div style="${TD}">${r.factura||'—'}</div>
       <div style="${TD}font-weight:600;" id="cfg-ref-text-${i}">${r.referencia||''}</div>
       <div style="${TD}">${r.color||'—'}</div>
       <div style="${TD}">${r.lote||'—'}</div>
