@@ -1561,7 +1561,8 @@ function filtrarRefsPorProveedor(){
   const refs=prov?(_cfgReferencias[prov]||[]):Object.values(_cfgReferencias).flat();
   document.getElementById('f-ref-input').value='';document.getElementById('f-ref-val').value='';
   const dd=document.getElementById('f-ref-dd');
-  dd.innerHTML=refs.length?refs.map(r=>'<div class="searchable-option" onmousedown="seleccionarOpcion(\'f-ref-input\',\'f-ref-dd\',\'f-ref-val\',\''+r+'\')">'+r+'</div>').join(''):'<div class="searchable-empty">Sin referencias para este proveedor</div>';
+  const refNames=refs.map(r=>typeof r==='object'?r.referencia:r).filter(Boolean);
+  dd.innerHTML=refNames.length?refNames.map(r=>'<div class="searchable-option" onmousedown="seleccionarOpcion(\'f-ref-input\',\'f-ref-dd\',\'f-ref-val\',\''+r+'\')">'+r+'</div>').join(''):'<div class="searchable-empty">Sin referencias para este proveedor</div>';
 }
 function filtrarRefsConProveedor(q){
   const prov=document.getElementById('f-proveedor-val').value||document.getElementById('f-proveedor-input').value;
