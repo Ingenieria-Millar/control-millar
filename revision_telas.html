@@ -1502,10 +1502,6 @@ function editarRegistro(id){
       document.getElementById('edit-fin-resultado').value=r.resultado||'';
       document.getElementById('edit-btn-aprobado').className='toggle-btn'+(r.resultado==='aprobado'?' active-ok':'');
       document.getElementById('edit-btn-rechazado').className='toggle-btn'+(r.resultado==='rechazado'?' active-rech':'');
-      const sel=null;
-      const opts=_cfgProveedoresTerceros.length?_cfgProveedoresTerceros:[];
-      sel.innerHTML='<option value="">— Seleccionar —</option>'+opts.map(p=>'<option value="'+p+'">'+p+'</option>').join('');
-      sel.value=r.prov_tercero||'';
       const list=document.getElementById('edit-fin-defectos-list');
       list.innerHTML='';
       if(r.defectos&&r.defectos.length){r.defectos.forEach(d=>{agregarDefectoRowEdit(d);});}
@@ -1597,13 +1593,6 @@ function openFinalizar(id){
   document.getElementById('fin-resultado').value='';document.getElementById('fin-error').textContent='';
   document.getElementById('btn-aprobado').className='toggle-btn';
   document.getElementById('btn-rechazado').className='toggle-btn';
-  // Resetear proceso a tercero
-
-  // Poblar proveedores terceros desde configuraciones
-  const sel=null;
-  const opts=_cfgProveedoresTerceros.length?_cfgProveedoresTerceros:[];
-  sel.innerHTML='<option value="">— Seleccionar —</option>'+opts.map(p=>'<option value="'+p+'">'+p+'</option>').join('');
-  if(!opts.length) sel.innerHTML+='<option value="" disabled style="color:#94a3b8;">Sin proveedores en Configuraciones</option>';
   document.getElementById('fin-defectos-list').innerHTML='';
   agregarDefectoRow();
   document.getElementById('modal-finalizar').classList.add('open');
