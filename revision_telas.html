@@ -1170,20 +1170,24 @@ function rtCerrarSesion(){
 async function cargarRevisadores(){
   try{
     const res=await fetch('/api/app-config');
-    if(res.ok){
-      const cfg=await res.json();
-      const perfiles=cfg._perfil_members||{};
-      // Buscar perfil 'Telas' sin importar mayúsculas/minúsculas
-      const key=Object.keys(perfiles).find(k=>k.toLowerCase()==='telas')||'';
-      let members=key?perfiles[key]:[];
-      // Fallback: si no hay perfil Telas, intentar con _usuarios_extra
-      if(!members.length && cfg._usuarios_extra){
-        members=cfg._usuarios_extra;
-      }
-      _rtMembersData=(members||[]).filter(m=>!m.disabled);
-      _revisadores=_rtMembersData.map(m=>typeof m==='string'?m:(m.nombre||'')).filter(Boolean);
-      console.log('[RT] Revisadores cargados:', _revisadores.length, _revisadores);
+    if(!res.ok){console.warn('[RT] app-config status:', res.status);return;}
+    const cfg=await res.json();
+    console.log('[RT] app-config keys:', Object.keys(cfg));
+    const perfiles=cfg._perfil_members||{};
+    console.log('[RT] Perfiles disponibles:', Object.keys(perfiles));
+    // Buscar perfil 'Telas' sin importar mayúsculas/minúsculas
+    const key=Object.keys(perfiles).find(k=>k.toLowerCase()==='telas')||'';
+    console.log('[RT] Perfil encontrado:', key||'ninguno');
+    let members=key?perfiles[key]:[];
+    console.log('[RT] Members en perfil:', members.length, JSON.stringify(members).slice(0,200));
+    // Fallback: _usuarios_extra
+    if(!members.length && cfg._usuarios_extra){
+      members=cfg._usuarios_extra;
+      console.log('[RT] Usando _usuarios_extra:', members.length);
     }
+    _rtMembersData=(members||[]).filter(m=>!m.disabled);
+    _revisadores=_rtMembersData.map(m=>typeof m==='string'?m:(m.nombre||m.name||'')).filter(Boolean);
+    console.log('[RT] Revisadores finales:', _revisadores.length, _revisadores);
   }catch(e){console.warn('[RT] Error cargando revisadores:',e);}
 }
 function getRevisadores(){return _revisadores;}
