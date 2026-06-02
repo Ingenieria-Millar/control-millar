@@ -850,7 +850,7 @@ input[type=number]{-moz-appearance:textfield;}
     <div id="cfg-panel-1" style="max-width:1100px;margin:0 auto;">
       <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;">
         <div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;background:#f8fafc;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-          <div><div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#0f172a;">🧵 Referencias por Proveedor</div><div style="font-size:12px;color:#64748b;margin-top:2px;">Plantilla Excel: columnas <strong>Proveedor</strong> | <strong>Referencia</strong></div></div>
+          <div><div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#0f172a;">🧵 Referencias por Proveedor</div><div style="font-size:12px;color:#64748b;margin-top:2px;">Plantilla Excel: columnas <strong>Proveedor</strong> | <strong>Factura</strong> | <strong>Referencia</strong> | <strong>Color</strong> | <strong>No. Lote</strong> | <strong>No. Rollo</strong> | ...</div></div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <button class="btn btn-primary" style="font-size:12px;padding:7px 12px;" onclick="abrirNuevaRef()">+ Nueva</button>
             <button class="btn btn-outline" style="font-size:12px;padding:7px 12px;" onclick="importarReferencias()">📥 Importar Excel</button>
@@ -1911,10 +1911,10 @@ function importarReferencias(){
     let count=0;
     rows.forEach((row,i)=>{
       if(i<inicio)return;
-      const factura=g(row,0);
-      const prov=g(row,1)||factura; // Cliente o Factura como proveedor
-      const ref=g(row,2);
-      if(!prov&&!ref)return; // fila vacía
+      const prov=g(row,0);       // Col 0: Proveedor
+      const factura=g(row,1);    // Col 1: Factura
+      const ref=g(row,2);        // Col 2: Referencia
+      if(!prov&&!ref)return;
       const provKey=prov||'Sin proveedor';
       if(!nr[provKey])nr[provKey]=[];
       // Validar duplicado exacto
@@ -1945,11 +1945,11 @@ function importarReferencias(){
 }
 function plantillaReferencias(){
   const ws=XLSX.utils.aoa_to_sheet([
-    ['Factura','Cliente','Referencia','Color','No. Lote','No. Rollo','Ancho Tela','Lote Proveedor','Peso Rollo','Mts Rollo'],
-    ['26877','MICRODENIER S.A.','T-CHANEL ROSADO 13-2010-5','ROSADO - ROSADO','TL26467','1','1','15040','21.8','82.84'],
-    ['26877','MICRODENIER S.A.','T-CHANEL ROSADO 13-2010-5','ROSADO - ROSADO','TL26467','2','1','15040','21.8','82.84'],
+    ['Proveedor','Factura','Referencia','Color','No. Lote','No. Rollo','Ancho Tela','Lote Prov.','Peso Rollo','Mts Rollo'],
+    ['MICRODENIER S.A.','26877','T-CHANEL ROSADO 13-2010-5','ROSADO - ROSADO','TL26467','1','15040','1064352','21.8','82.84'],
+    ['MICRODENIER S.A.','26877','T-CHANEL ROSADO 13-2010-5','ROSADO - ROSADO','TL26467','2','15040','1064352','21.8','82.84'],
   ]);
-  ws['!cols']=[{wch:10},{wch:20},{wch:28},{wch:18},{wch:12},{wch:10},{wch:12},{wch:16},{wch:12},{wch:10}];
+  ws['!cols']=[{wch:22},{wch:10},{wch:30},{wch:18},{wch:12},{wch:10},{wch:12},{wch:16},{wch:12},{wch:10}];
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Referencias');
   XLSX.writeFile(wb,'plantilla_referencias.xlsx');
 }
