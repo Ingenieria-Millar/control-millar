@@ -1311,7 +1311,11 @@ function renderTabla(){
 function getFacturasDisponibles(){
   // Lotes únicos de configuración
   const lotes=new Set();
-  Object.values(_cfgReferencias).flat().forEach(r=>{if(typeof r==='object'&&r.lote)lotes.add(r.lote.toString());});
+  const allRefs=Object.values(_cfgReferencias).flat();
+  console.log('[RT] Total refs en cfg:', allRefs.length);
+  if(allRefs.length) console.log('[RT] Ejemplo ref[0]:', JSON.stringify(allRefs[0]));
+  allRefs.forEach(r=>{if(typeof r==='object'&&r.lote)lotes.add(r.lote.toString());});
+  console.log('[RT] Lotes encontrados:', [...lotes]);
   return [...lotes].sort();
 }
 function getProveedoresPorFactura(lote){
