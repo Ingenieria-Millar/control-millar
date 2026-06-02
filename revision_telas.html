@@ -1726,14 +1726,15 @@ function importarReferencias(){
     let count=0;
     rows.forEach((row,i)=>{
       if(i<inicio)return;
-      const prov=g(row,1)||g(row,0); // Cliente o Factura
+      const factura=g(row,0);
+      const prov=g(row,1)||factura; // Cliente o Factura como proveedor
       const ref=g(row,2);
       if(!prov&&!ref)return; // fila vacía
       const provKey=prov||'Sin proveedor';
-      const refVal=ref||g(row,1)||g(row,0);
       if(!nr[provKey])nr[provKey]=[];
       nr[provKey].push({
-        referencia: refVal,
+        factura:    factura,
+        referencia: ref,
         color:      g(row,3),
         lote:       g(row,4),
         rollo:      g(row,5),
