@@ -592,39 +592,87 @@ input[type=number]{-moz-appearance:textfield;}
           <option value="">— Seleccionar —</option>
         </select>
       </div>
+      <!-- Paso 1: Factura -->
       <div class="form-field">
+        <label class="field-label"># Factura</label>
+        <div class="searchable-wrap">
+          <input type="text" class="searchable-input" id="f-factura-input" placeholder="Buscar factura..."
+            autocomplete="off" oninput="filtrarFacturas(this.value)"
+            onfocus="abrirDropdown('f-factura-dd')" onblur="setTimeout(()=>{cerrarDropdown('f-factura-dd');onFacturaSeleccionada();},200)">
+          <input type="hidden" id="f-factura-val">
+          <div class="searchable-dropdown" id="f-factura-dd"></div>
+        </div>
+      </div>
+      <!-- Paso 2: Proveedor (solo si la factura tiene >1 proveedor) -->
+      <div class="form-field" id="f-proveedor-field" style="display:none;">
         <label class="field-label">Proveedor</label>
         <div class="searchable-wrap">
           <input type="text" class="searchable-input" id="f-proveedor-input" placeholder="Buscar proveedor..."
-            autocomplete="off" oninput="filtrarOpciones('f-proveedor-input','f-proveedor-dd','_cfgProveedores')"
-            onfocus="abrirDropdown('f-proveedor-dd')" onblur="setTimeout(()=>{cerrarDropdown('f-proveedor-dd');filtrarRefsPorProveedor();},200)">
+            autocomplete="off" oninput="filtrarProveedoresFact(this.value)"
+            onfocus="abrirDropdown('f-proveedor-dd')" onblur="setTimeout(()=>{cerrarDropdown('f-proveedor-dd');onProveedorSeleccionado();},200)">
           <input type="hidden" id="f-proveedor-val">
           <div class="searchable-dropdown" id="f-proveedor-dd"></div>
         </div>
       </div>
-      <div class="form-field">
-        <label class="field-label">Referencia Tela</label>
+      <!-- Paso 3: Rollo -->
+      <div class="form-field" id="f-rollo-field" style="display:none;">
+        <label class="field-label"># de Rollo</label>
         <div class="searchable-wrap">
-          <input type="text" class="searchable-input" id="f-ref-input" placeholder="Buscar referencia..."
-            autocomplete="off" oninput="filtrarRefsConProveedor(this.value)"
-            onfocus="abrirDropdown('f-ref-dd')" onblur="setTimeout(()=>cerrarDropdown('f-ref-dd'),200)">
-          <input type="hidden" id="f-ref-val">
-          <div class="searchable-dropdown" id="f-ref-dd"></div>
+          <input type="text" class="searchable-input" id="f-rollo-input" placeholder="Seleccionar rollo..."
+            autocomplete="off" oninput="filtrarRollos(this.value)"
+            onfocus="abrirDropdown('f-rollo-dd')" onblur="setTimeout(()=>{cerrarDropdown('f-rollo-dd');},200)">
+          <input type="hidden" id="f-rollo-val">
+          <div class="searchable-dropdown" id="f-rollo-dd"></div>
         </div>
       </div>
-      <div class="form-field">
-        <label class="field-label">Lote</label>
-        <input type="text" class="field-input" id="f-lote" placeholder="Ej: L-2026-001">
+      <!-- Campos autocompletados (readonly) -->
+      <div id="f-autocomplete-fields" style="display:none;">
+        <div class="form-field">
+          <label class="field-label">Proveedor</label>
+          <div class="field-readonly" id="f-proveedor-display"></div>
+          <input type="hidden" id="f-proveedor-hidden">
+        </div>
+        <div class="form-field">
+          <label class="field-label">Referencia Tela</label>
+          <div class="field-readonly" id="f-ref-display"></div>
+          <input type="hidden" id="f-ref-val">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-field">
+            <label class="field-label">Color</label>
+            <div class="field-readonly" id="f-color-display"></div>
+          </div>
+          <div class="form-field">
+            <label class="field-label">No. Lote</label>
+            <div class="field-readonly" id="f-lote-display"></div>
+            <input type="hidden" id="f-lote">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-field">
+            <label class="field-label">Ancho Tela</label>
+            <div class="field-readonly" id="f-ancho-display"></div>
+            <input type="hidden" id="f-ancho">
+          </div>
+          <div class="form-field">
+            <label class="field-label">Lote Proveedor</label>
+            <div class="field-readonly" id="f-lote-prov-display"></div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-field">
+            <label class="field-label">Peso Rollo (g)</label>
+            <div class="field-readonly" id="f-peso-display"></div>
+          </div>
+          <div class="form-field">
+            <label class="field-label">Mts Rollo</label>
+            <div class="field-readonly" id="f-mts-display"></div>
+          </div>
+        </div>
       </div>
-      <div class="form-field">
-        <label class="field-label"># de Rollo</label>
-        <input type="number" min="0" class="field-input" id="f-rollo" >
-      </div>
-      <div class="form-field">
-        <label class="field-label">Ancho (cm)</label>
-        <input type="number" min="0" step="0.1" class="field-input" id="f-ancho" >
-      </div>
-
+      <!-- campos hidden legacy -->
+      <input type="hidden" id="f-rollo">
+      <input type="hidden" id="f-proveedor-val-legacy">
       <div id="f-error" style="color:#dc2626;font-size:12px;min-height:14px;"></div>
     </div>
     <div id="edit-fin-section" style="display:none;border-top:2px solid #e2e8f0;padding:20px 24px;">
@@ -651,18 +699,7 @@ input[type=number]{-moz-appearance:textfield;}
         </div>
         <input type="hidden" id="edit-fin-resultado">
       </div>
-      <div class="form-field">
-        <label class="field-label">Proceso a Tercero</label>
-        <div class="toggle-wrap">
-          <button type="button" id="edit-btn-proc-no" class="toggle-btn active-ok" onclick="setEditProcTercero('no')">No</button>
-          <button type="button" id="edit-btn-proc-si" class="toggle-btn" onclick="setEditProcTercero('si')">Sí</button>
-        </div>
-        <input type="hidden" id="edit-fin-proc-tercero" value="no">
-      </div>
-      <div id="edit-fin-prov-tercero-wrap" style="display:none;" class="form-field">
-        <label class="field-label">Proveedor Tercero</label>
-        <select class="field-select" id="edit-fin-prov-tercero-sel"></select>
-      </div>
+
       <div class="form-field">
         <label class="field-label">Defectos encontrados</label>
         <div style="display:grid;grid-template-columns:2fr 1fr 1fr 30px;gap:6px;padding:6px 0;margin-bottom:4px;">
@@ -723,21 +760,7 @@ input[type=number]{-moz-appearance:textfield;}
         <button class="btn btn-outline" style="margin-top:6px;width:100%;justify-content:center;"
           onclick="agregarDefectoRow()">+ Agregar defecto</button>
       </div>
-      <!-- Proceso a 3ro -->
-      <div class="form-field">
-        <label class="field-label">Proceso a Tercero</label>
-        <div class="toggle-wrap" style="max-width:200px;">
-          <button class="toggle-btn" id="btn-proc-no" onclick="setProcTercero('no')" style="background:#f8fafc;">No</button>
-          <button class="toggle-btn" id="btn-proc-si" onclick="setProcTercero('si')">Sí</button>
-        </div>
-        <input type="hidden" id="fin-proc-tercero" value="no">
-        <div id="fin-prov-tercero-wrap" style="display:none;margin-top:10px;">
-          <label class="field-label">Proveedor Tercero</label>
-          <select class="field-select" id="fin-prov-tercero-sel">
-            <option value="">— Seleccionar —</option>
-          </select>
-        </div>
-      </div>
+
       <!-- Resultado -->
       <div class="form-field">
         <label class="field-label">Resultado</label>
@@ -1265,21 +1288,155 @@ function renderTabla(){
 }
 
 // ── Modal Nuevo Registro ───────────────────────────────────────────
+// ── Helpers flujo nuevo registro ──────────────────────────────────
+function getFacturasDisponibles(){
+  // Facturas únicas de configuración
+  const facts=new Set();
+  Object.values(_cfgReferencias).flat().forEach(r=>{if(typeof r==='object'&&r.factura)facts.add(r.factura.toString());});
+  return [...facts].sort();
+}
+function getProveedoresPorFactura(factura){
+  const provs=new Set();
+  Object.keys(_cfgReferencias).forEach(prov=>{
+    _cfgReferencias[prov].forEach(r=>{
+      if(typeof r==='object'&&r.factura&&r.factura.toString()===factura) provs.add(prov);
+    });
+  });
+  return [...provs].sort();
+}
+function getRollosDisponibles(factura,proveedor){
+  // Rollos de cfg para esta factura+proveedor, menos los ya en revisión/finalizados
+  const usados=new Set(_registros.map(r=>r.factura+'|'+r.proveedor+'|'+r.rollo));
+  const rollos=[];
+  const lista=proveedor?(_cfgReferencias[proveedor]||[]):Object.values(_cfgReferencias).flat();
+  lista.forEach(r=>{
+    if(typeof r==='object'&&r.factura&&r.factura.toString()===factura){
+      const key=r.factura+'|'+(proveedor||'')+' |'+r.rollo;
+      if(!usados.has(r.factura+'|'+(proveedor||'')+' |'+r.rollo))
+        rollos.push(r.rollo);
+    }
+  });
+  return rollos;
+}
+function filtrarFacturas(q){
+  const facts=getFacturasDisponibles();
+  const fil=q?facts.filter(f=>f.includes(q)):facts;
+  const dd=document.getElementById('f-factura-dd');
+  dd.innerHTML=fil.length?fil.map(f=>'<div class="searchable-option" onmousedown="seleccionarOpcion('f-factura-input','f-factura-dd','f-factura-val',''+f+'')">'+f+'</div>').join(''):'<div class="searchable-empty">Sin facturas</div>';
+  dd.classList.add('open');
+}
+function onFacturaSeleccionada(){
+  const factura=document.getElementById('f-factura-val').value||document.getElementById('f-factura-input').value.trim();
+  if(!factura)return;
+  document.getElementById('f-factura-val').value=factura;
+  const provs=getProveedoresPorFactura(factura);
+  const provField=document.getElementById('f-proveedor-field');
+  const rolloField=document.getElementById('f-rollo-field');
+  document.getElementById('f-autocomplete-fields').style.display='none';
+  document.getElementById('f-rollo-input').value='';document.getElementById('f-rollo-val').value='';
+  document.getElementById('f-proveedor-input').value='';document.getElementById('f-proveedor-val').value='';
+  if(provs.length===1){
+    // Solo un proveedor — ocultar selector, ir directo a rollos
+    provField.style.display='none';
+    document.getElementById('f-proveedor-val').value=provs[0];
+    document.getElementById('f-proveedor-input').value=provs[0];
+    poblarRollosDD(factura,provs[0]);
+    rolloField.style.display='block';
+  } else if(provs.length>1){
+    // Mostrar selector proveedor
+    provField.style.display='block';
+    rolloField.style.display='none';
+    const dd=document.getElementById('f-proveedor-dd');
+    dd.innerHTML=provs.map(p=>'<div class="searchable-option" onmousedown="seleccionarOpcion('f-proveedor-input','f-proveedor-dd','f-proveedor-val',''+p+'');onProveedorSeleccionado();">'+p+'</div>').join('');
+  } else {
+    provField.style.display='none';
+    rolloField.style.display='none';
+    document.getElementById('f-error').textContent='No hay rollos disponibles para esta factura';
+  }
+}
+function filtrarProveedoresFact(q){
+  const factura=document.getElementById('f-factura-val').value||document.getElementById('f-factura-input').value.trim();
+  const provs=getProveedoresPorFactura(factura);
+  const fil=q?provs.filter(p=>p.toLowerCase().includes(q.toLowerCase())):provs;
+  const dd=document.getElementById('f-proveedor-dd');
+  dd.innerHTML=fil.map(p=>'<div class="searchable-option" onmousedown="seleccionarOpcion('f-proveedor-input','f-proveedor-dd','f-proveedor-val',''+p+'');onProveedorSeleccionado();">'+p+'</div>').join('');
+  dd.classList.add('open');
+}
+function onProveedorSeleccionado(){
+  const factura=document.getElementById('f-factura-val').value||document.getElementById('f-factura-input').value.trim();
+  const proveedor=document.getElementById('f-proveedor-val').value||document.getElementById('f-proveedor-input').value.trim();
+  if(!proveedor)return;
+  poblarRollosDD(factura,proveedor);
+  document.getElementById('f-rollo-field').style.display='block';
+}
+function poblarRollosDD(factura,proveedor){
+  const usados=new Set(_registros.map(r=>r.factura+'|'+r.proveedor+'|'+r.rollo));
+  const lista=_cfgReferencias[proveedor]||[];
+  const rollos=lista.filter(r=>typeof r==='object'&&r.factura&&r.factura.toString()===factura&&!usados.has(r.factura+'|'+proveedor+'|'+r.rollo));
+  const dd=document.getElementById('f-rollo-dd');
+  if(!rollos.length){dd.innerHTML='<div class="searchable-empty">Sin rollos disponibles</div>';dd.classList.add('open');return;}
+  dd.innerHTML=rollos.map(r=>'<div class="searchable-option" onmousedown="seleccionarRollo(''+r.rollo+'')">Rollo '+r.rollo+'</div>').join('');
+}
+function filtrarRollos(q){
+  const factura=document.getElementById('f-factura-val').value||document.getElementById('f-factura-input').value.trim();
+  const proveedor=document.getElementById('f-proveedor-val').value||document.getElementById('f-proveedor-input').value.trim();
+  poblarRollosDD(factura,proveedor);
+  const dd=document.getElementById('f-rollo-dd');
+  if(q){
+    const items=dd.querySelectorAll('.searchable-option');
+    items.forEach(it=>{it.style.display=it.textContent.toLowerCase().includes(q.toLowerCase())?'':'none';});
+  }
+  dd.classList.add('open');
+}
+function seleccionarRollo(rollo){
+  document.getElementById('f-rollo-input').value=rollo;
+  document.getElementById('f-rollo-val').value=rollo;
+  document.getElementById('f-rollo').value=rollo;
+  cerrarDropdown('f-rollo-dd');
+  autocompletarCampos();
+}
+function autocompletarCampos(){
+  const factura=document.getElementById('f-factura-val').value||document.getElementById('f-factura-input').value.trim();
+  const proveedor=document.getElementById('f-proveedor-val').value||document.getElementById('f-proveedor-input').value.trim();
+  const rollo=document.getElementById('f-rollo-val').value;
+  const lista=_cfgReferencias[proveedor]||[];
+  const r=lista.find(x=>typeof x==='object'&&x.factura&&x.factura.toString()===factura&&x.rollo===rollo);
+  if(!r){document.getElementById('f-autocomplete-fields').style.display='none';return;}
+  document.getElementById('f-autocomplete-fields').style.display='block';
+  document.getElementById('f-proveedor-display').textContent=proveedor;
+  document.getElementById('f-proveedor-hidden').value=proveedor;
+  document.getElementById('f-ref-display').textContent=r.referencia||'';
+  document.getElementById('f-ref-val').value=r.referencia||'';
+  document.getElementById('f-color-display').textContent=r.color||'—';
+  document.getElementById('f-lote-display').textContent=r.lote||'—';
+  document.getElementById('f-lote').value=r.lote||'';
+  document.getElementById('f-ancho-display').textContent=r.ancho||'—';
+  document.getElementById('f-ancho').value=r.ancho||'';
+  document.getElementById('f-lote-prov-display').textContent=r.lote_prov||'—';
+  document.getElementById('f-peso-display').textContent=r.peso||'—';
+  document.getElementById('f-mts-display').textContent=r.mts||'—';
+}
 function openRegistroModal(){
   const hoy=fechaHoy();
   document.getElementById('f-fecha').value=hoy;
   document.getElementById('f-fecha-display').textContent=fechaDisplay(hoy);
-  document.getElementById('f-ref-input').value='';document.getElementById('f-ref-val').value='';
+  document.getElementById('f-factura-input').value='';document.getElementById('f-factura-val').value='';
   document.getElementById('f-proveedor-input').value='';document.getElementById('f-proveedor-val').value='';
-  document.getElementById('f-lote').value='';
+  document.getElementById('f-rollo-input').value='';document.getElementById('f-rollo-val').value='';
   document.getElementById('f-rollo').value='';
-  document.getElementById('f-ancho').value='';  
+  document.getElementById('f-lote').value='';document.getElementById('f-ancho').value='';
+  document.getElementById('f-ref-val').value='';
   document.getElementById('f-error').textContent='';
+  document.getElementById('f-proveedor-field').style.display='none';
+  document.getElementById('f-rollo-field').style.display='none';
+  document.getElementById('f-autocomplete-fields').style.display='none';
+  // Poblar facturas
+  const facts=getFacturasDisponibles();
+  const ddFact=document.getElementById('f-factura-dd');
+  ddFact.innerHTML=facts.map(f=>'<div class="searchable-option" onmousedown="seleccionarOpcion('f-factura-input','f-factura-dd','f-factura-val',''+f+'')">'+f+'</div>').join('');
   const selRev=document.getElementById('f-revisador');
   selRev.innerHTML='<option value="">— Seleccionar —</option>';
   getRevisadores().forEach(r=>{const o=document.createElement('option');o.value=r;o.textContent=r;selRev.appendChild(o);});
-  poblarSearchable('f-proveedor-input','f-proveedor-dd','f-proveedor-val',_cfgProveedores);
-  poblarSearchable('f-ref-input','f-ref-dd','f-ref-val',Object.values(_cfgReferencias).flat().map(r=>typeof r==='object'?r.referencia:r).filter(Boolean));
   const btnG=document.getElementById('btn-guardar-registro');
   if(btnG){btnG.onclick=guardarRegistro;btnG.textContent='💾 Guardar';}
   document.querySelector('#modal-registro .modal-title').textContent='➕ NUEVO REGISTRO';
@@ -1294,16 +1451,26 @@ function closeRegistroModal(){
 function guardarRegistro(){
   const fecha=document.getElementById('f-fecha').value;
   const revisador=_rtIsAdmin?document.getElementById('f-revisador').value:_rtCurrentUser;
-  const ref=document.getElementById('f-ref-val').value.trim()||document.getElementById('f-ref-input').value.trim();
-  const proveedor=document.getElementById('f-proveedor-val').value.trim()||document.getElementById('f-proveedor-input').value.trim();
+  const factura=document.getElementById('f-factura-val').value||document.getElementById('f-factura-input').value.trim();
+  const proveedor=document.getElementById('f-proveedor-hidden').value||document.getElementById('f-proveedor-val').value||document.getElementById('f-proveedor-input').value.trim();
+  const ref=document.getElementById('f-ref-val').value.trim();
+  const rollo=document.getElementById('f-rollo-val').value||document.getElementById('f-rollo').value.trim();
   const lote=document.getElementById('f-lote').value.trim();
-  const rollo=document.getElementById('f-rollo').value.trim();
   const ancho_reg=document.getElementById('f-ancho').value.trim();
   const errEl=document.getElementById('f-error');
   if(!revisador){errEl.textContent='Selecciona un revisador';return;}
-  if(!ref){errEl.textContent='La referencia es obligatoria';return;}
-  if(!rollo){errEl.textContent='Ingresa el # de rollo';return;}
-  const registro={id:'rt_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),fecha,revisador,referencia:ref,proveedor,lote,color:'',rollo,ancho:document.getElementById('f-ancho').value.trim(),hora_inicio:horaActual(),hora_fin:'',tiempo:'',metros:'',defectos:[],resultado:'',observaciones:'',finalizado:false};
+  if(!factura){errEl.textContent='Selecciona la factura';return;}
+  if(!rollo){errEl.textContent='Selecciona el # de rollo';return;}
+  if(!ref){errEl.textContent='No se pudo autocompletar la referencia';return;}
+  const registro={
+    id:'rt_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
+    fecha,revisador,factura,proveedor,referencia:ref,lote,rollo,ancho:ancho_reg,
+    color:document.getElementById('f-color-display').textContent||'',
+    lote_prov:document.getElementById('f-lote-prov-display').textContent||'',
+    peso:document.getElementById('f-peso-display').textContent||'',
+    mts:document.getElementById('f-mts-display').textContent||'',
+    hora_inicio:horaActual(),hora_fin:'',tiempo:'',metros:'',defectos:[],resultado:'',observaciones:'',finalizado:false
+  };
   _registros.push(registro);guardarEnServidor();aplicarFiltros();closeRegistroModal();
   showToast('✅ Registro creado — Hora inicio: '+registro.hora_inicio);
 }
@@ -1331,8 +1498,7 @@ function editarRegistro(id){
       document.getElementById('edit-fin-resultado').value=r.resultado||'';
       document.getElementById('edit-btn-aprobado').className='toggle-btn'+(r.resultado==='aprobado'?' active-ok':'');
       document.getElementById('edit-btn-rechazado').className='toggle-btn'+(r.resultado==='rechazado'?' active-rech':'');
-      setEditProcTercero(r.proc_tercero||'no');
-      const sel=document.getElementById('edit-fin-prov-tercero-sel');
+      const sel=null;
       const opts=_cfgProveedoresTerceros.length?_cfgProveedoresTerceros:[];
       sel.innerHTML='<option value="">— Seleccionar —</option>'+opts.map(p=>'<option value="'+p+'">'+p+'</option>').join('');
       sel.value=r.prov_tercero||'';
@@ -1401,8 +1567,8 @@ function guardarEdicion(id){
     const peso=document.getElementById('edit-fin-peso').value.trim();
     const resultado=document.getElementById('edit-fin-resultado').value;
     const obs=document.getElementById('edit-fin-observaciones').value.trim();
-    const procTercero=document.getElementById('edit-fin-proc-tercero').value;
-    const provTercero=procTercero==='si'?document.getElementById('edit-fin-prov-tercero-sel').value:'';
+    const procTercero='no';
+    const provTercero='';
     const defectos=[];
     document.querySelectorAll('#edit-fin-defectos-list > div').forEach(row=>{
       const sel=row.querySelector('select');const inputs=row.querySelectorAll('input');
@@ -1428,9 +1594,9 @@ function openFinalizar(id){
   document.getElementById('btn-aprobado').className='toggle-btn';
   document.getElementById('btn-rechazado').className='toggle-btn';
   // Resetear proceso a tercero
-  setProcTercero('no');
+
   // Poblar proveedores terceros desde configuraciones
-  const sel=document.getElementById('fin-prov-tercero-sel');
+  const sel=null;
   const opts=_cfgProveedoresTerceros.length?_cfgProveedoresTerceros:[];
   sel.innerHTML='<option value="">— Seleccionar —</option>'+opts.map(p=>'<option value="'+p+'">'+p+'</option>').join('');
   if(!opts.length) sel.innerHTML+='<option value="" disabled style="color:#94a3b8;">Sin proveedores en Configuraciones</option>';
@@ -1479,8 +1645,8 @@ function guardarFinalizar(){
   const peso=document.getElementById('fin-peso').value.trim();
   const resultado=document.getElementById('fin-resultado').value;
   const obs=document.getElementById('fin-observaciones').value.trim();
-  const procTercero=document.getElementById('fin-proc-tercero').value;
-  const provTercero=procTercero==='si'?document.getElementById('fin-prov-tercero-sel').value:'';
+  const procTercero='no';
+  const provTercero='';
   const errEl=document.getElementById('fin-error');
   if(!metros){errEl.textContent='Ingresa los metros revisados';return;}
   if(!resultado){errEl.textContent='Selecciona Aprobado o Rechazado';return;}
@@ -1734,6 +1900,13 @@ function importarReferencias(){
       if(!prov&&!ref)return; // fila vacía
       const provKey=prov||'Sin proveedor';
       if(!nr[provKey])nr[provKey]=[];
+      // Validar duplicado exacto
+      const esDuplicado=nr[provKey].some(x=>
+        x.factura===factura&&x.referencia===g(row,2)&&x.color===g(row,3)&&
+        x.lote===g(row,4)&&x.rollo===g(row,5)&&x.ancho===g(row,6)&&
+        x.lote_prov===g(row,7)&&x.peso===g(row,8)&&x.mts===g(row,9)
+      );
+      if(esDuplicado)return;
       nr[provKey].push({
         factura:    factura,
         referencia: ref,
@@ -2036,10 +2209,7 @@ function verDetalles(id){
           ${r.resultado==='aprobado'?'<span class="badge-ok">✅ Aprobado</span>':r.resultado==='rechazado'?'<span class="badge-rech">❌ Rechazado</span>':'<span class="badge-pend">🔄 En Revisión</span>'}
         </div>
       </div>
-      <div class="field">
-        <div class="field-label">Proceso a Tercero</div>
-        <div class="field-value">${r.proc_tercero==='si'?'✅ Sí — '+(r.prov_tercero||''):'No'}</div>
-      </div>
+
     </div>
   </div>
 
