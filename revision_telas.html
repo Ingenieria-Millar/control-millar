@@ -1326,7 +1326,7 @@ function filtrarFacturas(q){
   const facts=getFacturasDisponibles();
   const fil=q?facts.filter(f=>f.includes(q)):facts;
   const dd=document.getElementById('f-factura-dd');
-  dd.innerHTML=fil.length?fil.map(f=>'<div class="searchable-option" onmousedown="seleccionarOpcion('f-factura-input','f-factura-dd','f-factura-val',''+f+'')">'+f+'</div>').join(''):'<div class="searchable-empty">Sin facturas</div>';
+  dd.innerHTML=fil.length?fil.map(f=>'<div class="searchable-option" onmousedown="seleccionarOpcion(\'f-factura-input\',\'f-factura-dd\',\'f-factura-val\',\''+f+'\')">'+f+'</div>').join(''):'<div class="searchable-empty">Sin facturas</div>';
   dd.classList.add('open');
 }
 function onFacturaSeleccionada(){
@@ -1351,7 +1351,7 @@ function onFacturaSeleccionada(){
     provField.style.display='block';
     rolloField.style.display='none';
     const dd=document.getElementById('f-proveedor-dd');
-    dd.innerHTML=provs.map(p=>'<div class="searchable-option" onmousedown="seleccionarOpcion('f-proveedor-input','f-proveedor-dd','f-proveedor-val',''+p+'');onProveedorSeleccionado();">'+p+'</div>').join('');
+    dd.innerHTML=provs.map(p=>'<div class="searchable-option" onmousedown="seleccionarOpcion(\'f-proveedor-input\',\'f-proveedor-dd\',\'f-proveedor-val\',\''+p+'\');onProveedorSeleccionado();">'+p+'</div>').join('');
   } else {
     provField.style.display='none';
     rolloField.style.display='none';
@@ -1363,7 +1363,7 @@ function filtrarProveedoresFact(q){
   const provs=getProveedoresPorFactura(factura);
   const fil=q?provs.filter(p=>p.toLowerCase().includes(q.toLowerCase())):provs;
   const dd=document.getElementById('f-proveedor-dd');
-  dd.innerHTML=fil.map(p=>'<div class="searchable-option" onmousedown="seleccionarOpcion('f-proveedor-input','f-proveedor-dd','f-proveedor-val',''+p+'');onProveedorSeleccionado();">'+p+'</div>').join('');
+  dd.innerHTML=fil.map(p=>'<div class="searchable-option" onmousedown="seleccionarOpcion(\'f-proveedor-input\',\'f-proveedor-dd\',\'f-proveedor-val\',\''+p+'\');onProveedorSeleccionado();">'+p+'</div>').join('');
   dd.classList.add('open');
 }
 function onProveedorSeleccionado(){
@@ -1379,7 +1379,7 @@ function poblarRollosDD(factura,proveedor){
   const rollos=lista.filter(r=>typeof r==='object'&&r.factura&&r.factura.toString()===factura&&!usados.has(r.factura+'|'+proveedor+'|'+r.rollo));
   const dd=document.getElementById('f-rollo-dd');
   if(!rollos.length){dd.innerHTML='<div class="searchable-empty">Sin rollos disponibles</div>';dd.classList.add('open');return;}
-  dd.innerHTML=rollos.map(r=>'<div class="searchable-option" onmousedown="seleccionarRollo(''+r.rollo+'')">Rollo '+r.rollo+'</div>').join('');
+  dd.innerHTML=rollos.map(r=>'<div class="searchable-option" onmousedown="seleccionarRollo(\''+r.rollo+'\')" >Rollo '+r.rollo+'</div>').join('');
 }
 function filtrarRollos(q){
   const factura=document.getElementById('f-factura-val').value||document.getElementById('f-factura-input').value.trim();
@@ -1437,7 +1437,7 @@ function openRegistroModal(){
   // Poblar facturas
   const facts=getFacturasDisponibles();
   const ddFact=document.getElementById('f-factura-dd');
-  ddFact.innerHTML=facts.map(f=>'<div class="searchable-option" onmousedown="seleccionarOpcion('f-factura-input','f-factura-dd','f-factura-val',''+f+'')">'+f+'</div>').join('');
+  ddFact.innerHTML=facts.map(f=>'<div class="searchable-option" onmousedown="seleccionarOpcion(\'f-factura-input\',\'f-factura-dd\',\'f-factura-val\',\''+f+'\')" >'+f+'</div>').join('');
   const selRev=document.getElementById('f-revisador');
   selRev.innerHTML='<option value="">— Seleccionar —</option>';
   getRevisadores().forEach(r=>{const o=document.createElement('option');o.value=r;o.textContent=r;selRev.appendChild(o);});
