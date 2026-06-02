@@ -70,7 +70,8 @@ function filtrarRefsPorProveedor(){
   document.getElementById('f-ref-input').value='';
   document.getElementById('f-ref-val').value='';
   const dd=document.getElementById('f-ref-dd');
-  dd.innerHTML=refs.length?refs.map(r=>`<div class="searchable-option" onmousedown="seleccionarOpcion('f-ref-input','f-ref-dd','f-ref-val','${r}')">${r}</div>`).join(''):'<div class="searchable-empty">Sin referencias para este proveedor</div>';
+  const refNames=refs.map(r=>typeof r==='object'?r.referencia:r).filter(Boolean);
+  dd.innerHTML=refNames.length?refNames.map(r=>`<div class="searchable-option" onmousedown="seleccionarOpcion('f-ref-input','f-ref-dd','f-ref-val','${r}')">${r}</div>`).join(''):'<div class="searchable-empty">Sin referencias para este proveedor</div>';
 }
 // Pestaña 2
 function getDefectoOptions(){
@@ -1278,7 +1279,7 @@ function openRegistroModal(){
   selRev.innerHTML='<option value="">— Seleccionar —</option>';
   getRevisadores().forEach(r=>{const o=document.createElement('option');o.value=r;o.textContent=r;selRev.appendChild(o);});
   poblarSearchable('f-proveedor-input','f-proveedor-dd','f-proveedor-val',_cfgProveedores);
-  poblarSearchable('f-ref-input','f-ref-dd','f-ref-val',Object.values(_cfgReferencias).flat());
+  poblarSearchable('f-ref-input','f-ref-dd','f-ref-val',Object.values(_cfgReferencias).flat().map(r=>typeof r==='object'?r.referencia:r).filter(Boolean));
   const btnG=document.getElementById('btn-guardar-registro');
   if(btnG){btnG.onclick=guardarRegistro;btnG.textContent='💾 Guardar';}
   document.querySelector('#modal-registro .modal-title').textContent='➕ NUEVO REGISTRO';
