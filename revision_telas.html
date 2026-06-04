@@ -384,9 +384,9 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1000;
   align-items:center;justify-content:center;padding:16px;}
 .modal-overlay.open{display:flex;}
-.modal-box{background:#fff;border-radius:16px;width:100%;max-width:480px;max-height:90vh;
+.modal-box{background:#fff;border-radius:16px;width:100%;max-width:680px;max-height:92vh;
   overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);font-family:'Nunito',sans-serif;}
-.modal-box.wide{max-width:560px;}
+.modal-box.wide{max-width:760px;}
 .modal-header{padding:20px 24px 16px;border-bottom:1px solid #e2e8f0;position:sticky;top:0;background:#fff;z-index:1;}
 .modal-title{font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:800;letter-spacing:2px;color:#0f172a;}
 .modal-body{padding:20px 24px;}
@@ -1429,12 +1429,21 @@ function onProveedorSeleccionado(){
   document.getElementById('f-rollo-field').style.display='block';
 }
 function poblarRollosDD(factura,proveedor){
+  // Bloquear rollos que ya tienen registro (en revisión o finalizados)
   const usados=new Set(_registros.map(r=>r.lote+'|'+r.proveedor+'|'+r.rollo));
   const lista=_cfgReferencias[proveedor]||[];
-  const rollos=lista.filter(r=>typeof r==='object'&&r.lote&&r.lote.toString()===factura&&!usados.has(r.lote+'|'+proveedor+'|'+r.rollo));
+  const disponibles=lista.filter(r=>typeof r==='object'&&r.lote&&r.lote.toString()===factura&&!usados.has(r.lote+'|'+proveedor+'|'+r.rollo));
+  const bloqueados=lista.filter(r=>typeof r==='object'&&r.lote&&r.lote.toString()===factura&&usados.has(r.lote+'|'+proveedor+'|'+r.rollo));
   const dd=document.getElementById('f-rollo-dd');
-  if(!rollos.length){dd.innerHTML='<div class="searchable-empty">Sin rollos disponibles</div>';dd.classList.add('open');return;}
-  dd.innerHTML=rollos.map(r=>'<div class="searchable-option" onmousedown="seleccionarRollo(\''+r.rollo+'\')" >Rollo '+r.rollo+'</div>').join('');
+  if(!disponibles.length&&!bloqueados.length){dd.innerHTML='<div class="searchable-empty">Sin rollos para este lote</div>';dd.classList.add('open');return;}
+  let html=disponibles.map(r=>'<div class="searchable-option" onmousedown="seleccionarRollo(\''+r.rollo+'\')">Rollo '+r.rollo+'</div>').join('');
+  if(bloqueados.length){
+    html+='<div style="padding:6px 12px;font-size:10px;font-weight:700;color:#94a3b8;letter-spacing:.5px;text-transform:uppercase;border-top:1px solid #f1f5f9;margin-top:4px;">Ya registrados</div>';
+    html+=bloqueados.map(r=>'<div style="padding:8px 12px;font-size:13px;color:#cbd5e1;cursor:not-allowed;display:flex;align-items:center;gap:6px;">🔒 Rollo '+r.rollo+'</div>').join('');
+  }
+  if(!disponibles.length) html='<div class="searchable-empty">Todos los rollos ya están registrados</div>'+html.replace(html.split('</div>')[0]+'</div>','');
+  dd.innerHTML=html;
+  dd.classList.add('open');
 }
 function filtrarRollos(q){
   const factura=document.getElementById('f-factura-val').value||document.getElementById('f-factura-input').value.trim();
