@@ -359,12 +359,7 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
   gap:0;padding:11px 16px;border-bottom:1px solid #f8fafc;transition:background .12s;align-items:center;}
 .table-row:hover{background:#f8fafc;}
 .td{font-size:12px;color:#334155;font-family:'Nunito',sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-/* FAB */
-.rt-fab{position:fixed;bottom:28px;right:28px;width:52px;height:52px;border-radius:50%;
-  background:#1e3a8a;color:#fff;border:none;font-size:26px;cursor:pointer;
-  display:none;align-items:center;justify-content:center;z-index:300;
-  box-shadow:0 4px 16px rgba(30,58,138,.35);transition:transform .15s,background .15s;}
-.rt-fab:hover{background:#1e40af;transform:scale(1.08);}
+
 /* Footer barra */
 .rt-footer{height:38px;background:#fff;border-top:1px solid #e2e8f0;display:flex;align-items:center;
   justify-content:space-between;padding:0 20px;flex-shrink:0;font-size:12px;color:#64748b;font-family:'Nunito',sans-serif;}
@@ -596,8 +591,6 @@ input[type=number]{-moz-appearance:textfield;}
     <span>© 2026 Ingeniería Confecciones Millar S.A.S.</span>
   </div>
 </div>
-<!-- FAB -->
-<button class="rt-fab" id="rt-fab-btn" onclick="openRegistroModal()" title="Nuevo Registro">+</button>
 
 <div class="toast" id="rt-toast"></div>
 
@@ -1072,12 +1065,16 @@ async function syncPoll(){
       const d=await res.json();
       const raw=d.referencias||{};
       Object.keys(raw).forEach(prov=>{raw[prov]=(raw[prov]||[]).map(r=>typeof r==='object'?r:{referencia:String(r||'')});});
+      const prevLen=_registros.length;
+      const prevHash=_registros.map(r=>r.id+'|'+r.finalizado+'|'+r.resultado).join(',');
       _registros=d.registros||[];
       _cfgDefectos=d.defectos||_cfgDefectos;
       _cfgReferencias=raw;
       _cfgColores=d.colores||_cfgColores;
       _cfgProveedores=d.proveedores||_cfgProveedores;
-      aplicarFiltros();
+      // Solo actualizar tabla si hubo cambios reales en los registros
+      const newHash=_registros.map(r=>r.id+'|'+r.finalizado+'|'+r.resultado).join(',');
+      if(newHash!==prevHash) aplicarFiltros();
     }
   }catch(e){}
 }
@@ -1141,7 +1138,6 @@ async function guardarEnServidor(){
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({registros:_registros,defectos:_cfgDefectos,referencias:_cfgReferencias,colores:_cfgColores,proveedores:_cfgProveedores,proveedoresTerceros:_cfgProveedoresTerceros})
     });
-    aplicarFiltros(); // actualizar vista local inmediatamente
   }catch(e){console.warn(e);}
 }
 
@@ -1221,8 +1217,6 @@ function rtEntrarApp(){
   if(revField)revField.style.display=_rtIsAdmin?'':'none';
   const nuevoBtn=document.getElementById('rt-nuevo-btn');
   if(nuevoBtn)nuevoBtn.style.display='block';
-  const fab=document.getElementById('rt-fab-btn');
-  if(fab)fab.style.display='flex';
   // Guardar sesión para persistir al refrescar
   sessionStorage.setItem('rt_session', JSON.stringify({user:_rtCurrentUser, isAdmin:_rtIsAdmin}));
   aplicarFiltros();
@@ -1233,7 +1227,6 @@ function rtCerrarSesion(){
   sessionStorage.removeItem('rt_session');
   document.getElementById('rt-user-badge').style.display='none';
   document.getElementById('rt-admin-btns').style.display='none';
-  const fab2=document.getElementById('rt-fab-btn');if(fab2)fab2.style.display='none';
   const nb=document.getElementById('rt-nuevo-btn');if(nb)nb.style.display='none';
   const abr=document.getElementById('rt-admin-btns-row');if(abr)abr.style.display='none';
   document.getElementById('rt-login-user').value='';
@@ -2093,11 +2086,21 @@ function plantillaProvTerceros(){const ws=XLSX.utils.aoa_to_sheet([['Proveedor']
 let _colFilters=['','','','',''];
 function filtrarTabla(colIdx,val){
   _colFilters[colIdx]=val.toLowerCase();
-  document.getElementById('rt-table-body').querySelectorAll('.table-row').forEach(row=>{
+  const visibles=[];
+  document.getElementById('rt-table-body').querySelectorAll('.table-row').forEach((row,i)=>{
     const cells=[...row.querySelectorAll('.td')];
-    const match=_colFilters.every((f,i)=>!f||(cells[i]&&cells[i].textContent.toLowerCase().includes(f)));
+    const match=_colFilters.every((f,j)=>!f||(cells[j]&&cells[j].textContent.toLowerCase().includes(f)));
     row.style.display=match?'':'none';
+    if(match&&_filtrados[i])visibles.push(_filtrados[i]);
   });
+  // Actualizar footer con solo las filas visibles
+  const fin=visibles.filter(r=>r.finalizado);
+  const totalMetros=visibles.reduce((s,r)=>s+parseFloat(r.metros||0),0);
+  const el=id=>document.getElementById(id);
+  if(el('footer-metros'))el('footer-metros').textContent=totalMetros>0?totalMetros.toFixed(1)+' m':'—';
+  if(el('footer-count'))el('footer-count').textContent=visibles.length;
+  if(el('footer-aprobados'))el('footer-aprobados').textContent=fin.filter(r=>r.resultado==='aprobado').length;
+  if(el('footer-rechazados'))el('footer-rechazados').textContent=fin.filter(r=>r.resultado==='rechazado').length;
 }
 
 // ── Toast ──────────────────────────────────────────────────────────
