@@ -521,7 +521,7 @@ app.post('/api/revision-telas', (req, res) => {
   const proveedores = req.body.proveedores||[];
   const proveedoresTerceros = req.body.proveedoresTerceros||[];
   saveDB('revision_telas', { registros, defectos: defectos||[], referencias: referencias||[], colores: colores||[], proveedores, proveedoresTerceros });
-  broadcastLocal({ type: 'rt_update', registros, defectos: defectos||[], referencias: referencias||[], colores: colores||[], proveedores, proveedoresTerceros });
+  broadcast({ type: 'rt_update', registros, defectos: defectos||[], referencias: referencias||[], colores: colores||[], proveedores, proveedoresTerceros });
   res.json({ ok: true });
 });
 
