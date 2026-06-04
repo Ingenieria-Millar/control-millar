@@ -21,7 +21,7 @@ function switchCfgTab(n){
   });
   if(n===1) renderRefsTable();
   if(n===2) renderDefectosList();
-  if(n===3) renderProvTercerosList();
+
 }
 // Pestaña 1
 function renderRefsTable(){
@@ -285,7 +285,7 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
 .hd-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
 .hd-back-btn{padding:6px 14px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;
   color:#1e3a8a;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;
-  letter-spacing:.5px;cursor:pointer;transition:all .2s;white-space:nowrap;}
+  letter-spacing:.5px;cursor:pointer;transition:none;white-space:nowrap;}
 .hd-back-btn:hover{background:#f1f5f9;border-color:#93c5fd;}
 .millar-nav{display:flex;align-items:center;gap:2px;}
 .millar-nav-item{position:relative;}
@@ -843,7 +843,6 @@ input[type=number]{-moz-appearance:textfield;}
   <div style="background:#fff;border-bottom:1px solid #e2e8f0;padding:0 24px;display:flex;gap:0;">
     <button class="cfg-tab-btn active" id="cfg-tab-btn-1" onclick="switchCfgTab(1)">🧵 Referencias por Proveedor</button>
     <button class="cfg-tab-btn" id="cfg-tab-btn-2" onclick="switchCfgTab(2)">⚠️ Defectos</button>
-    <button class="cfg-tab-btn" id="cfg-tab-btn-3" onclick="switchCfgTab(3)">🏭 Proveedores Terceros</button>
   </div>
   <div style="flex:1;overflow-y:auto;padding:24px clamp(12px,2.5vw,24px);">
     <!-- Pestaña 1 -->
@@ -946,23 +945,7 @@ input[type=number]{-moz-appearance:textfield;}
       </div>
     </div>
     <!-- Pestaña 3 -->
-    <div id="cfg-panel-3" style="display:none;max-width:700px;margin:0 auto;">
-      <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;">
-        <div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;background:#f8fafc;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-          <div><div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#0f172a;">🏭 Proveedores Terceros</div><div style="font-size:12px;color:#64748b;margin-top:2px;">Lista de proveedores de referencia</div></div>
-          <div style="display:flex;gap:8px;">
-            <button class="btn btn-outline" style="font-size:12px;padding:7px 12px;" onclick="importarProvTerceros()">📥 Importar</button>
-            <button class="btn btn-outline" style="font-size:12px;padding:7px 12px;" onclick="plantillaProvTerceros()">📄 Plantilla</button>
-            <button class="btn btn-danger" style="font-size:12px;padding:7px 12px;" onclick="limpiarProvTerceros()">🗑 Limpiar</button>
-          </div>
-        </div>
-        <div style="padding:12px 16px;max-height:400px;overflow-y:auto;" id="cfg-prov-terceros-list"></div>
-        <div style="padding:12px 16px;border-top:1px solid #f1f5f9;display:flex;gap:8px;">
-          <input class="cfg-add-input" id="cfg-add-prov-tercero" placeholder="Nombre del proveedor..." onkeydown="if(event.key==='Enter')agregarProvTercero()">
-          <button class="btn btn-primary" style="padding:7px 12px;" onclick="agregarProvTercero()">+ Agregar</button>
-        </div>
-      </div>
-    </div>
+    
   </div>
 </div>
 
@@ -979,7 +962,12 @@ input[type=number]{-moz-appearance:textfield;}
         <p style="font-size:11px;color:#64748b;font-weight:600;margin-top:1px;">Revisión de Telas — Estadísticas</p>
       </div>
     </div>
-    <button class="hd-back-btn" onclick="cerrarDashboard()">← Volver</button>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <label style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;">Fecha</label>
+      <input type="date" id="dash-filtro-fecha" style="padding:5px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;font-family:'Nunito',sans-serif;" onchange="renderDashboard()">
+      <button onclick="document.getElementById('dash-filtro-fecha').value='';renderDashboard();" style="padding:5px 10px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:12px;font-family:'Barlow Condensed',sans-serif;font-weight:700;cursor:pointer;">Todas</button>
+      <button class="hd-back-btn" onclick="cerrarDashboard()">← Volver</button>
+    </div>
   </div>
   <div style="flex:1;overflow-y:auto;padding:24px clamp(12px,2.5vw,24px);" id="rt-dash-content">
     <div style="max-width:1200px;margin:0 auto;">
@@ -1095,6 +1083,7 @@ async function guardarEnServidor(){
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({registros:_registros,defectos:_cfgDefectos,referencias:_cfgReferencias,colores:_cfgColores,proveedores:_cfgProveedores,proveedoresTerceros:_cfgProveedoresTerceros})
     });
+    aplicarFiltros(); // actualizar vista local inmediatamente
   }catch(e){console.warn(e);}
 }
 
@@ -1114,6 +1103,15 @@ async function rtInitLogin(){
   const logoSrc=document.getElementById('rt-login-logo')?.src||'';
   const dl=document.getElementById('dash-logo');if(dl&&logoSrc)dl.src=logoSrc;
   const cl=document.getElementById('cfg-logo');if(cl&&logoSrc)cl.src=logoSrc;
+  // Restaurar sesión si existe
+  try{
+    const saved=JSON.parse(sessionStorage.getItem('rt_session')||'null');
+    if(saved&&saved.user){
+      _rtCurrentUser=saved.user;_rtIsAdmin=saved.isAdmin;
+      await cargarRevisadores();
+      rtEntrarApp();return;
+    }
+  }catch(e){}
   const sel=document.getElementById('rt-login-user');
   sel.innerHTML='<option value="">— Selecciona un usuario —</option><option value="__admin__">👑 Administrador</option>';
   await cargarRevisadores();
@@ -1165,11 +1163,14 @@ function rtEntrarApp(){
   if(revField)revField.style.display=_rtIsAdmin?'':'none';
   const nuevoBtn=document.getElementById('rt-nuevo-btn');
   if(nuevoBtn)nuevoBtn.style.display='block';
+  // Guardar sesión para persistir al refrescar
+  sessionStorage.setItem('rt_session', JSON.stringify({user:_rtCurrentUser, isAdmin:_rtIsAdmin}));
   aplicarFiltros();
 }
 
 function rtCerrarSesion(){
   _rtCurrentUser=null;_rtIsAdmin=false;
+  sessionStorage.removeItem('rt_session');
   document.getElementById('rt-user-badge').style.display='none';
   document.getElementById('rt-admin-btns').style.display='none';
   const nb=document.getElementById('rt-nuevo-btn');if(nb)nb.style.display='none';
@@ -1506,15 +1507,40 @@ function guardarRegistro(){
 // ── Editar registro ────────────────────────────────────────────────
 function editarRegistro(id){
   const r=_registros.find(x=>x.id===id);if(!r)return;
-  openRegistroModal();
+  // Abrir modal de registro limpio sin resetear
+  document.querySelector('#modal-registro .modal-title').textContent='✏️ EDITAR REGISTRO';
+  document.getElementById('modal-registro').classList.add('open');
+  // Reset campos de nuevo flujo (ocultarlos en edición)
+  document.getElementById('f-proveedor-field').style.display='none';
+  document.getElementById('f-rollo-field').style.display='none';
+  // Mostrar campos autocomplete pre-llenados
+  document.getElementById('f-autocomplete-fields').style.display='block';
+  document.getElementById('f-factura-input').value=r.lote||'';
+  document.getElementById('f-factura-val').value=r.lote||'';
   document.getElementById('f-fecha').value=r.fecha||'';
   document.getElementById('f-fecha-display').textContent=fechaDisplay(r.fecha||'');
-  document.getElementById('f-revisador').value=r.revisador||'';
-  document.getElementById('f-ref-input').value=r.referencia||'';document.getElementById('f-ref-val').value=r.referencia||'';
-  document.getElementById('f-proveedor-input').value=r.proveedor||'';document.getElementById('f-proveedor-val').value=r.proveedor||'';
+  const selRev=document.getElementById('f-revisador');
+  selRev.innerHTML='<option value="">— Seleccionar —</option>';
+  getRevisadores().forEach(rv=>{const o=document.createElement('option');o.value=rv;o.textContent=rv;selRev.appendChild(o);});
+  selRev.value=r.revisador||'';
+  document.getElementById('f-proveedor-display').textContent=r.proveedor||'';
+  document.getElementById('f-proveedor-hidden').value=r.proveedor||'';
+  document.getElementById('f-ref-display').textContent=r.referencia||'';
+  document.getElementById('f-ref-val').value=r.referencia||'';
+  document.getElementById('f-color-display').textContent=r.color||'—';
+  document.getElementById('f-lote-display').textContent=r.lote||'—';
   document.getElementById('f-lote').value=r.lote||'';
+  document.getElementById('f-rollo-input')?document.getElementById('f-rollo-input').value=r.rollo||'':'';
+  document.getElementById('f-rollo-val').value=r.rollo||'';
   document.getElementById('f-rollo').value=r.rollo||'';
+  document.getElementById('f-ancho-display').textContent=r.ancho||'—';
   document.getElementById('f-ancho').value=r.ancho||'';
+  document.getElementById('f-lote-prov-display').textContent=r.lote_prov||'—';
+  document.getElementById('f-peso-display').textContent=r.peso||'—';
+  document.getElementById('f-mts-display').textContent=r.mts||'—';
+  if(document.getElementById('f-factura-real-display'))
+    document.getElementById('f-factura-real-display').textContent=r.factura||'—';
+  document.getElementById('f-error').textContent='';
   const secFin=document.getElementById('edit-fin-section');
   if(secFin){
     secFin.style.display=r.finalizado?'block':'none';
@@ -1832,7 +1858,9 @@ function barChart(data,colorFn){
   return data.map(d=>{const pct=max>0?(d.val/max*100):0;const color=colorFn?colorFn(d):'#2563eb';return '<div style="margin-bottom:10px;"><div style="display:flex;justify-content:space-between;margin-bottom:3px;"><span style="font-size:12px;font-weight:600;color:#334155;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+d.label+'</span><span style="font-family:\'Barlow Condensed\',sans-serif;font-size:14px;font-weight:800;color:#0f172a;">'+(typeof d.val==='number'&&!Number.isInteger(d.val)?d.val.toFixed(1):d.val)+(d.unit||'')+'</span></div><div style="background:#f1f5f9;border-radius:6px;height:10px;overflow:hidden;"><div style="width:'+pct+'%;height:100%;background:'+color+';border-radius:6px;"></div></div></div>';}).join('');
 }
 function renderDashboard(){
-  const regs=_registros,fin=regs.filter(r=>r.finalizado),totalMetros=regs.reduce((s,r)=>s+parseFloat(r.metros||0),0),totalDef=fin.reduce((s,r)=>s+(r.defectos||[]).reduce((ss,d)=>ss+parseInt(d.cantidad||0),0),0),aprobados=fin.filter(r=>r.resultado==='aprobado').length,rechazados=fin.filter(r=>r.resultado==='rechazado').length,enRev=regs.filter(r=>!r.finalizado).length;
+  const fechaDash=document.getElementById('dash-filtro-fecha')?.value||'';
+  const regs=_registros.filter(r=>!fechaDash||r.fecha===fechaDash);
+  const allRegs=regs,fin=regs.filter(r=>r.finalizado),totalMetros=regs.reduce((s,r)=>s+parseFloat(r.metros||0),0),totalDef=fin.reduce((s,r)=>s+(r.defectos||[]).reduce((ss,d)=>ss+parseInt(d.cantidad||0),0),0),aprobados=fin.filter(r=>r.resultado==='aprobado').length,rechazados=fin.filter(r=>r.resultado==='rechazado').length,enRev=regs.filter(r=>!r.finalizado).length;
   document.getElementById('dash-stats-row').innerHTML=[{n:'Total',v:regs.length,c:'#0f172a'},{n:'Finalizados',v:fin.length,c:'#2563eb'},{n:'En Revisión',v:enRev,c:'#b45309'},{n:'Aprobados',v:aprobados,c:'#15803d'},{n:'Rechazados',v:rechazados,c:'#dc2626'},{n:'Metros',v:totalMetros.toFixed(1)+'m',c:'#7c3aed'},{n:'Defectos',v:totalDef,c:'#c2410c'}].map(s=>'<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px 18px;min-width:100px;flex:1;"><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:26px;font-weight:800;color:'+s.c+';">'+s.v+'</div><div style="font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#94a3b8;">'+s.n+'</div></div>').join('');
   const porRev={};regs.forEach(r=>{porRev[r.revisador||'—']=(porRev[r.revisador||'—']||0)+1;});
   document.getElementById('dash-por-revisador').innerHTML=barChart(Object.entries(porRev).sort((a,b)=>b[1]-a[1]).map(([l,v])=>({label:l,val:v})),()=>'#2563eb');
