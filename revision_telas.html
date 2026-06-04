@@ -699,6 +699,16 @@ input[type=number]{-moz-appearance:textfield;}
           <input type="number" min="0" step="0.1" class="field-input" id="edit-fin-peso">
         </div>
       </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="form-field">
+          <label class="field-label">Hora Inicio</label>
+          <input type="text" class="field-input" id="edit-fin-hora-inicio" placeholder="Ej: 08:30 AM">
+        </div>
+        <div class="form-field">
+          <label class="field-label">Hora Fin</label>
+          <input type="text" class="field-input" id="edit-fin-hora-fin" placeholder="Ej: 09:15 AM">
+        </div>
+      </div>
       <div class="form-field">
         <label class="field-label">Resultado</label>
         <div class="toggle-wrap">
@@ -963,9 +973,11 @@ input[type=number]{-moz-appearance:textfield;}
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-      <label style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;">Fecha</label>
-      <input type="date" id="dash-filtro-fecha" style="padding:5px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;font-family:'Nunito',sans-serif;" onchange="renderDashboard()">
-      <button onclick="document.getElementById('dash-filtro-fecha').value='';renderDashboard();" style="padding:5px 10px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:12px;font-family:'Barlow Condensed',sans-serif;font-weight:700;cursor:pointer;">Todas</button>
+      <label style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;">Desde</label>
+      <input type="date" id="dash-filtro-desde" style="padding:5px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;font-family:'Nunito',sans-serif;" onchange="renderDashboard()">
+      <label style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;">Hasta</label>
+      <input type="date" id="dash-filtro-hasta" style="padding:5px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;font-family:'Nunito',sans-serif;" onchange="renderDashboard()">
+      <button onclick="document.getElementById('dash-filtro-desde').value='';document.getElementById('dash-filtro-hasta').value='';renderDashboard();" style="padding:5px 10px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:12px;font-family:'Barlow Condensed',sans-serif;font-weight:700;cursor:pointer;">Todas</button>
       <button class="hd-back-btn" onclick="cerrarDashboard()">← Volver</button>
     </div>
   </div>
@@ -1028,6 +1040,29 @@ let _filtroDesde='', _filtroHasta='';
 let _rtCurrentUser=null, _rtIsAdmin=false, _rtMembersData=[], _revisadores=[];
 
 // ── WebSocket ──────────────────────────────────────────────────────
+// ── Polling fallback para sincronización ──────────────────────────
+let _lastSync=Date.now();
+async function syncPoll(){
+  try{
+    const res=await fetch('/api/revision-telas');
+    if(res.ok){
+      const d=await res.json();
+      const raw=d.referencias||{};
+      Object.keys(raw).forEach(prov=>{raw[prov]=(raw[prov]||[]).map(r=>typeof r==='object'?r:{referencia:String(r||'')});});
+      _registros=d.registros||[];
+      _cfgDefectos=d.defectos||_cfgDefectos;
+      _cfgReferencias=raw;
+      _cfgColores=d.colores||_cfgColores;
+      _cfgProveedores=d.proveedores||_cfgProveedores;
+      aplicarFiltros();
+    }
+  }catch(e){}
+}
+// Polling cada 8 segundos como fallback
+setInterval(()=>{if(!wsReady&&_rtCurrentUser)syncPoll();},8000);
+// También polling cada 5 segundos siempre para garantizar sync
+setInterval(()=>{if(_rtCurrentUser)syncPoll();},5000);
+
 function connectWS(){
   if(!location.host) return;
   const proto=location.protocol==='https:'?'wss':'ws';
@@ -1548,6 +1583,8 @@ function editarRegistro(id){
       document.getElementById('edit-fin-metros').value=r.metros||'';
       document.getElementById('edit-fin-ancho').value=r.ancho||'';
       document.getElementById('edit-fin-peso').value=r.peso||'';
+      document.getElementById('edit-fin-hora-inicio').value=r.hora_inicio||'';
+      document.getElementById('edit-fin-hora-fin').value=r.hora_fin||'';
       document.getElementById('edit-fin-observaciones').value=r.observaciones||'';
       document.getElementById('edit-fin-resultado').value=r.resultado||'';
       document.getElementById('edit-btn-aprobado').className='toggle-btn'+(r.resultado==='aprobado'?' active-ok':'');
@@ -1625,7 +1662,10 @@ function guardarEdicion(id){
       const tipo=sel?sel.value:'';const metro=inputs[0]?inputs[0].value:'';const cant=inputs[1]?inputs[1].value:'';
       if(tipo&&cant)defectos.push({tipo,metro,cantidad:parseInt(cant)});
     });
-    Object.assign(updates,{metros,ancho:anchoutil||ancho_reg,peso,resultado,observaciones:obs,proc_tercero:procTercero,prov_tercero:provTercero,defectos});
+    const horaInicio=document.getElementById('edit-fin-hora-inicio').value.trim()||r.hora_inicio||'';
+    const horaFin=document.getElementById('edit-fin-hora-fin').value.trim()||r.hora_fin||'';
+    const tiempoEdit=calcTiempo(horaInicio,horaFin);
+    Object.assign(updates,{metros,ancho:anchoutil||ancho_reg,peso,resultado,observaciones:obs,proc_tercero:procTercero,prov_tercero:provTercero,defectos,hora_inicio:horaInicio,hora_fin:horaFin,tiempo:tiempoEdit});
   }
   _registros[idx]={...r,...updates};
   guardarEnServidor();aplicarFiltros();closeRegistroModal();
@@ -1858,8 +1898,9 @@ function barChart(data,colorFn){
   return data.map(d=>{const pct=max>0?(d.val/max*100):0;const color=colorFn?colorFn(d):'#2563eb';return '<div style="margin-bottom:10px;"><div style="display:flex;justify-content:space-between;margin-bottom:3px;"><span style="font-size:12px;font-weight:600;color:#334155;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+d.label+'</span><span style="font-family:\'Barlow Condensed\',sans-serif;font-size:14px;font-weight:800;color:#0f172a;">'+(typeof d.val==='number'&&!Number.isInteger(d.val)?d.val.toFixed(1):d.val)+(d.unit||'')+'</span></div><div style="background:#f1f5f9;border-radius:6px;height:10px;overflow:hidden;"><div style="width:'+pct+'%;height:100%;background:'+color+';border-radius:6px;"></div></div></div>';}).join('');
 }
 function renderDashboard(){
-  const fechaDash=document.getElementById('dash-filtro-fecha')?.value||'';
-  const regs=_registros.filter(r=>!fechaDash||r.fecha===fechaDash);
+  const desde=document.getElementById('dash-filtro-desde')?.value||'';
+  const hasta=document.getElementById('dash-filtro-hasta')?.value||'';
+  const regs=_registros.filter(r=>(!desde||r.fecha>=desde)&&(!hasta||r.fecha<=hasta));
   const allRegs=regs,fin=regs.filter(r=>r.finalizado),totalMetros=regs.reduce((s,r)=>s+parseFloat(r.metros||0),0),totalDef=fin.reduce((s,r)=>s+(r.defectos||[]).reduce((ss,d)=>ss+parseInt(d.cantidad||0),0),0),aprobados=fin.filter(r=>r.resultado==='aprobado').length,rechazados=fin.filter(r=>r.resultado==='rechazado').length,enRev=regs.filter(r=>!r.finalizado).length;
   document.getElementById('dash-stats-row').innerHTML=[{n:'Total',v:regs.length,c:'#0f172a'},{n:'Finalizados',v:fin.length,c:'#2563eb'},{n:'En Revisión',v:enRev,c:'#b45309'},{n:'Aprobados',v:aprobados,c:'#15803d'},{n:'Rechazados',v:rechazados,c:'#dc2626'},{n:'Metros',v:totalMetros.toFixed(1)+'m',c:'#7c3aed'},{n:'Defectos',v:totalDef,c:'#c2410c'}].map(s=>'<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px 18px;min-width:100px;flex:1;"><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:26px;font-weight:800;color:'+s.c+';">'+s.v+'</div><div style="font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#94a3b8;">'+s.n+'</div></div>').join('');
   const porRev={};regs.forEach(r=>{porRev[r.revisador||'—']=(porRev[r.revisador||'—']||0)+1;});
