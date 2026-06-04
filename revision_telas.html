@@ -268,7 +268,7 @@ function agregarDefectoRow(){
 </script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Nunito',sans-serif;background:#f1f5f9;min-height:100vh;}
+body{font-family:'Nunito',sans-serif;background:#f1f5f9;min-height:100vh;display:flex;flex-direction:column;}
 header{position:sticky;top:0;z-index:100;background:#fff;border-bottom:1px solid #e2e8f0;
   box-shadow:0 1px 6px rgba(0,0,0,.07);padding:0 clamp(12px,2.5vw,24px);min-height:64px;
   display:flex;align-items:center;justify-content:space-between;gap:12px;}
@@ -347,17 +347,28 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
 .stat-lbl{font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#94a3b8;}
 
 /* Tabla */
-.table-wrap{background:#fff;border-radius:12px;border:1px solid #e2e8f0;overflow-x:auto;}
+.table-wrap{background:#fff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;display:flex;flex-direction:column;flex:1;min-height:0;}
 .table-header{display:grid;grid-template-columns:80px 2fr 80px 80px 2fr 80px 100px 70px 50px 75px 50px 120px;min-width:900px;
-  gap:0;padding:10px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;}
+  gap:0;padding:10px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;flex-shrink:0;}
 .th{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;
   text-transform:uppercase;color:#0f172a;display:flex;align-items:center;gap:4px;cursor:pointer;user-select:none;}
 .th:hover{color:#1e40af;}
-.table-body{max-height:calc(100vh - 320px);overflow-y:auto;}
+.table-filters{display:grid;grid-template-columns:80px 2fr 80px 80px 2fr 80px 100px 70px 50px 75px 50px 120px;gap:0;padding:5px 16px 8px;background:#f8fafc;border-bottom:1px solid #e2e8f0;flex-shrink:0;}
+.table-body{overflow-y:auto;overflow-x:auto;flex:1;}
 .table-row{display:grid;grid-template-columns:80px 2fr 80px 80px 2fr 80px 100px 70px 50px 75px 50px 120px;min-width:900px;
   gap:0;padding:11px 16px;border-bottom:1px solid #f8fafc;transition:background .12s;align-items:center;}
 .table-row:hover{background:#f8fafc;}
 .td{font-size:12px;color:#334155;font-family:'Nunito',sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* FAB */
+.rt-fab{position:fixed;bottom:28px;right:28px;width:52px;height:52px;border-radius:50%;
+  background:#1e3a8a;color:#fff;border:none;font-size:26px;cursor:pointer;
+  display:none;align-items:center;justify-content:center;z-index:300;
+  box-shadow:0 4px 16px rgba(30,58,138,.35);transition:transform .15s,background .15s;}
+.rt-fab:hover{background:#1e40af;transform:scale(1.08);}
+/* Footer barra */
+.rt-footer{height:38px;background:#fff;border-top:1px solid #e2e8f0;display:flex;align-items:center;
+  justify-content:space-between;padding:0 20px;flex-shrink:0;font-size:12px;color:#64748b;font-family:'Nunito',sans-serif;}
+.rt-footer strong{color:#0f172a;font-weight:700;}
 .td-badge{display:inline-flex;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;
   font-family:'Barlow Condensed',sans-serif;background:#eff6ff;color:#1d4ed8;}
 .badge-ok{background:#f0fdf4;color:#15803d;}
@@ -574,7 +585,19 @@ input[type=number]{-moz-appearance:textfield;}
     </div>
     <div class="table-body" id="rt-table-body"></div>
   </div>
+  <!-- Footer barra -->
+  <div class="rt-footer" id="rt-footer-bar">
+    <div style="display:flex;gap:20px;">
+      <span>Total metros: <strong id="footer-metros">—</strong></span>
+      <span>Registros: <strong id="footer-count">—</strong></span>
+      <span>Aprobados: <strong id="footer-aprobados" style="color:#15803d;">—</strong></span>
+      <span>Rechazados: <strong id="footer-rechazados" style="color:#dc2626;">—</strong></span>
+    </div>
+    <span>© 2026 Ingeniería Confecciones Millar S.A.S.</span>
+  </div>
 </div>
+<!-- FAB -->
+<button class="rt-fab" id="rt-fab-btn" onclick="openRegistroModal()" title="Nuevo Registro">+</button>
 
 <div class="toast" id="rt-toast"></div>
 
@@ -1198,6 +1221,8 @@ function rtEntrarApp(){
   if(revField)revField.style.display=_rtIsAdmin?'':'none';
   const nuevoBtn=document.getElementById('rt-nuevo-btn');
   if(nuevoBtn)nuevoBtn.style.display='block';
+  const fab=document.getElementById('rt-fab-btn');
+  if(fab)fab.style.display='flex';
   // Guardar sesión para persistir al refrescar
   sessionStorage.setItem('rt_session', JSON.stringify({user:_rtCurrentUser, isAdmin:_rtIsAdmin}));
   aplicarFiltros();
@@ -1208,6 +1233,7 @@ function rtCerrarSesion(){
   sessionStorage.removeItem('rt_session');
   document.getElementById('rt-user-badge').style.display='none';
   document.getElementById('rt-admin-btns').style.display='none';
+  const fab2=document.getElementById('rt-fab-btn');if(fab2)fab2.style.display='none';
   const nb=document.getElementById('rt-nuevo-btn');if(nb)nb.style.display='none';
   const abr=document.getElementById('rt-admin-btns-row');if(abr)abr.style.display='none';
   document.getElementById('rt-login-user').value='';
@@ -1269,6 +1295,17 @@ function limpiarFiltros(){
   aplicarFiltros();
 }
 
+function actualizarFooter(){
+  const fin=_filtrados.filter(r=>r.finalizado);
+  const totalMetros=_filtrados.reduce((s,r)=>s+parseFloat(r.metros||0),0);
+  const aprobados=fin.filter(r=>r.resultado==='aprobado').length;
+  const rechazados=fin.filter(r=>r.resultado==='rechazado').length;
+  const el=id=>document.getElementById(id);
+  if(el('footer-metros'))el('footer-metros').textContent=totalMetros>0?totalMetros.toFixed(1)+' m':'—';
+  if(el('footer-count'))el('footer-count').textContent=_filtrados.length;
+  if(el('footer-aprobados'))el('footer-aprobados').textContent=aprobados;
+  if(el('footer-rechazados'))el('footer-rechazados').textContent=rechazados;
+}
 function aplicarFiltros(){
   _filtrados=_registros.filter(r=>{
     if(_filtroDesde&&r.fecha<_filtroDesde)return false;
@@ -1285,7 +1322,7 @@ function aplicarFiltros(){
   if(_sortCol==='fecha'&&_sortDir===-1){
     _filtrados.sort((a,b)=>{const fd=(b.fecha||'').localeCompare(a.fecha||'');if(fd!==0)return fd;return (b.hora_inicio||'').localeCompare(a.hora_inicio||'');});
   }
-  renderTabla();renderStats();
+  renderTabla();renderStats();actualizarFooter();
 }
 function sortBy(col){if(_sortCol===col)_sortDir*=-1;else{_sortCol=col;_sortDir=1;}aplicarFiltros();}
 
