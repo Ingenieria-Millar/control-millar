@@ -500,9 +500,14 @@ input[type=number]{-moz-appearance:textfield;}
     </div>
     <div style="margin-bottom:14px;">
       <label style="font-size:11px;font-weight:800;color:#0f172a;letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px;">Usuario</label>
-      <select id="rt-login-user" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:'Nunito',sans-serif;outline:none;color:#0f172a;background:#fff;cursor:pointer;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
-        <option value="">— Selecciona un usuario —</option>
-      </select>
+      <div style="position:relative;">
+        <input type="text" id="rt-login-user-input" list="rt-login-user-list" placeholder="— Selecciona o escribe un usuario —"
+          style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:'Nunito',sans-serif;outline:none;color:#0f172a;background:#fff;box-sizing:border-box;"
+          onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'"
+          onkeydown="if(event.key==='Enter')rtDoLogin()" autocomplete="off">
+        <datalist id="rt-login-user-list"></datalist>
+      </div>
+      <input type="hidden" id="rt-login-user">
     </div>
     <div style="margin-bottom:20px;">
       <label style="font-size:11px;font-weight:800;color:#0f172a;letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px;">Contraseña</label>
@@ -526,6 +531,7 @@ input[type=number]{-moz-appearance:textfield;}
       <div id="rt-admin-btns-row" style="display:none;align-items:center;gap:8px;">
         <button onclick="pedirPassAccion(abrirCfgScreen)" style="padding:8px 14px;border-radius:8px;border:1.5px solid #fde68a;background:#fefce8;color:#b45309;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">⚙️ Configuraciones</button>
         <button onclick="exportarExcel()" style="padding:8px 14px;border-radius:8px;border:1.5px solid #86efac;background:#f0fdf4;color:#15803d;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">📊 Exportar</button>
+        <button onclick="verHistorial()" style="padding:8px 14px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#475569;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">📋 Historial</button>
         <button onclick="abrirDashboard()" style="padding:8px 14px;border-radius:8px;border:1.5px solid #bfdbfe;background:#eff6ff;color:#1d4ed8;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">📈 Dashboard</button>
       </div>
       <div class="date-filter-wrap">
@@ -1038,6 +1044,11 @@ input[type=number]{-moz-appearance:textfield;}
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:14px;">📅 Actividad por Fecha</div>
           <div id="dash-fechas"></div>
         </div>
+        <!-- Resumen por lote -->
+        <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;padding:20px;grid-column:1/-1;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:14px;">🧵 Resumen por Lote</div>
+          <div id="dash-por-lote" style="overflow-x:auto;"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -1049,6 +1060,7 @@ input[type=number]{-moz-appearance:textfield;}
 <script>
 // ── Estado global ──────────────────────────────────────────────────
 let _registros=[], _filtrados=[], _sortCol='fecha', _sortDir=-1;
+let _historial=[];
 let _confirmCB=null, _finalizandoId=null;
 let _cfgDefectos=[], _cfgReferencias={}, _cfgColores=[], _cfgProveedores=[], _cfgProveedoresTerceros=[];
 let ws=null, wsReady=false, wsTimer=null;
@@ -1132,6 +1144,61 @@ async function cargarDatos(){
   }catch(e){console.warn(e);}
 }
 
+// ── Historial de cambios ───────────────────────────────────────────
+function registrarHistorial(accion, registro, extra){
+  const entrada={
+    ts: new Date().toLocaleString('es-CO',{hour12:true}),
+    usuario: _rtCurrentUser||'—',
+    accion,
+    rollo: registro?.rollo||'',
+    lote: registro?.lote||'',
+    referencia: registro?.referencia||'',
+    detalle: extra||''
+  };
+  _historial.unshift(entrada);
+  if(_historial.length>200)_historial.length=200;
+}
+function verHistorial(){
+  let m=document.getElementById('modal-historial-rt');
+  if(!m){
+    m=document.createElement('div');m.id='modal-historial-rt';
+    m.style.cssText='display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1100;align-items:center;justify-content:center;padding:16px;';
+    m.onclick=e=>{if(e.target===m)m.style.display='none';};
+    m.innerHTML=`<div style="background:#fff;border-radius:14px;width:100%;max-width:700px;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.25);">
+      <div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;letter-spacing:1.5px;color:#0f172a;">📋 HISTORIAL DE CAMBIOS</div>
+        <button onclick="document.getElementById('modal-historial-rt').style.display='none'" style="width:28px;height:28px;border-radius:6px;border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;font-size:14px;">✕</button>
+      </div>
+      <div id="historial-rt-list" style="overflow-y:auto;flex:1;padding:8px 0;"></div>
+    </div>`;
+    document.body.appendChild(m);
+  }
+  const TH='padding:8px 12px;font-family:\'Barlow Condensed\',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;background:#f8fafc;border-bottom:2px solid #e2e8f0;';
+  const TD='padding:8px 12px;font-size:12px;color:#0f172a;border-bottom:1px solid #f1f5f9;';
+  document.getElementById('historial-rt-list').innerHTML=_historial.length
+    ?'<table style="width:100%;border-collapse:collapse;">'
+      +'<thead><tr>'
+      +'<th style="'+TH+'text-align:left;">Fecha/Hora</th>'
+      +'<th style="'+TH+'text-align:left;">Usuario</th>'
+      +'<th style="'+TH+'text-align:left;">Acción</th>'
+      +'<th style="'+TH+'text-align:left;">Lote</th>'
+      +'<th style="'+TH+'text-align:center;">Rollo</th>'
+      +'<th style="'+TH+'text-align:left;">Referencia</th>'
+      +'<th style="'+TH+'text-align:left;">Detalle</th>'
+      +'</tr></thead><tbody>'
+      +_historial.map(h=>'<tr>'
+        +'<td style="'+TD+'color:#64748b;">'+h.ts+'</td>'
+        +'<td style="'+TD+'font-weight:600;">'+h.usuario+'</td>'
+        +'<td style="'+TD+'"><span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;background:'+(h.accion==='CREADO'?'#dcfce7':h.accion==='FINALIZADO'?'#dbeafe':h.accion==='EDITADO'?'#fef3c7':'#fee2e2')+';color:'+(h.accion==='CREADO'?'#15803d':h.accion==='FINALIZADO'?'#1d4ed8':h.accion==='EDITADO'?'#b45309':'#dc2626')+';">'+h.accion+'</span></td>'
+        +'<td style="'+TD+'">'+h.lote+'</td>'
+        +'<td style="'+TD+'text-align:center;">'+h.rollo+'</td>'
+        +'<td style="'+TD+'">'+h.referencia+'</td>'
+        +'<td style="'+TD+'color:#64748b;">'+h.detalle+'</td>'
+        +'</tr>').join('')
+      +'</tbody></table>'
+    :'<div style="text-align:center;padding:40px;color:#94a3b8;font-size:13px;">Sin cambios registrados</div>';
+  m.style.display='flex';
+}
 async function guardarEnServidor(){
   try{
     await fetch('/api/revision-telas',{
@@ -1166,24 +1233,19 @@ async function rtInitLogin(){
       rtEntrarApp();return;
     }
   }catch(e){}
-  const sel=document.getElementById('rt-login-user');
-  sel.innerHTML='<option value="">— Selecciona un usuario —</option><option value="__admin__">👑 Administrador</option>';
   await cargarRevisadores();
   const revs=getRevisadores();
-  if(revs.length){
-    revs.forEach(r=>{const o=document.createElement('option');o.value=r;o.textContent=r;sel.appendChild(o);});
-  } else {
-    // Si no hay revisadores del perfil Telas, agregar opción informativa
-    const o=document.createElement('option');
-    o.value='';o.disabled=true;
-    o.textContent='— Sin revisadores configurados —';
-    sel.appendChild(o);
-    console.warn('[RT] No se encontraron revisadores en el perfil Telas');
+  const dlList=document.getElementById('rt-login-user-list');
+  if(dlList){
+    dlList.innerHTML='<option value="__admin__">👑 Administrador</option>'+
+      revs.map(r=>'<option value="'+r+'">'+r+'</option>').join('');
   }
+  document.getElementById('rt-login-user-input').value='';
+  document.getElementById('rt-login-user').value='';
 }
 
 function rtDoLogin(){
-  const uid=document.getElementById('rt-login-user').value;
+  const uid=(document.getElementById('rt-login-user-input')?.value||document.getElementById('rt-login-user').value).trim();
   const pass=document.getElementById('rt-login-pass').value;
   const errEl=document.getElementById('rt-login-error');
   if(!uid){errEl.textContent='Selecciona un usuario';return;}
@@ -1230,6 +1292,7 @@ function rtCerrarSesion(){
   const nb=document.getElementById('rt-nuevo-btn');if(nb)nb.style.display='none';
   const abr=document.getElementById('rt-admin-btns-row');if(abr)abr.style.display='none';
   document.getElementById('rt-login-pass').value='';
+  const liInp=document.getElementById('rt-login-user-input');if(liInp)liInp.value='';
   document.getElementById('rt-login-error').textContent='';
   document.getElementById('rt-login-screen').style.display='flex';
   // Recargar usuarios sin refrescar página
@@ -1575,7 +1638,8 @@ function guardarRegistro(){
     mts:document.getElementById('f-mts-display').textContent||'',
     hora_inicio:horaActual(),hora_fin:'',tiempo:'',metros:'',defectos:[],resultado:'',observaciones:'',finalizado:false
   };
-  _registros.push(registro);guardarEnServidor();aplicarFiltros();closeRegistroModal();
+  _registros.push(registro);registrarHistorial('CREADO',registro,'Rollo '+registro.rollo+' — '+registro.lote);
+  guardarEnServidor();aplicarFiltros();closeRegistroModal();
   showToast('✅ Registro creado — Hora inicio: '+registro.hora_inicio);
 }
 
@@ -1708,6 +1772,7 @@ function guardarEdicion(id){
     Object.assign(updates,{metros,ancho:anchoutil||ancho_reg,peso,resultado,observaciones:obs,proc_tercero:procTercero,prov_tercero:provTercero,defectos,hora_inicio:horaInicio,hora_fin:horaFin,tiempo:tiempoEdit});
   }
   _registros[idx]={...r,...updates};
+  registrarHistorial('EDITADO',_registros[idx],'Editado por '+(_rtCurrentUser||'—'));
   guardarEnServidor();aplicarFiltros();closeRegistroModal();
   showToast('✅ Registro actualizado');
 }
@@ -1797,7 +1862,12 @@ function confirmarEliminar(id){
   const r=_registros.find(x=>x.id===id);
   document.getElementById('rt-confirm-sub').textContent=r?(r.referencia||'')+' — '+(r.fecha||''):'Esta acción no se puede deshacer.';
   document.getElementById('rt-confirm-pass').value='';document.getElementById('rt-confirm-error').textContent='';
-  _confirmCB=()=>{_registros=_registros.filter(x=>x.id!==id);guardarEnServidor();aplicarFiltros();showToast('🗑 Eliminado');};
+  _confirmCB=()=>{
+    const rDel=_registros.find(x=>x.id===id);
+    if(rDel)registrarHistorial('ELIMINADO',rDel,'Eliminado por '+(_rtCurrentUser||'—'));
+    _registros=_registros.filter(x=>x.id!==id);
+    guardarEnServidor();aplicarFiltros();showToast('🗑 Eliminado');
+  };
   const m=document.getElementById('modal-confirm-rt');m.classList.add('open');m.style.display='flex';
   setTimeout(()=>document.getElementById('rt-confirm-pass').focus(),100);
 }
@@ -1882,10 +1952,19 @@ function verDefectos(id){
 
 // ── Exportar Excel ─────────────────────────────────────────────────
 function exportarExcel(){
-  if(!_filtrados.length){showToast('⚠️ Sin registros');return;}
-  // Una fila por defecto (si no hay defectos, una fila con los datos del registro)
+  // Usar solo filas visibles si hay filtros de columna activos
+  const hayFiltros=_colFilters.some(f=>f);
+  let datos=_filtrados;
+  if(hayFiltros){
+    const visiblesIds=new Set();
+    document.getElementById('rt-table-body').querySelectorAll('.table-row').forEach((row,i)=>{
+      if(row.style.display!=='none'&&_filtrados[i])visiblesIds.add(_filtrados[i].id);
+    });
+    datos=_filtrados.filter(r=>visiblesIds.has(r.id));
+  }
+  if(!datos.length){showToast('⚠️ Sin registros');return;}
   const rows=[];
-  _filtrados.forEach(r=>{
+  datos.forEach(r=>{
     const base={
       'Fecha':fechaDisplay(r.fecha),
       'Factura':r.factura||'',
@@ -1926,7 +2005,7 @@ function exportarExcel(){
     }
   });
   const ws=XLSX.utils.json_to_sheet(rows);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Revisión Telas');
-  XLSX.writeFile(wb,'revision_telas_'+fechaHoy()+'.xlsx');showToast('📊 Excel exportado');
+  XLSX.writeFile(wb,'revision_telas_'+fechaHoy()+'.xlsx');showToast('📊 Excel exportado ('+rows.length+' filas)');
 }
 
 // ── Dashboard ──────────────────────────────────────────────────────
@@ -1959,6 +2038,50 @@ function renderDashboard(){
   const fm={};regs.forEach(r=>{fm[r.fecha||'—']=(fm[r.fecha||'—']||0)+1;});
   const fo=Object.entries(fm).sort((a,b)=>a[0].localeCompare(b[0]));
   document.getElementById('dash-fechas').innerHTML=fo.length?'<div style="display:flex;align-items:flex-end;gap:6px;height:120px;padding:0 4px;">'+fo.map(([f,c])=>{const h=Math.round(c/Math.max(...fo.map(x=>x[1]))*100);const[y,mo,d]=f.split('-');return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:30px;"><span style="font-size:12px;font-weight:800;color:#0f172a;">'+c+'</span><div style="width:100%;background:#2563eb;border-radius:4px 4px 0 0;height:'+h+'px;min-height:4px;"></div><span style="font-size:9px;color:#94a3b8;text-align:center;">'+d+'/'+mo+'</span></div>';}).join('')+'</div>':'<div style="color:#94a3b8;font-size:12px;padding:10px;">Sin actividad</div>';
+  // Resumen por lote
+  const loteMap={};
+  regs.forEach(r=>{
+    const k=r.lote||'Sin lote';
+    if(!loteMap[k])loteMap[k]={lote:k,total:0,aprobados:0,rechazados:0,enRev:0,metros:0,rollos:new Set()};
+    loteMap[k].total++;
+    loteMap[k].rollos.add(r.rollo);
+    loteMap[k].metros+=parseFloat(r.metros||0);
+    if(r.finalizado&&r.resultado==='aprobado')loteMap[k].aprobados++;
+    else if(r.finalizado&&r.resultado==='rechazado')loteMap[k].rechazados++;
+    else loteMap[k].enRev++;
+  });
+  const lotesArr=Object.values(loteMap).sort((a,b)=>b.total-a.total);
+  const TH='padding:8px 12px;font-family:\'Barlow Condensed\',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;background:#f8fafc;border-bottom:2px solid #e2e8f0;text-align:left;';
+  const TD='padding:8px 12px;font-size:12px;color:#0f172a;border-bottom:1px solid #f1f5f9;';
+  document.getElementById('dash-por-lote').innerHTML=lotesArr.length
+    ?'<table style="width:100%;border-collapse:collapse;min-width:600px;">'
+      +'<thead><tr>'
+      +'<th style="'+TH+'">No. Lote</th>'
+      +'<th style="'+TH+'text-align:center;">Total Rollos</th>'
+      +'<th style="'+TH+'text-align:center;">Aprobados</th>'
+      +'<th style="'+TH+'text-align:center;">Rechazados</th>'
+      +'<th style="'+TH+'text-align:center;">En Revisión</th>'
+      +'<th style="'+TH+'text-align:right;">Metros</th>'
+      +'<th style="'+TH+'text-align:left;">Progreso</th>'
+      +'</tr></thead><tbody>'
+      +lotesArr.map(l=>{
+        const pct=l.total>0?Math.round((l.aprobados+l.rechazados)/l.total*100):0;
+        return '<tr>'
+          +'<td style="'+TD+'font-weight:700;color:#1e3a8a;">'+l.lote+'</td>'
+          +'<td style="'+TD+'text-align:center;">'+l.rollos.size+'</td>'
+          +'<td style="'+TD+'text-align:center;color:#15803d;font-weight:700;">'+l.aprobados+'</td>'
+          +'<td style="'+TD+'text-align:center;color:#dc2626;font-weight:700;">'+l.rechazados+'</td>'
+          +'<td style="'+TD+'text-align:center;color:#b45309;font-weight:700;">'+l.enRev+'</td>'
+          +'<td style="'+TD+'text-align:right;">'+l.metros.toFixed(1)+' m</td>'
+          +'<td style="'+TD+'"><div style="display:flex;align-items:center;gap:6px;">'
+          +'<div style="flex:1;background:#f1f5f9;border-radius:4px;height:8px;overflow:hidden;">'
+          +'<div style="width:'+pct+'%;height:100%;background:'+(pct===100?'#15803d':'#2563eb')+';border-radius:4px;"></div>'
+          +'</div><span style="font-size:11px;color:#64748b;min-width:32px;">'+pct+'%</span>'
+          +'</div></td>'
+          +'</tr>';
+      }).join('')
+      +'</tbody></table>'
+    :'<div style="color:#94a3b8;font-size:12px;padding:10px;">Sin datos</div>';
 }
 
 // ── CFG 3 pestañas ─────────────────────────────────────────────────
