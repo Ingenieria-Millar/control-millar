@@ -518,12 +518,24 @@ app.post('/api/revision-telas', (req, res) => {
   if(!Array.isArray(registros)) return res.status(400).json({ error: 'Payload inválido' });
   const proveedores = req.body.proveedores||[];
   const proveedoresTerceros = req.body.proveedoresTerceros||[];
-  saveDB('revision_telas', { registros, defectos: defectos||[], referencias: referencias||[], colores: colores||[], proveedores, proveedoresTerceros });
+  const deletedIds = Array.isArray(req.body.deletedIds) ? req.body.deletedIds : [];
+
+  // Merge por id (upsert): un envío nunca borra el registro de otro cliente.
+  // Se parte de lo guardado, se aplican/actualizan los entrantes y se eliminan
+  // explícitamente los ids borrados. Así se evita la pérdida por concurrencia.
+  const prev = loadDB('revision_telas') || {};
+  const byId = new Map();
+  (Array.isArray(prev.registros) ? prev.registros : []).forEach(r => { if(r && r.id != null) byId.set(r.id, r); });
+  registros.forEach(r => { if(r && r.id != null) byId.set(r.id, r); });
+  deletedIds.forEach(id => byId.delete(id));
+  const mergedRegistros = [...byId.values()];
+
+  saveDB('revision_telas', { registros: mergedRegistros, defectos: defectos||[], referencias: referencias||[], colores: colores||[], proveedores, proveedoresTerceros });
   res.json({ ok: true });
   // Delay broadcast: el cliente emisor recibe el response HTTP primero,
-  // luego los demás clientes reciben el WS update
+  // luego los demás clientes reciben el WS update (con la lista ya fusionada)
   setTimeout(()=>{
-    broadcast({ type: 'rt_update', registros, defectos: defectos||[], referencias: referencias||[], colores: colores||[], proveedores, proveedoresTerceros });
+    broadcast({ type: 'rt_update', registros: mergedRegistros, defectos: defectos||[], referencias: referencias||[], colores: colores||[], proveedores, proveedoresTerceros });
   }, 800);
 });
 
