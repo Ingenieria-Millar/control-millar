@@ -1068,6 +1068,7 @@ input[type=number]{-moz-appearance:textfield;}
 <script>
 // ── Estado global ──────────────────────────────────────────────────
 let _registros=[], _filtrados=[], _sortCol='fecha', _sortDir=-1;
+let _pendingIds=new Set(); // ids creados localmente aún no confirmados por el servidor; no se descartan hasta que el servidor los tenga o se borren
 let _historial=[];
 let _confirmCB=null, _finalizandoId=null;
 let _cfgDefectos=[], _cfgReferencias={}, _cfgColores=[], _cfgProveedores=[], _cfgProveedoresTerceros=[];
@@ -1085,10 +1086,14 @@ async function syncPoll(){
     if(res.ok){
       const d=await res.json();
       const serverRegs=d.registros||[];
-      // Preservar solo registros locales recién creados (dentro de ventana de 15s)
       const serverIds=new Set(serverRegs.map(r=>r.id));
-      const localOnly=_registros.filter(r=>!serverIds.has(r.id)&&Date.now()-_lastSaveTime<15000);
-      const merged=[...serverRegs,...localOnly];
+      // El servidor ya confirmó estos ids → dejan de estar pendientes
+      _pendingIds.forEach(id=>{ if(serverIds.has(id)) _pendingIds.delete(id); });
+      // Conservar SIEMPRE los locales pendientes que el servidor aún no tiene
+      const localPending=_registros.filter(r=>_pendingIds.has(r.id)&&!serverIds.has(r.id));
+      // Si quedan pendientes sin confirmar, reintentar el guardado (auto-recuperación)
+      if(localPending.length) guardarEnServidor();
+      const merged=[...serverRegs,...localPending];
       const prevHash=_registros.map(r=>r.id+'|'+r.finalizado+'|'+r.resultado).join(',');
       const newHash=merged.map(r=>r.id+'|'+r.finalizado+'|'+r.resultado).join(',');
       if(newHash===prevHash) return; // sin cambios, no tocar nada
@@ -1119,8 +1124,9 @@ function connectWS(){
       if(msg.type==='rt_update'){
         const serverRegs=msg.registros||[];
         const serverIds=new Set(serverRegs.map(r=>r.id));
-        const localOnly=_registros.filter(r=>!serverIds.has(r.id)&&Date.now()-_lastSaveTime<15000);
-        _registros=[...serverRegs,...localOnly];
+        _pendingIds.forEach(id=>{ if(serverIds.has(id)) _pendingIds.delete(id); });
+        const localPending=_registros.filter(r=>_pendingIds.has(r.id)&&!serverIds.has(r.id));
+        _registros=[...serverRegs,...localPending];
         _cfgDefectos=msg.defectos||_cfgDefectos;
         const raw=msg.referencias||_cfgReferencias;
         Object.keys(raw).forEach(prov=>{
@@ -1678,7 +1684,7 @@ function guardarRegistro(){
     mts:document.getElementById('f-mts-display').textContent||'',
     hora_inicio:horaActual(),hora_fin:'',tiempo:'',metros:'',defectos:[],resultado:'',observaciones:'',finalizado:false
   };
-  _registros.push(registro);registrarHistorial('CREADO',registro,'Rollo '+registro.rollo+' — '+registro.lote);
+  _registros.push(registro);_pendingIds.add(registro.id);registrarHistorial('CREADO',registro,'Rollo '+registro.rollo+' — '+registro.lote);
   aplicarFiltros();closeRegistroModal();
   showToast('✅ Registro creado — Hora inicio: '+registro.hora_inicio);
   guardarEnServidor(); // async background — _registros ya tiene el dato local
@@ -1907,7 +1913,7 @@ function confirmarEliminar(id){
     const rDel=_registros.find(x=>x.id===id);
     if(rDel)registrarHistorial('ELIMINADO',rDel,'Eliminado por '+(_rtCurrentUser||'—'));
     _registros=_registros.filter(x=>x.id!==id);
-    _deletedIds.push(id);
+    _deletedIds.push(id);_pendingIds.delete(id);
     guardarEnServidor();aplicarFiltros();showToast('🗑 Eliminado');
   };
   const m=document.getElementById('modal-confirm-rt');m.classList.add('open');m.style.display='flex';
