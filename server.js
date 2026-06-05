@@ -222,7 +222,6 @@ function logHistorial(id, prevState, newState, mecanico, empleada) {
   const optsDate   = { timeZone: 'America/Bogota', year:'numeric', month:'2-digit', day:'2-digit' };
   const horaFin    = now.toLocaleTimeString('es-CO', opts);
   const horaInicio = new Date(timerInicio).toLocaleTimeString('es-CO', opts);
-  const fechaPartes = now.toLocaleDateString('es-CO', optsDate).split('/');
   const fecha      = now.toLocaleDateString('es-CO', optsDate);
   // fechaISO en zona Colombia
   const bogota = new Date(now.toLocaleString('en-US', {timeZone:'America/Bogota'}));
@@ -1216,8 +1215,6 @@ setInterval(() => {
 wss.on('connection', (ws, req) => {
   ws.isAlive = true;
   ws.on('pong', () => { ws.isAlive = true; });
-
-  const clientIp = req.socket.remoteAddress || 'unknown';
 
   // Estado completo al conectar
   ws.send(JSON.stringify({
