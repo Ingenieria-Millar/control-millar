@@ -1079,6 +1079,8 @@ let _rtCurrentUser=null, _rtIsAdmin=false, _rtMembersData=[], _revisadores=[];
 // ── Polling fallback para sincronización ──────────────────────────
 let _lastSync=Date.now();
 async function syncPoll(){
+  // No sobreescribir si acabamos de guardar (esperar 10s)
+  if(Date.now()-_lastSaveTime < 10000) return;
   try{
     const res=await fetch('/api/revision-telas');
     if(res.ok){
@@ -1234,7 +1236,9 @@ function verHistorial(){
     :'<div style="text-align:center;padding:40px;color:#94a3b8;font-size:13px;">Sin cambios registrados</div>';
   m.style.display='flex';
 }
+let _lastSaveTime=0;
 async function guardarEnServidor(){
+  _lastSaveTime=Date.now();
   try{
     await fetch('/api/revision-telas',{
       method:'POST',headers:{'Content-Type':'application/json'},
