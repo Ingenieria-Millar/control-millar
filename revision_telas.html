@@ -1068,7 +1068,6 @@ input[type=number]{-moz-appearance:textfield;}
 <script>
 // ── Estado global ──────────────────────────────────────────────────
 let _registros=[], _filtrados=[], _sortCol='fecha', _sortDir=-1;
-let _pendingIds=new Set(); // ids creados localmente aún no confirmados por el servidor; no se descartan hasta que el servidor los tenga o se borren
 let _historial=[];
 let _confirmCB=null, _finalizandoId=null;
 let _cfgDefectos=[], _cfgReferencias={}, _cfgColores=[], _cfgProveedores=[], _cfgProveedoresTerceros=[];
@@ -1080,31 +1079,22 @@ let _rtCurrentUser=null, _rtIsAdmin=false, _rtMembersData=[], _revisadores=[];
 // ── Polling fallback para sincronización ──────────────────────────
 let _lastSync=Date.now();
 async function syncPoll(){
-  if(Date.now()-_lastSaveTime < 15000) return;
   try{
     const res=await fetch('/api/revision-telas');
     if(res.ok){
       const d=await res.json();
-      const serverRegs=d.registros||[];
-      const serverIds=new Set(serverRegs.map(r=>r.id));
-      // El servidor ya confirmó estos ids → dejan de estar pendientes
-      _pendingIds.forEach(id=>{ if(serverIds.has(id)) _pendingIds.delete(id); });
-      // Conservar SIEMPRE los locales pendientes que el servidor aún no tiene
-      const localPending=_registros.filter(r=>_pendingIds.has(r.id)&&!serverIds.has(r.id));
-      // Si quedan pendientes sin confirmar, reintentar el guardado (auto-recuperación)
-      if(localPending.length) guardarEnServidor();
-      const merged=[...serverRegs,...localPending];
-      const prevHash=_registros.map(r=>r.id+'|'+r.finalizado+'|'+r.resultado).join(',');
-      const newHash=merged.map(r=>r.id+'|'+r.finalizado+'|'+r.resultado).join(',');
-      if(newHash===prevHash) return; // sin cambios, no tocar nada
       const raw=d.referencias||{};
       Object.keys(raw).forEach(prov=>{raw[prov]=(raw[prov]||[]).map(r=>typeof r==='object'?r:{referencia:String(r||'')});});
-      _registros=merged;
+      const prevLen=_registros.length;
+      const prevHash=_registros.map(r=>r.id+'|'+r.finalizado+'|'+r.resultado).join(',');
+      _registros=d.registros||[];
       _cfgDefectos=d.defectos||_cfgDefectos;
       _cfgReferencias=raw;
       _cfgColores=d.colores||_cfgColores;
       _cfgProveedores=d.proveedores||_cfgProveedores;
-      aplicarFiltros();
+      // Solo actualizar tabla si hubo cambios reales en los registros
+      const newHash=_registros.map(r=>r.id+'|'+r.finalizado+'|'+r.resultado).join(',');
+      if(newHash!==prevHash) aplicarFiltros();
     }
   }catch(e){}
 }
@@ -1122,12 +1112,9 @@ function connectWS(){
     try{
       const msg=JSON.parse(e.data);
       if(msg.type==='rt_update'){
-        const serverRegs=msg.registros||[];
-        const serverIds=new Set(serverRegs.map(r=>r.id));
-        _pendingIds.forEach(id=>{ if(serverIds.has(id)) _pendingIds.delete(id); });
-        const localPending=_registros.filter(r=>_pendingIds.has(r.id)&&!serverIds.has(r.id));
-        _registros=[...serverRegs,...localPending];
+        _registros=msg.registros||[];
         _cfgDefectos=msg.defectos||_cfgDefectos;
+        // Normalizar referencias igual que en cargarDatos
         const raw=msg.referencias||_cfgReferencias;
         Object.keys(raw).forEach(prov=>{
           raw[prov]=(raw[prov]||[]).map(r=>typeof r==='object'?r:{referencia:String(r||'')});
@@ -1247,19 +1234,12 @@ function verHistorial(){
     :'<div style="text-align:center;padding:40px;color:#94a3b8;font-size:13px;">Sin cambios registrados</div>';
   m.style.display='flex';
 }
-let _lastSaveTime=0;
-let _deletedIds=[]; // ids eliminados pendientes de confirmar en el servidor (para que el borrado se propague con el merge)
 async function guardarEnServidor(){
-  _lastSaveTime=Date.now();
-  const sentDeleted=_deletedIds.slice();
   try{
-    const res=await fetch('/api/revision-telas',{
+    await fetch('/api/revision-telas',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({registros:_registros,defectos:_cfgDefectos,referencias:_cfgReferencias,colores:_cfgColores,proveedores:_cfgProveedores,proveedoresTerceros:_cfgProveedoresTerceros,deletedIds:sentDeleted})
+      body:JSON.stringify({registros:_registros,defectos:_cfgDefectos,referencias:_cfgReferencias,colores:_cfgColores,proveedores:_cfgProveedores,proveedoresTerceros:_cfgProveedoresTerceros})
     });
-    if(res&&res.ok&&sentDeleted.length){
-      _deletedIds=_deletedIds.filter(id=>!sentDeleted.includes(id));
-    }
   }catch(e){console.warn(e);}
 }
 
@@ -1359,16 +1339,22 @@ async function cargarRevisadores(){
     const res=await fetch('/api/app-config');
     if(!res.ok){console.warn('[RT] app-config status:', res.status);return;}
     const cfg=await res.json();
+    console.log('[RT] app-config keys:', Object.keys(cfg));
     const perfiles=cfg._perfil_members||{};
+    console.log('[RT] Perfiles disponibles:', Object.keys(perfiles));
     // Buscar perfil 'Telas' sin importar mayúsculas/minúsculas
     const key=Object.keys(perfiles).find(k=>k.toLowerCase()==='telas')||'';
+    console.log('[RT] Perfil encontrado:', key||'ninguno');
     let members=key?perfiles[key]:[];
+    console.log('[RT] Members en perfil:', members.length, JSON.stringify(members).slice(0,200));
     // Fallback: _usuarios_extra
     if(!members.length && cfg._usuarios_extra){
       members=cfg._usuarios_extra;
+      console.log('[RT] Usando _usuarios_extra:', members.length);
     }
     _rtMembersData=(members||[]).filter(m=>!m.disabled);
     _revisadores=_rtMembersData.map(m=>typeof m==='string'?m:(m.nombre||m.name||'')).filter(Boolean);
+    console.log('[RT] Revisadores finales:', _revisadores.length, _revisadores);
   }catch(e){console.warn('[RT] Error cargando revisadores:',e);}
 }
 function getRevisadores(){return _revisadores;}
@@ -1491,7 +1477,10 @@ function getFacturasDisponibles(){
   // Lotes únicos de configuración
   const lotes=new Set();
   const allRefs=Object.values(_cfgReferencias).flat();
+  console.log('[RT] Total refs en cfg:', allRefs.length);
+  if(allRefs.length) console.log('[RT] Ejemplo ref[0]:', JSON.stringify(allRefs[0]));
   allRefs.forEach(r=>{if(typeof r==='object'&&r.lote)lotes.add(r.lote.toString());});
+  console.log('[RT] Lotes encontrados:', [...lotes]);
   return [...lotes].sort();
 }
 function getProveedoresPorFactura(lote){
@@ -1684,10 +1673,9 @@ function guardarRegistro(){
     mts:document.getElementById('f-mts-display').textContent||'',
     hora_inicio:horaActual(),hora_fin:'',tiempo:'',metros:'',defectos:[],resultado:'',observaciones:'',finalizado:false
   };
-  _registros.push(registro);_pendingIds.add(registro.id);registrarHistorial('CREADO',registro,'Rollo '+registro.rollo+' — '+registro.lote);
-  aplicarFiltros();closeRegistroModal();
+  _registros.push(registro);registrarHistorial('CREADO',registro,'Rollo '+registro.rollo+' — '+registro.lote);
+  guardarEnServidor();aplicarFiltros();closeRegistroModal();
   showToast('✅ Registro creado — Hora inicio: '+registro.hora_inicio);
-  guardarEnServidor(); // async background — _registros ya tiene el dato local
 }
 
 // ── Editar registro ────────────────────────────────────────────────
@@ -1913,7 +1901,6 @@ function confirmarEliminar(id){
     const rDel=_registros.find(x=>x.id===id);
     if(rDel)registrarHistorial('ELIMINADO',rDel,'Eliminado por '+(_rtCurrentUser||'—'));
     _registros=_registros.filter(x=>x.id!==id);
-    _deletedIds.push(id);_pendingIds.delete(id);
     guardarEnServidor();aplicarFiltros();showToast('🗑 Eliminado');
   };
   const m=document.getElementById('modal-confirm-rt');m.classList.add('open');m.style.display='flex';
