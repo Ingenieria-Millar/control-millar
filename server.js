@@ -146,7 +146,6 @@ if (!iaState) {
   iaState = ensureProgramador(iaState);
 }
 writeJSON(FILES.ia_state, iaState);
-writeJSON(FILES.ia_records, iaRecords);
 
 function saveIaState()       { writeJSON(FILES.ia_state,       iaState);       }
 function saveIaRecords()     { writeJSON(FILES.ia_records,     iaRecords);     }
@@ -1659,8 +1658,6 @@ wss.on('connection', (ws, req) => {
     }
   });
 
-  ws.on('close', () => {
-  });
   ws.on('error', (e) => console.error('WS error:', e.message));
 });
 
