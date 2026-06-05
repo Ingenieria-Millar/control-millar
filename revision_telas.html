@@ -1242,13 +1242,18 @@ function verHistorial(){
   m.style.display='flex';
 }
 let _lastSaveTime=0;
+let _deletedIds=[]; // ids eliminados pendientes de confirmar en el servidor (para que el borrado se propague con el merge)
 async function guardarEnServidor(){
   _lastSaveTime=Date.now();
+  const sentDeleted=_deletedIds.slice();
   try{
-    await fetch('/api/revision-telas',{
+    const res=await fetch('/api/revision-telas',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({registros:_registros,defectos:_cfgDefectos,referencias:_cfgReferencias,colores:_cfgColores,proveedores:_cfgProveedores,proveedoresTerceros:_cfgProveedoresTerceros})
+      body:JSON.stringify({registros:_registros,defectos:_cfgDefectos,referencias:_cfgReferencias,colores:_cfgColores,proveedores:_cfgProveedores,proveedoresTerceros:_cfgProveedoresTerceros,deletedIds:sentDeleted})
     });
+    if(res&&res.ok&&sentDeleted.length){
+      _deletedIds=_deletedIds.filter(id=>!sentDeleted.includes(id));
+    }
   }catch(e){console.warn(e);}
 }
 
@@ -1902,6 +1907,7 @@ function confirmarEliminar(id){
     const rDel=_registros.find(x=>x.id===id);
     if(rDel)registrarHistorial('ELIMINADO',rDel,'Eliminado por '+(_rtCurrentUser||'—'));
     _registros=_registros.filter(x=>x.id!==id);
+    _deletedIds.push(id);
     guardarEnServidor();aplicarFiltros();showToast('🗑 Eliminado');
   };
   const m=document.getElementById('modal-confirm-rt');m.classList.add('open');m.style.display='flex';
