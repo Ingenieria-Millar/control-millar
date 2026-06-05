@@ -1114,9 +1114,10 @@ function connectWS(){
     try{
       const msg=JSON.parse(e.data);
       if(msg.type==='rt_update'){
+        // Ignorar si acabamos de guardar (evita sobreescribir datos recién creados)
+        if(Date.now()-_lastSaveTime < 15000) return;
         _registros=msg.registros||[];
         _cfgDefectos=msg.defectos||_cfgDefectos;
-        // Normalizar referencias igual que en cargarDatos
         const raw=msg.referencias||_cfgReferencias;
         Object.keys(raw).forEach(prov=>{
           raw[prov]=(raw[prov]||[]).map(r=>typeof r==='object'?r:{referencia:String(r||'')});
