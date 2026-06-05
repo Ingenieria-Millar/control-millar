@@ -1079,24 +1079,28 @@ let _rtCurrentUser=null, _rtIsAdmin=false, _rtMembersData=[], _revisadores=[];
 // ── Polling fallback para sincronización ──────────────────────────
 let _lastSync=Date.now();
 async function syncPoll(){
-  // No sobreescribir si acabamos de guardar (esperar 10s)
-  if(Date.now()-_lastSaveTime < 10000) return;
+  // No hacer poll si acabamos de guardar (esperar 15s para que el servidor confirme)
+  if(Date.now()-_lastSaveTime < 15000) return;
   try{
     const res=await fetch('/api/revision-telas');
     if(res.ok){
       const d=await res.json();
+      const serverRegs=d.registros||[];
+      // Merge inteligente: preservar registros locales que el servidor aún no tiene
+      const serverIds=new Set(serverRegs.map(r=>r.id));
+      const localOnly=_registros.filter(r=>!serverIds.has(r.id));
+      const merged=[...serverRegs,...localOnly];
+      const prevHash=_registros.map(r=>r.id+'|'+r.finalizado+'|'+r.resultado).join(',');
+      const newHash=merged.map(r=>r.id+'|'+r.finalizado+'|'+r.resultado).join(',');
+      if(newHash===prevHash) return; // sin cambios, no tocar nada
       const raw=d.referencias||{};
       Object.keys(raw).forEach(prov=>{raw[prov]=(raw[prov]||[]).map(r=>typeof r==='object'?r:{referencia:String(r||'')});});
-      const prevLen=_registros.length;
-      const prevHash=_registros.map(r=>r.id+'|'+r.finalizado+'|'+r.resultado).join(',');
-      _registros=d.registros||[];
+      _registros=merged;
       _cfgDefectos=d.defectos||_cfgDefectos;
       _cfgReferencias=raw;
       _cfgColores=d.colores||_cfgColores;
       _cfgProveedores=d.proveedores||_cfgProveedores;
-      // Solo actualizar tabla si hubo cambios reales en los registros
-      const newHash=_registros.map(r=>r.id+'|'+r.finalizado+'|'+r.resultado).join(',');
-      if(newHash!==prevHash) aplicarFiltros();
+      aplicarFiltros();
     }
   }catch(e){}
 }
@@ -1114,9 +1118,11 @@ function connectWS(){
     try{
       const msg=JSON.parse(e.data);
       if(msg.type==='rt_update'){
-        // Ignorar si acabamos de guardar (evita sobreescribir datos recién creados)
-        if(Date.now()-_lastSaveTime < 15000) return;
-        _registros=msg.registros||[];
+        // Merge inteligente: preservar registros locales que el servidor aún no confirmó
+        const serverRegs=msg.registros||[];
+        const serverIds=new Set(serverRegs.map(r=>r.id));
+        const localOnly=_registros.filter(r=>!serverIds.has(r.id));
+        _registros=[...serverRegs,...localOnly];
         _cfgDefectos=msg.defectos||_cfgDefectos;
         const raw=msg.referencias||_cfgReferencias;
         Object.keys(raw).forEach(prov=>{
@@ -1679,8 +1685,9 @@ function guardarRegistro(){
     hora_inicio:horaActual(),hora_fin:'',tiempo:'',metros:'',defectos:[],resultado:'',observaciones:'',finalizado:false
   };
   _registros.push(registro);registrarHistorial('CREADO',registro,'Rollo '+registro.rollo+' — '+registro.lote);
-  guardarEnServidor();aplicarFiltros();closeRegistroModal();
+  aplicarFiltros();closeRegistroModal();
   showToast('✅ Registro creado — Hora inicio: '+registro.hora_inicio);
+  guardarEnServidor(); // async background — _registros ya tiene el dato local
 }
 
 // ── Editar registro ────────────────────────────────────────────────
