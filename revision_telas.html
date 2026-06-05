@@ -1084,7 +1084,6 @@ async function syncPoll(){
     const res=await fetch('/api/revision-telas');
     if(res.ok){
       const d=await res.json();
-      console.log('[RT-POLL] Servidor tiene',d.registros?.length,'registros. Local tiene',_registros.length);
       const serverRegs=d.registros||[];
       // Preservar solo registros locales recién creados (dentro de ventana de 15s)
       const serverIds=new Set(serverRegs.map(r=>r.id));
@@ -1118,12 +1117,10 @@ function connectWS(){
     try{
       const msg=JSON.parse(e.data);
       if(msg.type==='rt_update'){
-        console.log('[RT-ADMIN] WS rt_update recibido. Registros en servidor:',msg.registros?.length,'Registros locales:',_registros.length,'isAdmin:',_rtIsAdmin);
         const serverRegs=msg.registros||[];
         const serverIds=new Set(serverRegs.map(r=>r.id));
         const localOnly=_registros.filter(r=>!serverIds.has(r.id)&&Date.now()-_lastSaveTime<15000);
         _registros=[...serverRegs,...localOnly];
-        console.log('[RT-ADMIN] Después de merge:', _registros.length, 'registros');
         _cfgDefectos=msg.defectos||_cfgDefectos;
         const raw=msg.referencias||_cfgReferencias;
         Object.keys(raw).forEach(prov=>{
@@ -1351,22 +1348,16 @@ async function cargarRevisadores(){
     const res=await fetch('/api/app-config');
     if(!res.ok){console.warn('[RT] app-config status:', res.status);return;}
     const cfg=await res.json();
-    console.log('[RT] app-config keys:', Object.keys(cfg));
     const perfiles=cfg._perfil_members||{};
-    console.log('[RT] Perfiles disponibles:', Object.keys(perfiles));
     // Buscar perfil 'Telas' sin importar mayúsculas/minúsculas
     const key=Object.keys(perfiles).find(k=>k.toLowerCase()==='telas')||'';
-    console.log('[RT] Perfil encontrado:', key||'ninguno');
     let members=key?perfiles[key]:[];
-    console.log('[RT] Members en perfil:', members.length, JSON.stringify(members).slice(0,200));
     // Fallback: _usuarios_extra
     if(!members.length && cfg._usuarios_extra){
       members=cfg._usuarios_extra;
-      console.log('[RT] Usando _usuarios_extra:', members.length);
     }
     _rtMembersData=(members||[]).filter(m=>!m.disabled);
     _revisadores=_rtMembersData.map(m=>typeof m==='string'?m:(m.nombre||m.name||'')).filter(Boolean);
-    console.log('[RT] Revisadores finales:', _revisadores.length, _revisadores);
   }catch(e){console.warn('[RT] Error cargando revisadores:',e);}
 }
 function getRevisadores(){return _revisadores;}
@@ -1489,10 +1480,7 @@ function getFacturasDisponibles(){
   // Lotes únicos de configuración
   const lotes=new Set();
   const allRefs=Object.values(_cfgReferencias).flat();
-  console.log('[RT] Total refs en cfg:', allRefs.length);
-  if(allRefs.length) console.log('[RT] Ejemplo ref[0]:', JSON.stringify(allRefs[0]));
   allRefs.forEach(r=>{if(typeof r==='object'&&r.lote)lotes.add(r.lote.toString());});
-  console.log('[RT] Lotes encontrados:', [...lotes]);
   return [...lotes].sort();
 }
 function getProveedoresPorFactura(lote){
