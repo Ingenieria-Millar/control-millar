@@ -1086,9 +1086,9 @@ async function syncPoll(){
     if(res.ok){
       const d=await res.json();
       const serverRegs=d.registros||[];
-      // Merge inteligente: preservar registros locales que el servidor aún no tiene
+      // Preservar solo registros locales recién creados (dentro de ventana de 15s)
       const serverIds=new Set(serverRegs.map(r=>r.id));
-      const localOnly=_registros.filter(r=>!serverIds.has(r.id));
+      const localOnly=_registros.filter(r=>!serverIds.has(r.id)&&Date.now()-_lastSaveTime<15000);
       const merged=[...serverRegs,...localOnly];
       const prevHash=_registros.map(r=>r.id+'|'+r.finalizado+'|'+r.resultado).join(',');
       const newHash=merged.map(r=>r.id+'|'+r.finalizado+'|'+r.resultado).join(',');
@@ -1118,10 +1118,11 @@ function connectWS(){
     try{
       const msg=JSON.parse(e.data);
       if(msg.type==='rt_update'){
-        // Merge inteligente: preservar registros locales que el servidor aún no confirmó
         const serverRegs=msg.registros||[];
+        // Si el servidor trae más registros, aceptar todo
+        // Si el servidor trae menos, preservar registros locales que el servidor aún no tiene
         const serverIds=new Set(serverRegs.map(r=>r.id));
-        const localOnly=_registros.filter(r=>!serverIds.has(r.id));
+        const localOnly=_registros.filter(r=>!serverIds.has(r.id)&&Date.now()-_lastSaveTime<15000);
         _registros=[...serverRegs,...localOnly];
         _cfgDefectos=msg.defectos||_cfgDefectos;
         const raw=msg.referencias||_cfgReferencias;
