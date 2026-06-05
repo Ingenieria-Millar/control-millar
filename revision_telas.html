@@ -1079,12 +1079,12 @@ let _rtCurrentUser=null, _rtIsAdmin=false, _rtMembersData=[], _revisadores=[];
 // ── Polling fallback para sincronización ──────────────────────────
 let _lastSync=Date.now();
 async function syncPoll(){
-  // No hacer poll si acabamos de guardar (esperar 15s para que el servidor confirme)
   if(Date.now()-_lastSaveTime < 15000) return;
   try{
     const res=await fetch('/api/revision-telas');
     if(res.ok){
       const d=await res.json();
+      console.log('[RT-POLL] Servidor tiene',d.registros?.length,'registros. Local tiene',_registros.length);
       const serverRegs=d.registros||[];
       // Preservar solo registros locales recién creados (dentro de ventana de 15s)
       const serverIds=new Set(serverRegs.map(r=>r.id));
@@ -1118,12 +1118,12 @@ function connectWS(){
     try{
       const msg=JSON.parse(e.data);
       if(msg.type==='rt_update'){
+        console.log('[RT-ADMIN] WS rt_update recibido. Registros en servidor:',msg.registros?.length,'Registros locales:',_registros.length,'isAdmin:',_rtIsAdmin);
         const serverRegs=msg.registros||[];
-        // Si el servidor trae más registros, aceptar todo
-        // Si el servidor trae menos, preservar registros locales que el servidor aún no tiene
         const serverIds=new Set(serverRegs.map(r=>r.id));
         const localOnly=_registros.filter(r=>!serverIds.has(r.id)&&Date.now()-_lastSaveTime<15000);
         _registros=[...serverRegs,...localOnly];
+        console.log('[RT-ADMIN] Después de merge:', _registros.length, 'registros');
         _cfgDefectos=msg.defectos||_cfgDefectos;
         const raw=msg.referencias||_cfgReferencias;
         Object.keys(raw).forEach(prov=>{
