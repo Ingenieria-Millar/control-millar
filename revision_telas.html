@@ -551,7 +551,7 @@ input[type=number]{-moz-appearance:textfield;}
           </div>
         </div>
       </div>
-      <button onclick="event.stopPropagation();openRegistroModal()" id="rt-nuevo-btn"
+      <button onclick="event.stopPropagation();openTipoRegistroModal()" id="rt-nuevo-btn"
         style="display:none;padding:7px 18px;border-radius:8px;border:none;
         background:#1e3a8a;color:#fff;
         font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;
@@ -598,6 +598,53 @@ input[type=number]{-moz-appearance:textfield;}
 </div>
 
 <div class="toast" id="rt-toast"></div>
+
+<!-- Modal Selección Tipo Registro -->
+<div class="modal-overlay" id="modal-tipo-registro" style="display:none;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;padding:32px;width:360px;box-shadow:0 20px 60px rgba(0,0,0,.2);">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:#0f172a;letter-spacing:.5px;margin-bottom:6px;text-align:center;">¿Qué vas a registrar?</div>
+    <div style="font-size:13px;color:#64748b;text-align:center;margin-bottom:24px;">Elige el tipo de registro</div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <button onclick="closeTipoRegistroModal();openRegistroModal();" style="display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:12px;border:2px solid #2563eb;background:#eff6ff;cursor:pointer;text-align:left;transition:all .15s;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">
+        <span style="font-size:28px;">🧵</span>
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;color:#1e3a8a;letter-spacing:.3px;">Revisión de Tela</div>
+          <div style="font-size:12px;color:#3b82f6;">Registrar revisión de un rollo</div>
+        </div>
+      </button>
+      <button onclick="closeTipoRegistroModal();openMultitareaModal();" style="display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:12px;border:2px solid #7c3aed;background:#f5f3ff;cursor:pointer;text-align:left;transition:all .15s;" onmouseover="this.style.background='#ede9fe'" onmouseout="this.style.background='#f5f3ff'">
+        <span style="font-size:28px;">⚡</span>
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;color:#4c1d95;letter-spacing:.3px;">Multitarea</div>
+          <div style="font-size:12px;color:#7c3aed;">Registrar otra actividad</div>
+        </div>
+      </button>
+    </div>
+    <button onclick="closeTipoRegistroModal()" style="width:100%;margin-top:16px;padding:10px;border-radius:10px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:13px;font-weight:600;cursor:pointer;">Cancelar</button>
+  </div>
+</div>
+
+<!-- Modal Multitarea -->
+<div class="modal-overlay" id="modal-multitarea" style="display:none;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;padding:28px;width:420px;box-shadow:0 20px 60px rgba(0,0,0,.2);">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;color:#0f172a;margin-bottom:20px;">⚡ Nueva Multitarea</div>
+    <div style="margin-bottom:14px;">
+      <label style="display:block;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Tarea a realizar</label>
+      <select id="mt-tarea" style="width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;outline:none;background:#f8fafc;">
+        <option value="">— Selecciona una tarea —</option>
+      </select>
+    </div>
+    <div style="margin-bottom:14px;">
+      <label style="display:block;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Observaciones <span style="font-weight:400;color:#94a3b8;">(opcional)</span></label>
+      <textarea id="mt-obs" rows="2" style="width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;resize:vertical;background:#f8fafc;font-family:inherit;"></textarea>
+    </div>
+    <div id="mt-error" style="color:#dc2626;font-size:12px;min-height:16px;margin-bottom:8px;"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button onclick="closeMultitareaModal()" style="padding:10px 18px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:13px;font-weight:600;cursor:pointer;">Cancelar</button>
+      <button onclick="iniciarMultitarea()" style="padding:10px 20px;border-radius:8px;border:none;background:#7c3aed;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">▶ Iniciar</button>
+    </div>
+  </div>
+</div>
 
 <!-- Modal Nuevo Registro -->
 <div class="modal-overlay" id="modal-registro">
@@ -874,7 +921,8 @@ input[type=number]{-moz-appearance:textfield;}
   <div style="background:#fff;border-bottom:1px solid #e2e8f0;padding:0 24px;display:flex;gap:0;">
     <button class="cfg-tab-btn active" id="cfg-tab-btn-1" onclick="switchCfgTab(1)">🧵 Referencias por Proveedor</button>
     <button class="cfg-tab-btn" id="cfg-tab-btn-2" onclick="switchCfgTab(2)">⚠️ Defectos</button>
-    <button class="cfg-tab-btn" id="cfg-tab-btn-3" onclick="switchCfgTab(3)">📋 Historial</button>
+    <button class="cfg-tab-btn" id="cfg-tab-btn-3" onclick="switchCfgTab(3)">⚡ Tareas</button>
+    <button class="cfg-tab-btn" id="cfg-tab-btn-4" onclick="switchCfgTab(4)">📋 Historial</button>
   </div>
   <div style="flex:1;overflow-y:auto;padding:24px clamp(12px,2.5vw,24px);">
     <!-- Pestaña 1 -->
@@ -976,8 +1024,26 @@ input[type=number]{-moz-appearance:textfield;}
         </div>
       </div>
     </div>
-    <!-- Pestaña 3 -->
-    <div id="cfg-panel-3" style="display:none;max-width:1000px;margin:0 auto;">
+    <!-- Pestaña 3: Tareas -->
+    <div id="cfg-panel-3" style="display:none;max-width:700px;margin:0 auto;">
+      <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;">
+        <div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;background:#f8fafc;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#0f172a;">⚡ Lista de Tareas</div>
+          <div style="display:flex;gap:8px;">
+            <button onclick="limpiarTareas()" style="padding:7px 14px;border-radius:8px;border:1.5px solid #fca5a5;background:#fef2f2;color:#dc2626;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">🗑 Limpiar Todo</button>
+          </div>
+        </div>
+        <div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;">
+          <div style="display:flex;gap:8px;">
+            <input type="text" id="cfg-add-tarea" placeholder="Nombre de la tarea" onkeydown="if(event.key==='Enter')agregarTarea()" style="flex:1;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;">
+            <button onclick="agregarTarea()" style="padding:9px 18px;border-radius:8px;border:none;background:#7c3aed;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">+ Agregar</button>
+          </div>
+        </div>
+        <div id="cfg-tareas-list" style="padding:16px 20px;min-height:60px;"></div>
+      </div>
+    </div>
+    <!-- Pestaña 4: Historial -->
+    <div id="cfg-panel-4" style="display:none;max-width:1000px;margin:0 auto;">
       <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;">
         <div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;background:#f8fafc;display:flex;align-items:center;justify-content:space-between;">
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#0f172a;">📋 Historial de Cambios</div>
@@ -1003,11 +1069,19 @@ input[type=number]{-moz-appearance:textfield;}
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-      <label style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;">Desde</label>
-      <input type="date" id="dash-filtro-desde" style="padding:5px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;font-family:'Nunito',sans-serif;" onchange="renderDashboard()">
-      <label style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;">Hasta</label>
-      <input type="date" id="dash-filtro-hasta" style="padding:5px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;font-family:'Nunito',sans-serif;" onchange="renderDashboard()">
-      <button onclick="document.getElementById('dash-filtro-desde').value='';document.getElementById('dash-filtro-hasta').value='';renderDashboard();" style="padding:5px 10px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:12px;font-family:'Barlow Condensed',sans-serif;font-weight:700;cursor:pointer;">Todas</button>
+      <div style="position:relative;">
+        <button onclick="toggleDashFechaPanel()" id="dash-fecha-lbl-btn" style="display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#475569;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">
+          📅 <span id="dash-fecha-lbl">Hoy</span>
+        </button>
+        <div id="dash-fecha-panel" style="display:none;position:absolute;top:110%;right:0;z-index:300;background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:240px;">
+          <div style="margin-bottom:10px;"><label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;margin-bottom:4px;">Desde</label><input type="date" id="dash-filtro-desde" style="width:100%;padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;" oninput="renderDashboard();actualizarLabelDashFecha();"></div>
+          <div style="margin-bottom:14px;"><label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;margin-bottom:4px;">Hasta</label><input type="date" id="dash-filtro-hasta" style="width:100%;padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;" oninput="renderDashboard();actualizarLabelDashFecha();"></div>
+          <div style="display:flex;gap:8px;">
+            <button onclick="dashHoy()" style="flex:1;padding:8px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Hoy</button>
+            <button onclick="dashLimpiarFecha()" style="flex:1;padding:8px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Todo</button>
+          </div>
+        </div>
+      </div>
       <button class="hd-back-btn" onclick="cerrarDashboard()">← Volver</button>
     </div>
   </div>
@@ -1047,6 +1121,16 @@ input[type=number]{-moz-appearance:textfield;}
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:14px;">⏱ Tiempo Promedio por Revisador</div>
           <div id="dash-tiempos"></div>
         </div>
+        <!-- Horas laboradas por revisador -->
+        <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;padding:20px;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:14px;">🕐 Horas Laboradas por Revisador</div>
+          <div id="dash-horas-laboradas"></div>
+        </div>
+        <!-- Desglose por actividad -->
+        <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;padding:20px;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:14px;">⚡ Tiempo por Actividad</div>
+          <div id="dash-actividades"></div>
+        </div>
         <!-- Actividad por fecha -->
         <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;padding:20px;grid-column:1/-1;">
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:14px;">📅 Actividad por Fecha</div>
@@ -1071,7 +1155,7 @@ let _registros=[], _filtrados=[], _sortCol='fecha', _sortDir=-1;
 let _pendingIds=new Set(); // ids creados localmente aún no confirmados por el servidor; no se descartan hasta que el servidor los tenga o se borren
 let _historial=[];
 let _confirmCB=null, _finalizandoId=null;
-let _cfgDefectos=[], _cfgReferencias={}, _cfgColores=[], _cfgProveedores=[], _cfgProveedoresTerceros=[];
+let _cfgDefectos=[], _cfgReferencias={}, _cfgColores=[], _cfgProveedores=[], _cfgProveedoresTerceros=[], _cfgTareas=[];
 let ws=null, wsReady=false, wsTimer=null;
 let _filtroDesde='', _filtroHasta='';
 let _rtCurrentUser=null, _rtIsAdmin=false, _rtMembersData=[], _revisadores=[];
@@ -1136,6 +1220,7 @@ function connectWS(){
         _cfgColores=msg.colores||_cfgColores;
         _cfgProveedores=msg.proveedores||_cfgProveedores;
         _cfgProveedoresTerceros=msg.proveedoresTerceros||_cfgProveedoresTerceros;
+        _cfgTareas=msg.tareas||_cfgTareas;
         aplicarFiltros();
       }
     }catch(err){console.warn('WS:',err);}
@@ -1161,6 +1246,7 @@ async function cargarDatos(){
       _cfgColores=d.colores||[];
       _cfgProveedores=d.proveedores||[];
       _cfgProveedoresTerceros=d.proveedoresTerceros||[];
+      _cfgTareas=d.tareas||[];
     }
   }catch(e){console.warn(e);}
 }
@@ -1255,7 +1341,7 @@ async function guardarEnServidor(){
   try{
     const res=await fetch('/api/revision-telas',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({registros:_registros,defectos:_cfgDefectos,referencias:_cfgReferencias,colores:_cfgColores,proveedores:_cfgProveedores,proveedoresTerceros:_cfgProveedoresTerceros,deletedIds:sentDeleted})
+      body:JSON.stringify({registros:_registros,defectos:_cfgDefectos,referencias:_cfgReferencias,colores:_cfgColores,proveedores:_cfgProveedores,proveedoresTerceros:_cfgProveedoresTerceros,tareas:_cfgTareas,deletedIds:sentDeleted})
     });
     if(res&&res.ok&&sentDeleted.length){
       _deletedIds=_deletedIds.filter(id=>!sentDeleted.includes(id));
@@ -1468,18 +1554,25 @@ function renderTabla(){
   const body=document.getElementById('rt-table-body');
   if(!_filtrados.length){body.innerHTML='<div class="empty-state"><div class="empty-icon">🧵</div><div class="empty-text">Sin registros</div><div style="font-size:12px;margin-top:6px;color:#cbd5e1;">Agrega el primer registro con + Nuevo</div></div>';return;}
   body.innerHTML=_filtrados.map(r=>{
-    const estadoBadge=r.finalizado?(r.resultado==='aprobado'?'<span class="td-badge badge-ok">✅ Aprobado</span>':'<span class="td-badge badge-rech">❌ Rechazado</span>'):'<span class="td-badge badge-pend">🔄 En revisión</span>';
+    const esMultitarea=r.tipo==='multitarea';
+    const estadoBadge=r.finalizado
+      ?(esMultitarea?'<span class="td-badge" style="background:#f3e8ff;color:#6d28d9;border:1px solid #ddd6fe;">✅ Completado</span>'
+        :(r.resultado==='aprobado'?'<span class="td-badge badge-ok">✅ Aprobado</span>':'<span class="td-badge badge-rech">❌ Rechazado</span>'))
+      :'<span class="td-badge badge-pend">🔄 En revisión</span>';
     const accionFin=r.finalizado?'':`<button class="btn-finalizar" onclick="openFinalizar('${r.id}')">🏁 FINALIZAR</button>`;
-    const totalDef=r.defectos?(r.defectos.reduce((s,d)=>s+parseInt(d.cantidad||0),0)):'';
-    return `<div class="table-row">
+    const totalDef=(!esMultitarea&&r.defectos)?(r.defectos.reduce((s,d)=>s+parseInt(d.cantidad||0),0)):0;
+    const refCell=esMultitarea
+      ?`<span style="display:inline-flex;align-items:center;gap:5px;"><span style="background:#f3e8ff;color:#6d28d9;border:1px solid #ddd6fe;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;">⚡ TAREA</span> ${r.tarea||'—'}</span>`
+      :`<span style="font-weight:700;color:#2563eb;">${r.referencia||'—'}</span>`;
+    return `<div class="table-row"${esMultitarea?' style="background:#faf5ff;"':''}>
       <div class="td">${fechaDisplay(r.fecha)||'—'}</div>
       <div class="td">${r.revisador||'—'}</div>
-      <div class="td">${r.lote||'—'}</div>
-      <div class="td">${r.rollo||'—'}</div>
-      <div class="td" style="font-weight:700;color:#2563eb;">${r.referencia||'—'}</div>
-      <div class="td">${r.metros?r.metros+' m':'—'}</div>
+      <div class="td">${esMultitarea?'—':r.lote||'—'}</div>
+      <div class="td">${esMultitarea?'—':r.rollo||'—'}</div>
+      <div class="td">${refCell}</div>
+      <div class="td">${esMultitarea?'—':r.metros?r.metros+' m':'—'}</div>
       <div class="td">${estadoBadge}</div>
-      <div class="td">${totalDef?'<span style="display:inline-flex;align-items:center;gap:5px;"><span style="font-weight:700;color:#92400e;font-size:13px;">'+totalDef+'</span><button onclick="verDefectos(\''+r.id+'\')" style="width:24px;height:24px;border-radius:6px;border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;font-size:12px;">👁</button></span>':'—'}</div>
+      <div class="td">${!esMultitarea&&totalDef?'<span style="display:inline-flex;align-items:center;gap:5px;"><span style="font-weight:700;color:#92400e;font-size:13px;">'+totalDef+'</span><button onclick="verDefectos(\''+r.id+'\')" style="width:24px;height:24px;border-radius:6px;border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;font-size:12px;">👁</button></span>':'—'}</div>
       <div class="td">${r.observaciones?'<button onclick="verObservacion(\''+r.id+'\')" style="width:28px;height:28px;border-radius:6px;border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;font-size:14px;">💬</button>':'—'}</div>
       <div class="td">${r.tiempo?'<span class="tiempo-badge">'+r.tiempo+'</span>':'—'}</div>
       <div class="td" style="display:flex;align-items:center;">
@@ -1487,7 +1580,7 @@ function renderTabla(){
       </div>
       <div class="td td-actions">
         ${accionFin}
-        ${_rtIsAdmin?'<button class="btn-action" title="Editar" onclick="pedirPassAccion(()=>editarRegistro(\''+r.id+'\'))" style="margin-left:2px;">✏️</button><button class="btn-action del" title="Eliminar" onclick="confirmarEliminar(\''+r.id+'\')" style="margin-left:2px;">🗑</button>':''} 
+        ${_rtIsAdmin?'<button class="btn-action" title="Editar" onclick="pedirPassAccion(()=>editarRegistro(\''+r.id+'\'))" style="margin-left:2px;">✏️</button><button class="btn-action del" title="Eliminar" onclick="confirmarEliminar(\''+r.id+'\')" style="margin-left:2px;">🗑</button>':''}
       </div>
     </div>`;
   }).join('');
@@ -1835,16 +1928,22 @@ function guardarEdicion(id){
 // ── Modal Finalizar ────────────────────────────────────────────────
 function openFinalizar(id){
   _finalizandoId=id;const r=_registros.find(x=>x.id===id);if(!r)return;
-  document.getElementById('fin-ref-label').textContent=(r.referencia||'')+' — Rollo '+(r.rollo||'')+' — '+(r.revisador||'');
+  const esMultitarea=r.tipo==='multitarea';
+  document.getElementById('fin-ref-label').textContent=esMultitarea?('⚡ '+r.tarea+' — '+r.revisador):(r.referencia||'')+' — Rollo '+(r.rollo||'')+' — '+(r.revisador||'');
   document.getElementById('fin-metros').value='';
   document.getElementById('fin-ancho').value='';
   document.getElementById('fin-peso').value='';
-  document.getElementById('fin-observaciones').value='';
+  document.getElementById('fin-observaciones').value=r.observaciones||'';
   document.getElementById('fin-resultado').value='';document.getElementById('fin-error').textContent='';
   document.getElementById('btn-aprobado').className='toggle-btn';
   document.getElementById('btn-rechazado').className='toggle-btn';
   document.getElementById('fin-defectos-list').innerHTML='';
-  agregarDefectoRow();
+  // Mostrar/ocultar campos según tipo
+  const camposTela=['fin-metros','fin-ancho','fin-peso','fin-defectos-list','fin-defectos-wrap','fin-resultado-wrap'];
+  ['fin-metros-wrap','fin-ancho-peso-wrap','fin-defectos-wrap','fin-resultado-wrap'].forEach(wid=>{
+    const el=document.getElementById(wid);if(el)el.style.display=esMultitarea?'none':'';
+  });
+  if(!esMultitarea) agregarDefectoRow();
   document.getElementById('modal-finalizar').classList.add('open');
 }
 
@@ -1883,33 +1982,31 @@ function agregarDefectoRow(){
   list.appendChild(row);
 }
 function guardarFinalizar(){
+  const r=_registros.find(x=>x.id===_finalizandoId);if(!r)return;
+  const esMultitarea=r.tipo==='multitarea';
   const metros=document.getElementById('fin-metros').value.trim();
   const ancho=document.getElementById('fin-ancho').value.trim();
   const peso=document.getElementById('fin-peso').value.trim();
-  const resultado=document.getElementById('fin-resultado').value;
+  const resultado=esMultitarea?'Completado':document.getElementById('fin-resultado').value;
   const obs=document.getElementById('fin-observaciones').value.trim();
-  const procTercero='no';
-  const provTercero='';
   const errEl=document.getElementById('fin-error');
-  if(!metros){errEl.textContent='Ingresa los metros revisados';return;}
-  if(!resultado){errEl.textContent='Selecciona Aprobado o Rechazado';return;}
-  let defErr=false;
-  const defectos=[];
-  document.querySelectorAll('#fin-defectos-list > div').forEach(row=>{
-    const sel=row.querySelector('select');
-    const inputs=row.querySelectorAll('input');
-    const tipo=sel?sel.value:'';
-    const metro=inputs[0]?inputs[0].value:'';
-    const cant=inputs[1]?inputs[1].value:'';
-    if((tipo&&!cant)||(cant&&!tipo))defErr=true;
-    if(tipo&&cant)defectos.push({tipo,metro,cantidad:parseInt(cant)});
-  });
-  if(defErr){errEl.textContent='Completa tipo y cantidad en cada defecto';return;}
+  if(!esMultitarea&&!metros){errEl.textContent='Ingresa los metros revisados';return;}
+  if(!esMultitarea&&!resultado){errEl.textContent='Selecciona Aprobado o Rechazado';return;}
+  let defErr=false;const defectos=[];
+  if(!esMultitarea){
+    document.querySelectorAll('#fin-defectos-list > div').forEach(row=>{
+      const sel=row.querySelector('select');const inputs=row.querySelectorAll('input');
+      const tipo=sel?sel.value:'';const metro=inputs[0]?inputs[0].value:'';const cant=inputs[1]?inputs[1].value:'';
+      if((tipo&&!cant)||(cant&&!tipo))defErr=true;
+      if(tipo&&cant)defectos.push({tipo,metro,cantidad:parseInt(cant)});
+    });
+    if(defErr){errEl.textContent='Completa tipo y cantidad en cada defecto';return;}
+  }
   const horaFin=horaActual();
   const idx=_registros.findIndex(x=>x.id===_finalizandoId);
-  if(idx>=0){const r=_registros[idx];_registros[idx]={...r,metros,ancho,peso,defectos,resultado,observaciones:obs,proc_tercero:procTercero,prov_tercero:provTercero,hora_fin:horaFin,tiempo:calcTiempo(r.hora_inicio,horaFin),finalizado:true};}
+  if(idx>=0){const reg=_registros[idx];_registros[idx]={...reg,metros:esMultitarea?'':metros,ancho,peso,defectos,resultado,observaciones:obs,hora_fin:horaFin,tiempo:calcTiempo(reg.hora_inicio,horaFin),finalizado:true};}
   guardarEnServidor();aplicarFiltros();closeFinalizar();
-  showToast('✅ Revisión finalizada — Hora fin: '+horaFin);
+  showToast('✅ '+(esMultitarea?'Tarea completada':'Revisión finalizada')+' — Hora fin: '+horaFin);
 }
 
 // ── Confirmar eliminar ─────────────────────────────────────────────
@@ -2065,35 +2162,96 @@ function exportarExcel(){
 }
 
 // ── Dashboard ──────────────────────────────────────────────────────
-function abrirDashboard(){renderDashboard();document.getElementById('rt-dashboard-screen').style.display='flex';}
-function cerrarDashboard(){document.getElementById('rt-dashboard-screen').style.display='none';}
-function barChart(data,colorFn){
-  if(!data.length)return '<div style="color:#94a3b8;font-size:12px;padding:10px;">Sin datos</div>';
-  const max=Math.max(...data.map(d=>d.val));
-  return data.map(d=>{const pct=max>0?(d.val/max*100):0;const color=colorFn?colorFn(d):'#2563eb';return '<div style="margin-bottom:10px;"><div style="display:flex;justify-content:space-between;margin-bottom:3px;"><span style="font-size:12px;font-weight:600;color:#334155;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+d.label+'</span><span style="font-family:\'Barlow Condensed\',sans-serif;font-size:14px;font-weight:800;color:#0f172a;">'+(typeof d.val==='number'&&!Number.isInteger(d.val)?d.val.toFixed(1):d.val)+(d.unit||'')+'</span></div><div style="background:#f1f5f9;border-radius:6px;height:10px;overflow:hidden;"><div style="width:'+pct+'%;height:100%;background:'+color+';border-radius:6px;"></div></div></div>';}).join('');
+function toggleDashFechaPanel(){const p=document.getElementById('dash-fecha-panel');p.style.display=p.style.display==='block'?'none':'block';}
+function actualizarLabelDashFecha(){
+  const desde=document.getElementById('dash-filtro-desde').value;
+  const hasta=document.getElementById('dash-filtro-hasta').value;
+  const lbl=document.getElementById('dash-fecha-lbl');
+  if(!desde&&!hasta){lbl.textContent='Todo';return;}
+  if(desde===hasta)lbl.textContent=fechaDisplay(desde);
+  else lbl.textContent=(desde?fechaDisplay(desde):'…')+' → '+(hasta?fechaDisplay(hasta):'…');
 }
+function dashHoy(){
+  const hoy=fechaHoy();
+  document.getElementById('dash-filtro-desde').value=hoy;
+  document.getElementById('dash-filtro-hasta').value=hoy;
+  document.getElementById('dash-fecha-panel').style.display='none';
+  actualizarLabelDashFecha();renderDashboard();
+}
+function dashLimpiarFecha(){
+  document.getElementById('dash-filtro-desde').value='';
+  document.getElementById('dash-filtro-hasta').value='';
+  document.getElementById('dash-fecha-panel').style.display='none';
+  actualizarLabelDashFecha();renderDashboard();
+}
+function abrirDashboard(){
+  // Inicializar con hoy si no hay valor
+  const hoy=fechaHoy();
+  if(!document.getElementById('dash-filtro-desde').value){document.getElementById('dash-filtro-desde').value=hoy;}
+  if(!document.getElementById('dash-filtro-hasta').value){document.getElementById('dash-filtro-hasta').value=hoy;}
+  actualizarLabelDashFecha();
+  renderDashboard();
+  document.getElementById('rt-dashboard-screen').style.display='flex';
+}
+// Cerrar panel fecha dashboard al click fuera
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#dash-fecha-lbl-btn')&&!e.target.closest('#dash-fecha-panel'))
+    {const p=document.getElementById('dash-fecha-panel');if(p)p.style.display='none';}
+});
+
+function cerrarDashboard(){document.getElementById('rt-dashboard-screen').style.display='none';}
 function renderDashboard(){
   const desde=document.getElementById('dash-filtro-desde')?.value||'';
   const hasta=document.getElementById('dash-filtro-hasta')?.value||'';
   const regs=_registros.filter(r=>(!desde||r.fecha>=desde)&&(!hasta||r.fecha<=hasta));
-  const allRegs=regs,fin=regs.filter(r=>r.finalizado),totalMetros=regs.reduce((s,r)=>s+parseFloat(r.metros||0),0),totalDef=fin.reduce((s,r)=>s+(r.defectos||[]).reduce((ss,d)=>ss+parseInt(d.cantidad||0),0),0),aprobados=fin.filter(r=>r.resultado==='aprobado').length,rechazados=fin.filter(r=>r.resultado==='rechazado').length,enRev=regs.filter(r=>!r.finalizado).length;
-  document.getElementById('dash-stats-row').innerHTML=[{n:'Total',v:regs.length,c:'#0f172a'},{n:'Finalizados',v:fin.length,c:'#2563eb'},{n:'En Revisión',v:enRev,c:'#b45309'},{n:'Aprobados',v:aprobados,c:'#15803d'},{n:'Rechazados',v:rechazados,c:'#dc2626'},{n:'Metros',v:totalMetros.toFixed(1)+'m',c:'#7c3aed'},{n:'Defectos',v:totalDef,c:'#c2410c'}].map(s=>'<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px 18px;min-width:100px;flex:1;"><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:26px;font-weight:800;color:'+s.c+';">'+s.v+'</div><div style="font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#94a3b8;">'+s.n+'</div></div>').join('');
+  const telasRegs=regs.filter(r=>r.tipo!=='multitarea');
+  const multiRegs=regs.filter(r=>r.tipo==='multitarea');
+  const fin=regs.filter(r=>r.finalizado);
+  const totalMetros=telasRegs.reduce((s,r)=>s+parseFloat(r.metros||0),0);
+  const totalDef=fin.reduce((s,r)=>s+(r.defectos||[]).reduce((ss,d)=>ss+parseInt(d.cantidad||0),0),0);
+  const aprobados=fin.filter(r=>r.resultado==='aprobado').length;
+  const rechazados=fin.filter(r=>r.resultado==='rechazado').length;
+  const enRev=regs.filter(r=>!r.finalizado).length;
+  // Calcular minutos totales (todas las actividades finalizadas con tiempo)
+  function parseMins(t){if(!t)return 0;const m=t.match(/(?:(\d+)h\s*)?(\d+)min/);return m?(parseInt(m[1]||0)*60+parseInt(m[2]||0)):0;}
+  const minsTotales=fin.reduce((s,r)=>s+parseMins(r.tiempo),0);
+  const horasLab=minsTotales>=60?Math.floor(minsTotales/60)+'h '+(minsTotales%60)+'min':minsTotales+'min';
+  document.getElementById('dash-stats-row').innerHTML=[
+    {n:'Total',v:regs.length,c:'#0f172a'},
+    {n:'Finalizados',v:fin.length,c:'#2563eb'},
+    {n:'En Revisión',v:enRev,c:'#b45309'},
+    {n:'Aprobados',v:aprobados,c:'#15803d'},
+    {n:'Rechazados',v:rechazados,c:'#dc2626'},
+    {n:'Metros Totales',v:totalMetros.toFixed(1)+'m',c:'#7c3aed'},
+    {n:'Defectos',v:totalDef,c:'#c2410c'},
+    {n:'Horas Lab.',v:horasLab,c:'#0891b2'}
+  ].map(s=>'<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px 18px;min-width:100px;flex:1;"><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:26px;font-weight:800;color:'+s.c+';">'+s.v+'</div><div style="font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#94a3b8;">'+s.n+'</div></div>').join('');
   const porRev={};regs.forEach(r=>{porRev[r.revisador||'—']=(porRev[r.revisador||'—']||0)+1;});
   document.getElementById('dash-por-revisador').innerHTML=barChart(Object.entries(porRev).sort((a,b)=>b[1]-a[1]).map(([l,v])=>({label:l,val:v})),()=>'#2563eb');
   const pctA=fin.length?Math.round(aprobados/fin.length*100):0,pctR=fin.length?Math.round(rechazados/fin.length*100):0;
   document.getElementById('dash-resultados').innerHTML='<div style="display:flex;gap:12px;margin-bottom:16px;"><div style="flex:1;background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:14px;text-align:center;"><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:32px;font-weight:800;color:#15803d;">'+pctA+'%</div><div style="font-size:11px;font-weight:700;color:#15803d;text-transform:uppercase;">Aprobados</div></div><div style="flex:1;background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;padding:14px;text-align:center;"><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:32px;font-weight:800;color:#dc2626;">'+pctR+'%</div><div style="font-size:11px;font-weight:700;color:#dc2626;text-transform:uppercase;">Rechazados</div></div></div>'+barChart([{label:'Aprobados',val:aprobados},{label:'Rechazados',val:rechazados},{label:'En revisión',val:enRev}],d=>d.label==='Aprobados'?'#15803d':d.label==='Rechazados'?'#dc2626':'#f59e0b');
-  const mp={};regs.forEach(r=>{mp[r.revisador||'—']=(mp[r.revisador||'—']||0)+parseFloat(r.metros||0);});
+  const mp={};telasRegs.forEach(r=>{mp[r.revisador||'—']=(mp[r.revisador||'—']||0)+parseFloat(r.metros||0);});
   document.getElementById('dash-metros').innerHTML=barChart(Object.entries(mp).sort((a,b)=>b[1]-a[1]).map(([l,v])=>({label:l,val:v,unit:'m'})),()=>'#7c3aed');
   const dm={};fin.forEach(r=>(r.defectos||[]).forEach(d=>{dm[d.tipo]=(dm[d.tipo]||0)+parseInt(d.cantidad||0);}));
   document.getElementById('dash-defectos').innerHTML=Object.keys(dm).length?barChart(Object.entries(dm).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([l,v])=>({label:l,val:v})),()=>'#c2410c'):'<div style="color:#94a3b8;font-size:12px;padding:10px;">Sin defectos</div>';
-  const rm={};regs.forEach(r=>{rm[r.referencia||'—']=(rm[r.referencia||'—']||0)+1;});
+  const rm={};telasRegs.forEach(r=>{rm[r.referencia||'—']=(rm[r.referencia||'—']||0)+1;});
   document.getElementById('dash-referencias').innerHTML=barChart(Object.entries(rm).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([l,v])=>({label:l,val:v})),()=>'#0891b2');
-  const tm={},cm={};fin.forEach(r=>{if(!r.tiempo)return;const m=r.tiempo.match(/(?:(\d+)h\s*)?(\d+)min/);if(m){const mins=(parseInt(m[1]||0)*60+parseInt(m[2]||0));tm[r.revisador||'—']=(tm[r.revisador||'—']||0)+mins;cm[r.revisador||'—']=(cm[r.revisador||'—']||0)+1;}});
-  const promedios=Object.entries(tm).map(([rev,total])=>{const avg=Math.round(total/(cm[rev]||1));return {label:rev,val:avg,display:avg>=60?Math.floor(avg/60)+'h '+avg%60+'min':avg+'min'};}).sort((a,b)=>b.val-a.val);
+  // Tiempo promedio por revisador (solo telas)
+  const tm={},cm={};fin.filter(r=>r.tipo!=='multitarea').forEach(r=>{if(!r.tiempo)return;const mins=parseMins(r.tiempo);if(mins){tm[r.revisador||'—']=(tm[r.revisador||'—']||0)+mins;cm[r.revisador||'—']=(cm[r.revisador||'—']||0)+1;}});
+  const promedios=Object.entries(tm).map(([rev,total])=>{const avg=Math.round(total/(cm[rev]||1));return{label:rev,val:avg,display:avg>=60?Math.floor(avg/60)+'h '+avg%60+'min':avg+'min'};}).sort((a,b)=>b.val-a.val);
   document.getElementById('dash-tiempos').innerHTML=promedios.length?promedios.map(d=>'<div style="margin-bottom:10px;"><div style="display:flex;justify-content:space-between;margin-bottom:3px;"><span style="font-size:12px;font-weight:600;color:#334155;">'+d.label+'</span><span style="font-size:14px;font-weight:800;color:#0f172a;">'+d.display+'</span></div><div style="background:#f1f5f9;border-radius:6px;height:10px;overflow:hidden;"><div style="width:'+Math.round(d.val/Math.max(...promedios.map(x=>x.val))*100)+'%;height:100%;background:#0891b2;border-radius:6px;"></div></div></div>').join(''):'<div style="color:#94a3b8;font-size:12px;padding:10px;">Sin datos</div>';
+  // Horas laboradas por revisador (todas las actividades)
+  const hl={};fin.forEach(r=>{const mins=parseMins(r.tiempo);if(mins)hl[r.revisador||'—']=(hl[r.revisador||'—']||0)+mins;});
+  document.getElementById('dash-horas-laboradas').innerHTML=Object.keys(hl).length?barChart(Object.entries(hl).sort((a,b)=>b[1]-a[1]).map(([l,v])=>{const d=v>=60?Math.floor(v/60)+'h '+(v%60)+'min':v+'min';return{label:l,val:v,display:d};}),()=>'#0891b2',true):'<div style="color:#94a3b8;font-size:12px;padding:10px;">Sin datos</div>';
+  // Desglose por actividad (tareas + revisión de tela)
+  const act={};
+  telasRegs.filter(r=>r.finalizado).forEach(r=>{const mins=parseMins(r.tiempo);if(mins)act['🧵 Revisión de Tela']=(act['🧵 Revisión de Tela']||0)+mins;});
+  multiRegs.filter(r=>r.finalizado).forEach(r=>{const k='⚡ '+(r.tarea||'Multitarea');const mins=parseMins(r.tiempo);if(mins)act[k]=(act[k]||0)+mins;});
+  document.getElementById('dash-actividades').innerHTML=Object.keys(act).length?barChart(Object.entries(act).sort((a,b)=>b[1]-a[1]).map(([l,v])=>{const d=v>=60?Math.floor(v/60)+'h '+(v%60)+'min':v+'min';return{label:l,val:v,display:d};}),d=>d.label.startsWith('🧵')?'#2563eb':'#7c3aed',true):'<div style="color:#94a3b8;font-size:12px;padding:10px;">Sin datos</div>';
   const fm={};regs.forEach(r=>{fm[r.fecha||'—']=(fm[r.fecha||'—']||0)+1;});
   const fo=Object.entries(fm).sort((a,b)=>a[0].localeCompare(b[0]));
   document.getElementById('dash-fechas').innerHTML=fo.length?'<div style="display:flex;align-items:flex-end;gap:6px;height:120px;padding:0 4px;">'+fo.map(([f,c])=>{const h=Math.round(c/Math.max(...fo.map(x=>x[1]))*100);const[y,mo,d]=f.split('-');return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:30px;"><span style="font-size:12px;font-weight:800;color:#0f172a;">'+c+'</span><div style="width:100%;background:#2563eb;border-radius:4px 4px 0 0;height:'+h+'px;min-height:4px;"></div><span style="font-size:9px;color:#94a3b8;text-align:center;">'+d+'/'+mo+'</span></div>';}).join('')+'</div>':'<div style="color:#94a3b8;font-size:12px;padding:10px;">Sin actividad</div>';
+
   // Resumen por lote
   const loteMap={};
   regs.forEach(r=>{
@@ -2140,16 +2298,24 @@ function renderDashboard(){
     :'<div style="color:#94a3b8;font-size:12px;padding:10px;">Sin datos</div>';
 }
 
+function barChart(data,colorFn,showDisplay){
+  if(!data.length)return '<div style="color:#94a3b8;font-size:12px;padding:10px;">Sin datos</div>';
+  const max=Math.max(...data.map(d=>d.val));
+  return data.map(d=>{const pct=max>0?(d.val/max*100):0;const color=colorFn?colorFn(d):'#2563eb';const valDisplay=showDisplay&&d.display?d.display:(typeof d.val==='number'&&!Number.isInteger(d.val)?d.val.toFixed(1):d.val)+(d.unit||'');return '<div style="margin-bottom:10px;"><div style="display:flex;justify-content:space-between;margin-bottom:3px;"><span style="font-size:12px;font-weight:600;color:#334155;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+d.label+'</span><span style="font-family:\'Barlow Condensed\',sans-serif;font-size:14px;font-weight:800;color:#0f172a;">'+valDisplay+'</span></div><div style="background:#f1f5f9;border-radius:6px;height:10px;overflow:hidden;"><div style="width:'+pct+'%;height:100%;background:'+color+';border-radius:6px;"></div></div></div>';}).join('');
+}
+
+
 // ── CFG 3 pestañas ─────────────────────────────────────────────────
 function abrirCfgScreen(){
   const logo=document.querySelector('.hd-logo img')?.src||'';
   const cl=document.getElementById('cfg-logo');if(cl&&logo)cl.src=logo;
   document.getElementById('rt-cfg-screen').style.display='flex';
+  renderTareasList();
   switchCfgTab(1);
 }
 function cerrarCfgScreen(){document.getElementById('rt-cfg-screen').style.display='none';}
 function switchCfgTab(n){
-  [1,2,3].forEach(i=>{document.getElementById('cfg-panel-'+i).style.display=i===n?'block':'none';document.getElementById('cfg-tab-btn-'+i).classList.toggle('active',i===n);});
+  [1,2,3,4].forEach(i=>{document.getElementById('cfg-panel-'+i).style.display=i===n?'block':'none';document.getElementById('cfg-tab-btn-'+i).classList.toggle('active',i===n);});
   if(n===3)renderHistorialCfg();
   if(n===1)renderRefsTable();if(n===2)renderDefectosList();if(n===3)renderProvTercerosList();
 }
@@ -2287,6 +2453,74 @@ function filtrarTabla(colIdx,val){
 // ── Toast ──────────────────────────────────────────────────────────
 let _toastTimer=null;
 function showToast(msg){const t=document.getElementById('rt-toast');t.textContent=msg;t.classList.add('show');clearTimeout(_toastTimer);_toastTimer=setTimeout(()=>t.classList.remove('show'),2500);}
+
+// ── Tipo Registro (menú selección) ─────────────────────────────────
+function openTipoRegistroModal(){
+  document.getElementById('modal-tipo-registro').style.display='flex';
+}
+function closeTipoRegistroModal(){
+  document.getElementById('modal-tipo-registro').style.display='none';
+}
+
+// ── Multitarea ──────────────────────────────────────────────────────
+function openMultitareaModal(){
+  const sel=document.getElementById('mt-tarea');
+  sel.innerHTML='<option value="">— Selecciona una tarea —</option>'+
+    _cfgTareas.map(t=>'<option value="'+t+'">'+t+'</option>').join('');
+  document.getElementById('mt-obs').value='';
+  document.getElementById('mt-error').textContent='';
+  document.getElementById('modal-multitarea').style.display='flex';
+}
+function closeMultitareaModal(){
+  document.getElementById('modal-multitarea').style.display='none';
+}
+function iniciarMultitarea(){
+  const tarea=document.getElementById('mt-tarea').value;
+  const obs=document.getElementById('mt-obs').value.trim();
+  if(!tarea){document.getElementById('mt-error').textContent='Selecciona una tarea';return;}
+  const revisador=_rtCurrentUser;
+  const reg={
+    id:'rt_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
+    tipo:'multitarea',
+    fecha:fechaHoy(),
+    revisador,
+    tarea,
+    factura:'',lote:'',proveedor:'',referencia:tarea,rollo:'',
+    ancho:'',peso:'',mts:'',metros:'',color:'',lote_prov:'',
+    hora_inicio:horaActual(),hora_fin:'',tiempo:'',
+    defectos:[],resultado:'',observaciones:obs,finalizado:false
+  };
+  _registros.push(reg);
+  _pendingIds.add(reg.id);
+  registrarHistorial('CREADO',reg,'Multitarea: '+tarea);
+  closeMultitareaModal();
+  aplicarFiltros();
+  showToast('▶ Multitarea iniciada: '+tarea);
+  guardarEnServidor();
+}
+
+// ── Config Tareas ───────────────────────────────────────────────────
+function renderTareasList(){
+  const el=document.getElementById('cfg-tareas-list');
+  if(!el)return;
+  if(!_cfgTareas.length){el.innerHTML='<div style="color:#94a3b8;font-size:13px;text-align:center;padding:20px;">Sin tareas configuradas.</div>';return;}
+  el.innerHTML=_cfgTareas.map((t,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0;margin-bottom:6px;">
+      <span style="font-size:15px;">⚡</span>
+      <span style="flex:1;font-size:13px;font-weight:600;color:#0f172a;">${t}</span>
+      <button onclick="eliminarTarea(${i})" style="width:26px;height:26px;border-radius:6px;border:1.5px solid #fca5a5;background:#fef2f2;color:#dc2626;cursor:pointer;font-size:12px;">✕</button>
+    </div>`).join('');
+}
+function agregarTarea(){
+  const val=(document.getElementById('cfg-add-tarea').value||'').trim();
+  if(!val){showToast('⚠️ Ingresa el nombre de la tarea');return;}
+  if(_cfgTareas.includes(val)){showToast('⚠️ Ya existe');return;}
+  _cfgTareas.push(val);
+  document.getElementById('cfg-add-tarea').value='';
+  guardarEnServidor();renderTareasList();showToast('✅ Tarea agregada');
+}
+function eliminarTarea(idx){_cfgTareas.splice(idx,1);guardarEnServidor();renderTareasList();showToast('🗑 Eliminado');}
+function limpiarTareas(){if(!confirm('¿Limpiar todas las tareas?'))return;_cfgTareas=[];guardarEnServidor();renderTareasList();showToast('🗑 Limpiado');}
 
 // ── Init ───────────────────────────────────────────────────────────
 const _hoyInit=new Date().toISOString().split('T')[0];
