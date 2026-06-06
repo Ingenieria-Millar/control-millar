@@ -1080,7 +1080,8 @@ let _rtCurrentUser=null, _rtIsAdmin=false, _rtMembersData=[], _revisadores=[];
 // ── Polling fallback para sincronización ──────────────────────────
 let _lastSync=Date.now();
 async function syncPoll(){
-  if(Date.now()-_lastSaveTime < 15000) return;
+  // No hacer sync si acabamos de guardar (evita sobreescritura de cambios recientes)
+  if(Date.now()-_lastSaveTime < 20000) return;
   try{
     const res=await fetch('/api/revision-telas');
     if(res.ok){
@@ -1089,9 +1090,13 @@ async function syncPoll(){
       const serverIds=new Set(serverRegs.map(r=>r.id));
       // El servidor ya confirmó estos ids → dejan de estar pendientes
       _pendingIds.forEach(id=>{ if(serverIds.has(id)) _pendingIds.delete(id); });
+      // Si todavía quedan pendientes → reintentar guardado y salir sin tocar _registros
+      if(_pendingIds.size>0){
+        guardarEnServidor();
+        return;
+      }
       // Conservar SIEMPRE los locales pendientes que el servidor aún no tiene
       const localPending=_registros.filter(r=>_pendingIds.has(r.id)&&!serverIds.has(r.id));
-      // Si quedan pendientes sin confirmar, reintentar el guardado (auto-recuperación)
       if(localPending.length) guardarEnServidor();
       const merged=[...serverRegs,...localPending];
       const prevHash=_registros.map(r=>r.id+'|'+r.finalizado+'|'+r.resultado).join(',');
@@ -1122,9 +1127,17 @@ function connectWS(){
     try{
       const msg=JSON.parse(e.data);
       if(msg.type==='rt_update'){
+        // Si acabamos de guardar en los últimos 5 segundos, ignorar el broadcast
+        // (puede ser nuestro propio cambio o uno que llegó antes que el servidor procesara el nuestro)
+        if(Date.now()-_lastSaveTime < 5000) return;
         const serverRegs=msg.registros||[];
         const serverIds=new Set(serverRegs.map(r=>r.id));
         _pendingIds.forEach(id=>{ if(serverIds.has(id)) _pendingIds.delete(id); });
+        // Si quedan pendientes sin confirmar, reintentar el guardado y NO aplicar el update remoto
+        if(_pendingIds.size>0){
+          guardarEnServidor();
+          return; // no sobreescribir mientras haya pendientes
+        }
         const localPending=_registros.filter(r=>_pendingIds.has(r.id)&&!serverIds.has(r.id));
         _registros=[...serverRegs,...localPending];
         _cfgDefectos=msg.defectos||_cfgDefectos;
@@ -1257,8 +1270,12 @@ async function guardarEnServidor(){
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({registros:_registros,defectos:_cfgDefectos,referencias:_cfgReferencias,colores:_cfgColores,proveedores:_cfgProveedores,proveedoresTerceros:_cfgProveedoresTerceros,deletedIds:sentDeleted})
     });
-    if(res&&res.ok&&sentDeleted.length){
-      _deletedIds=_deletedIds.filter(id=>!sentDeleted.includes(id));
+    if(res&&res.ok){
+      // Actualizar timestamp DESPUÉS de confirmación exitosa del servidor
+      _lastSaveTime=Date.now();
+      if(sentDeleted.length){
+        _deletedIds=_deletedIds.filter(id=>!sentDeleted.includes(id));
+      }
     }
   }catch(e){console.warn(e);}
 }
@@ -1659,7 +1676,7 @@ function closeRegistroModal(){
   if(btn)btn.onclick=guardarRegistro;
   document.querySelector('#modal-registro .modal-title').textContent='➕ NUEVO REGISTRO';
 }
-function guardarRegistro(){
+async function guardarRegistro(){
   const fecha=document.getElementById('f-fecha').value;
   const revisador=_rtIsAdmin?document.getElementById('f-revisador').value:_rtCurrentUser;
   const factura=document.getElementById('f-factura-val').value||document.getElementById('f-factura-input').value.trim();
@@ -1684,10 +1701,28 @@ function guardarRegistro(){
     mts:document.getElementById('f-mts-display').textContent||'',
     hora_inicio:horaActual(),hora_fin:'',tiempo:'',metros:'',defectos:[],resultado:'',observaciones:'',finalizado:false
   };
-  _registros.push(registro);_pendingIds.add(registro.id);registrarHistorial('CREADO',registro,'Rollo '+registro.rollo+' — '+registro.lote);
-  aplicarFiltros();closeRegistroModal();
+  _registros.push(registro);
+  _pendingIds.add(registro.id);
+  registrarHistorial('CREADO',registro,'Rollo '+registro.rollo+' — '+registro.lote);
+  aplicarFiltros();
+
+  // Deshabilitar botón mientras se guarda
+  const btnG=document.getElementById('btn-guardar-registro');
+  if(btnG){btnG.disabled=true;btnG.textContent='⏳ Guardando...';}
+
+  // Esperar confirmación del servidor ANTES de cerrar el modal
+  try{
+    await guardarEnServidor();
+    // Servidor confirmó — quitar de pending
+    _pendingIds.delete(registro.id);
+  }catch(e){
+    console.warn('[RT] Error guardando registro, se reintentará en background',e);
+    // Dejar en _pendingIds para que el polling lo reintente
+  }
+
+  if(btnG){btnG.disabled=false;btnG.textContent='💾 Guardar';}
+  closeRegistroModal();
   showToast('✅ Registro creado — Hora inicio: '+registro.hora_inicio);
-  guardarEnServidor(); // async background — _registros ya tiene el dato local
 }
 
 // ── Editar registro ────────────────────────────────────────────────
@@ -1874,7 +1909,7 @@ function agregarDefectoRow(){
   row.appendChild(sel);row.appendChild(inpMetro);row.appendChild(inp);row.appendChild(btn);
   list.appendChild(row);
 }
-function guardarFinalizar(){
+async function guardarFinalizar(){
   const metros=document.getElementById('fin-metros').value.trim();
   const ancho=document.getElementById('fin-ancho').value.trim();
   const peso=document.getElementById('fin-peso').value.trim();
@@ -1900,8 +1935,9 @@ function guardarFinalizar(){
   const horaFin=horaActual();
   const idx=_registros.findIndex(x=>x.id===_finalizandoId);
   if(idx>=0){const r=_registros[idx];_registros[idx]={...r,metros,ancho,peso,defectos,resultado,observaciones:obs,proc_tercero:procTercero,prov_tercero:provTercero,hora_fin:horaFin,tiempo:calcTiempo(r.hora_inicio,horaFin),finalizado:true};}
-  guardarEnServidor();aplicarFiltros();closeFinalizar();
+  aplicarFiltros();closeFinalizar();
   showToast('✅ Revisión finalizada — Hora fin: '+horaFin);
+  await guardarEnServidor();
 }
 
 // ── Confirmar eliminar ─────────────────────────────────────────────
