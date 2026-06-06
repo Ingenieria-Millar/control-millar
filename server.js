@@ -146,7 +146,6 @@ if (!iaState) {
   iaState = ensureProgramador(iaState);
 }
 writeJSON(FILES.ia_state, iaState);
-writeJSON(FILES.ia_records, iaRecords);
 
 function saveIaState()       { writeJSON(FILES.ia_state,       iaState);       }
 function saveIaRecords()     { writeJSON(FILES.ia_records,     iaRecords);     }
@@ -222,7 +221,6 @@ function logHistorial(id, prevState, newState, mecanico, empleada) {
   const optsDate   = { timeZone: 'America/Bogota', year:'numeric', month:'2-digit', day:'2-digit' };
   const horaFin    = now.toLocaleTimeString('es-CO', opts);
   const horaInicio = new Date(timerInicio).toLocaleTimeString('es-CO', opts);
-  const fechaPartes = now.toLocaleDateString('es-CO', optsDate).split('/');
   const fecha      = now.toLocaleDateString('es-CO', optsDate);
   // fechaISO en zona Colombia
   const bogota = new Date(now.toLocaleString('en-US', {timeZone:'America/Bogota'}));
@@ -512,17 +510,45 @@ app.post('/api/ordenes', (req, res) => {
 
 // ── API Revisión de Telas ────────────────────────────────────────
 app.get('/api/revision-telas', (req, res) => {
-  res.json(loadDB('revision_telas') || { registros:[], defectos:[], referencias:[], colores:[] });
+  try {
+    res.json(loadDB('revision_telas') || { registros:[], defectos:[], referencias:[], colores:[] });
+  } catch(e) {
+    console.error('Error no capturado [GET revision-telas]:', (e && e.stack) || e);
+    res.status(500).json({ error: String((e && e.message) || e), donde: 'GET revision-telas' });
+  }
 });
 
 app.post('/api/revision-telas', (req, res) => {
-  const { registros, defectos, referencias, colores } = req.body || {};
-  if(!Array.isArray(registros)) return res.status(400).json({ error: 'Payload inválido' });
-  const proveedores = req.body.proveedores||[];
-  const proveedoresTerceros = req.body.proveedoresTerceros||[];
-  saveDB('revision_telas', { registros, defectos: defectos||[], referencias: referencias||[], colores: colores||[], proveedores, proveedoresTerceros });
-  broadcast({ type: 'rt_update', registros, defectos: defectos||[], referencias: referencias||[], colores: colores||[], proveedores, proveedoresTerceros });
-  res.json({ ok: true });
+  try {
+    const { registros, defectos, referencias, colores } = req.body || {};
+    if(!Array.isArray(registros)) return res.status(400).json({ error: 'Payload inválido' });
+    const proveedores = req.body.proveedores||[];
+    const proveedoresTerceros = req.body.proveedoresTerceros||[];
+    const deletedIds = Array.isArray(req.body.deletedIds) ? req.body.deletedIds : [];
+
+    // Merge por id (upsert): un envío nunca borra el registro de otro cliente.
+    // Se parte de lo guardado, se aplican/actualizan los entrantes y se eliminan
+    // explícitamente los ids borrados. Así se evita la pérdida por concurrencia.
+    const prev = loadDB('revision_telas') || {};
+    const byId = new Map();
+    (Array.isArray(prev.registros) ? prev.registros : []).forEach(r => { if(r && r.id != null) byId.set(r.id, r); });
+    registros.forEach(r => { if(r && r.id != null) byId.set(r.id, r); });
+    deletedIds.forEach(id => byId.delete(id));
+    const mergedRegistros = [...byId.values()];
+
+    saveDB('revision_telas', { registros: mergedRegistros, defectos: defectos||[], referencias: referencias||[], colores: colores||[], proveedores, proveedoresTerceros });
+    res.json({ ok: true });
+    // Delay broadcast: el cliente emisor recibe el response HTTP primero,
+    // luego los demás clientes reciben el WS update (con la lista ya fusionada)
+    setTimeout(()=>{
+      try {
+        broadcast({ type: 'rt_update', registros: mergedRegistros, defectos: defectos||[], referencias: referencias||[], colores: colores||[], proveedores, proveedoresTerceros });
+      } catch(eb) { console.error('Error no capturado [broadcast rt_update]:', (eb && eb.stack) || eb); }
+    }, 800);
+  } catch(e) {
+    console.error('Error no capturado [POST revision-telas]:', (e && e.stack) || e);
+    if(!res.headersSent) res.status(500).json({ error: String((e && e.message) || e), donde: 'POST revision-telas' });
+  }
 });
 
 // ── API Producción (Tablero Kanban) ──────────────────────────────
@@ -1213,8 +1239,6 @@ wss.on('connection', (ws, req) => {
   ws.isAlive = true;
   ws.on('pong', () => { ws.isAlive = true; });
 
-  const clientIp = req.socket.remoteAddress || 'unknown';
-
   // Estado completo al conectar
   ws.send(JSON.stringify({
     type:          'init',
@@ -1658,8 +1682,6 @@ wss.on('connection', (ws, req) => {
     }
   });
 
-  ws.on('close', () => {
-  });
   ws.on('error', (e) => console.error('WS error:', e.message));
 });
 
