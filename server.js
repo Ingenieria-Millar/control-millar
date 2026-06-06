@@ -346,8 +346,8 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.json({ limit: '1mb' }));
-app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // ── #5 Rate limiter simple (sin dependencias externas) ────────────
 // Limita a MAX_REQ requests por IP en WINDOW_MS milisegundos
