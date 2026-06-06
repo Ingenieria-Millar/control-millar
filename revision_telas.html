@@ -500,14 +500,11 @@ input[type=number]{-moz-appearance:textfield;}
     </div>
     <div style="margin-bottom:14px;">
       <label style="font-size:11px;font-weight:800;color:#0f172a;letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px;">Usuario</label>
-      <div style="position:relative;">
-        <input type="text" id="rt-login-user-input" list="rt-login-user-list" placeholder="— Selecciona o escribe un usuario —"
-          style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:'Nunito',sans-serif;outline:none;color:#0f172a;background:#fff;box-sizing:border-box;"
-          onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'"
-          onkeydown="if(event.key==='Enter')rtDoLogin()" autocomplete="off">
-        <datalist id="rt-login-user-list"></datalist>
-      </div>
-      <input type="hidden" id="rt-login-user">
+      <select id="rt-login-user" onchange="document.getElementById('rt-login-pass').focus()"
+        style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:'Nunito',sans-serif;outline:none;color:#0f172a;background:#fff;box-sizing:border-box;cursor:pointer;"
+        onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+        <option value="">— Selecciona un usuario —</option>
+      </select>
     </div>
     <div style="margin-bottom:20px;">
       <label style="font-size:11px;font-weight:800;color:#0f172a;letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px;">Contraseña</label>
@@ -633,10 +630,6 @@ input[type=number]{-moz-appearance:textfield;}
       <select id="mt-tarea" style="width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;outline:none;background:#f8fafc;">
         <option value="">— Selecciona una tarea —</option>
       </select>
-    </div>
-    <div style="margin-bottom:14px;">
-      <label style="display:block;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Observaciones <span style="font-weight:400;color:#94a3b8;">(opcional)</span></label>
-      <textarea id="mt-obs" rows="2" style="width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;resize:vertical;background:#f8fafc;font-family:inherit;"></textarea>
     </div>
     <div id="mt-error" style="color:#dc2626;font-size:12px;min-height:16px;margin-bottom:8px;"></div>
     <div style="display:flex;gap:10px;justify-content:flex-end;">
@@ -818,12 +811,12 @@ input[type=number]{-moz-appearance:textfield;}
     </div>
     <div class="modal-body">
       <!-- Metros -->
-      <div class="form-field">
+      <div class="form-field" id="fin-metros-wrap">
         <label class="field-label">Metros Revisados</label>
         <input type="number" min="0" step="0.1" class="field-input" id="fin-metros" >
       </div>
       <!-- Ancho y Peso en grid -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;" id="fin-ancho-peso-wrap">
         <div class="form-field">
           <label class="field-label">Ancho Útil (cm)</label>
           <input type="number" min="0" step="0.1" class="field-input" id="fin-ancho" >
@@ -834,7 +827,7 @@ input[type=number]{-moz-appearance:textfield;}
         </div>
       </div>
       <!-- Defectos -->
-      <div class="form-field">
+      <div class="form-field" id="fin-defectos-wrap">
         <label class="field-label">Defectos encontrados</label>
         <div style="display:grid;grid-template-columns:2fr 1fr 1fr 30px;gap:6px;padding:6px 0;margin-bottom:4px;">
           <span style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;">Tipo Defecto</span>
@@ -846,9 +839,8 @@ input[type=number]{-moz-appearance:textfield;}
         <button class="btn btn-outline" style="margin-top:6px;width:100%;justify-content:center;"
           onclick="agregarDefectoRow()">+ Agregar defecto</button>
       </div>
-
       <!-- Resultado -->
-      <div class="form-field">
+      <div class="form-field" id="fin-resultado-wrap">
         <label class="field-label">Resultado</label>
         <div class="toggle-wrap">
           <button class="toggle-btn" id="btn-aprobado" onclick="setResultado('aprobado')">✅ Aprobado</button>
@@ -1131,6 +1123,11 @@ input[type=number]{-moz-appearance:textfield;}
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:14px;">⚡ Tiempo por Actividad</div>
           <div id="dash-actividades"></div>
         </div>
+        <!-- Tiempo por actividad por revisador -->
+        <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;padding:20px;grid-column:1/-1;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:14px;">👤⚡ Tiempo por Actividad por Revisador</div>
+          <div id="dash-actividades-por-rev"></div>
+        </div>
         <!-- Actividad por fecha -->
         <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;padding:20px;grid-column:1/-1;">
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:14px;">📅 Actividad por Fecha</div>
@@ -1361,11 +1358,9 @@ function calcTiempo(inicio,fin){
 
 // ── Login ──────────────────────────────────────────────────────────
 async function rtInitLogin(){
-  // Logo ya embebido directamente en el HTML
   const logoSrc=document.getElementById('rt-login-logo')?.src||'';
   const dl=document.getElementById('dash-logo');if(dl&&logoSrc)dl.src=logoSrc;
   const cl=document.getElementById('cfg-logo');if(cl&&logoSrc)cl.src=logoSrc;
-  // Restaurar sesión si existe
   try{
     const saved=JSON.parse(sessionStorage.getItem('rt_session')||'null');
     if(saved&&saved.user){
@@ -1376,17 +1371,18 @@ async function rtInitLogin(){
   }catch(e){}
   await cargarRevisadores();
   const revs=getRevisadores();
-  const dlList=document.getElementById('rt-login-user-list');
-  if(dlList){
-    dlList.innerHTML='<option value="__admin__">👑 Administrador</option>'+
+  const sel=document.getElementById('rt-login-user');
+  if(sel){
+    sel.innerHTML='<option value="">— Selecciona un usuario —</option>'+
+      '<option value="__admin__">👑 Administrador</option>'+
       revs.map(r=>'<option value="'+r+'">'+r+'</option>').join('');
+    sel.value='';
   }
-  document.getElementById('rt-login-user-input').value='';
-  document.getElementById('rt-login-user').value='';
+  document.getElementById('rt-login-pass').value='';
 }
 
 function rtDoLogin(){
-  const uid=(document.getElementById('rt-login-user-input')?.value||document.getElementById('rt-login-user').value).trim();
+  const uid=(document.getElementById('rt-login-user').value||'').trim();
   const pass=document.getElementById('rt-login-pass').value;
   const errEl=document.getElementById('rt-login-error');
   if(!uid){errEl.textContent='Selecciona un usuario';return;}
@@ -1433,7 +1429,7 @@ function rtCerrarSesion(){
   const nb=document.getElementById('rt-nuevo-btn');if(nb)nb.style.display='none';
   const abr=document.getElementById('rt-admin-btns-row');if(abr)abr.style.display='none';
   document.getElementById('rt-login-pass').value='';
-  const liInp=document.getElementById('rt-login-user-input');if(liInp)liInp.value='';
+  const sel=document.getElementById('rt-login-user');if(sel)sel.value='';
   document.getElementById('rt-login-error').textContent='';
   document.getElementById('rt-login-screen').style.display='flex';
   // Recargar usuarios sin refrescar página
@@ -1555,14 +1551,15 @@ function renderTabla(){
   if(!_filtrados.length){body.innerHTML='<div class="empty-state"><div class="empty-icon">🧵</div><div class="empty-text">Sin registros</div><div style="font-size:12px;margin-top:6px;color:#cbd5e1;">Agrega el primer registro con + Nuevo</div></div>';return;}
   body.innerHTML=_filtrados.map(r=>{
     const esMultitarea=r.tipo==='multitarea';
-    const estadoBadge=r.finalizado
-      ?(esMultitarea?'<span class="td-badge" style="background:#f3e8ff;color:#6d28d9;border:1px solid #ddd6fe;">✅ Completado</span>'
-        :(r.resultado==='aprobado'?'<span class="td-badge badge-ok">✅ Aprobado</span>':'<span class="td-badge badge-rech">❌ Rechazado</span>'))
-      :'<span class="td-badge badge-pend">🔄 En revisión</span>';
+    const estadoBadge=esMultitarea
+      ?'<span class="td-badge" style="background:#f3e8ff;color:#6d28d9;border:1px solid #ddd6fe;">⚡ TAREA</span>'
+      :(r.finalizado
+        ?(r.resultado==='aprobado'?'<span class="td-badge badge-ok">✅ Aprobado</span>':'<span class="td-badge badge-rech">❌ Rechazado</span>')
+        :'<span class="td-badge badge-pend">🔄 En revisión</span>');
     const accionFin=r.finalizado?'':`<button class="btn-finalizar" onclick="openFinalizar('${r.id}')">🏁 FINALIZAR</button>`;
     const totalDef=(!esMultitarea&&r.defectos)?(r.defectos.reduce((s,d)=>s+parseInt(d.cantidad||0),0)):0;
     const refCell=esMultitarea
-      ?`<span style="display:inline-flex;align-items:center;gap:5px;"><span style="background:#f3e8ff;color:#6d28d9;border:1px solid #ddd6fe;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;">⚡ TAREA</span> ${r.tarea||'—'}</span>`
+      ?`<span style="font-weight:700;color:#6d28d9;">${r.tarea||'—'}</span>`
       :`<span style="font-weight:700;color:#2563eb;">${r.referencia||'—'}</span>`;
     return `<div class="table-row"${esMultitarea?' style="background:#faf5ff;"':''}>
       <div class="td">${fechaDisplay(r.fecha)||'—'}</div>
@@ -2248,6 +2245,27 @@ function renderDashboard(){
   telasRegs.filter(r=>r.finalizado).forEach(r=>{const mins=parseMins(r.tiempo);if(mins)act['🧵 Revisión de Tela']=(act['🧵 Revisión de Tela']||0)+mins;});
   multiRegs.filter(r=>r.finalizado).forEach(r=>{const k='⚡ '+(r.tarea||'Multitarea');const mins=parseMins(r.tiempo);if(mins)act[k]=(act[k]||0)+mins;});
   document.getElementById('dash-actividades').innerHTML=Object.keys(act).length?barChart(Object.entries(act).sort((a,b)=>b[1]-a[1]).map(([l,v])=>{const d=v>=60?Math.floor(v/60)+'h '+(v%60)+'min':v+'min';return{label:l,val:v,display:d};}),d=>d.label.startsWith('🧵')?'#2563eb':'#7c3aed',true):'<div style="color:#94a3b8;font-size:12px;padding:10px;">Sin datos</div>';
+  // Tiempo por actividad por revisador
+  const actPorRev={};
+  fin.forEach(r=>{
+    const rev=r.revisador||'—';
+    const actKey=r.tipo==='multitarea'?('⚡ '+(r.tarea||'Tarea')):'🧵 Rev. Tela';
+    const mins=parseMins(r.tiempo);
+    if(!mins)return;
+    if(!actPorRev[rev])actPorRev[rev]={};
+    actPorRev[rev][actKey]=(actPorRev[rev][actKey]||0)+mins;
+  });
+  const revOrdenados=Object.keys(actPorRev).sort();
+  const colores=['#2563eb','#7c3aed','#0891b2','#15803d','#d97706','#dc2626','#64748b'];
+  const allActKeys=[...new Set(fin.map(r=>r.tipo==='multitarea'?('⚡ '+(r.tarea||'Tarea')):'🧵 Rev. Tela'))].sort();
+  document.getElementById('dash-actividades-por-rev').innerHTML=revOrdenados.length?
+    revOrdenados.map(rev=>{
+      const data=allActKeys.map((k,i)=>({label:k,val:actPorRev[rev][k]||0,display:(actPorRev[rev][k]||0)>=60?Math.floor((actPorRev[rev][k]||0)/60)+'h '+((actPorRev[rev][k]||0)%60)+'min':(actPorRev[rev][k]||0)+'min',color:colores[i%colores.length]})).filter(d=>d.val>0);
+      if(!data.length)return '';
+      return '<div style="margin-bottom:18px;"><div style="font-size:12px;font-weight:700;color:#1e3a8a;margin-bottom:6px;padding:4px 8px;background:#eff6ff;border-radius:6px;display:inline-block;">'+rev+'</div>'
+        +barChart(data,d=>d.color,true)+'</div>';
+    }).join('')
+    :'<div style="color:#94a3b8;font-size:12px;padding:10px;">Sin datos</div>';
   const fm={};regs.forEach(r=>{fm[r.fecha||'—']=(fm[r.fecha||'—']||0)+1;});
   const fo=Object.entries(fm).sort((a,b)=>a[0].localeCompare(b[0]));
   document.getElementById('dash-fechas').innerHTML=fo.length?'<div style="display:flex;align-items:flex-end;gap:6px;height:120px;padding:0 4px;">'+fo.map(([f,c])=>{const h=Math.round(c/Math.max(...fo.map(x=>x[1]))*100);const[y,mo,d]=f.split('-');return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:30px;"><span style="font-size:12px;font-weight:800;color:#0f172a;">'+c+'</span><div style="width:100%;background:#2563eb;border-radius:4px 4px 0 0;height:'+h+'px;min-height:4px;"></div><span style="font-size:9px;color:#94a3b8;text-align:center;">'+d+'/'+mo+'</span></div>';}).join('')+'</div>':'<div style="color:#94a3b8;font-size:12px;padding:10px;">Sin actividad</div>';
@@ -2467,7 +2485,6 @@ function openMultitareaModal(){
   const sel=document.getElementById('mt-tarea');
   sel.innerHTML='<option value="">— Selecciona una tarea —</option>'+
     _cfgTareas.map(t=>'<option value="'+t+'">'+t+'</option>').join('');
-  document.getElementById('mt-obs').value='';
   document.getElementById('mt-error').textContent='';
   document.getElementById('modal-multitarea').style.display='flex';
 }
@@ -2476,7 +2493,6 @@ function closeMultitareaModal(){
 }
 function iniciarMultitarea(){
   const tarea=document.getElementById('mt-tarea').value;
-  const obs=document.getElementById('mt-obs').value.trim();
   if(!tarea){document.getElementById('mt-error').textContent='Selecciona una tarea';return;}
   const revisador=_rtCurrentUser;
   const reg={
@@ -2488,7 +2504,7 @@ function iniciarMultitarea(){
     factura:'',lote:'',proveedor:'',referencia:tarea,rollo:'',
     ancho:'',peso:'',mts:'',metros:'',color:'',lote_prov:'',
     hora_inicio:horaActual(),hora_fin:'',tiempo:'',
-    defectos:[],resultado:'',observaciones:obs,finalizado:false
+    defectos:[],resultado:'',observaciones:'',finalizado:false
   };
   _registros.push(reg);
   _pendingIds.add(reg.id);
