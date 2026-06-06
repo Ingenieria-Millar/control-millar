@@ -1320,9 +1320,9 @@ function rtDoLogin(){
 function rtEntrarApp(){
   const _hoy=fechaHoy();
   _filtroDesde=_hoy;_filtroHasta=_hoy;
-  document.getElementById('filtro-desde').value='';
-  document.getElementById('filtro-hasta').value='';
-  document.getElementById('date-filter-label').textContent='Hoy';
+  document.getElementById('filtro-desde').value=_hoy;
+  document.getElementById('filtro-hasta').value=_hoy;
+  document.getElementById('date-filter-label').textContent=fechaDisplay(_hoy);
   document.getElementById('rt-login-screen').style.display='none';
   const badge=document.getElementById('rt-user-badge');const userName=document.getElementById('rt-user-name');
   if(badge)badge.style.display='flex';if(userName)userName.textContent=_rtCurrentUser;
@@ -1382,25 +1382,30 @@ document.addEventListener('click',e=>{
   const wrap=document.querySelector('.date-filter-wrap');
   if(wrap&&!wrap.contains(e.target))document.getElementById('date-filter-panel').classList.remove('open');
 });
-function aplicarFiltroFecha(){
-  _filtroDesde=document.getElementById('filtro-desde').value;
-  _filtroHasta=document.getElementById('filtro-hasta').value;
+function actualizarLabelFecha(){
   const lbl=document.getElementById('date-filter-label');
-  if(_filtroDesde===_filtroHasta&&_filtroDesde)
-    lbl.textContent=fechaDisplay(_filtroDesde);
-  else
-    lbl.textContent=(_filtroDesde?fechaDisplay(_filtroDesde):'...')+' — '+(_filtroHasta?fechaDisplay(_filtroHasta):'...');
+  if(_filtroDesde===_filtroHasta) lbl.textContent=fechaDisplay(_filtroDesde);
+  else lbl.textContent=fechaDisplay(_filtroDesde)+' → '+fechaDisplay(_filtroHasta);
+}
+function aplicarFiltroFecha(){
+  const hoy=fechaHoy();
+  _filtroDesde=document.getElementById('filtro-desde').value||hoy;
+  _filtroHasta=document.getElementById('filtro-hasta').value||hoy;
+  document.getElementById('filtro-desde').value=_filtroDesde;
+  document.getElementById('filtro-hasta').value=_filtroHasta;
+  actualizarLabelFecha();
   document.getElementById('date-filter-panel').classList.remove('open');
   aplicarFiltros();
 }
 function limpiarFiltros(){
-  _filtroDesde='';_filtroHasta='';
-  document.getElementById('filtro-desde').value='';document.getElementById('filtro-hasta').value='';
-  document.getElementById('date-filter-label').textContent='Hoy';
+  const hoy=fechaHoy();
+  _filtroDesde=hoy;_filtroHasta=hoy;
+  document.getElementById('filtro-desde').value=hoy;
+  document.getElementById('filtro-hasta').value=hoy;
+  actualizarLabelFecha();
   document.getElementById('date-filter-panel').classList.remove('open');
   aplicarFiltros();
 }
-
 function actualizarFooter(){
   const fin=_filtrados.filter(r=>r.finalizado);
   const totalMetros=_filtrados.reduce((s,r)=>s+parseFloat(r.metros||0),0);
@@ -1414,8 +1419,11 @@ function actualizarFooter(){
 }
 function aplicarFiltros(){
   _filtrados=_registros.filter(r=>{
-    if(_filtroDesde&&r.fecha<_filtroDesde)return false;
-    if(_filtroHasta&&r.fecha>_filtroHasta)return false;
+    const _hoyF=fechaHoy();
+    const _desde=_filtroDesde||_hoyF;
+    const _hasta=_filtroHasta||_hoyF;
+    if(r.fecha<_desde)return false;
+    if(r.fecha>_hasta)return false;
     if(_rtCurrentUser&&!_rtIsAdmin&&r.revisador!==_rtCurrentUser)return false;
     return true;
   });
