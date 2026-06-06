@@ -522,27 +522,44 @@ app.post('/api/revision-telas', (req, res) => {
   try {
     const { registros, defectos, referencias, colores } = req.body || {};
     if(!Array.isArray(registros)) return res.status(400).json({ error: 'Payload inválido' });
-    const proveedores = req.body.proveedores||[];
-    const proveedoresTerceros = req.body.proveedoresTerceros||[];
-    const deletedIds = Array.isArray(req.body.deletedIds) ? req.body.deletedIds : [];
+    const proveedores        = req.body.proveedores        || [];
+    const proveedoresTerceros= req.body.proveedoresTerceros|| [];
+    const tareas             = req.body.tareas             || [];
+    const deletedIds         = Array.isArray(req.body.deletedIds) ? req.body.deletedIds : [];
 
-    // Merge por id (upsert): un envío nunca borra el registro de otro cliente.
-    // Se parte de lo guardado, se aplican/actualizan los entrantes y se eliminan
-    // explícitamente los ids borrados. Así se evita la pérdida por concurrencia.
     const prev = loadDB('revision_telas') || {};
+
+    // ── Registros: merge por id (upsert + borrados explícitos) ──────
     const byId = new Map();
     (Array.isArray(prev.registros) ? prev.registros : []).forEach(r => { if(r && r.id != null) byId.set(r.id, r); });
     registros.forEach(r => { if(r && r.id != null) byId.set(r.id, r); });
     deletedIds.forEach(id => byId.delete(id));
     const mergedRegistros = [...byId.values()];
 
-    saveDB('revision_telas', { registros: mergedRegistros, defectos: defectos||[], referencias: referencias||[], colores: colores||[], proveedores, proveedoresTerceros });
+    // ── Config arrays: conservar lo que ya hay si el cliente envía vacío ──
+    // Nunca se pierde información por un deploy o recarga parcial.
+    const mergedDefectos          = defectos           && defectos.length           ? defectos            : (Array.isArray(prev.defectos)            ? prev.defectos            : []);
+    const mergedReferencias        = referencias        && Object.keys(referencias||{}).length > 0 ? referencias : (prev.referencias        && typeof prev.referencias==='object'  ? prev.referencias        : {});
+    const mergedColores            = colores            && colores.length            ? colores             : (Array.isArray(prev.colores)             ? prev.colores             : []);
+    const mergedProveedores        = proveedores        && proveedores.length        ? proveedores         : (Array.isArray(prev.proveedores)         ? prev.proveedores         : []);
+    const mergedProvTerceros       = proveedoresTerceros && proveedoresTerceros.length ? proveedoresTerceros: (Array.isArray(prev.proveedoresTerceros)  ? prev.proveedoresTerceros  : []);
+    const mergedTareas             = tareas             && tareas.length             ? tareas              : (Array.isArray(prev.tareas)              ? prev.tareas              : []);
+
+    const data = {
+      registros: mergedRegistros,
+      defectos:  mergedDefectos,
+      referencias: mergedReferencias,
+      colores:   mergedColores,
+      proveedores: mergedProveedores,
+      proveedoresTerceros: mergedProvTerceros,
+      tareas:    mergedTareas
+    };
+
+    saveDB('revision_telas', data);
     res.json({ ok: true });
-    // Delay broadcast: el cliente emisor recibe el response HTTP primero,
-    // luego los demás clientes reciben el WS update (con la lista ya fusionada)
     setTimeout(()=>{
       try {
-        broadcast({ type: 'rt_update', registros: mergedRegistros, defectos: defectos||[], referencias: referencias||[], colores: colores||[], proveedores, proveedoresTerceros });
+        broadcast({ type: 'rt_update', ...data });
       } catch(eb) { console.error('Error no capturado [broadcast rt_update]:', (eb && eb.stack) || eb); }
     }, 800);
   } catch(e) {
