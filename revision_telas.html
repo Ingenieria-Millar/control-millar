@@ -632,6 +632,10 @@ input[type=number]{-moz-appearance:textfield;}
         <option value="">— Selecciona una tarea —</option>
       </select>
     </div>
+    <div id="mt-otros-wrap" style="display:none;margin-bottom:14px;">
+      <label style="display:block;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">¿Cuál otra actividad? <span style="color:#dc2626;">*</span></label>
+      <input type="text" id="mt-otros-desc" placeholder="Describe la actividad..." style="width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;background:#f8fafc;" onkeydown="if(event.key==='Enter')iniciarMultitarea()">
+    </div>
     <div id="mt-error" style="color:#dc2626;font-size:12px;min-height:16px;margin-bottom:8px;"></div>
     <div style="display:flex;gap:10px;justify-content:flex-end;">
       <button onclick="closeMultitareaModal()" style="padding:10px 18px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:13px;font-weight:600;cursor:pointer;">Cancelar</button>
@@ -753,11 +757,11 @@ input[type=number]{-moz-appearance:textfield;}
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <div class="form-field">
-          <label class="field-label">Ancho Útil (cm)</label>
+          <label class="field-label">Ancho Útil (mts)</label>
           <input type="number" min="0" step="0.1" class="field-input" id="edit-fin-ancho">
         </div>
         <div class="form-field">
-          <label class="field-label">Peso Rodaja (kg)</label>
+          <label class="field-label">Peso Rodaja (gr)</label>
           <input type="number" min="0" step="0.1" class="field-input" id="edit-fin-peso">
         </div>
       </div>
@@ -813,18 +817,20 @@ input[type=number]{-moz-appearance:textfield;}
     <div class="modal-body">
       <!-- Metros -->
       <div class="form-field" id="fin-metros-wrap">
-        <label class="field-label">Metros Revisados</label>
-        <input type="number" min="0" step="0.1" class="field-input" id="fin-metros" >
+        <label class="field-label">Metros Revisados <span style="color:#dc2626;">*</span></label>
+        <input type="number" min="0" step="0.01" class="field-input" id="fin-metros">
       </div>
       <!-- Ancho y Peso en grid -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;" id="fin-ancho-peso-wrap">
         <div class="form-field">
-          <label class="field-label">Ancho Útil (cm)</label>
-          <input type="number" min="0" step="0.1" class="field-input" id="fin-ancho" >
+          <label class="field-label">Ancho Útil (mts) <span style="color:#dc2626;">*</span></label>
+          <input type="text" inputmode="numeric" class="field-input" id="fin-ancho"
+            oninput="autoFormatAncho(this)" placeholder="ej: 165 → 1.65">
         </div>
         <div class="form-field">
-          <label class="field-label">Peso Rodaja (kg)</label>
-          <input type="number" min="0" step="0.1" class="field-input" id="fin-peso" >
+          <label class="field-label">Peso Rodaja (gr)</label>
+          <input type="number" min="0" step="1" class="field-input" id="fin-peso"
+            onkeydown="if(event.key==='.')event.preventDefault()">
         </div>
       </div>
       <!-- Defectos -->
@@ -842,7 +848,7 @@ input[type=number]{-moz-appearance:textfield;}
       </div>
       <!-- Resultado -->
       <div class="form-field" id="fin-resultado-wrap">
-        <label class="field-label">Resultado</label>
+        <label class="field-label">Resultado <span style="color:#dc2626;">*</span></label>
         <div class="toggle-wrap">
           <button class="toggle-btn" id="btn-aprobado" onclick="setResultado('aprobado')">✅ Aprobado</button>
           <button class="toggle-btn" id="btn-rechazado" onclick="setResultado('rechazado')">❌ Rechazado</button>
@@ -1783,7 +1789,8 @@ function guardarRegistro(){
     proveedor,referencia:ref,lote:factura,rollo,ancho:ancho_reg,
     color:document.getElementById('f-color-display').textContent||'',
     lote_prov:document.getElementById('f-lote-prov-display').textContent||'',
-    peso:document.getElementById('f-peso-display').textContent||'',
+    peso_rollo:document.getElementById('f-peso-display').textContent||'',
+    peso:'',
     mts:document.getElementById('f-mts-display').textContent||'',
     hora_inicio:horaActual(),hora_fin:'',tiempo:'',metros:'',defectos:[],resultado:'',observaciones:'',finalizado:false
   };
@@ -1983,6 +1990,15 @@ function agregarDefectoRow(){
   row.appendChild(sel);row.appendChild(inpMetro);row.appendChild(inp);row.appendChild(btn);
   list.appendChild(row);
 }
+function autoFormatAncho(input){
+  // Eliminar todo excepto dígitos
+  let raw=input.value.replace(/[^0-9]/g,'');
+  if(raw.length===0){input.value='';return;}
+  if(raw.length===1){input.value=raw;return;}
+  // Insertar punto después del primer dígito: 165 → 1.65, 16 → 1.6
+  input.value=raw[0]+'.'+raw.slice(1);
+}
+
 function guardarFinalizar(){
   const r=_registros.find(x=>x.id===_finalizandoId);if(!r)return;
   const esMultitarea=r.tipo==='multitarea';
@@ -1993,6 +2009,7 @@ function guardarFinalizar(){
   const obs=document.getElementById('fin-observaciones').value.trim();
   const errEl=document.getElementById('fin-error');
   if(!esMultitarea&&!metros){errEl.textContent='Ingresa los metros revisados';return;}
+  if(!esMultitarea&&!ancho){errEl.textContent='Ingresa el ancho útil';return;}
   if(!esMultitarea&&!resultado){errEl.textContent='Selecciona Aprobado o Rechazado';return;}
   let defErr=false;const defectos=[];
   if(!esMultitarea){
@@ -2130,12 +2147,14 @@ function exportarExcel(){
       '# Rollo':r.rollo||'',
       'Lote Proveedor':r.lote_prov||'',
       'Peso Rollo (kg)':r.peso_rollo||'',
-      'Mts Rollo':r.mts_rollo||r.mts||'',
-      'Ancho Tela (cm)':r.ancho||'',
+      'Mts Rollo':r.mts||'',
+      'Ancho Tela (mts)':r.ancho||'',
       'Revisador':r.revisador||'',
       'Metros Revisados':r.metros||'',
-      'Ancho Útil (cm)':r.ancho_util||r.ancho||'',
-      'Peso Rodaja (kg)':r.peso||'',
+      'Ancho Útil (mts)':r.ancho||'',
+      'Peso Rodaja (g)':r.peso||'',
+      'Rendimiento (m/kg)':(r.metros&&r.peso_rollo&&parseFloat(r.peso_rollo)>0)?(parseFloat(r.metros)/parseFloat(r.peso_rollo)).toFixed(3):'',
+      'Tono':r.tono||'',
       'H. Inicio':r.hora_inicio||'',
       'H. Fin':r.hora_fin||'',
       'Tiempo':r.tiempo||'',
@@ -2489,7 +2508,15 @@ function closeTipoRegistroModal(){
 function openMultitareaModal(){
   const sel=document.getElementById('mt-tarea');
   sel.innerHTML='<option value="">— Selecciona una tarea —</option>'+
-    _cfgTareas.map(t=>'<option value="'+t+'">'+t+'</option>').join('');
+    _cfgTareas.map(t=>'<option value="'+t+'">'+t+'</option>').join('')+
+    '<option value="__otros__">✏️ Otros</option>';
+  sel.onchange=function(){
+    const wrap=document.getElementById('mt-otros-wrap');
+    if(wrap) wrap.style.display=this.value==='__otros__'?'block':'none';
+    document.getElementById('mt-otros-desc').value='';
+  };
+  document.getElementById('mt-otros-wrap').style.display='none';
+  document.getElementById('mt-otros-desc').value='';
   document.getElementById('mt-error').textContent='';
   document.getElementById('modal-multitarea').style.display='flex';
 }
@@ -2497,8 +2524,15 @@ function closeMultitareaModal(){
   document.getElementById('modal-multitarea').style.display='none';
 }
 function iniciarMultitarea(){
-  const tarea=document.getElementById('mt-tarea').value;
-  if(!tarea){document.getElementById('mt-error').textContent='Selecciona una tarea';return;}
+  let tarea=document.getElementById('mt-tarea').value;
+  const errEl=document.getElementById('mt-error');
+  if(!tarea){errEl.textContent='Selecciona una tarea';return;}
+  if(tarea==='__otros__'){
+    const desc=(document.getElementById('mt-otros-desc').value||'').trim();
+    if(!desc){errEl.textContent='Describe la actividad';return;}
+    tarea=desc;
+  }
+  errEl.textContent='';
   const revisador=_rtCurrentUser;
   const reg={
     id:'rt_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
@@ -2843,10 +2877,10 @@ function verDetalles(id){
       <div class="field"><div class="field-label">No. Lote</div><div class="field-value">${r.lote||'—'}</div></div>
       <div class="field"><div class="field-label"># Rollo</div><div class="field-value">${r.rollo||'—'}</div></div>
       <div class="field"><div class="field-label">Lote Proveedor</div><div class="field-value">${r.lote_prov||'—'}</div></div>
-      <div class="field"><div class="field-label">Peso Rollo (kg)</div><div class="field-value">${r.peso_rollo||r.mts?r.peso_rollo||'—':'—'}</div></div>
-      <div class="field"><div class="field-label">Mts Rollo</div><div class="field-value">${r.mts_rollo||r.mts||'—'}</div></div>
+      <div class="field"><div class="field-label">Peso Rollo (kg)</div><div class="field-value">${r.peso_rollo||'—'}</div></div>
+      <div class="field"><div class="field-label">Mts Rollo</div><div class="field-value">${r.mts||'—'}</div></div>
       <div class="field"><div class="field-label">Revisador</div><div class="field-value">${r.revisador||'—'}</div></div>
-      <div class="field"><div class="field-label">Ancho Tela</div><div class="field-value">${r.ancho?r.ancho+' cm':'—'}</div></div>
+      <div class="field"><div class="field-label">Ancho Tela</div><div class="field-value">${r.ancho?r.ancho+' mts':'—'}</div></div>
     </div>
   </div>
 
@@ -2855,8 +2889,9 @@ function verDetalles(id){
     <div class="section-title">📏 Medidas y Tiempos</div>
     <div class="grid3">
       <div class="field"><div class="field-label">Metros Revisados</div><div class="field-value">${r.metros?r.metros+' m':'—'}</div></div>
-      <div class="field"><div class="field-label">Ancho Útil</div><div class="field-value">${r.ancho?r.ancho+' cm':'—'}</div></div>
+      <div class="field"><div class="field-label">Ancho Útil</div><div class="field-value">${r.ancho?r.ancho+' mts':'—'}</div></div>
       <div class="field"><div class="field-label">Peso Rodaja</div><div class="field-value">${r.peso?r.peso+' g':'—'}</div></div>
+      <div class="field"><div class="field-label">Rendimiento</div><div class="field-value">${(r.metros&&r.peso_rollo&&parseFloat(r.peso_rollo)>0)?(parseFloat(r.metros)/parseFloat(r.peso_rollo)).toFixed(3)+' m/kg':'—'}</div></div>
       <div class="field"><div class="field-label">Hora Inicio</div><div class="field-value">${r.hora_inicio||'—'}</div></div>
       <div class="field"><div class="field-label">Hora Fin</div><div class="field-value">${r.hora_fin||'—'}</div></div>
       <div class="field"><div class="field-label">Tiempo Total</div><div class="field-value">${r.tiempo||'—'}</div></div>
