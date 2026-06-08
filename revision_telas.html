@@ -1574,7 +1574,7 @@ function renderTabla(){
       <div class="td">${esMultitarea?'—':r.metros?r.metros+' m':'—'}</div>
       <div class="td">${estadoBadge}</div>
       <div class="td">${!esMultitarea&&totalDef?'<span style="display:inline-flex;align-items:center;gap:5px;"><span style="font-weight:700;color:#92400e;font-size:13px;">'+totalDef+'</span><button onclick="verDefectos(\''+r.id+'\')" style="width:24px;height:24px;border-radius:6px;border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;font-size:12px;">👁</button></span>':'—'}</div>
-      <div class="td"><span id="tono-val-${r.id}" onclick="editarTono('${r.id}')" style="display:inline-block;min-width:40px;padding:3px 8px;border-radius:6px;background:${r.tono?'#fef9c3':'#f8fafc'};border:1.5px solid ${r.tono?'#fde047':'#e2e8f0'};font-size:12px;font-weight:700;color:${r.tono?'#854d0e':'#94a3b8'};cursor:pointer;" title="Clic para editar tono">${r.tono||'—'}</span><input id="tono-inp-${r.id}" type="text" value="${r.tono||''}" onblur="guardarTono('${r.id}')" onkeydown="if(event.key==='Enter')guardarTono('${r.id}');if(event.key==='Escape')cancelarTono('${r.id}')" style="display:none;width:70px;padding:3px 6px;border:1.5px solid #7c3aed;border-radius:6px;font-size:12px;outline:none;"></div>
+      <div class="td"><span id="tono-val-${r.id}" onclick="editarTono('${r.id}')" style="display:inline-block;min-width:40px;padding:3px 8px;border-radius:6px;background:${r.tono?'#fef9c3':'#f8fafc'};border:1.5px solid ${r.tono?'#fde047':'#e2e8f0'};font-size:12px;font-weight:700;color:${r.tono?'#854d0e':'#94a3b8'};cursor:${r.tono&&!_rtIsAdmin?'default':'pointer'};" title="${r.tono&&!_rtIsAdmin?'Solo el administrador puede modificar el tono':'Clic para editar tono'}">${r.tono||'—'}</span><input id="tono-inp-${r.id}" type="number" min="1" value="${r.tono||''}" onblur="guardarTono('${r.id}')" onkeydown="if(event.key==='Enter')guardarTono('${r.id}');if(event.key==='Escape')cancelarTono('${r.id}')" style="display:none;width:70px;padding:3px 6px;border:1.5px solid #7c3aed;border-radius:6px;font-size:12px;outline:none;"></div>
       <div class="td">${r.observaciones?'<button onclick="verObservacion(\''+r.id+'\')" style="width:28px;height:28px;border-radius:6px;border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;font-size:14px;">💬</button>':'—'}</div>
       <div class="td">${r.tiempo?'<span class="tiempo-badge">'+r.tiempo+'</span>':'—'}</div>
       <div class="td" style="display:flex;align-items:center;">
@@ -2587,6 +2587,10 @@ function plantillaTareas(){
 
 // ── Tono inline ─────────────────────────────────────────────────────
 function editarTono(id){
+  const r=_registros.find(x=>x.id===id);
+  if(!r)return;
+  // Bloqueado si ya tiene tono y no es admin
+  if(r.tono&&!_rtIsAdmin)return;
   const val=document.getElementById('tono-val-'+id);
   const inp=document.getElementById('tono-inp-'+id);
   if(!val||!inp)return;
@@ -2596,19 +2600,21 @@ function editarTono(id){
 }
 function guardarTono(id){
   const inp=document.getElementById('tono-inp-'+id);
-  if(!inp)return;
-  const val=inp.value.trim().toUpperCase();
+  if(!inp||inp.style.display==='none')return;
+  const val=inp.value.trim().replace(/[^0-9]/g,''); // solo números
   const idx=_registros.findIndex(r=>r.id===id);
   if(idx<0)return;
   _registros[idx].tono=val;
   guardarEnServidor();
-  // Actualizar celda sin re-renderizar toda la tabla
   const span=document.getElementById('tono-val-'+id);
   if(span){
+    const locked=val&&!_rtIsAdmin;
     span.textContent=val||'—';
     span.style.background=val?'#fef9c3':'#f8fafc';
     span.style.borderColor=val?'#fde047':'#e2e8f0';
     span.style.color=val?'#854d0e':'#94a3b8';
+    span.style.cursor=locked?'default':'pointer';
+    span.title=locked?'Solo el administrador puede modificar el tono':'Clic para editar tono';
     span.style.display='inline-block';
   }
   inp.style.display='none';
