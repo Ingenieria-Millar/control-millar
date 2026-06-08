@@ -348,14 +348,14 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
 
 /* Tabla */
 .table-wrap{background:#fff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;display:flex;flex-direction:column;flex:1;min-height:0;}
-.table-header{display:grid;grid-template-columns:80px 2fr 80px 80px 2fr 80px 100px 70px 50px 75px 50px 120px;min-width:900px;
+.table-header{display:grid;grid-template-columns:80px 2fr 80px 80px 2fr 80px 100px 70px 80px 50px 75px 50px 120px;min-width:980px;
   gap:0;padding:10px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;flex-shrink:0;}
 .th{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;
   text-transform:uppercase;color:#0f172a;display:flex;align-items:center;gap:4px;cursor:pointer;user-select:none;}
 .th:hover{color:#1e40af;}
 .table-filters{display:grid;grid-template-columns:80px 2fr 80px 80px 2fr 80px 100px 70px 50px 75px 50px 120px;gap:0;padding:5px 16px 8px;background:#f8fafc;border-bottom:1px solid #e2e8f0;flex-shrink:0;}
 .table-body{overflow-y:auto;overflow-x:auto;flex:1;}
-.table-row{display:grid;grid-template-columns:80px 2fr 80px 80px 2fr 80px 100px 70px 50px 75px 50px 120px;min-width:900px;
+.table-row{display:grid;grid-template-columns:80px 2fr 80px 80px 2fr 80px 100px 70px 80px 50px 75px 50px 120px;min-width:980px;
   gap:0;padding:11px 16px;border-bottom:1px solid #f8fafc;transition:background .12s;align-items:center;}
 .table-row:hover{background:#f8fafc;}
 .td{font-size:12px;color:#334155;font-family:'Nunito',sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -567,6 +567,7 @@ input[type=number]{-moz-appearance:textfield;}
       <div class="th" onclick="sortBy('metros')">Metros ↕</div>
       <div class="th">Estado</div>
       <div class="th">Defectos</div>
+      <div class="th">Tono</div>
       <div class="th">Observ.</div>
       <div class="th">Tiempo</div>
       <div class="th">Detalle</div>
@@ -578,7 +579,7 @@ input[type=number]{-moz-appearance:textfield;}
       <input placeholder="Filtrar..." oninput="filtrarTabla(2,this.value)" class="tf">
       <input placeholder="Filtrar..." oninput="filtrarTabla(3,this.value)" class="tf">
       <input placeholder="Filtrar..." oninput="filtrarTabla(4,this.value)" class="tf">
-      <div></div><div></div><div></div><div></div><div></div><div></div><div></div>
+      <div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div>
     </div>
     <div class="table-body" id="rt-table-body"></div>
   </div>
@@ -1573,6 +1574,7 @@ function renderTabla(){
       <div class="td">${esMultitarea?'—':r.metros?r.metros+' m':'—'}</div>
       <div class="td">${estadoBadge}</div>
       <div class="td">${!esMultitarea&&totalDef?'<span style="display:inline-flex;align-items:center;gap:5px;"><span style="font-weight:700;color:#92400e;font-size:13px;">'+totalDef+'</span><button onclick="verDefectos(\''+r.id+'\')" style="width:24px;height:24px;border-radius:6px;border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;font-size:12px;">👁</button></span>':'—'}</div>
+      <div class="td"><span id="tono-val-${r.id}" onclick="editarTono('${r.id}')" style="display:inline-block;min-width:40px;padding:3px 8px;border-radius:6px;background:${r.tono?'#fef9c3':'#f8fafc'};border:1.5px solid ${r.tono?'#fde047':'#e2e8f0'};font-size:12px;font-weight:700;color:${r.tono?'#854d0e':'#94a3b8'};cursor:pointer;" title="Clic para editar tono">${r.tono||'—'}</span><input id="tono-inp-${r.id}" type="text" value="${r.tono||''}" onblur="guardarTono('${r.id}')" onkeydown="if(event.key==='Enter')guardarTono('${r.id}');if(event.key==='Escape')cancelarTono('${r.id}')" style="display:none;width:70px;padding:3px 6px;border:1.5px solid #7c3aed;border-radius:6px;font-size:12px;outline:none;"></div>
       <div class="td">${r.observaciones?'<button onclick="verObservacion(\''+r.id+'\')" style="width:28px;height:28px;border-radius:6px;border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;font-size:14px;">💬</button>':'—'}</div>
       <div class="td">${r.tiempo?'<span class="tiempo-badge">'+r.tiempo+'</span>':'—'}</div>
       <div class="td" style="display:flex;align-items:center;">
@@ -2583,6 +2585,42 @@ function plantillaTareas(){
   XLSX.writeFile(wb,'plantilla_tareas.xlsx');
 }
 
+// ── Tono inline ─────────────────────────────────────────────────────
+function editarTono(id){
+  const val=document.getElementById('tono-val-'+id);
+  const inp=document.getElementById('tono-inp-'+id);
+  if(!val||!inp)return;
+  val.style.display='none';
+  inp.style.display='inline-block';
+  inp.focus();inp.select();
+}
+function guardarTono(id){
+  const inp=document.getElementById('tono-inp-'+id);
+  if(!inp)return;
+  const val=inp.value.trim().toUpperCase();
+  const idx=_registros.findIndex(r=>r.id===id);
+  if(idx<0)return;
+  _registros[idx].tono=val;
+  guardarEnServidor();
+  // Actualizar celda sin re-renderizar toda la tabla
+  const span=document.getElementById('tono-val-'+id);
+  if(span){
+    span.textContent=val||'—';
+    span.style.background=val?'#fef9c3':'#f8fafc';
+    span.style.borderColor=val?'#fde047':'#e2e8f0';
+    span.style.color=val?'#854d0e':'#94a3b8';
+    span.style.display='inline-block';
+  }
+  inp.style.display='none';
+}
+function cancelarTono(id){
+  const idx=_registros.findIndex(r=>r.id===id);
+  const inp=document.getElementById('tono-inp-'+id);
+  const span=document.getElementById('tono-val-'+id);
+  if(inp&&idx>=0) inp.value=_registros[idx].tono||'';
+  if(inp) inp.style.display='none';
+  if(span) span.style.display='inline-block';
+}
 // ── Init ───────────────────────────────────────────────────────────
 const _hoyInit=new Date().toISOString().split('T')[0];
 document.getElementById('filtro-desde').value=_hoyInit;
