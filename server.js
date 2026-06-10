@@ -589,9 +589,17 @@ app.post('/api/produccion', (req, res) => {
 });
 
 // ── API Incentivos (consulta por número de contrato) ──────────────
-// Registro: { mes, contrato, nombre, valor, ts }. Clave única: mes+contrato.
+// Registro: { id, mes, contrato, nombre, valor, ts }.
+// La carga de Excel hace upsert por mes+contrato; la edición/borrado usan id.
 function normContrato(v){ return String(v == null ? '' : v).trim(); }
 function normMes(v){ return String(v == null ? '' : v).trim(); }
+// Valor en pesos COP (enteros). Texto "$150.000": el punto es separador de
+// miles colombiano, no decimal → se eliminan no-dígitos.
+function normValor(v){
+  return typeof v === 'number'
+    ? Math.round(v)
+    : parseInt(String(v == null ? '' : v).replace(/[^0-9-]/g, ''), 10) || 0;
+}
 
 app.get('/api/incentivos', (req, res) => {
   let data = loadDB('incentivos') || [];
@@ -600,6 +608,14 @@ app.get('/api/incentivos', (req, res) => {
   if (contrato) data = data.filter(r => normContrato(r.contrato) === contrato);
   if (mes)      data = data.filter(r => normMes(r.mes) === mes);
   res.json(data);
+});
+
+// Resumen por mes (conteo). Evita descargar todos los registros en el panel admin.
+app.get('/api/incentivos/resumen', (req, res) => {
+  const data = loadDB('incentivos') || [];
+  const byMes = {};
+  data.forEach(r => { const m = normMes(r.mes); if (m) byMes[m] = (byMes[m] || 0) + 1; });
+  res.json(Object.keys(byMes).map(mes => ({ mes, count: byMes[mes] })));
 });
 
 // POST: carga de Excel (admin). Body = { rows: [{mes,contrato,nombre,valor}] }.
@@ -618,15 +634,12 @@ app.post('/api/incentivos', (req, res) => {
       const mes      = normMes(r.mes);
       const contrato = normContrato(r.contrato);
       if (!mes || !contrato) return; // fila inválida, omitir
-      // Valor en pesos COP (enteros). Si viene como texto "$150.000" el punto
-      // es separador de miles colombiano, no decimal → se eliminan no-dígitos.
-      const valorNum = typeof r.valor === 'number'
-        ? Math.round(r.valor)
-        : parseInt(String(r.valor == null ? '' : r.valor).replace(/[^0-9-]/g, ''), 10) || 0;
+      const prev = byKey.get(mes + '|' + contrato);
       byKey.set(mes + '|' + contrato, {
+        id:     (prev && prev.id) || uuidv4(),  // conservar id si ya existía
         mes, contrato,
         nombre: String(r.nombre == null ? '' : r.nombre).trim(),
-        valor:  valorNum,
+        valor:  normValor(r.valor),
         ts:     Date.now()
       });
       upserts++;
@@ -638,12 +651,44 @@ app.post('/api/incentivos', (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
-// DELETE: borrar todos los registros de un mes (admin)
+// PATCH: editar una fila por id (sin reimportar el archivo)
+app.patch('/api/incentivos/:id', (req, res) => {
+  try {
+    const data = loadDB('incentivos') || [];
+    const idx = data.findIndex(r => r.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'Registro no encontrado' });
+    const b = req.body || {};
+    if (b.mes      !== undefined) data[idx].mes      = normMes(b.mes);
+    if (b.contrato !== undefined) data[idx].contrato = normContrato(b.contrato);
+    if (b.nombre   !== undefined) data[idx].nombre   = String(b.nombre == null ? '' : b.nombre).trim();
+    if (b.valor    !== undefined) data[idx].valor    = normValor(b.valor);
+    data[idx].ts = Date.now();
+    saveDB('incentivos', data);
+    res.json({ ok: true, registro: data[idx] });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// DELETE por id: borrar una fila
+app.delete('/api/incentivos/:id', (req, res) => {
+  try {
+    const data = loadDB('incentivos') || [];
+    const filtrado = data.filter(r => r.id !== req.params.id);
+    if (filtrado.length === data.length) return res.status(404).json({ error: 'Registro no encontrado' });
+    saveDB('incentivos', filtrado);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// DELETE: borrar por mes (?mes=) o todo (?all=1)
 app.delete('/api/incentivos', (req, res) => {
   try {
-    const mes = req.query.mes != null ? normMes(req.query.mes) : null;
-    if (!mes) return res.status(400).json({ error: 'Falta parámetro mes' });
     const data = loadDB('incentivos') || [];
+    if (req.query.all === '1' || req.query.all === 'true') {
+      saveDB('incentivos', []);
+      return res.json({ ok: true, eliminados: data.length });
+    }
+    const mes = req.query.mes != null ? normMes(req.query.mes) : null;
+    if (!mes) return res.status(400).json({ error: 'Falta parámetro mes o all=1' });
     const filtrado = data.filter(r => normMes(r.mes) !== mes);
     saveDB('incentivos', filtrado);
     res.json({ ok: true, eliminados: data.length - filtrado.length });
