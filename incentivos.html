@@ -31,9 +31,12 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
 .hd-right{display:flex;align-items:center;gap:8px;}
 .hd-btn{padding:7px 16px;border-radius:8px;border:1.5px solid var(--border);background:#fff;color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:.5px;cursor:pointer;transition:all .2s;height:36px;display:flex;align-items:center;gap:5px;text-decoration:none;}
 .hd-btn:hover{background:var(--bg);border-color:#94a3b8;}
+.hd-gear{width:36px;height:36px;border-radius:8px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+.hd-gear:hover{background:var(--bg);border-color:#94a3b8;color:var(--text);transform:rotate(40deg);}
+.hd-gear.on{border-color:var(--purple);color:var(--purple);background:#f5f3ff;}
 
 /* ── LAYOUT ── */
-.wrap{max-width:760px;margin:0 auto;padding:clamp(16px,3vw,32px) clamp(12px,2.5vw,24px);}
+.wrap{max-width:780px;margin:0 auto;padding:clamp(16px,3vw,32px) clamp(12px,2.5vw,24px);}
 .card{background:#fff;border-radius:18px;box-shadow:0 4px 20px rgba(0,0,0,.06);padding:clamp(20px,3vw,32px);margin-bottom:20px;}
 .card-title{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:8px;}
 .card-sub{font-size:13px;color:var(--muted);margin-bottom:20px;}
@@ -41,8 +44,6 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
 .label{font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;display:block;}
 .input{width:100%;padding:13px 16px;border:1.5px solid var(--border);border-radius:12px;font-family:'Courier New',monospace;font-size:18px;letter-spacing:1px;color:var(--text);outline:none;background:#f8fafc;transition:border-color .2s;}
 .input:focus{border-color:var(--purple);background:#fff;}
-.select{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;color:var(--text);outline:none;background:#fff;cursor:pointer;}
-.select:focus{border-color:var(--purple);}
 .btn-primary{width:100%;margin-top:14px;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg,#7c3aed,#2563eb);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;letter-spacing:1px;cursor:pointer;transition:transform .1s,box-shadow .2s;box-shadow:0 4px 14px rgba(124,58,237,.3);}
 .btn-primary:hover{box-shadow:0 6px 20px rgba(124,58,237,.4);}
 .btn-primary:active{transform:translateY(1px);}
@@ -51,31 +52,62 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
 
 .error{color:var(--red);font-size:13px;font-weight:700;margin-top:10px;min-height:18px;text-align:center;}
 
-/* ── RESULT ── */
+/* ── SELECCIÓN DE MESES ── */
+#mesWrap{display:none;margin-top:20px;}
+.mes-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.mes-person{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;color:var(--text);}
+.mes-person small{display:block;font-family:'Courier New',monospace;font-size:11px;color:var(--muted);font-weight:400;letter-spacing:0;}
+.mes-toggle-all{font-size:12px;font-weight:700;color:var(--purple);background:none;border:none;cursor:pointer;text-decoration:underline;}
+.mes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;}
+.mes-chk{display:flex;align-items:center;gap:9px;padding:11px 13px;border:1.5px solid var(--border);border-radius:11px;cursor:pointer;background:#f8fafc;transition:all .15s;user-select:none;}
+.mes-chk:hover{border-color:#c4b5fd;}
+.mes-chk.sel{border-color:var(--purple);background:#f5f3ff;}
+.mes-chk input{width:17px;height:17px;accent-color:var(--purple);cursor:pointer;}
+.mes-chk .mc-name{font-weight:700;font-size:13px;flex:1;}
+.mes-chk .mc-val{font-size:12px;color:var(--muted);font-weight:700;font-family:'Courier New',monospace;}
+
+/* ── RESULTADO ── */
 #resultBox{display:none;margin-top:22px;}
-.result-name{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800;letter-spacing:.5px;color:var(--text);text-align:center;}
-.result-contract{font-size:12px;color:var(--muted);text-align:center;margin-bottom:18px;font-family:'Courier New',monospace;}
-.result-amount-card{background:linear-gradient(135deg,#f5f3ff,#eff6ff);border:1.5px solid #ddd6fe;border-radius:16px;padding:26px 20px;text-align:center;}
-.result-month{font-size:12px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--purple);margin-bottom:8px;}
-.result-value{font-family:'Barlow Condensed',sans-serif;font-size:clamp(34px,7vw,48px);font-weight:800;color:var(--text);line-height:1;}
-.result-value-lbl{font-size:12px;color:var(--muted);margin-top:8px;font-weight:600;}
+.res-table{width:100%;border-collapse:collapse;margin-bottom:6px;}
+.res-table th{text-align:left;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding:8px 12px;border-bottom:2px solid var(--border);}
+.res-table th.r,.res-table td.r{text-align:right;}
+.res-table td{padding:11px 12px;border-bottom:1px solid var(--border);font-size:14px;font-weight:700;}
+.res-table td.r{font-family:'Courier New',monospace;}
+.total-card{display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#f5f3ff,#eff6ff);border:1.5px solid #ddd6fe;border-radius:16px;padding:20px 24px;margin-top:14px;}
+.total-card .t-lbl{font-size:12px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--purple);}
+.total-card .t-sub{font-size:12px;color:var(--muted);font-weight:600;}
+.total-card .t-val{font-family:'Barlow Condensed',sans-serif;font-size:clamp(28px,6vw,40px);font-weight:800;color:var(--text);line-height:1;}
 
 /* ── ADMIN ── */
 #adminCard{display:none;}
 .admin-badge{display:inline-block;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#fff;background:var(--purple);padding:3px 10px;border-radius:20px;margin-left:8px;vertical-align:middle;}
-.upload-zone{border:2px dashed #c4b5fd;border-radius:14px;padding:28px 20px;text-align:center;background:#faf5ff;cursor:pointer;transition:all .2s;}
+.upload-zone{border:2px dashed #c4b5fd;border-radius:14px;padding:28px 20px;text-align:center;background:#faf5ff;cursor:pointer;transition:all .2s;display:block;}
 .upload-zone:hover{background:#f5f3ff;border-color:var(--purple);}
 .upload-zone .ico{font-size:34px;}
 .upload-zone .txt{font-size:14px;font-weight:700;color:var(--text);margin-top:8px;}
 .upload-zone .hint{font-size:12px;color:var(--muted);margin-top:4px;}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
-.row > *{flex:0 0 auto;}
 .months-list{margin-top:18px;}
 .month-pill{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;margin-bottom:8px;background:#f8fafc;}
 .month-pill .mp-name{font-weight:700;font-size:14px;}
 .month-pill .mp-count{font-size:12px;color:var(--muted);}
 .month-pill button{padding:5px 10px;border:1.5px solid #fecaca;border-radius:8px;background:#fff;color:var(--red);font-size:12px;font-weight:700;cursor:pointer;}
 .month-pill button:hover{background:#fef2f2;}
+
+/* ── MODAL CONTRASEÑA ── */
+.modal{display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:1000;align-items:center;justify-content:center;padding:16px;}
+.modal.show{display:flex;}
+.modal-box{background:#fff;border-radius:16px;padding:28px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,.25);}
+.modal-title{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:1.5px;color:var(--text);margin-bottom:6px;}
+.modal-sub{font-size:13px;color:var(--muted);margin-bottom:16px;}
+.modal-pass{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:'Courier New',monospace;font-size:18px;letter-spacing:4px;text-align:center;outline:none;}
+.modal-pass:focus{border-color:var(--purple);}
+.modal-err{color:var(--red);font-size:12px;font-weight:700;margin-top:8px;min-height:16px;text-align:center;}
+.modal-acts{display:flex;gap:10px;margin-top:16px;}
+.modal-acts button{flex:1;padding:11px;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:.5px;cursor:pointer;}
+.modal-acts .cancel{border:1.5px solid var(--border);background:#fff;color:var(--muted);}
+.modal-acts .ok{border:none;background:linear-gradient(135deg,#7c3aed,#2563eb);color:#fff;}
+
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:12px 22px;border-radius:12px;font-size:14px;font-weight:700;box-shadow:0 8px 30px rgba(0,0,0,.25);z-index:2000;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px);}
 </style>
@@ -90,7 +122,8 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
     </div>
   </div>
   <div class="hd-right">
-    <a class="hd-btn" href="/">← Inicio</a>
+    <button class="hd-gear" id="btnGear" title="Administración">⚙️</button>
+    <a class="hd-btn" href="/">← Volver</a>
   </div>
 </header>
 
@@ -99,34 +132,43 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
   <!-- ── CONSULTA ── -->
   <div class="card">
     <div class="card-title">🔎 Consultar mi incentivo</div>
-    <div class="card-sub">Ingresa tu número de contrato para ver el incentivo del mes.</div>
+    <div class="card-sub">Ingresa tu número de contrato y selecciona el o los meses que quieras consultar.</div>
 
     <label class="label" for="inpContrato">Número de contrato</label>
     <input class="input" id="inpContrato" type="text" inputmode="numeric" placeholder="Ej: 1024" autocomplete="off">
 
-    <div id="mesWrap" style="display:none;margin-top:16px;">
-      <label class="label" for="selMes">Mes</label>
-      <select class="select" id="selMes"></select>
-    </div>
-
     <button class="btn-primary" id="btnBuscar">Consultar</button>
     <div class="error" id="errConsulta"></div>
 
+    <!-- selección múltiple de meses -->
+    <div id="mesWrap">
+      <div class="mes-head">
+        <div class="mes-person" id="mesPerson"></div>
+        <button class="mes-toggle-all" id="btnToggleAll">Seleccionar todos</button>
+      </div>
+      <div class="mes-grid" id="mesGrid"></div>
+    </div>
+
+    <!-- resultado -->
     <div id="resultBox">
-      <div class="result-name" id="resName"></div>
-      <div class="result-contract" id="resContract"></div>
-      <div class="result-amount-card">
-        <div class="result-month" id="resMonth"></div>
-        <div class="result-value" id="resValue"></div>
-        <div class="result-value-lbl">Valor del incentivo</div>
+      <table class="res-table">
+        <thead><tr><th>Mes</th><th class="r">Valor</th></tr></thead>
+        <tbody id="resBody"></tbody>
+      </table>
+      <div class="total-card">
+        <div>
+          <div class="t-lbl">Total seleccionado</div>
+          <div class="t-sub" id="totalSub">0 meses</div>
+        </div>
+        <div class="t-val" id="totalVal">$0</div>
       </div>
     </div>
   </div>
 
-  <!-- ── ADMIN ── -->
+  <!-- ── ADMIN (oculto; se desbloquea con la tuerca) ── -->
   <div class="card" id="adminCard">
     <div class="card-title">⚙️ Administración <span class="admin-badge">Admin</span></div>
-    <div class="card-sub">Sube el archivo Excel mensual. Columnas: <strong>MES</strong>, <strong>CONTRATO</strong>, <strong>NOMBRE</strong>, <strong>VALOR</strong>.</div>
+    <div class="card-sub">Sube el archivo Excel. Columnas: <strong>MES</strong>, <strong>CONTRATO</strong>, <strong>NOMBRE</strong>, <strong>VALOR</strong>. Puede traer todos los meses del año.</div>
 
     <label class="upload-zone" for="fileXls">
       <div class="ico">📤</div>
@@ -145,14 +187,27 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
 
 </div>
 
+<!-- MODAL CONTRASEÑA -->
+<div class="modal" id="passModal">
+  <div class="modal-box">
+    <div class="modal-title">🔒 Acceso administrativo</div>
+    <div class="modal-sub">Ingresa la contraseña para gestionar incentivos.</div>
+    <input class="modal-pass" id="passInput" type="password" placeholder="••••••••" autocomplete="off">
+    <div class="modal-err" id="passErr"></div>
+    <div class="modal-acts">
+      <button class="cancel" id="passCancel">Cancelar</button>
+      <button class="ok" id="passOk">Entrar</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
 'use strict';
 
+const ADMIN_PASS = 'Millar20.';
 const COP = new Intl.NumberFormat('es-CO', { style:'currency', currency:'COP', maximumFractionDigits:0 });
-const params = new URLSearchParams(location.search);
-const PERFIL = (params.get('perfil') || '').trim();
 
 function toast(msg){
   const t = document.getElementById('toast');
@@ -160,15 +215,17 @@ function toast(msg){
   clearTimeout(t._tm); t._tm = setTimeout(()=>t.classList.remove('show'), 2600);
 }
 
-// ── Estado consulta ──────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════
+//  CONSULTA (operaria)
+// ════════════════════════════════════════════════════════════════
 let registrosContrato = []; // registros del contrato consultado
 
 async function buscar(){
   const err = document.getElementById('errConsulta');
   const contrato = document.getElementById('inpContrato').value.trim();
   err.textContent = '';
-  document.getElementById('resultBox').style.display = 'none';
   document.getElementById('mesWrap').style.display = 'none';
+  document.getElementById('resultBox').style.display = 'none';
   if(!contrato){ err.textContent = 'Ingresa tu número de contrato.'; return; }
   try{
     const res = await fetch('/api/incentivos?contrato=' + encodeURIComponent(contrato));
@@ -180,30 +237,105 @@ async function buscar(){
     err.textContent = 'No hay incentivos registrados para ese contrato.';
     return;
   }
-  // Ordenar meses por ts (más reciente primero) y poblar selector
-  registrosContrato.sort((a,b)=>(b.ts||0)-(a.ts||0));
-  const sel = document.getElementById('selMes');
-  sel.innerHTML = registrosContrato.map((r,i)=>`<option value="${i}">${r.mes}</option>`).join('');
+  registrosContrato.sort((a,b)=>(a.ts||0)-(b.ts||0));
+  const nombre = (registrosContrato.find(r=>r.nombre) || {}).nombre || '';
+  document.getElementById('mesPerson').innerHTML =
+    (nombre ? nombre : '—') + '<small>Contrato ' + contrato + '</small>';
+
+  // Pintar checkboxes de meses (todos seleccionados por defecto)
+  const grid = document.getElementById('mesGrid');
+  grid.innerHTML = registrosContrato.map((r,i)=>
+    `<label class="mes-chk sel"><input type="checkbox" data-i="${i}" checked>` +
+    `<span class="mc-name">${r.mes}</span>` +
+    `<span class="mc-val">${COP.format(r.valor||0)}</span></label>`
+  ).join('');
+  grid.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      cb.closest('.mes-chk').classList.toggle('sel', cb.checked);
+      recalcular();
+    });
+  });
+  document.getElementById('btnToggleAll').textContent = 'Quitar todos';
   document.getElementById('mesWrap').style.display = 'block';
-  sel.onchange = mostrarMes;
-  mostrarMes();
+  recalcular();
 }
 
-function mostrarMes(){
-  const i = parseInt(document.getElementById('selMes').value) || 0;
-  const r = registrosContrato[i];
-  if(!r) return;
-  document.getElementById('resName').textContent     = r.nombre || '—';
-  document.getElementById('resContract').textContent = 'Contrato ' + r.contrato;
-  document.getElementById('resMonth').textContent    = r.mes;
-  document.getElementById('resValue').textContent    = COP.format(r.valor || 0);
+function recalcular(){
+  const checks = [...document.querySelectorAll('#mesGrid input[type=checkbox]')];
+  const sel = checks.filter(c=>c.checked).map(c=>registrosContrato[parseInt(c.dataset.i)]);
+  const body = document.getElementById('resBody');
+  if(!sel.length){
+    document.getElementById('resultBox').style.display = 'none';
+    return;
+  }
+  body.innerHTML = sel.map(r=>
+    `<tr><td>${r.mes}</td><td class="r">${COP.format(r.valor||0)}</td></tr>`
+  ).join('');
+  const total = sel.reduce((s,r)=>s+(Number(r.valor)||0),0);
+  document.getElementById('totalVal').textContent = COP.format(total);
+  document.getElementById('totalSub').textContent = sel.length + (sel.length===1?' mes':' meses');
   document.getElementById('resultBox').style.display = 'block';
 }
+
+document.getElementById('btnToggleAll').addEventListener('click', ()=>{
+  const checks = [...document.querySelectorAll('#mesGrid input[type=checkbox]')];
+  const anyOff = checks.some(c=>!c.checked);
+  checks.forEach(c=>{ c.checked = anyOff; c.closest('.mes-chk').classList.toggle('sel', anyOff); });
+  document.getElementById('btnToggleAll').textContent = anyOff ? 'Quitar todos' : 'Seleccionar todos';
+  recalcular();
+});
 
 document.getElementById('btnBuscar').addEventListener('click', buscar);
 document.getElementById('inpContrato').addEventListener('keydown', e=>{ if(e.key==='Enter') buscar(); });
 
-// ── ADMIN ────────────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════
+//  ACCESO ADMIN (tuerca + contraseña)
+// ════════════════════════════════════════════════════════════════
+let adminUnlocked = false;
+
+function abrirPassModal(){
+  document.getElementById('passErr').textContent = '';
+  document.getElementById('passInput').value = '';
+  document.getElementById('passModal').classList.add('show');
+  setTimeout(()=>document.getElementById('passInput').focus(), 80);
+}
+function cerrarPassModal(){ document.getElementById('passModal').classList.remove('show'); }
+
+function validarPass(){
+  const val = document.getElementById('passInput').value;
+  if(val === ADMIN_PASS){
+    adminUnlocked = true;
+    cerrarPassModal();
+    document.getElementById('adminCard').style.display = 'block';
+    document.getElementById('btnGear').classList.add('on');
+    document.getElementById('adminCard').scrollIntoView({ behavior:'smooth', block:'start' });
+    cargarMeses();
+  } else {
+    document.getElementById('passErr').textContent = 'Contraseña incorrecta.';
+    document.getElementById('passInput').select();
+  }
+}
+
+document.getElementById('btnGear').addEventListener('click', ()=>{
+  if(adminUnlocked){
+    // alternar visibilidad del panel ya desbloqueado
+    const card = document.getElementById('adminCard');
+    const vis = card.style.display !== 'none';
+    card.style.display = vis ? 'none' : 'block';
+    document.getElementById('btnGear').classList.toggle('on', !vis);
+    if(!vis) card.scrollIntoView({ behavior:'smooth', block:'start' });
+  } else {
+    abrirPassModal();
+  }
+});
+document.getElementById('passOk').addEventListener('click', validarPass);
+document.getElementById('passCancel').addEventListener('click', cerrarPassModal);
+document.getElementById('passInput').addEventListener('keydown', e=>{ if(e.key==='Enter') validarPass(); });
+document.getElementById('passModal').addEventListener('click', e=>{ if(e.target.id==='passModal') cerrarPassModal(); });
+
+// ════════════════════════════════════════════════════════════════
+//  ADMIN — carga y gestión
+// ════════════════════════════════════════════════════════════════
 function pick(row, keys){
   for(const k of Object.keys(row)){
     const kn = k.toString().trim().toLowerCase();
@@ -215,6 +347,7 @@ function pick(row, keys){
 function parseAndUpload(file){
   if(!file) return;
   if(typeof XLSX === 'undefined'){ toast('Librería Excel no disponible'); return; }
+  toast('⏳ Procesando archivo…');
   const reader = new FileReader();
   reader.onload = async ev => {
     try{
@@ -248,8 +381,9 @@ function descargarPlantilla(){
   if(typeof XLSX === 'undefined'){ toast('Librería Excel no disponible'); return; }
   const ws = XLSX.utils.aoa_to_sheet([
     ['MES','CONTRATO','NOMBRE','VALOR'],
-    ['Enero 2026','1024','Ana Gómez', 150000],
-    ['Enero 2026','1025','María López', 132000]
+    ['Enero','1024','Ana Gómez', 150000],
+    ['Enero','1025','María López', 132000],
+    ['Febrero','1024','Ana Gómez', 148000]
   ]);
   ws['!cols'] = [{wch:14},{wch:12},{wch:28},{wch:12}];
   const wb = XLSX.utils.book_new();
@@ -261,16 +395,16 @@ function descargarPlantilla(){
 async function cargarMeses(){
   const cont = document.getElementById('monthsList');
   try{
-    const res = await fetch('/api/incentivos');
+    const res = await fetch('/api/incentivos/resumen');
     const data = await res.json();
-    const byMes = {};
-    (data || []).forEach(r => { byMes[r.mes] = (byMes[r.mes] || 0) + 1; });
-    const meses = Object.keys(byMes);
-    if(!meses.length){ cont.innerHTML = '<div style="color:#94a3b8;font-size:13px;text-align:center;padding:14px;">Aún no hay incentivos cargados.</div>'; return; }
+    if(!Array.isArray(data) || !data.length){
+      cont.innerHTML = '<div style="color:#94a3b8;font-size:13px;text-align:center;padding:14px;">Aún no hay incentivos cargados.</div>';
+      return;
+    }
     cont.innerHTML = '<div class="label" style="margin-bottom:10px;">Meses cargados</div>' +
-      meses.map(m =>
-        `<div class="month-pill"><div><div class="mp-name">${m}</div><div class="mp-count">${byMes[m]} registros</div></div>` +
-        `<button data-mes="${encodeURIComponent(m)}">🗑 Eliminar</button></div>`
+      data.map(r =>
+        `<div class="month-pill"><div><div class="mp-name">${r.mes}</div><div class="mp-count">${r.count} registros</div></div>` +
+        `<button data-mes="${encodeURIComponent(r.mes)}">🗑 Eliminar</button></div>`
       ).join('');
     cont.querySelectorAll('button[data-mes]').forEach(b => {
       b.onclick = () => eliminarMes(decodeURIComponent(b.getAttribute('data-mes')));
@@ -289,14 +423,9 @@ async function eliminarMes(mes){
   }catch(e){ toast('Error: ' + e.message); }
 }
 
-// Mostrar panel admin solo si se entró con perfil (desde index con sesión)
-if(PERFIL){
-  document.getElementById('adminCard').style.display = 'block';
-  document.getElementById('fileXls').addEventListener('change', e => parseAndUpload(e.target.files[0]));
-  document.getElementById('btnPlantilla').addEventListener('click', descargarPlantilla);
-  document.getElementById('btnRefresh').addEventListener('click', cargarMeses);
-  cargarMeses();
-}
+document.getElementById('fileXls').addEventListener('change', e => parseAndUpload(e.target.files[0]));
+document.getElementById('btnPlantilla').addEventListener('click', descargarPlantilla);
+document.getElementById('btnRefresh').addEventListener('click', cargarMeses);
 </script>
 </body>
 </html>
