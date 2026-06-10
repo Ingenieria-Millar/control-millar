@@ -430,6 +430,13 @@ app.get('/incentivos', (req, res) =>
   res.sendFile(path.join(__dirname, 'incentivos.html'))
 );
 
+// Logo corporativo (usado en el header del módulo de incentivos)
+app.get('/logo.png', (req, res) => {
+  const p = path.join(__dirname, 'logo.png');
+  if (fs.existsSync(p)) return res.sendFile(p);
+  res.status(404).end();
+});
+
 // GET todos los registros (con filtros opcionales)
 app.get('/api/recogedores', (req, res) => {
   let data = readJSON(FILES.recogedores, []);
