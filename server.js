@@ -70,6 +70,7 @@ const FILES = {
   recogedores:    path.join(DATA_DIR, 'recogedores.json'),
   produccion:     path.join(DATA_DIR, 'produccion.json'),
   revision_telas: path.join(DATA_DIR, 'revision_telas.json'),
+  incentivos:     path.join(DATA_DIR, 'incentivos.json'),
 };
 
 // ── Helpers de persistencia ────────────────────────────────────────
@@ -425,6 +426,10 @@ app.get('/revision-telas', (req, res) =>
   res.sendFile(path.join(__dirname, 'revision_telas.html'))
 );
 
+app.get('/incentivos', (req, res) =>
+  res.sendFile(path.join(__dirname, 'incentivos.html'))
+);
+
 // GET todos los registros (con filtros opcionales)
 app.get('/api/recogedores', (req, res) => {
   let data = readJSON(FILES.recogedores, []);
@@ -581,6 +586,68 @@ app.post('/api/produccion', (req, res) => {
   // Notificar a todos los clientes WS conectados
   broadcastLocal({ type: 'prod_update', boards, history: history || [] });
   res.json({ ok: true });
+});
+
+// ── API Incentivos (consulta por número de contrato) ──────────────
+// Registro: { mes, contrato, nombre, valor, ts }. Clave única: mes+contrato.
+function normContrato(v){ return String(v == null ? '' : v).trim(); }
+function normMes(v){ return String(v == null ? '' : v).trim(); }
+
+app.get('/api/incentivos', (req, res) => {
+  let data = loadDB('incentivos') || [];
+  const contrato = req.query.contrato != null ? normContrato(req.query.contrato) : null;
+  const mes      = req.query.mes      != null ? normMes(req.query.mes)           : null;
+  if (contrato) data = data.filter(r => normContrato(r.contrato) === contrato);
+  if (mes)      data = data.filter(r => normMes(r.mes) === mes);
+  res.json(data);
+});
+
+// POST: carga de Excel (admin). Body = { rows: [{mes,contrato,nombre,valor}] }.
+// Upsert por mes+contrato; no borra meses ya cargados.
+app.post('/api/incentivos', (req, res) => {
+  try {
+    const rows = Array.isArray(req.body) ? req.body : (req.body && req.body.rows);
+    if (!Array.isArray(rows)) return res.status(400).json({ error: 'Se esperaba { rows: [...] }' });
+
+    const data = loadDB('incentivos') || [];
+    const byKey = new Map();
+    data.forEach(r => byKey.set(normMes(r.mes) + '|' + normContrato(r.contrato), r));
+
+    let upserts = 0;
+    rows.forEach(r => {
+      const mes      = normMes(r.mes);
+      const contrato = normContrato(r.contrato);
+      if (!mes || !contrato) return; // fila inválida, omitir
+      // Valor en pesos COP (enteros). Si viene como texto "$150.000" el punto
+      // es separador de miles colombiano, no decimal → se eliminan no-dígitos.
+      const valorNum = typeof r.valor === 'number'
+        ? Math.round(r.valor)
+        : parseInt(String(r.valor == null ? '' : r.valor).replace(/[^0-9-]/g, ''), 10) || 0;
+      byKey.set(mes + '|' + contrato, {
+        mes, contrato,
+        nombre: String(r.nombre == null ? '' : r.nombre).trim(),
+        valor:  valorNum,
+        ts:     Date.now()
+      });
+      upserts++;
+    });
+
+    const merged = [...byKey.values()];
+    saveDB('incentivos', merged);
+    res.json({ ok: true, recibidos: rows.length, guardados: upserts, total: merged.length });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// DELETE: borrar todos los registros de un mes (admin)
+app.delete('/api/incentivos', (req, res) => {
+  try {
+    const mes = req.query.mes != null ? normMes(req.query.mes) : null;
+    if (!mes) return res.status(400).json({ error: 'Falta parámetro mes' });
+    const data = loadDB('incentivos') || [];
+    const filtrado = data.filter(r => normMes(r.mes) !== mes);
+    saveDB('incentivos', filtrado);
+    res.json({ ok: true, eliminados: data.length - filtrado.length });
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 const CI_PATH = path.join(__dirname, 'Tablero_CI.html');

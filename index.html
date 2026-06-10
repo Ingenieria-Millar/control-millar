@@ -2354,6 +2354,15 @@ function mostrarAreaScreen(){
     btns.appendChild(c);
   }
 
+  // 12b. Consulta de Incentivos
+  if(hasPerm('consulta_incentivos')){
+    const c=makeCard('💰','Consulta de Incentivos','Incentivo mensual por contrato','ac-indigo',()=>{
+      window.location.href='/incentivos?perfil='+encodeURIComponent(currentUser||'Admin');
+    });
+    c.style.animationDelay=(idx*0.07)+'s'; idx++;
+    btns.appendChild(c);
+  }
+
   // 12. Informes
   if(hasPerm('informes')){
     const c=makeCard('📊','Informes','Reportes y estadísticas','ac-indigo',()=>{
@@ -3637,6 +3646,7 @@ const ALL_PERMS = [
   {key:'tablero_planta',         label:'Tablero mecánicos'},
   {key:'tablero_produccion',     label:'Tablero de producción'},
   {key:'revision_telas',         label:'Control de Revisión de Telas'},
+  {key:'consulta_incentivos',    label:'Consulta de incentivos'},
 ];
 const PERM_LABELS = Object.fromEntries(ALL_PERMS.map(p=>[p.key,p.label]));
 
@@ -4930,12 +4940,12 @@ function cfgPlantillaTurnos(){
 function cfgPlantillaUsuarios(){
   if(typeof XLSX==='undefined'){alert('Librería Excel no disponible');return;}
   const ws=XLSX.utils.aoa_to_sheet([
-    ['Cedula','Nombre','Cargo','Modulo','Supervisora','Estado'],
-    ['12345678','Ana Gómez','Operaria','M01','Supervisora 1','activa'],
-    ['87654321','María López','Mecánico','M02','Supervisora 2','activa']
+    ['Cedula','Contrato','Nombre','Cargo','Modulo','Supervisora','Estado'],
+    ['12345678','1024','Ana Gómez','Operaria','M01','Supervisora 1','activa'],
+    ['87654321','1025','María López','Mecánico','M02','Supervisora 2','activa']
   ]);
   // Column widths
-  ws['!cols']=[{wch:14},{wch:25},{wch:15},{wch:10},{wch:25},{wch:10}];
+  ws['!cols']=[{wch:14},{wch:12},{wch:25},{wch:15},{wch:10},{wch:25},{wch:10}];
   const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Usuarios');
   XLSX.writeFile(wb,'plantilla_usuarios.xlsx');
   showToastSimple('📥 Plantilla descargada');
@@ -5161,6 +5171,7 @@ function cfgExportUsuarios(){
     const supNombre = supObj?supObj.name:(e.supId||'');
     return {
       Cedula: e.cedula||'',
+      Contrato: e.numeroContrato||'',
       Nombre: e.name||'',
       Cargo: e.cargo||'',
       Modulo: e.module||e.modulo||'',
@@ -5242,7 +5253,7 @@ function cfgRenderUsuarios(body){
   body.appendChild(statsRow);
 
   // ── Tabla con filtros por columna ─────────────────────────────────
-  const COLS = '1.2fr 2fr 1fr 1.3fr 1.5fr .9fr 100px';
+  const COLS = '1.2fr 1fr 2fr 1fr 1.3fr 1.5fr .9fr 100px';
   const INP_S = "width:100%;box-sizing:border-box;padding:3px 6px;border-radius:5px;border:1px solid #e2e8f0;font-family:'Nunito',sans-serif;font-size:11px;outline:none;color:#0f172a;background:#fff;";
   const tbl = document.createElement('div'); tbl.className='cfg-user-table'; tbl.id='cfg-usr-tbl';
 
@@ -5252,6 +5263,7 @@ function cfgRenderUsuarios(body){
   let usrSortCol=null, usrSortDir=1;
   const usrCols = [
     {label:'Cédula',      id:'uf-cedula',  type:'text', key:'cedula'},
+    {label:'Contrato',    id:'uf-contrato',type:'text', key:'numeroContrato'},
     {label:'Nombre',      id:'uf-nombre',  type:'text', key:'name'},
     {label:'Cargo',       id:'uf-cargo',   type:'text', key:'cargo'},
     {label:'Módulo',      id:'uf-modulo',  type:'text', key:'module'},
@@ -5288,12 +5300,13 @@ function cfgRenderUsuarios(body){
 
   function applyFiltros(){
     const get=id=>(document.getElementById(id)||{value:''}).value.trim().toLowerCase();
-    const qCed=get('uf-cedula'), qNom=get('uf-nombre'), qMod=get('uf-modulo');
+    const qCed=get('uf-cedula'), qNom=get('uf-nombre'), qMod=get('uf-modulo'), qCon=get('uf-contrato');
     const qSup=(document.getElementById('uf-sup')||{value:''}).value.trim().toLowerCase();
     const qEst=(document.getElementById('uf-estado')||{value:''}).value;
     const qCargo=(document.getElementById('uf-cargo')||{value:''}).value.trim().toLowerCase();
     const list=emps.filter(e=>{
       const matchCed = !qCed||(e.cedula||'').toLowerCase().includes(qCed);
+      const matchCon = !qCon||(e.numeroContrato||'').toLowerCase().includes(qCon);
       const matchNom = !qNom||(e.name||'').toLowerCase().includes(qNom);
       const matchMod = !qMod||(e.module||e.modulo||'').toLowerCase().includes(qMod);
       const supObj = sups.find(s=>s.id===e.supId)||iaS.supervisors?.find(s=>s.id===e.supId);
@@ -5301,7 +5314,7 @@ function cfgRenderUsuarios(body){
       const matchSup = !qSup||supNombre.toLowerCase().includes(qSup);
       const matchEst = !qEst||((e.disabled?'inactiva':'activa').includes(qEst));
       const matchCargo = !qCargo||(e.cargo||'').toLowerCase().includes(qCargo);
-      return matchCed&&matchNom&&matchMod&&matchSup&&matchEst&&matchCargo;
+      return matchCed&&matchCon&&matchNom&&matchMod&&matchSup&&matchEst&&matchCargo;
     });
     // Ordenar si hay columna activa
     if(usrSortCol){
@@ -5321,7 +5334,7 @@ function cfgRenderUsuarios(body){
       const isOff=!!e.disabled;
       const row=document.createElement('div'); row.className='cfg-user-row'+(isOff?' disabled':'');
       row.style.gridTemplateColumns=COLS;
-      row.innerHTML=`<div class="cfg-user-cell muted" style="font-family:'Courier New',monospace;font-size:12px;">${e.cedula||'—'}</div><div class="cfg-user-cell">${e.name||'—'}</div><div class="cfg-user-cell muted">${e.cargo?`<span style="background:#eff6ff;color:#2563eb;border-radius:5px;padding:1px 7px;font-size:11px;font-weight:600;">${e.cargo}</span>`:'—'}</div><div class="cfg-user-cell muted">${(()=>{const id=e.module||e.modulo||'';if(!id)return'—';const ren=(_appConfig&&_appConfig._modulos_renamed)||{};return ren[id]||id;})()||'—'}</div><div class="cfg-user-cell muted">${supNombreRow||'—'}</div><div class="cfg-user-cell"><span class="cfg-pill ${isOff?'inactiva':'activa'}">${isOff?'● Inactiva':'● Activa'}</span></div>`;
+      row.innerHTML=`<div class="cfg-user-cell muted" style="font-family:'Courier New',monospace;font-size:12px;">${e.cedula||'—'}</div><div class="cfg-user-cell muted" style="font-family:'Courier New',monospace;font-size:12px;">${e.numeroContrato||'—'}</div><div class="cfg-user-cell">${e.name||'—'}</div><div class="cfg-user-cell muted">${e.cargo?`<span style="background:#eff6ff;color:#2563eb;border-radius:5px;padding:1px 7px;font-size:11px;font-weight:600;">${e.cargo}</span>`:'—'}</div><div class="cfg-user-cell muted">${(()=>{const id=e.module||e.modulo||'';if(!id)return'—';const ren=(_appConfig&&_appConfig._modulos_renamed)||{};return ren[id]||id;})()||'—'}</div><div class="cfg-user-cell muted">${supNombreRow||'—'}</div><div class="cfg-user-cell"><span class="cfg-pill ${isOff?'inactiva':'activa'}">${isOff?'● Inactiva':'● Activa'}</span></div>`;
       const acts=document.createElement('div'); acts.className='cfg-row-acts'; acts.style.cssText='display:flex;gap:4px;';
       const bE=document.createElement('button'); bE.className='cfg-row-btn'; bE.textContent='✏️'; bE.title='Editar'; bE.onclick=()=>cfgOpenUserModal(e);
       const bT=document.createElement('button'); bT.className=`cfg-row-btn tog ${isOff?'on':''}`; bT.textContent=isOff?'✅':'⏸'; bT.title=isOff?'Habilitar':'Inhabilitar';
@@ -5350,6 +5363,7 @@ function cfgOpenUserModal(emp){
   document.getElementById('com-target-idx').value = (iaS.employees||[]).indexOf(emp);
   document.getElementById('com-nombre').value  = emp.name||'';
   document.getElementById('com-cedula').value  = emp.cedula||'';
+  document.getElementById('com-contrato').value = emp.numeroContrato||'';
   // Poblar módulos como select
   const empMod = emp.module||emp.modulo||'';
   const selMod = document.getElementById('com-modulo');
@@ -5383,6 +5397,7 @@ function cfgOpenNuevaOperaria(){
   document.getElementById('com-target-idx').value = '-1';
   document.getElementById('com-nombre').value  = '';
   document.getElementById('com-cedula').value  = '';
+  document.getElementById('com-contrato').value = '';
   // Poblar módulos
   const selMod = document.getElementById('com-modulo');
   selMod.innerHTML='<option value="">Sin módulo</option>'+(typeof MODULES!=='undefined'?MODULES.map(m=>`<option value="${m}">${m}</option>`).join(''):'');
@@ -5400,6 +5415,7 @@ function cfgSaveNuevaOperaria(){
   const idx  = parseInt(document.getElementById('com-target-idx').value);
   const nombre = document.getElementById('com-nombre').value.trim();
   const cedula = document.getElementById('com-cedula').value.trim();
+  const numeroContrato = document.getElementById('com-contrato').value.trim();
   const modulo = document.getElementById('com-modulo').value.trim();
   const supId  = document.getElementById('com-supervisora').value;
   const cargo  = (document.getElementById('com-cargo')||{value:''}).value||'';
@@ -5408,10 +5424,10 @@ function cfgSaveNuevaOperaria(){
   if(idx===-1){
     // Nueva operaria
     const id = 'emp_'+Date.now();
-    iaS.employees.push({id, name:nombre, cedula, module:modulo, modulo, supId, cargo, disabled:false});
+    iaS.employees.push({id, name:nombre, cedula, numeroContrato, module:modulo, modulo, supId, cargo, disabled:false});
   } else {
     const emp = iaS.employees[idx];
-    if(emp){ emp.name=nombre; emp.cedula=cedula; emp.module=modulo; emp.modulo=modulo; emp.supId=supId; emp.cargo=cargo; }
+    if(emp){ emp.name=nombre; emp.cedula=cedula; emp.numeroContrato=numeroContrato; emp.module=modulo; emp.modulo=modulo; emp.supId=supId; emp.cargo=cargo; }
   }
   if(typeof iaSaveState==='function') iaSaveState();
   document.getElementById('cfg-operaria-modal').style.display='none';
@@ -5435,6 +5451,7 @@ function cfgImportUsuariosXLS(file){
       rows.forEach(r=>{
         const nombre = (r['Nombre']||r['nombre']||'').toString().trim();
         const cedula = (r['Cedula']||r['cedula']||r['Cédula']||'').toString().trim();
+        const numeroContrato = (r['Contrato']||r['contrato']||r['Numero Contrato']||r['NumeroContrato']||'').toString().trim();
         const cargoRaw  = (r['Cargo']||r['cargo']||'').toString().trim();
         const moduloRaw = (r['Modulo']||r['modulo']||r['Módulo']||'').toString().trim();
         const supNom = (r['Supervisora']||r['supervisora']||'').toString().trim();
@@ -5487,9 +5504,10 @@ function cfgImportUsuariosXLS(file){
         const existing = iaS.employees.find(e=>e.cedula&&e.cedula===cedula);
         if(existing){
           existing.name=nombre; existing.cargo=cargo; existing.module=modulo; existing.modulo=modulo; existing.supId=supId; existing.disabled=(estado==='inactiva');
+          if(numeroContrato) existing.numeroContrato=numeroContrato;
           updated++;
         } else {
-          iaS.employees.push({id:'emp_'+Date.now()+'_'+Math.random().toString(36).slice(2), name:nombre, cedula, cargo, module:modulo, modulo, supId, disabled:(estado==='inactiva')});
+          iaS.employees.push({id:'emp_'+Date.now()+'_'+Math.random().toString(36).slice(2), name:nombre, cedula, numeroContrato, cargo, module:modulo, modulo, supId, disabled:(estado==='inactiva')});
           added++;
         }
       });
@@ -6957,6 +6975,10 @@ function cfgOpenPerfilModal(nombre, pass){
       <div>
         <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:4px;">Cédula</label>
         <input id="com-cedula" type="text" placeholder="Ej: 12345678" style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:'Courier New',monospace;font-size:14px;outline:none;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:4px;">Número de contrato</label>
+        <input id="com-contrato" type="text" placeholder="Ej: 1024" style="width:100%;box-sizing:border-box;padding:9px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-family:'Courier New',monospace;font-size:14px;outline:none;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
       </div>
       <div>
         <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:4px;">Módulo</label>

@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Consulta de Incentivos — Confecciones Millar</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --blue:#2563eb;--blue-dark:#1d4ed8;--green:#16a34a;--red:#dc2626;
+  --yellow:#d97706;--border:#e2e8f0;--bg:#f1f5f9;--text:#0f172a;--muted:#64748b;
+  --teal:#0d9488;--purple:#7c3aed;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* ── HEADER ── */
+header{
+  position:sticky;top:0;z-index:100;background:#fff;
+  border-bottom:1px solid var(--border);box-shadow:0 1px 6px rgba(0,0,0,.07);
+  padding:0 clamp(12px,2.5vw,24px);min-height:64px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+}
+header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#7c3aed,#2563eb,#0d9488);}
+.hd-left{display:flex;align-items:center;gap:10px;}
+.hd-icon{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#7c3aed,#2563eb);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;box-shadow:0 2px 8px rgba(124,58,237,.3);}
+.hd-title{font-family:'Barlow Condensed',sans-serif;font-size:clamp(16px,2.2vw,22px);font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--text);line-height:1;}
+.hd-title span{color:var(--purple);}
+.hd-sub{font-size:12px;color:var(--muted);font-weight:600;margin-top:2px;}
+.hd-right{display:flex;align-items:center;gap:8px;}
+.hd-btn{padding:7px 16px;border-radius:8px;border:1.5px solid var(--border);background:#fff;color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:.5px;cursor:pointer;transition:all .2s;height:36px;display:flex;align-items:center;gap:5px;text-decoration:none;}
+.hd-btn:hover{background:var(--bg);border-color:#94a3b8;}
+
+/* ── LAYOUT ── */
+.wrap{max-width:760px;margin:0 auto;padding:clamp(16px,3vw,32px) clamp(12px,2.5vw,24px);}
+.card{background:#fff;border-radius:18px;box-shadow:0 4px 20px rgba(0,0,0,.06);padding:clamp(20px,3vw,32px);margin-bottom:20px;}
+.card-title{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:8px;}
+.card-sub{font-size:13px;color:var(--muted);margin-bottom:20px;}
+
+.label{font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;display:block;}
+.input{width:100%;padding:13px 16px;border:1.5px solid var(--border);border-radius:12px;font-family:'Courier New',monospace;font-size:18px;letter-spacing:1px;color:var(--text);outline:none;background:#f8fafc;transition:border-color .2s;}
+.input:focus{border-color:var(--purple);background:#fff;}
+.select{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:12px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;color:var(--text);outline:none;background:#fff;cursor:pointer;}
+.select:focus{border-color:var(--purple);}
+.btn-primary{width:100%;margin-top:14px;padding:14px;border:none;border-radius:12px;background:linear-gradient(135deg,#7c3aed,#2563eb);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;letter-spacing:1px;cursor:pointer;transition:transform .1s,box-shadow .2s;box-shadow:0 4px 14px rgba(124,58,237,.3);}
+.btn-primary:hover{box-shadow:0 6px 20px rgba(124,58,237,.4);}
+.btn-primary:active{transform:translateY(1px);}
+.btn-ghost{padding:11px 16px;border:1.5px solid var(--border);border-radius:10px;background:#fff;color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:.5px;cursor:pointer;}
+.btn-ghost:hover{background:var(--bg);}
+
+.error{color:var(--red);font-size:13px;font-weight:700;margin-top:10px;min-height:18px;text-align:center;}
+
+/* ── RESULT ── */
+#resultBox{display:none;margin-top:22px;}
+.result-name{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800;letter-spacing:.5px;color:var(--text);text-align:center;}
+.result-contract{font-size:12px;color:var(--muted);text-align:center;margin-bottom:18px;font-family:'Courier New',monospace;}
+.result-amount-card{background:linear-gradient(135deg,#f5f3ff,#eff6ff);border:1.5px solid #ddd6fe;border-radius:16px;padding:26px 20px;text-align:center;}
+.result-month{font-size:12px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--purple);margin-bottom:8px;}
+.result-value{font-family:'Barlow Condensed',sans-serif;font-size:clamp(34px,7vw,48px);font-weight:800;color:var(--text);line-height:1;}
+.result-value-lbl{font-size:12px;color:var(--muted);margin-top:8px;font-weight:600;}
+
+/* ── ADMIN ── */
+#adminCard{display:none;}
+.admin-badge{display:inline-block;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#fff;background:var(--purple);padding:3px 10px;border-radius:20px;margin-left:8px;vertical-align:middle;}
+.upload-zone{border:2px dashed #c4b5fd;border-radius:14px;padding:28px 20px;text-align:center;background:#faf5ff;cursor:pointer;transition:all .2s;}
+.upload-zone:hover{background:#f5f3ff;border-color:var(--purple);}
+.upload-zone .ico{font-size:34px;}
+.upload-zone .txt{font-size:14px;font-weight:700;color:var(--text);margin-top:8px;}
+.upload-zone .hint{font-size:12px;color:var(--muted);margin-top:4px;}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+.row > *{flex:0 0 auto;}
+.months-list{margin-top:18px;}
+.month-pill{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;margin-bottom:8px;background:#f8fafc;}
+.month-pill .mp-name{font-weight:700;font-size:14px;}
+.month-pill .mp-count{font-size:12px;color:var(--muted);}
+.month-pill button{padding:5px 10px;border:1.5px solid #fecaca;border-radius:8px;background:#fff;color:var(--red);font-size:12px;font-weight:700;cursor:pointer;}
+.month-pill button:hover{background:#fef2f2;}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:12px 22px;border-radius:12px;font-size:14px;font-weight:700;box-shadow:0 8px 30px rgba(0,0,0,.25);z-index:2000;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(-4px);}
+</style>
+</head>
+<body>
+<header>
+  <div class="hd-left">
+    <div class="hd-icon">💰</div>
+    <div>
+      <div class="hd-title">CONSULTA DE <span>INCENTIVOS</span></div>
+      <div class="hd-sub">Confecciones Millar</div>
+    </div>
+  </div>
+  <div class="hd-right">
+    <a class="hd-btn" href="/">← Inicio</a>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ── CONSULTA ── -->
+  <div class="card">
+    <div class="card-title">🔎 Consultar mi incentivo</div>
+    <div class="card-sub">Ingresa tu número de contrato para ver el incentivo del mes.</div>
+
+    <label class="label" for="inpContrato">Número de contrato</label>
+    <input class="input" id="inpContrato" type="text" inputmode="numeric" placeholder="Ej: 1024" autocomplete="off">
+
+    <div id="mesWrap" style="display:none;margin-top:16px;">
+      <label class="label" for="selMes">Mes</label>
+      <select class="select" id="selMes"></select>
+    </div>
+
+    <button class="btn-primary" id="btnBuscar">Consultar</button>
+    <div class="error" id="errConsulta"></div>
+
+    <div id="resultBox">
+      <div class="result-name" id="resName"></div>
+      <div class="result-contract" id="resContract"></div>
+      <div class="result-amount-card">
+        <div class="result-month" id="resMonth"></div>
+        <div class="result-value" id="resValue"></div>
+        <div class="result-value-lbl">Valor del incentivo</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ADMIN ── -->
+  <div class="card" id="adminCard">
+    <div class="card-title">⚙️ Administración <span class="admin-badge">Admin</span></div>
+    <div class="card-sub">Sube el archivo Excel mensual. Columnas: <strong>MES</strong>, <strong>CONTRATO</strong>, <strong>NOMBRE</strong>, <strong>VALOR</strong>.</div>
+
+    <label class="upload-zone" for="fileXls">
+      <div class="ico">📤</div>
+      <div class="txt">Seleccionar archivo Excel</div>
+      <div class="hint">.xlsx o .xls — se agregan/actualizan los registros por mes y contrato</div>
+      <input type="file" id="fileXls" accept=".xlsx,.xls" style="display:none;">
+    </label>
+
+    <div class="row" style="margin-top:14px;">
+      <button class="btn-ghost" id="btnPlantilla">📥 Descargar plantilla</button>
+      <button class="btn-ghost" id="btnRefresh">🔄 Actualizar lista</button>
+    </div>
+
+    <div class="months-list" id="monthsList"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+const COP = new Intl.NumberFormat('es-CO', { style:'currency', currency:'COP', maximumFractionDigits:0 });
+const params = new URLSearchParams(location.search);
+const PERFIL = (params.get('perfil') || '').trim();
+
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._tm); t._tm = setTimeout(()=>t.classList.remove('show'), 2600);
+}
+
+// ── Estado consulta ──────────────────────────────────────────────
+let registrosContrato = []; // registros del contrato consultado
+
+async function buscar(){
+  const err = document.getElementById('errConsulta');
+  const contrato = document.getElementById('inpContrato').value.trim();
+  err.textContent = '';
+  document.getElementById('resultBox').style.display = 'none';
+  document.getElementById('mesWrap').style.display = 'none';
+  if(!contrato){ err.textContent = 'Ingresa tu número de contrato.'; return; }
+  try{
+    const res = await fetch('/api/incentivos?contrato=' + encodeURIComponent(contrato));
+    if(!res.ok) throw new Error('Error del servidor');
+    registrosContrato = await res.json();
+  }catch(e){ err.textContent = 'No se pudo consultar. Intenta de nuevo.'; return; }
+
+  if(!Array.isArray(registrosContrato) || registrosContrato.length === 0){
+    err.textContent = 'No hay incentivos registrados para ese contrato.';
+    return;
+  }
+  // Ordenar meses por ts (más reciente primero) y poblar selector
+  registrosContrato.sort((a,b)=>(b.ts||0)-(a.ts||0));
+  const sel = document.getElementById('selMes');
+  sel.innerHTML = registrosContrato.map((r,i)=>`<option value="${i}">${r.mes}</option>`).join('');
+  document.getElementById('mesWrap').style.display = 'block';
+  sel.onchange = mostrarMes;
+  mostrarMes();
+}
+
+function mostrarMes(){
+  const i = parseInt(document.getElementById('selMes').value) || 0;
+  const r = registrosContrato[i];
+  if(!r) return;
+  document.getElementById('resName').textContent     = r.nombre || '—';
+  document.getElementById('resContract').textContent = 'Contrato ' + r.contrato;
+  document.getElementById('resMonth').textContent    = r.mes;
+  document.getElementById('resValue').textContent    = COP.format(r.valor || 0);
+  document.getElementById('resultBox').style.display = 'block';
+}
+
+document.getElementById('btnBuscar').addEventListener('click', buscar);
+document.getElementById('inpContrato').addEventListener('keydown', e=>{ if(e.key==='Enter') buscar(); });
+
+// ── ADMIN ────────────────────────────────────────────────────────
+function pick(row, keys){
+  for(const k of Object.keys(row)){
+    const kn = k.toString().trim().toLowerCase();
+    if(keys.includes(kn)) return row[k];
+  }
+  return '';
+}
+
+function parseAndUpload(file){
+  if(!file) return;
+  if(typeof XLSX === 'undefined'){ toast('Librería Excel no disponible'); return; }
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    try{
+      const wb = XLSX.read(ev.target.result, { type:'binary' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const raw = XLSX.utils.sheet_to_json(ws, { defval:'' });
+      const rows = raw.map(r => ({
+        mes:      pick(r, ['mes','month','periodo']).toString().trim(),
+        contrato: pick(r, ['contrato','contract','numero contrato','n contrato','no contrato','número contrato']).toString().trim(),
+        nombre:   pick(r, ['nombre','name','empleado','operaria']).toString().trim(),
+        valor:    pick(r, ['valor','value','incentivo','monto','total'])
+      })).filter(r => r.mes && r.contrato);
+
+      if(!rows.length){ toast('No se encontraron filas válidas (revisa MES y CONTRATO)'); return; }
+
+      const res = await fetch('/api/incentivos', {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({ rows })
+      });
+      const out = await res.json();
+      if(!res.ok) throw new Error(out.error || 'Error');
+      toast(`✅ ${out.guardados} registros cargados`);
+      cargarMeses();
+    }catch(e){ toast('Error al leer el archivo: ' + e.message); }
+  };
+  reader.readAsBinaryString(file);
+}
+
+function descargarPlantilla(){
+  if(typeof XLSX === 'undefined'){ toast('Librería Excel no disponible'); return; }
+  const ws = XLSX.utils.aoa_to_sheet([
+    ['MES','CONTRATO','NOMBRE','VALOR'],
+    ['Enero 2026','1024','Ana Gómez', 150000],
+    ['Enero 2026','1025','María López', 132000]
+  ]);
+  ws['!cols'] = [{wch:14},{wch:12},{wch:28},{wch:12}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Incentivos');
+  XLSX.writeFile(wb, 'plantilla_incentivos.xlsx');
+  toast('📥 Plantilla descargada');
+}
+
+async function cargarMeses(){
+  const cont = document.getElementById('monthsList');
+  try{
+    const res = await fetch('/api/incentivos');
+    const data = await res.json();
+    const byMes = {};
+    (data || []).forEach(r => { byMes[r.mes] = (byMes[r.mes] || 0) + 1; });
+    const meses = Object.keys(byMes);
+    if(!meses.length){ cont.innerHTML = '<div style="color:#94a3b8;font-size:13px;text-align:center;padding:14px;">Aún no hay incentivos cargados.</div>'; return; }
+    cont.innerHTML = '<div class="label" style="margin-bottom:10px;">Meses cargados</div>' +
+      meses.map(m =>
+        `<div class="month-pill"><div><div class="mp-name">${m}</div><div class="mp-count">${byMes[m]} registros</div></div>` +
+        `<button data-mes="${encodeURIComponent(m)}">🗑 Eliminar</button></div>`
+      ).join('');
+    cont.querySelectorAll('button[data-mes]').forEach(b => {
+      b.onclick = () => eliminarMes(decodeURIComponent(b.getAttribute('data-mes')));
+    });
+  }catch(e){ cont.innerHTML = '<div style="color:#dc2626;font-size:13px;">No se pudo cargar la lista.</div>'; }
+}
+
+async function eliminarMes(mes){
+  if(!confirm(`¿Eliminar todos los incentivos de "${mes}"? Esta acción no se puede deshacer.`)) return;
+  try{
+    const res = await fetch('/api/incentivos?mes=' + encodeURIComponent(mes), { method:'DELETE' });
+    const out = await res.json();
+    if(!res.ok) throw new Error(out.error || 'Error');
+    toast(`🗑 ${out.eliminados} registros eliminados`);
+    cargarMeses();
+  }catch(e){ toast('Error: ' + e.message); }
+}
+
+// Mostrar panel admin solo si se entró con perfil (desde index con sesión)
+if(PERFIL){
+  document.getElementById('adminCard').style.display = 'block';
+  document.getElementById('fileXls').addEventListener('change', e => parseAndUpload(e.target.files[0]));
+  document.getElementById('btnPlantilla').addEventListener('click', descargarPlantilla);
+  document.getElementById('btnRefresh').addEventListener('click', cargarMeses);
+  cargarMeses();
+}
+</script>
+</body>
+</html>
