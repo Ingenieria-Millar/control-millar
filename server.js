@@ -52,6 +52,15 @@ if (!process.env.SESSION_SECRET) {
   console.warn('⚠️  SESSION_SECRET no definida — usando secreto efímero (configúrala en Render para sesiones persistentes).');
 }
 
+// ── Interruptor de seguridad de la "puerta de atrás" ──────────────
+// AUTH_ENFORCE=false (por defecto): las rutas API y el WebSocket NO exigen
+//   sesión → comportamiento idéntico al actual, no rompe nada.
+// AUTH_ENFORCE=true: exige token válido para /api/* y el WebSocket.
+//   Activar SOLO después de definir SESSION_SECRET. Si algo falla, volver a
+//   poner false en Render y todo regresa a la normalidad al instante.
+const AUTH_ENFORCE = process.env.AUTH_ENFORCE === 'true';
+console.log(`[AUTH] Puerta de atrás (AUTH_ENFORCE): ${AUTH_ENFORCE ? 'ENCENDIDA (exige sesión)' : 'apagada (abierta)'}`);
+
 // ── Directorios ────────────────────────────────────────────────────
 const DATA_DIR    = process.env.DATA_DIR    || path.join(__dirname, 'data');
 const UPLOADS_DIR = process.env.UPLOADS_DIR || path.join(__dirname, 'uploads');
@@ -492,6 +501,22 @@ app.use((req, res, next) => {
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// ── Guardia de la "puerta de atrás" ───────────────────────────────
+// Solo actúa cuando AUTH_ENFORCE=true. Protege /api/* y /alistamiento/api/*.
+// Deja públicas: páginas HTML, imágenes, login, /api/me y /health.
+const AUTH_PUBLIC = new Set(['/api/login', '/api/me', '/health']);
+app.use((req, res, next) => {
+  if (!AUTH_ENFORCE) return next();                          // interruptor apagado
+  const esApi = req.path.startsWith('/api') || req.path.startsWith('/alistamiento/api');
+  if (!esApi) return next();                                 // páginas/archivos estáticos: libres
+  if (AUTH_PUBLIC.has(req.path)) return next();              // rutas públicas
+  const hdr   = req.headers.authorization || '';
+  const token = hdr.startsWith('Bearer ') ? hdr.slice(7)
+              : (req.headers['x-session-token'] || req.query.token || '');
+  if (verifyToken(token)) return next();
+  return res.status(401).json({ error: 'No autenticado' });
+});
 
 // ── #5 Rate limiter simple (sin dependencias externas) ────────────
 // Limita a MAX_REQ requests por IP en WINDOW_MS milisegundos
@@ -1260,7 +1285,7 @@ app.post('/api/login', rateLimit(10, 60 * 1000), (req, res) => {
       console.warn(`[AUTH] Login fallido para "${user}" desde IP ${req.ip}`);
       return fail();
     }
-    const exp     = Date.now() + 12 * 60 * 60 * 1000; // 12 h
+    const exp     = Date.now() + 30 * 24 * 60 * 60 * 1000; // 30 días
     const token   = signToken({ user, rol: u.rol || '', exp });
     res.json({ ok: true, token, user, perms: u.perms || [], rol: u.rol || '', exp });
   } catch (e) {
@@ -1594,6 +1619,15 @@ setInterval(() => {
 }, 30_000);
 
 wss.on('connection', (ws, req) => {
+  // Puerta de atrás: si el interruptor está encendido, exigir token válido
+  if (AUTH_ENFORCE) {
+    let ok = false;
+    try {
+      const u = new URL(req.url, 'http://localhost');
+      ok = !!verifyToken(u.searchParams.get('token') || '');
+    } catch (e) { ok = false; }
+    if (!ok) { try { ws.close(4001, 'No autenticado'); } catch(e){} return; }
+  }
   ws.isAlive = true;
   ws.on('pong', () => { ws.isAlive = true; });
 

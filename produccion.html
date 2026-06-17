@@ -2,6 +2,10 @@
 <html lang="es" data-theme="light">
 <head>
 <meta charset="UTF-8">
+<script>/* millar-auth: adjunta token de sesión a fetch y WebSocket (transparente si no hay token) */
+(function(){function T(){try{var s=JSON.parse(localStorage.getItem('cm_session')||'{}');return s&&s.token||'';}catch(e){return '';}}
+var F=window.fetch;window.fetch=function(u,o){o=o||{};var t=T();if(t){var h=new Headers(o.headers||{});if(!h.has('Authorization'))h.set('Authorization','Bearer '+t);o.headers=h;}return F.call(this,u,o);};
+var W=window.WebSocket;function MW(u,p){try{var t=T();if(t&&typeof u==='string'&&u.indexOf('token=')<0){u+=(u.indexOf('?')<0?'?':'&')+'token='+encodeURIComponent(t);}}catch(e){}return p!==undefined?new W(u,p):new W(u);}MW.prototype=W.prototype;MW.CONNECTING=W.CONNECTING;MW.OPEN=W.OPEN;MW.CLOSING=W.CLOSING;MW.CLOSED=W.CLOSED;window.WebSocket=MW;})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Producción — Confecciones Millar</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Nunito:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
