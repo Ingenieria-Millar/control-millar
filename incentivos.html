@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Consulta de Incentivos — Confecciones Millar</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --blue:#2563eb;--blue-dark:#1e3a8a;--blue-light:#60a5fa;
+  --green:#16a34a;--red:#dc2626;--border:#e2e8f0;--bg:#f1f5f9;
+  --text:#0f172a;--muted:#64748b;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* HEADER (estilo compartido de la app) */
+header{position:sticky;top:0;z-index:100;background:#fff;border-bottom:1px solid var(--border);box-shadow:0 1px 6px rgba(0,0,0,.07);padding:0 clamp(12px,2.5vw,24px);min-height:64px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);}
+.hd-left{display:flex;align-items:center;gap:12px;}
+.hd-logo{width:44px;height:44px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 0 0 1.5px #e2e8f0,0 2px 8px rgba(0,0,0,.08);flex-shrink:0;}
+.hd-logo img{width:100%;height:100%;object-fit:contain;padding:2px;}
+.hd-title{font-family:'Barlow Condensed',sans-serif;font-size:clamp(16px,2.5vw,22px);font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0f172a;line-height:1.1;}
+.hd-title span{color:#2563eb;}
+.hd-right{display:flex;align-items:center;gap:8px;}
+.hd-back-btn{padding:6px 14px;border-radius:8px;border:1.5px solid var(--border);background:#fff;color:#1e3a8a;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:.5px;cursor:pointer;transition:all .2s;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;}
+.hd-back-btn:hover{background:#f1f5f9;border-color:#93c5fd;}
+
+/* tuerca admin */
+.hd-gear{width:36px;height:36px;border-radius:8px;border:1.5px solid var(--border);background:#fff;color:var(--muted);font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+.hd-gear:hover{background:#f1f5f9;border-color:var(--blue-light);color:var(--blue-dark);transform:rotate(40deg);}
+.hd-gear.on{border-color:var(--blue);color:var(--blue);background:#eff6ff;}
+
+/* LAYOUT */
+.wrap{max-width:920px;margin:0 auto;padding:clamp(16px,3vw,32px) clamp(12px,2.5vw,24px);}
+.card{background:#fff;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,.06);padding:clamp(20px,3vw,30px);margin-bottom:20px;}
+.card-title{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:8px;}
+.card-sub{font-size:13px;color:var(--muted);margin-bottom:18px;}
+
+.label{font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;display:block;}
+.input{width:100%;padding:13px 16px;border:1.5px solid var(--border);border-radius:10px;font-family:'Courier New',monospace;font-size:18px;letter-spacing:1px;color:var(--text);outline:none;background:#f8fafc;transition:border-color .2s;}
+.input:focus{border-color:var(--blue);background:#fff;}
+
+.btn-primary{width:100%;margin-top:14px;padding:14px;border:none;border-radius:10px;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;letter-spacing:1px;cursor:pointer;transition:transform .1s,box-shadow .2s;box-shadow:0 4px 14px rgba(37,99,235,.3);}
+.btn-primary:hover{box-shadow:0 6px 20px rgba(37,99,235,.4);}
+.btn-primary:active{transform:translateY(1px);}
+
+/* botones de la app */
+.btn-app{display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border-radius:9px;border:1.5px solid var(--border);background:#fff;color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:.5px;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.btn-app:hover{background:#f1f5f9;border-color:var(--blue-light);}
+.btn-app.primary{border:none;color:#fff;background:linear-gradient(135deg,#1e3a8a,#2563eb);box-shadow:0 3px 10px rgba(37,99,235,.25);}
+.btn-app.primary:hover{box-shadow:0 5px 16px rgba(37,99,235,.35);}
+.btn-app.danger{border-color:#fecaca;color:var(--red);}
+.btn-app.danger:hover{background:#fef2f2;border-color:#fca5a5;}
+
+.error{color:var(--red);font-size:13px;font-weight:700;margin-top:10px;min-height:18px;text-align:center;}
+
+/* SELECCION DE MESES (operaria) */
+#mesWrap{display:none;margin-top:20px;}
+.mes-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;}
+.mes-person{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;color:var(--text);}
+.mes-toggle-all{font-size:12px;font-weight:700;color:var(--blue);background:none;border:none;cursor:pointer;text-decoration:underline;}
+.mes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;}
+.mes-chk{display:flex;align-items:center;gap:9px;padding:11px 13px;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;background:#f8fafc;transition:all .15s;user-select:none;}
+.mes-chk:hover{border-color:var(--blue-light);}
+.mes-chk.sel{border-color:var(--blue);background:#eff6ff;}
+.mes-chk input{width:17px;height:17px;accent-color:var(--blue);cursor:pointer;}
+.mes-chk .mc-name{font-weight:700;font-size:13px;flex:1;}
+
+/* RESULTADO (operaria) */
+#resultBox{display:none;margin-top:22px;}
+.res-table{width:100%;border-collapse:collapse;margin-bottom:6px;}
+.res-table th{text-align:left;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding:8px 12px;border-bottom:2px solid var(--border);}
+.res-table th.r,.res-table td.r{text-align:right;}
+.res-table td{padding:11px 12px;border-bottom:1px solid var(--border);font-size:14px;font-weight:700;}
+.res-table td.r{font-family:'Courier New',monospace;}
+.total-card{display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#eff6ff,#e0e7ff);border:1.5px solid #bfdbfe;border-radius:14px;padding:18px 22px;margin-top:14px;}
+.total-card .t-lbl{font-size:12px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--blue-dark);}
+.total-card .t-sub{font-size:12px;color:var(--muted);font-weight:600;}
+.total-card .t-val{font-family:'Barlow Condensed',sans-serif;font-size:clamp(28px,6vw,38px);font-weight:800;color:var(--text);line-height:1;}
+
+/* ADMIN */
+#adminCard{display:none;}
+.admin-badge{display:inline-block;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#fff;background:var(--blue);padding:3px 10px;border-radius:20px;margin-left:8px;vertical-align:middle;}
+.admin-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px;}
+.admin-toolbar .spacer{flex:1;}
+.admin-search{display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
+.admin-search input{flex:1;min-width:200px;padding:10px 14px;border:1.5px solid var(--border);border-radius:9px;font-family:'Nunito',sans-serif;font-size:14px;outline:none;}
+.admin-search input:focus{border-color:var(--blue);}
+.admin-search .count{font-size:12px;color:var(--muted);font-weight:700;}
+
+.tbl-scroll{max-height:520px;overflow:auto;border:1.5px solid var(--border);border-radius:12px;}
+.data-tbl{width:100%;border-collapse:collapse;font-size:13px;}
+.data-tbl thead th{position:sticky;top:0;background:#f8fafc;z-index:2;text-align:left;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding:10px 12px;border-bottom:2px solid var(--border);}
+.data-tbl th.r,.data-tbl td.r{text-align:right;}
+.data-tbl td{padding:9px 12px;border-bottom:1px solid #eef2f7;font-weight:600;}
+.data-tbl tr:hover td{background:#f8fafc;}
+.data-tbl td.r{font-family:'Courier New',monospace;}
+.data-tbl input{width:100%;padding:6px 8px;border:1.5px solid var(--blue-light);border-radius:6px;font-family:'Nunito',sans-serif;font-size:13px;outline:none;}
+.data-tbl input.r{font-family:'Courier New',monospace;text-align:right;}
+.row-acts{display:flex;gap:5px;justify-content:flex-end;}
+.ico-btn{width:30px;height:30px;border-radius:7px;border:1.5px solid var(--border);background:#fff;cursor:pointer;font-size:13px;display:inline-flex;align-items:center;justify-content:center;transition:all .15s;}
+.ico-btn:hover{background:#f1f5f9;}
+.ico-btn.save{border-color:#bbf7d0;color:var(--green);}
+.ico-btn.save:hover{background:#f0fdf4;}
+.ico-btn.del{border-color:#fecaca;color:var(--red);}
+.ico-btn.del:hover{background:#fef2f2;}
+.tbl-empty{padding:30px;text-align:center;color:#94a3b8;font-size:13px;}
+
+.pager{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:14px;}
+.pager button{width:36px;height:36px;border-radius:8px;border:1.5px solid var(--border);background:#fff;cursor:pointer;font-size:16px;font-weight:700;color:var(--blue-dark);}
+.pager button:disabled{opacity:.4;cursor:default;}
+.pager .pg-info{font-size:13px;font-weight:700;color:var(--muted);}
+
+/* MODAL */
+.modal{display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:1000;align-items:center;justify-content:center;padding:16px;}
+.modal.show{display:flex;}
+.modal-box{background:#fff;border-radius:16px;padding:28px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,.25);}
+.modal-title{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:1.5px;color:var(--text);margin-bottom:6px;}
+.modal-sub{font-size:13px;color:var(--muted);margin-bottom:16px;}
+.modal-pass{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:'Courier New',monospace;font-size:18px;letter-spacing:4px;text-align:center;outline:none;}
+.modal-pass:focus{border-color:var(--blue);}
+.modal-err{color:var(--red);font-size:12px;font-weight:700;margin-top:8px;min-height:16px;text-align:center;}
+.modal-acts{display:flex;gap:10px;margin-top:16px;}
+.modal-acts button{flex:1;padding:11px;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:.5px;cursor:pointer;}
+.modal-acts .cancel{border:1.5px solid var(--border);background:#fff;color:var(--muted);}
+.modal-acts .ok{border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;}
+.modal-acts .ok.danger{background:linear-gradient(135deg,#b91c1c,#dc2626);}
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:12px 22px;border-radius:12px;font-size:14px;font-weight:700;box-shadow:0 8px 30px rgba(0,0,0,.25);z-index:2000;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(-4px);}
+</style>
+</head>
+<body>
+<header>
+  <div class="hd-left">
+    <div class="hd-logo"><img src="/logo.png" alt="Confecciones Millar"></div>
+    <div class="hd-title">CONSULTA DE <span>INCENTIVOS</span></div>
+  </div>
+  <div class="hd-right">
+    <button class="hd-gear" id="btnGear" title="Administración">⚙️</button>
+    <a class="hd-back-btn" href="/">← Volver</a>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ── CONSULTA (operaria) ── -->
+  <div class="card" id="consultaCard">
+    <div class="card-title">🔎 Consultar mi incentivo</div>
+    <div class="card-sub">Ingresa tu número de contrato y selecciona el o los meses que quieras consultar.</div>
+
+    <label class="label" for="inpContrato">Número de contrato</label>
+    <input class="input" id="inpContrato" type="text" inputmode="numeric" placeholder="" autocomplete="off">
+
+    <button class="btn-primary" id="btnBuscar">Consultar</button>
+    <div class="error" id="errConsulta"></div>
+
+    <div id="mesWrap">
+      <div class="mes-head">
+        <div class="mes-person" id="mesPerson"></div>
+        <button class="mes-toggle-all" id="btnToggleAll">Seleccionar todos</button>
+      </div>
+      <div class="mes-grid" id="mesGrid"></div>
+    </div>
+
+    <div id="resultBox">
+      <table class="res-table">
+        <thead><tr><th>Mes</th><th class="r">Valor</th></tr></thead>
+        <tbody id="resBody"></tbody>
+      </table>
+      <div class="total-card">
+        <div>
+          <div class="t-lbl">Total seleccionado</div>
+          <div class="t-sub" id="totalSub">0 meses</div>
+        </div>
+        <div class="t-val" id="totalVal">$0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ADMIN (oculto; se desbloquea con la tuerca) ── -->
+  <div class="card" id="adminCard">
+    <div class="card-title">⚙️ Administración <span class="admin-badge">Admin</span></div>
+    <div class="card-sub">Importa el Excel (columnas <strong>MES, CONTRATO, NOMBRE, VALOR</strong>), edita registros directamente en la tabla y exporta con los cambios.</div>
+
+    <div class="admin-toolbar">
+      <label class="btn-app primary" for="fileXls">📤 Importar<input type="file" id="fileXls" accept=".xlsx,.xls" hidden></label>
+      <button class="btn-app" id="btnExport">📥 Exportar</button>
+      <button class="btn-app" id="btnPlantilla">📄 Plantilla</button>
+      <span class="spacer"></span>
+      <button class="btn-app danger" id="btnClear">🗑 Limpiar todo</button>
+    </div>
+
+    <div class="admin-search">
+      <input id="admSearch" type="text" placeholder="Buscar por mes, contrato o nombre…">
+      <span class="count" id="admCount">0 registros</span>
+    </div>
+
+    <div class="tbl-scroll">
+      <table class="data-tbl">
+        <thead><tr><th>Mes</th><th>Contrato</th><th>Nombre</th><th class="r">Valor</th><th style="text-align:right;">Acciones</th></tr></thead>
+        <tbody id="admBody"></tbody>
+      </table>
+    </div>
+
+    <div class="pager">
+      <button id="pgPrev" title="Anterior">‹</button>
+      <span class="pg-info" id="pgInfo">—</span>
+      <button id="pgNext" title="Siguiente">›</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL CONTRASEÑA -->
+<div class="modal" id="passModal">
+  <div class="modal-box">
+    <div class="modal-title">🔒 Acceso administrativo</div>
+    <div class="modal-sub">Ingresa la contraseña para gestionar incentivos.</div>
+    <input class="modal-pass" id="passInput" type="password" placeholder="••••••••" autocomplete="off">
+    <div class="modal-err" id="passErr"></div>
+    <div class="modal-acts">
+      <button class="cancel" id="passCancel">Cancelar</button>
+      <button class="ok" id="passOk">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL LIMPIAR -->
+<div class="modal" id="clearModal">
+  <div class="modal-box">
+    <div class="modal-title" style="color:var(--red);">⚠️ Limpiar todo</div>
+    <div class="modal-sub">Se eliminarán <strong>todos</strong> los registros de incentivos cargados (todos los meses). Esta acción no se puede deshacer.</div>
+    <div class="modal-acts">
+      <button class="cancel" id="clearCancel">Cancelar</button>
+      <button class="ok danger" id="clearOk">Eliminar todo</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+const ADMIN_PASS = 'Millar20.';
+const PAGE_SIZE = 50;
+const COP = new Intl.NumberFormat('es-CO', { style:'currency', currency:'COP', maximumFractionDigits:0 });
+
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._tm); t._tm = setTimeout(()=>t.classList.remove('show'), 2600);
+}
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// ════════════════════════════════════════════════════════════════
+//  CONSULTA (operaria)
+// ════════════════════════════════════════════════════════════════
+let registrosContrato = [];
+
+async function buscar(){
+  const err = document.getElementById('errConsulta');
+  const contrato = document.getElementById('inpContrato').value.trim();
+  err.textContent = '';
+  document.getElementById('mesWrap').style.display = 'none';
+  document.getElementById('resultBox').style.display = 'none';
+  if(!contrato){ err.textContent = 'Ingresa tu número de contrato.'; return; }
+  try{
+    const res = await fetch('/api/incentivos?contrato=' + encodeURIComponent(contrato));
+    if(!res.ok) throw new Error('Error del servidor');
+    registrosContrato = await res.json();
+  }catch(e){ err.textContent = 'No se pudo consultar. Intenta de nuevo.'; return; }
+
+  if(!Array.isArray(registrosContrato) || registrosContrato.length === 0){
+    err.textContent = 'No hay incentivos registrados para ese contrato.';
+    return;
+  }
+  registrosContrato.sort((a,b)=>(a.ts||0)-(b.ts||0));
+  const nombre = (registrosContrato.find(r=>r.nombre) || {}).nombre || '';
+  document.getElementById('mesPerson').textContent = nombre ? nombre : '—';
+
+  // Todos los meses con información quedan seleccionados automáticamente
+  const grid = document.getElementById('mesGrid');
+  grid.innerHTML = registrosContrato.map((r,i)=>
+    `<label class="mes-chk sel"><input type="checkbox" data-i="${i}" checked>` +
+    `<span class="mc-name">${esc(r.mes)}</span></label>`
+  ).join('');
+  grid.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+    cb.addEventListener('change', ()=>{
+      cb.closest('.mes-chk').classList.toggle('sel', cb.checked);
+      recalcular();
+    });
+  });
+  document.getElementById('btnToggleAll').textContent = 'Quitar todos';
+  document.getElementById('mesWrap').style.display = 'block';
+  recalcular();
+}
+
+function recalcular(){
+  const checks = [...document.querySelectorAll('#mesGrid input[type=checkbox]')];
+  const sel = checks.filter(c=>c.checked).map(c=>registrosContrato[parseInt(c.dataset.i)]);
+  if(!sel.length){ document.getElementById('resultBox').style.display = 'none'; return; }
+  document.getElementById('resBody').innerHTML = sel.map(r=>
+    `<tr><td>${esc(r.mes)}</td><td class="r">${COP.format(r.valor||0)}</td></tr>`
+  ).join('');
+  const total = sel.reduce((s,r)=>s+(Number(r.valor)||0),0);
+  document.getElementById('totalVal').textContent = COP.format(total);
+  document.getElementById('totalSub').textContent = sel.length + (sel.length===1?' mes':' meses');
+  document.getElementById('resultBox').style.display = 'block';
+}
+
+document.getElementById('btnToggleAll').addEventListener('click', ()=>{
+  const checks = [...document.querySelectorAll('#mesGrid input[type=checkbox]')];
+  const anyOff = checks.some(c=>!c.checked);
+  checks.forEach(c=>{ c.checked = anyOff; c.closest('.mes-chk').classList.toggle('sel', anyOff); });
+  document.getElementById('btnToggleAll').textContent = anyOff ? 'Quitar todos' : 'Seleccionar todos';
+  recalcular();
+});
+document.getElementById('btnBuscar').addEventListener('click', buscar);
+document.getElementById('inpContrato').addEventListener('keydown', e=>{ if(e.key==='Enter') buscar(); });
+
+// ════════════════════════════════════════════════════════════════
+//  ACCESO ADMIN (tuerca + contraseña)
+// ════════════════════════════════════════════════════════════════
+let adminUnlocked = false;
+
+function abrirPassModal(){
+  document.getElementById('passErr').textContent = '';
+  document.getElementById('passInput').value = '';
+  document.getElementById('passModal').classList.add('show');
+  setTimeout(()=>document.getElementById('passInput').focus(), 80);
+}
+function cerrarPassModal(){ document.getElementById('passModal').classList.remove('show'); }
+function mostrarAdmin(){
+  document.getElementById('consultaCard').style.display = 'none';
+  document.getElementById('adminCard').style.display = 'block';
+  document.getElementById('btnGear').classList.add('on');
+  window.scrollTo({ top:0, behavior:'smooth' });
+}
+function mostrarConsulta(){
+  document.getElementById('adminCard').style.display = 'none';
+  document.getElementById('consultaCard').style.display = 'block';
+  document.getElementById('btnGear').classList.remove('on');
+  window.scrollTo({ top:0, behavior:'smooth' });
+}
+function validarPass(){
+  if(document.getElementById('passInput').value === ADMIN_PASS){
+    adminUnlocked = true;
+    cerrarPassModal();
+    mostrarAdmin();
+    cargarTodo();
+  } else {
+    document.getElementById('passErr').textContent = 'Contraseña incorrecta.';
+    document.getElementById('passInput').select();
+  }
+}
+document.getElementById('btnGear').addEventListener('click', ()=>{
+  if(adminUnlocked){
+    // Alternar entre vista admin y vista consulta (mutuamente excluyentes)
+    const adminVis = document.getElementById('adminCard').style.display !== 'none';
+    if(adminVis) mostrarConsulta(); else mostrarAdmin();
+  } else { abrirPassModal(); }
+});
+document.getElementById('passOk').addEventListener('click', validarPass);
+document.getElementById('passCancel').addEventListener('click', cerrarPassModal);
+document.getElementById('passInput').addEventListener('keydown', e=>{ if(e.key==='Enter') validarPass(); });
+document.getElementById('passModal').addEventListener('click', e=>{ if(e.target.id==='passModal') cerrarPassModal(); });
+
+// ════════════════════════════════════════════════════════════════
+//  ADMIN — tabla editable con búsqueda + paginación
+// ════════════════════════════════════════════════════════════════
+let adminData = [];
+let filtered  = [];
+let page = 1;
+let editingId = null;
+
+function pick(row, keys){
+  for(const k of Object.keys(row)){
+    if(keys.includes(k.toString().trim().toLowerCase())) return row[k];
+  }
+  return '';
+}
+
+async function cargarTodo(){
+  try{
+    const res = await fetch('/api/incentivos');
+    adminData = await res.json();
+    if(!Array.isArray(adminData)) adminData = [];
+  }catch(e){ adminData = []; toast('No se pudo cargar la lista.'); }
+  editingId = null;
+  aplicarBusqueda(true);
+}
+
+function aplicarBusqueda(reset){
+  const q = document.getElementById('admSearch').value.trim().toLowerCase();
+  filtered = !q ? adminData.slice() : adminData.filter(r =>
+    (r.mes||'').toLowerCase().includes(q) ||
+    (r.contrato||'').toLowerCase().includes(q) ||
+    (r.nombre||'').toLowerCase().includes(q)
+  );
+  filtered.sort((a,b)=>{
+    const m = (a.mes||'').localeCompare(b.mes||'');
+    return m !== 0 ? m : (a.contrato||'').localeCompare(b.contrato||'', undefined, {numeric:true});
+  });
+  if(reset) page = 1;
+  const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  if(page > pages) page = pages;
+  document.getElementById('admCount').textContent = filtered.length + (filtered.length===1?' registro':' registros');
+  renderTabla();
+}
+
+function renderTabla(){
+  const body = document.getElementById('admBody');
+  const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const start = (page-1) * PAGE_SIZE;
+  const slice = filtered.slice(start, start + PAGE_SIZE);
+
+  if(!slice.length){
+    body.innerHTML = `<tr><td colspan="5" class="tbl-empty">${adminData.length ? 'Sin coincidencias.' : 'Aún no hay incentivos cargados. Importa un Excel.'}</td></tr>`;
+  } else {
+    body.innerHTML = slice.map(r => {
+      if(r.id === editingId){
+        return `<tr data-id="${esc(r.id)}">`+
+          `<td><input class="ed-mes" value="${esc(r.mes)}"></td>`+
+          `<td><input class="ed-contrato" value="${esc(r.contrato)}"></td>`+
+          `<td><input class="ed-nombre" value="${esc(r.nombre)}"></td>`+
+          `<td class="r"><input class="ed-valor r" inputmode="numeric" value="${Number(r.valor)||0}"></td>`+
+          `<td><div class="row-acts"><button class="ico-btn save" data-act="save" title="Guardar">💾</button>`+
+          `<button class="ico-btn" data-act="cancel" title="Cancelar">✖</button></div></td></tr>`;
+      }
+      return `<tr data-id="${esc(r.id)}">`+
+        `<td>${esc(r.mes)}</td><td>${esc(r.contrato)}</td><td>${esc(r.nombre)}</td>`+
+        `<td class="r">${COP.format(r.valor||0)}</td>`+
+        `<td><div class="row-acts"><button class="ico-btn" data-act="edit" title="Editar">✏️</button>`+
+        `<button class="ico-btn del" data-act="del" title="Eliminar">🗑</button></div></td></tr>`;
+    }).join('');
+  }
+
+  document.getElementById('pgInfo').textContent = `Página ${page} de ${pages}`;
+  document.getElementById('pgPrev').disabled = page <= 1;
+  document.getElementById('pgNext').disabled = page >= pages;
+}
+
+document.getElementById('admBody').addEventListener('click', async e => {
+  const btn = e.target.closest('button[data-act]');
+  if(!btn) return;
+  const tr = btn.closest('tr');
+  const id = tr.getAttribute('data-id');
+  const act = btn.dataset.act;
+
+  if(act === 'edit'){ editingId = id; renderTabla(); }
+  else if(act === 'cancel'){ editingId = null; renderTabla(); }
+  else if(act === 'save'){
+    const payload = {
+      mes:      tr.querySelector('.ed-mes').value.trim(),
+      contrato: tr.querySelector('.ed-contrato').value.trim(),
+      nombre:   tr.querySelector('.ed-nombre').value.trim(),
+      valor:    tr.querySelector('.ed-valor').value
+    };
+    if(!payload.mes || !payload.contrato){ toast('MES y CONTRATO son obligatorios'); return; }
+    try{
+      const res = await fetch('/api/incentivos/' + encodeURIComponent(id), {
+        method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)
+      });
+      const out = await res.json();
+      if(!res.ok) throw new Error(out.error || 'Error');
+      const i = adminData.findIndex(r=>r.id===id);
+      if(i>-1) adminData[i] = out.registro;
+      editingId = null;
+      aplicarBusqueda(false);
+      toast('✅ Registro actualizado');
+    }catch(err){ toast('Error: ' + err.message); }
+  }
+  else if(act === 'del'){
+    const r = adminData.find(x=>x.id===id) || {};
+    if(!confirm(`¿Eliminar el registro de ${r.mes||''} · contrato ${r.contrato||''}?`)) return;
+    try{
+      const res = await fetch('/api/incentivos/' + encodeURIComponent(id), { method:'DELETE' });
+      if(!res.ok){ const o = await res.json(); throw new Error(o.error||'Error'); }
+      adminData = adminData.filter(x=>x.id!==id);
+      aplicarBusqueda(false);
+      toast('🗑 Registro eliminado');
+    }catch(err){ toast('Error: ' + err.message); }
+  }
+});
+
+document.getElementById('admBody').addEventListener('keydown', e => {
+  if(e.key==='Enter' && e.target.matches('input')){
+    const tr = e.target.closest('tr');
+    const save = tr && tr.querySelector('button[data-act="save"]');
+    if(save) save.click();
+  }
+});
+
+document.getElementById('admSearch').addEventListener('input', ()=>aplicarBusqueda(true));
+document.getElementById('pgPrev').addEventListener('click', ()=>{ if(page>1){ page--; renderTabla(); } });
+document.getElementById('pgNext').addEventListener('click', ()=>{
+  const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  if(page<pages){ page++; renderTabla(); }
+});
+
+// ── Importar ──────────────────────────────────────────────────────
+function parseAndUpload(file){
+  if(!file) return;
+  if(typeof XLSX === 'undefined'){ toast('Librería Excel no disponible'); return; }
+  toast('⏳ Procesando archivo…');
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    try{
+      const wb = XLSX.read(ev.target.result, { type:'binary' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const raw = XLSX.utils.sheet_to_json(ws, { defval:'' });
+      const rows = raw.map(r => ({
+        mes:      pick(r, ['mes','month','periodo']).toString().trim(),
+        contrato: pick(r, ['contrato','contract','numero contrato','n contrato','no contrato','número contrato']).toString().trim(),
+        nombre:   pick(r, ['nombre','name','empleado','operaria']).toString().trim(),
+        valor:    pick(r, ['valor','value','incentivo','monto','total'])
+      })).filter(r => r.mes && r.contrato);
+
+      if(!rows.length){ toast('No se encontraron filas válidas (revisa MES y CONTRATO)'); return; }
+      const res = await fetch('/api/incentivos', {
+        method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ rows })
+      });
+      const out = await res.json();
+      if(!res.ok) throw new Error(out.error || 'Error');
+      toast(`✅ ${out.guardados} registros cargados`);
+      cargarTodo();
+    }catch(e){ toast('Error al leer el archivo: ' + e.message); }
+  };
+  reader.readAsBinaryString(file);
+  document.getElementById('fileXls').value = '';
+}
+
+// ── Exportar (datos actuales, con ediciones) ──────────────────────
+function exportar(){
+  if(typeof XLSX === 'undefined'){ toast('Librería Excel no disponible'); return; }
+  if(!adminData.length){ toast('No hay datos para exportar'); return; }
+  const rows = adminData
+    .slice()
+    .sort((a,b)=>{ const m=(a.mes||'').localeCompare(b.mes||''); return m!==0?m:(a.contrato||'').localeCompare(b.contrato||'', undefined,{numeric:true}); })
+    .map(r => ({ MES:r.mes||'', CONTRATO:r.contrato||'', NOMBRE:r.nombre||'', VALOR:Number(r.valor)||0 }));
+  const ws = XLSX.utils.json_to_sheet(rows, { header:['MES','CONTRATO','NOMBRE','VALOR'] });
+  ws['!cols'] = [{wch:14},{wch:12},{wch:28},{wch:12}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Incentivos');
+  XLSX.writeFile(wb, 'incentivos_' + new Date().toISOString().slice(0,10) + '.xlsx');
+  toast('📥 Exportado');
+}
+
+// ── Plantilla ─────────────────────────────────────────────────────
+function descargarPlantilla(){
+  if(typeof XLSX === 'undefined'){ toast('Librería Excel no disponible'); return; }
+  const ws = XLSX.utils.aoa_to_sheet([
+    ['MES','CONTRATO','NOMBRE','VALOR'],
+    ['Enero','1024','Ana Gómez', 150000],
+    ['Enero','1025','María López', 132000],
+    ['Febrero','1024','Ana Gómez', 148000]
+  ]);
+  ws['!cols'] = [{wch:14},{wch:12},{wch:28},{wch:12}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Incentivos');
+  XLSX.writeFile(wb, 'plantilla_incentivos.xlsx');
+  toast('📄 Plantilla descargada');
+}
+
+// ── Limpiar todo ──────────────────────────────────────────────────
+function abrirClearModal(){ document.getElementById('clearModal').classList.add('show'); }
+function cerrarClearModal(){ document.getElementById('clearModal').classList.remove('show'); }
+async function confirmarClear(){
+  try{
+    const res = await fetch('/api/incentivos?all=1', { method:'DELETE' });
+    const out = await res.json();
+    if(!res.ok) throw new Error(out.error || 'Error');
+    adminData = [];
+    cerrarClearModal();
+    aplicarBusqueda(true);
+    toast(`🗑 ${out.eliminados} registros eliminados`);
+  }catch(e){ toast('Error: ' + e.message); }
+}
+
+document.getElementById('fileXls').addEventListener('change', e => parseAndUpload(e.target.files[0]));
+document.getElementById('btnExport').addEventListener('click', exportar);
+document.getElementById('btnPlantilla').addEventListener('click', descargarPlantilla);
+document.getElementById('btnClear').addEventListener('click', abrirClearModal);
+document.getElementById('clearCancel').addEventListener('click', cerrarClearModal);
+document.getElementById('clearOk').addEventListener('click', confirmarClear);
+document.getElementById('clearModal').addEventListener('click', e=>{ if(e.target.id==='clearModal') cerrarClearModal(); });
+</script>
+</body>
+</html>
