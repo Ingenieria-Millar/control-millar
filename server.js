@@ -94,8 +94,70 @@ const FILES = {
   users:          path.join(DATA_DIR, 'users.json'),
 };
 
+// ══════════════════════════════════════════════════════════════════
+//  ALMACENAMIENTO — SQLite opcional (Paso 2-B)
+//  Interruptor: STORAGE=sqlite → guarda en una base de datos SQLite
+//  (un solo archivo robusto en el disco). Sin la variable = archivos
+//  JSON, igual que siempre. La primera vez migra solo los JSON existentes.
+//  Si SQLite falla al cargar, cae de forma segura a JSON.
+// ══════════════════════════════════════════════════════════════════
+const USE_SQLITE = (process.env.STORAGE || '').toLowerCase() === 'sqlite';
+const DB_PATH    = process.env.SQLITE_PATH || path.join(DATA_DIR, 'millar.db');
+let _sqlite = null, _stmtGet = null, _stmtSet = null;
+
+function keyFromPath(p) {
+  return path.basename(String(p)).replace(/\.json$/i, '');
+}
+
+if (USE_SQLITE) {
+  try {
+    const Database = require('better-sqlite3');
+    _sqlite = new Database(DB_PATH);
+    _sqlite.pragma('journal_mode = WAL');   // más resistente ante cortes
+    _sqlite.exec('CREATE TABLE IF NOT EXISTS store (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at INTEGER)');
+    _stmtGet = _sqlite.prepare('SELECT value FROM store WHERE key = ?');
+    _stmtSet = _sqlite.prepare('INSERT INTO store (key, value, updated_at) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at');
+
+    // Migración única: sembrar la base con los archivos JSON existentes
+    const yaMigrado = _stmtGet.get('__migrated__');
+    if (!yaMigrado) {
+      const tx = _sqlite.transaction(() => {
+        Object.values(FILES).forEach(f => {
+          const k = keyFromPath(f);
+          if (_stmtGet.get(k)) return;            // no pisar lo que ya esté
+          if (fs.existsSync(f)) {
+            try {
+              const raw = fs.readFileSync(f, 'utf8');
+              JSON.parse(raw);                     // validar que sea JSON válido
+              _stmtSet.run(k, raw, Date.now());
+            } catch (e) { console.error('[SQLITE] No se pudo migrar', f, e.message); }
+          }
+        });
+        _stmtSet.run('__migrated__', JSON.stringify({ ts: Date.now() }), Date.now());
+      });
+      tx();
+      console.log('[SQLITE] Migración inicial completada desde archivos JSON.');
+    }
+    console.log(`[SQLITE] Almacenamiento en base de datos ACTIVO (${DB_PATH}).`);
+  } catch (e) {
+    console.error('[SQLITE] Error iniciando SQLite — se usará JSON:', e.message);
+    _sqlite = null;
+  }
+}
+const SQLITE_ON = !!(USE_SQLITE && _sqlite);
+
+function sqliteGet(key, defaultValue) {
+  try { const row = _stmtGet.get(key); return row ? JSON.parse(row.value) : defaultValue; }
+  catch (e) { console.error('[SQLITE] get', key, e.message); return defaultValue; }
+}
+function sqliteSet(key, data) {
+  try { _stmtSet.run(key, JSON.stringify(data), Date.now()); }
+  catch (e) { console.error('[SQLITE] set', key, e.message); }
+}
+
 // ── Helpers de persistencia ────────────────────────────────────────
 function readJSON(filePath, defaultValue) {
+  if (SQLITE_ON) return sqliteGet(keyFromPath(filePath), defaultValue);
   try {
     if (fs.existsSync(filePath))
       return JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -108,6 +170,7 @@ function readJSON(filePath, defaultValue) {
 // ── Write queue — evita escrituras síncronas bloqueantes ──────────
 const _writeQueue = {};
 function writeJSON(filePath, data) {
+  if (SQLITE_ON) { sqliteSet(keyFromPath(filePath), data); return; }
   // Cancelar escritura pendiente y programar nueva (debounce por archivo)
   if (_writeQueue[filePath]) clearTimeout(_writeQueue[filePath]);
   _writeQueue[filePath] = setTimeout(() => {
@@ -122,13 +185,17 @@ const dbCache = {};
 
 function loadDB(key) {
   if (!dbCache[key]) {
-    try {
-      dbCache[key] = fs.existsSync(FILES[key])
-        ? JSON.parse(fs.readFileSync(FILES[key], 'utf8'))
-        : [];
-    } catch(e) {
-      console.error('Error cargando caché', key, e.message);
-      dbCache[key] = [];
+    if (SQLITE_ON) {
+      dbCache[key] = sqliteGet(key, []);
+    } else {
+      try {
+        dbCache[key] = fs.existsSync(FILES[key])
+          ? JSON.parse(fs.readFileSync(FILES[key], 'utf8'))
+          : [];
+      } catch(e) {
+        console.error('Error cargando caché', key, e.message);
+        dbCache[key] = [];
+      }
     }
   }
   return dbCache[key];
@@ -136,6 +203,7 @@ function loadDB(key) {
 
 function saveDB(key, data) {
   dbCache[key] = data;
+  if (SQLITE_ON) { sqliteSet(key, data); return; }
   fs.promises.writeFile(FILES[key], JSON.stringify(data), 'utf8')
     .catch(e => console.error('Error guardando', key, e.message));
 }
@@ -481,6 +549,48 @@ function verifyToken(token) {
 ensureUsersFile();
 
 // ══════════════════════════════════════════════════════════════════
+//  COPIAS DE SEGURIDAD AUTOMÁTICAS (Paso 2 — Parte A)
+//  Copia todos los archivos de datos a una carpeta con fecha, cada
+//  cierto tiempo, y conserva solo las últimas N (rotación). Protege
+//  contra archivos dañados, borrados accidentales o malas ediciones.
+// ══════════════════════════════════════════════════════════════════
+const BACKUP_DIR     = process.env.BACKUP_DIR   || path.join(DATA_DIR, '_backups');
+const BACKUP_KEEP    = parseInt(process.env.BACKUP_KEEP    || '24', 10); // cuántas conservar
+const BACKUP_EVERY_H = parseInt(process.env.BACKUP_EVERY_H || '6',  10); // cada cuántas horas
+
+function hacerBackup() {
+  try {
+    if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });
+    const ts   = new Date().toISOString().replace(/[:.]/g, '-');
+    const dest = path.join(BACKUP_DIR, ts);
+    fs.mkdirSync(dest, { recursive: true });
+    let copiados = 0;
+    Object.values(FILES).forEach(f => {
+      if (fs.existsSync(f)) { fs.copyFileSync(f, path.join(dest, path.basename(f))); copiados++; }
+    });
+    // Si SQLite está activo, respaldar también la base de datos (consistente)
+    if (SQLITE_ON && _sqlite) {
+      try { _sqlite.pragma('wal_checkpoint(TRUNCATE)'); } catch (e) {}
+      if (fs.existsSync(DB_PATH)) { fs.copyFileSync(DB_PATH, path.join(dest, path.basename(DB_PATH))); copiados++; }
+    }
+    // Rotación: conservar solo las últimas BACKUP_KEEP copias
+    let carpetas = fs.readdirSync(BACKUP_DIR)
+      .filter(n => { try { return fs.statSync(path.join(BACKUP_DIR, n)).isDirectory(); } catch(e){ return false; } })
+      .sort();
+    while (carpetas.length > BACKUP_KEEP) {
+      const vieja = carpetas.shift();
+      fs.rmSync(path.join(BACKUP_DIR, vieja), { recursive: true, force: true });
+    }
+    console.log(`[BACKUP] Copia creada (${copiados} archivos). Conservadas: ${carpetas.length}`);
+  } catch (e) {
+    console.error('[BACKUP] Error:', e.message);
+  }
+}
+// Primera copia al minuto de arrancar, y luego cada BACKUP_EVERY_H horas
+const _backupFirst = setTimeout(hacerBackup, 60 * 1000);
+setInterval(hacerBackup, BACKUP_EVERY_H * 60 * 60 * 1000);
+
+// ══════════════════════════════════════════════════════════════════
 //  EXPRESS
 // ══════════════════════════════════════════════════════════════════
 const app = express();
@@ -496,11 +606,43 @@ app.use((req, res, next) => {
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  // Forzar HTTPS en navegadores (seguro en Render, que ya usa HTTPS).
+  res.setHeader('Strict-Transport-Security', 'max-age=15552000; includeSubDomains');
   next();
 });
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// ── Saneamiento anti-XSS de toda entrada (Paso 1) ─────────────────
+// Limpia contenido peligroso (scripts, etiquetas activas, manejadores de
+// eventos, javascript:) de TODO lo que llega en el body, SIN alterar el
+// texto normal. Cubre todos los formularios sin tocar las páginas. Solo
+// neutraliza ataques; el texto común (nombres, observaciones) pasa intacto.
+function sanitizeString(s) {
+  if (typeof s !== 'string') return s;
+  return s
+    .replace(/<\s*script[^>]*>[\s\S]*?<\s*\/\s*script\s*>/gi, '')              // <script>...</script>
+    .replace(/<\s*\/?\s*(script|iframe|object|embed|form|link|meta|base)\b[^>]*>/gi, '') // etiquetas activas
+    .replace(/\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')                  // onclick=, onerror=, ...
+    .replace(/javascript\s*:/gi, '');                                          // javascript:
+}
+function sanitizeDeep(val) {
+  if (typeof val === 'string') return sanitizeString(val);
+  if (Array.isArray(val)) return val.map(sanitizeDeep);
+  if (val && typeof val === 'object') {
+    const out = {};
+    for (const k in val) if (Object.prototype.hasOwnProperty.call(val, k)) out[k] = sanitizeDeep(val[k]);
+    return out;
+  }
+  return val;
+}
+app.use((req, res, next) => {
+  if (req.body && typeof req.body === 'object') {
+    try { req.body = sanitizeDeep(req.body); } catch (e) { /* ante cualquier duda, no bloquear */ }
+  }
+  next();
+});
 
 // ── Guardia de la "puerta de atrás" ───────────────────────────────
 // Solo actúa cuando AUTH_ENFORCE=true. Protege /api/* y /alistamiento/api/*.
@@ -600,8 +742,12 @@ app.get('/incentivos', (req, res) =>
 
 // Logo corporativo (usado en el header del módulo de incentivos)
 app.get('/logo.png', (req, res) => {
-  const p = path.join(__dirname, 'logo.png');
-  if (fs.existsSync(p)) return res.sendFile(p);
+  // El archivo real se llama "logo.png.jpeg"; probamos varios nombres.
+  const candidatos = ['logo.png', 'logo.png.jpeg', 'logo.jpeg', 'logo.jpg'];
+  for (const nombre of candidatos) {
+    const p = path.join(__dirname, nombre);
+    if (fs.existsSync(p)) return res.sendFile(p);
+  }
   res.status(404).end();
 });
 
@@ -1555,6 +1701,21 @@ app.patch('/api/ia-record-obs', (req, res) => {
 // La contraseña viene SOLO de la variable de entorno RESET_PASS.
 // Rate limit: máx 5 intentos por IP cada 15 minutos.
 
+// Descargar TODOS los datos en un solo archivo (respaldo a tu computadora).
+// Protegido con RESET_PASS. Uso: POST /admin/backup  body { pass }
+app.post('/admin/backup', rateLimit(10, 15 * 60 * 1000), (req, res) => {
+  if (!RESET_PASS) return res.status(503).json({ error: 'Configura RESET_PASS en Render para usar el respaldo.' });
+  if (!req.body || req.body.pass !== RESET_PASS) {
+    console.warn(`[BACKUP] Intento de descarga con clave incorrecta desde IP ${req.ip}`);
+    return res.status(403).json({ error: 'Contraseña incorrecta.' });
+  }
+  const bundle = { _meta: { ts: new Date().toISOString(), version: '4.0' } };
+  Object.keys(FILES).forEach(k => { bundle[k] = readJSON(FILES[k], null); });
+  res.setHeader('Content-Disposition', `attachment; filename="respaldo-millar-${new Date().toISOString().split('T')[0]}.json"`);
+  res.setHeader('Content-Type', 'application/json');
+  res.send(JSON.stringify(bundle, null, 2));
+});
+
 app.post('/admin/reset', rateLimit(5, 15 * 60 * 1000), (req, res) => {
   if (!RESET_PASS) {
     return res.status(503).json({ error: 'Reset deshabilitado: configura la variable de entorno RESET_PASS en Render.' });
@@ -1567,6 +1728,14 @@ app.post('/admin/reset', rateLimit(5, 15 * 60 * 1000), (req, res) => {
   try {
     const filesToReset = Object.values(FILES);
     filesToReset.forEach(f => { if (fs.existsSync(f)) fs.unlinkSync(f); });
+
+    // Si SQLite está activo, vaciar también la base de datos
+    if (SQLITE_ON && _sqlite) {
+      try {
+        _sqlite.exec('DELETE FROM store');
+        _stmtSet.run('__migrated__', JSON.stringify({ ts: Date.now(), reset: true }), Date.now());
+      } catch (e) { console.error('[SQLITE] Error en reset:', e.message); }
+    }
 
     // Limpiar caché en memoria
     Object.keys(dbCache).forEach(k => delete dbCache[k]);
