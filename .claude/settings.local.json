@@ -8,7 +8,13 @@
       "Read(//tmp/**)",
       "Bash(curl -s http://localhost:3000/api/novedades)",
       "Bash(node server.js)",
-      "Bash(curl -s -X POST http://localhost:3000/api/novedades -H \"Content-Type: application/json\" -d '[{\"texto\":\"prueba modo normal\"}]' -o /dev/null -w \"guardado: %{http_code}\\\\n\")"
+      "Bash(curl -s -X POST http://localhost:3000/api/novedades -H \"Content-Type: application/json\" -d '[{\"texto\":\"prueba modo normal\"}]' -o /dev/null -w \"guardado: %{http_code}\\\\n\")",
+      "Bash(node -c server.js)",
+      "Bash(curl -s -o /dev/null -w \"health: %{http_code}\\\\n\" http://localhost:3000/health)",
+      "Bash(rm -rf data)",
+      "Bash(RESET_PASS=clavetest node server.js)",
+      "Bash(curl -s -o /dev/null -w \"codigo:%{http_code} tipo:%{content_type}\\\\n\" http://localhost:3000/admin/backup)",
+      "Bash(curl -s -X POST http://localhost:3000/admin/backup -H \"Content-Type: application/json\" -d '{\"pass\":\"clavetest\"}' -o /dev/null -w \"codigo:%{http_code}\\\\n\")"
     ]
   }
 }

@@ -62,8 +62,16 @@ const AUTH_ENFORCE = process.env.AUTH_ENFORCE === 'true';
 console.log(`[AUTH] Puerta de atrás (AUTH_ENFORCE): ${AUTH_ENFORCE ? 'ENCENDIDA (exige sesión)' : 'apagada (abierta)'}`);
 
 // ── Directorios ────────────────────────────────────────────────────
-const DATA_DIR    = process.env.DATA_DIR    || path.join(__dirname, 'data');
-const UPLOADS_DIR = process.env.UPLOADS_DIR || path.join(__dirname, 'uploads');
+// Red de seguridad: si no se define DATA_DIR pero existe el disco persistente
+// de Render montado en /var/data, usarlo automáticamente. Así, aunque se borre
+// por error la variable DATA_DIR, la app sigue leyendo/guardando en el disco
+// (no se pierden los datos).
+const _RENDER_DISK = '/var/data';
+const _DISK_OK     = (() => { try { return fs.existsSync(_RENDER_DISK); } catch (e) { return false; } })();
+const DATA_DIR    = process.env.DATA_DIR    || (_DISK_OK ? _RENDER_DISK : path.join(__dirname, 'data'));
+// Las fotos también van al disco permanente (antes se perdían en cada deploy).
+const UPLOADS_DIR = process.env.UPLOADS_DIR || (_DISK_OK ? path.join(_RENDER_DISK, 'uploads') : path.join(__dirname, 'uploads'));
+console.log(`[INIT] DATA_DIR = ${DATA_DIR}${(!process.env.DATA_DIR && _DISK_OK) ? ' (auto: disco Render)' : ''}`);
 
 [DATA_DIR, UPLOADS_DIR].forEach(d => {
   if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
@@ -1700,6 +1708,44 @@ app.patch('/api/ia-record-obs', (req, res) => {
 // Ahora: POST /admin/reset  con body { pass: "..." }
 // La contraseña viene SOLO de la variable de entorno RESET_PASS.
 // Rate limit: máx 5 intentos por IP cada 15 minutos.
+
+// Página simple con botón para descargar el respaldo (fácil de usar).
+app.get('/admin/backup', (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Descargar respaldo — Millar</title>
+<style>
+body{font-family:system-ui,Segoe UI,sans-serif;background:#f1f5f9;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0}
+.card{background:#fff;padding:32px;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.1);max-width:360px;width:90%}
+h1{font-size:20px;margin:0 0 6px;color:#0f172a}p{color:#64748b;font-size:14px;margin:0 0 18px}
+input{width:100%;padding:11px 12px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:15px;box-sizing:border-box;margin-bottom:12px}
+button{width:100%;padding:12px;background:#2563eb;color:#fff;border:none;border-radius:9px;font-size:15px;font-weight:700;cursor:pointer}
+button:hover{background:#1d4ed8}.err{color:#dc2626;font-size:13px;margin-top:10px;min-height:18px}
+.ok{color:#16a34a}
+</style></head><body>
+<div class="card">
+<h1>📥 Descargar respaldo</h1>
+<p>Guardá una copia de todos tus datos en tu computadora.</p>
+<input type="password" id="p" placeholder="Contraseña de administrador" autocomplete="off">
+<button onclick="dl()">Descargar copia</button>
+<div class="err" id="m"></div>
+</div>
+<script>
+async function dl(){
+  var m=document.getElementById('m'); m.className='err'; m.textContent='Generando...';
+  try{
+    var r=await fetch('/admin/backup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pass:document.getElementById('p').value})});
+    if(!r.ok){ m.textContent = r.status===403?'Contraseña incorrecta':'Error al generar la copia'; return; }
+    var blob=await r.blob(), a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='respaldo-millar-'+new Date().toISOString().slice(0,10)+'.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    m.className='err ok'; m.textContent='✓ Copia descargada';
+  }catch(e){ m.textContent='Error de conexión'; }
+}
+</script></body></html>`);
+});
 
 // Descargar TODOS los datos en un solo archivo (respaldo a tu computadora).
 // Protegido con RESET_PASS. Uso: POST /admin/backup  body { pass }
