@@ -1571,6 +1571,9 @@ let USUARIOS = {};
 
 const states={}, timers={}, lastMec={}, acumRed={}, acumYellow={}, acumBlue={}, acumOrange={}, acumPurple={};
 const states2={}, timers2={}, lastMec2={};
+// Solicitud CI (id) que pertenece a cada casillero: principal (ciReq1) y secundario (ciReq2).
+// Permite cerrar SOLO el improductivo correcto, sin tocar al otro.
+const ciReq1={}, ciReq2={};
 MODULES.forEach(id=>{ states[id]='green'; timers[id]=Date.now(); lastMec[id]=''; acumRed[id]=0; acumYellow[id]=0; acumBlue[id]=0; acumOrange[id]=0; acumPurple[id]=0; states2[id]=null; timers2[id]=null; lastMec2[id]=''; });
 
 // ── Variables de estado global del tablero ─────────────────────────
@@ -1756,12 +1759,20 @@ function connectWS(){
             if(modDest && states[modDest]==='pink'){
               commitChange(modDest,'green',null);
             }
-            if(states[modId]==='orange'||states[modId]==='purple'){
-              commitChange(modId,'green',null);
-            }
-            // También cerrar segundo improductivo si era naranja o morado
-            if(states2[modId]==='orange'||states2[modId]==='purple'){
-              cerrarImproductivoExtra(modId);
+            // Cerrar SOLO el casillero dueño de esta solicitud (por id), no por color.
+            if(ciReq1[modId]===req._id){
+              ciReq1[modId]=null;
+              if(states[modId]==='orange'||states[modId]==='purple') commitChange(modId,'green',null);
+            } else if(ciReq2[modId]===req._id){
+              ciReq2[modId]=null;
+              if(states2[modId]==='orange'||states2[modId]==='purple') cerrarImproductivoExtra(modId);
+            } else {
+              // Casillero desconocido (otro dispositivo): cerrar el del color de ESTA solicitud
+              // (insumos=naranja, producción=morado). Inequívoco: no hay dos del mismo tipo por módulo.
+              const esProd = req && (req.categoria==='Solicitud de Producción' || req.tipo==='Solicitud de Producción');
+              const col = esProd ? 'purple' : 'orange';
+              if(states[modId]===col) commitChange(modId,'green',null);
+              else if(states2[modId]===col) cerrarImproductivoExtra(modId);
             }
           }
         }
@@ -2600,8 +2611,8 @@ function onImpProd(){
     esMecanico: false
   };
   if(typeof wsSend==='function') wsSend({type:'ci_new_request', request:newReq});
-  if(isExtra){ window._extraMod=null; commitChange2(id,'purple',null); }
-  else if(typeof commitChange==='function') commitChange(id,'purple',null);
+  if(isExtra){ window._extraMod=null; ciReq2[id]=newReq._id; commitChange2(id,'purple',null); }
+  else if(typeof commitChange==='function'){ ciReq1[id]=newReq._id; commitChange(id,'purple',null); }
   const toast=document.createElement('div');
   toast.textContent='🟣 Solicitud de producción enviada al CI';
   toast.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:12px 24px;border-radius:12px;font-family:Nunito,sans-serif;font-size:14px;font-weight:700;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.2);';
@@ -3003,7 +3014,7 @@ function cerrarImproductivoExtra(id){
     logChange(id, states2[id], 'green', dur, lastMec2[id]||'', null, timers2[id]);
   }
   if(cambioTimers2[id]){clearTimeout(cambioTimers2[id]);delete cambioTimers2[id];delete cambioLimites2[id];}
-  states2[id]=null; timers2[id]=null; lastMec2[id]='';
+  states2[id]=null; timers2[id]=null; lastMec2[id]=''; ciReq2[id]=null;
   wsSend({type:'change2', id, state:null, mecanico:''});
   if(selectedMod===id) renderBig();
   renderGrid();
@@ -7482,8 +7493,21 @@ function ciConfirmarRecepcion(reqId, accepted){
     // Liberar módulo localmente también (por si el WS tarda)
     const modId = req.module;
     if(modId){
-      if(states[modId]==='orange'||states[modId]==='purple') commitChange(modId,'green',null);
-      if(states2[modId]==='orange'||states2[modId]==='purple') cerrarImproductivoExtra(modId);
+      // Cerrar SOLO el casillero dueño de esta solicitud (por id), no por color.
+      if(ciReq1[modId]===reqId){
+        ciReq1[modId]=null;
+        if(states[modId]==='orange'||states[modId]==='purple') commitChange(modId,'green',null);
+      } else if(ciReq2[modId]===reqId){
+        ciReq2[modId]=null;
+        if(states2[modId]==='orange'||states2[modId]==='purple') cerrarImproductivoExtra(modId);
+      } else {
+        // No sabemos el casillero (otro dispositivo): cerrar el del color que corresponde a ESTA solicitud
+        // (insumos=naranja, producción=morado). No hay dos del mismo tipo por módulo → inequívoco.
+        const esProd = existing && (existing.categoria==='Solicitud de Producción' || existing.tipo==='Solicitud de Producción');
+        const col = esProd ? 'purple' : 'orange';
+        if(states[modId]===col) commitChange(modId,'green',null);
+        else if(states2[modId]===col) cerrarImproductivoExtra(modId);
+      }
     }
     showToastSimple('✅ Insumo confirmado como recibido');
   } else {
@@ -7678,8 +7702,8 @@ function siEnviar(){
 
   // Cambiar módulo a estado Espera CI (naranja)
   if(modulo && typeof commitChange==='function' && typeof states!=='undefined' && states[modulo]!==undefined){
-    if(window._extraMod===modulo){ window._extraMod=null; commitChange2(modulo,'orange',null); }
-    else commitChange(modulo, 'orange', null);
+    if(window._extraMod===modulo){ window._extraMod=null; ciReq2[modulo]=newReq._id; commitChange2(modulo,'orange',null); }
+    else { ciReq1[modulo]=newReq._id; commitChange(modulo, 'orange', null); }
   }
 
   siClose();
