@@ -566,6 +566,7 @@ const BACKUP_DIR     = process.env.BACKUP_DIR   || path.join(DATA_DIR, '_backups
 const BACKUP_KEEP    = parseInt(process.env.BACKUP_KEEP    || '24', 10); // cuántas conservar
 const BACKUP_EVERY_H = parseInt(process.env.BACKUP_EVERY_H || '6',  10); // cada cuántas horas
 
+let _lastBackup = { ts: null, ok: false, files: 0, error: null };
 function hacerBackup() {
   try {
     if (!fs.existsSync(BACKUP_DIR)) fs.mkdirSync(BACKUP_DIR, { recursive: true });
@@ -589,8 +590,10 @@ function hacerBackup() {
       const vieja = carpetas.shift();
       fs.rmSync(path.join(BACKUP_DIR, vieja), { recursive: true, force: true });
     }
+    _lastBackup = { ts: Date.now(), ok: true, files: copiados, error: null };
     console.log(`[BACKUP] Copia creada (${copiados} archivos). Conservadas: ${carpetas.length}`);
   } catch (e) {
+    _lastBackup = { ts: Date.now(), ok: false, files: 0, error: e.message };
     console.error('[BACKUP] Error:', e.message);
   }
 }
@@ -1712,6 +1715,12 @@ app.patch('/api/ia-record-obs', (req, res) => {
 // Página simple con botón para descargar el respaldo (fácil de usar).
 app.get('/admin/backup', (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  const lb = _lastBackup;
+  const estado = lb.ts
+    ? (lb.ok
+        ? `<div class="st ok2">✓ Última copia automática: ${new Date(lb.ts).toLocaleString('es-CO',{timeZone:'America/Bogota'})} (${lb.files} archivos)</div>`
+        : `<div class="st bad">⚠ La última copia automática FALLÓ: ${lb.error}</div>`)
+    : `<div class="st">La primera copia automática se hace al minuto de arrancar.</div>`;
   res.send(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Descargar respaldo — Millar</title>
@@ -1723,10 +1732,13 @@ input{width:100%;padding:11px 12px;border:1.5px solid #e2e8f0;border-radius:9px;
 button{width:100%;padding:12px;background:#2563eb;color:#fff;border:none;border-radius:9px;font-size:15px;font-weight:700;cursor:pointer}
 button:hover{background:#1d4ed8}.err{color:#dc2626;font-size:13px;margin-top:10px;min-height:18px}
 .ok{color:#16a34a}
+.st{font-size:12.5px;padding:9px 11px;border-radius:8px;background:#f1f5f9;color:#475569;margin-bottom:16px}
+.st.ok2{background:#dcfce7;color:#15803d}.st.bad{background:#fee2e2;color:#b91c1c}
 </style></head><body>
 <div class="card">
 <h1>📥 Descargar respaldo</h1>
 <p>Guardá una copia de todos tus datos en tu computadora.</p>
+${estado}
 <input type="password" id="p" placeholder="Contraseña de administrador" autocomplete="off">
 <button onclick="dl()">Descargar copia</button>
 <div class="err" id="m"></div>

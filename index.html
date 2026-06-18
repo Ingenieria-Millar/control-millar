@@ -32,6 +32,19 @@
 var F=window.fetch;window.fetch=function(u,o){o=o||{};var t=T();if(t){var h=new Headers(o.headers||{});if(!h.has('Authorization'))h.set('Authorization','Bearer '+t);o.headers=h;}return F.call(this,u,o);};
 var W=window.WebSocket;function MW(u,p){try{var t=T();if(t&&typeof u==='string'&&u.indexOf('token=')<0){u+=(u.indexOf('?')<0?'?':'&')+'token='+encodeURIComponent(t);}}catch(e){}return p!==undefined?new W(u,p):new W(u);}MW.prototype=W.prototype;MW.CONNECTING=W.CONNECTING;MW.OPEN=W.OPEN;MW.CLOSING=W.CLOSING;MW.CLOSED=W.CLOSED;window.WebSocket=MW;})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<script>/* Botón flotante "Descargar respaldo" — solo visible para el Programador. Aislado, no toca nada más. */
+window.addEventListener('load', function(){
+  try{
+    var s=JSON.parse(localStorage.getItem('cm_session')||'{}');
+    if(!s || s.user!=='Programador' || document.getElementById('millar-backup-btn')) return;
+    var b=document.createElement('a');
+    b.id='millar-backup-btn'; b.href='/admin/backup'; b.target='_blank';
+    b.textContent='📥 Respaldo';
+    b.style.cssText='position:fixed;bottom:14px;left:14px;z-index:99999;background:#1e3a8a;color:#fff;font:700 12px system-ui,sans-serif;padding:8px 12px;border-radius:20px;text-decoration:none;box-shadow:0 3px 12px rgba(0,0,0,.25);opacity:.85';
+    b.onmouseover=function(){b.style.opacity='1';}; b.onmouseout=function(){b.style.opacity='.85';};
+    document.body.appendChild(b);
+  }catch(e){}
+});</script>
 <title>Control de Piso — Confecciones Millar</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <!-- Screen & Session Persistence -->
