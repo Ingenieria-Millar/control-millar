@@ -2575,6 +2575,8 @@ function confirmarMecPre(){
 }
 function onImpProd(){
   const id=pendingMod;
+  const el=document.getElementById('modal-improductivo');
+  const isExtra=el&&el.dataset.extra==='1'; // leer ANTES de cancelImproductivo (que borra la marca)
   cancelImproductivo();
   if(!id)return;
   // Enviar alerta directo al CI sin formulario — módulo sigue OPERATIVO (verde)
@@ -2598,7 +2600,7 @@ function onImpProd(){
     esMecanico: false
   };
   if(typeof wsSend==='function') wsSend({type:'ci_new_request', request:newReq});
-  if(window._extraMod===id){ window._extraMod=null; commitChange2(id,'purple',null); }
+  if(isExtra){ window._extraMod=null; commitChange2(id,'purple',null); }
   else if(typeof commitChange==='function') commitChange(id,'purple',null);
   const toast=document.createElement('div');
   toast.textContent='🟣 Solicitud de producción enviada al CI';
