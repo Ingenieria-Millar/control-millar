@@ -3209,6 +3209,8 @@ function commitChange(id,s,mecanico,limite){
     // Promover a slot 1
     states[id]=s2; timers[id]=t2||Date.now(); if(m2) lastMec[id]=m2;
     if(lim2) cambioLimites[id]=lim2;
+    // La solicitud CI del slot 2 también se promueve al slot 1 (mantiene el vínculo)
+    ciReq1[id]=ciReq2[id]||null; ciReq2[id]=null;
     wsSend({type:'change', id, state:s2, mecanico:m2||'', limite:lim2||null, empleada:''});
     wsSend({type:'change2', id, state:null, mecanico:''});
     if(selectedMod===id) renderBig();
