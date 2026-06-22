@@ -1231,6 +1231,32 @@ app.delete('/alistamiento/api/alistamientos/:id', (req, res) => {
   res.json({ success: true });
 });
 
+// PUT: editar/actualizar un alistamiento existente (faltaba esta ruta → al editar daba error)
+app.put(
+  '/alistamiento/api/alistamientos/:id',
+  (req, res, next) => upload.array('fotos', 5)(req, res, err => err ? handleMulterError(err, req, res, next) : next()),
+  (req, res) => {
+    try {
+      const data = loadDB('alistamientos');
+      const idx  = data.findIndex(r => r.id === req.params.id);
+      if (idx === -1) return res.status(404).json({ error: 'Registro no encontrado' });
+      const existing = data[idx];
+      const ahora    = new Date();
+      const fotos    = req.files && req.files.length
+        ? req.files.map(f => `/alistamiento/uploads/${f.filename}`)
+        : existing.fotos || [];
+      data[idx] = {
+        ...existing,
+        ...req.body,
+        fotos,
+        updatedAt: ahora.toISOString()
+      };
+      saveDB('alistamientos', data);
+      res.json({ success: true, data: data[idx] });
+    } catch(e) { res.status(500).json({ error: e.message }); }
+  }
+);
+
 // ── Mantenimientos ─────────────────────────────────────────────────
 app.get('/alistamiento/api/mantenimientos', (req, res) => {
   let data = [...loadDB('mantenimientos')];

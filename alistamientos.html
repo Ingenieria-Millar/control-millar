@@ -686,10 +686,20 @@ tr:hover td{background:#f8fafc;}
           <div style="display:flex;flex-direction:column;gap:8px;padding-bottom:18px;">
             <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;">Prueba de Costura</label>
             <div class="radio-group">
-              <span class="radio-btn" data-group="prueba" data-value="Aprobada" onclick="selectRadio(this,'prueba','hiddenPrueba','success')">✅ Aprobada</span>
-              <span class="radio-btn" data-group="prueba" data-value="Rechazada" onclick="selectRadio(this,'prueba','hiddenPrueba','danger')">❌ Rechazada</span>
+              <span class="radio-btn" data-group="prueba" data-value="Aprobada" onclick="selectRadio(this,'prueba','hiddenPrueba','success');togglePruebaResp()">✅ Sí</span>
+              <span class="radio-btn" data-group="prueba" data-value="Rechazada" onclick="selectRadio(this,'prueba','hiddenPrueba','danger');togglePruebaResp()">❌ No</span>
             </div>
             <input type="hidden" name="pruebaCostura" id="hiddenPrueba">
+          </div>
+
+          <!-- Responsable (solo si la prueba es "No") -->
+          <div id="resp-wrap" style="display:none;flex-direction:column;gap:8px;padding-bottom:18px;">
+            <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;">Responsable</label>
+            <div class="radio-group">
+              <span class="radio-btn" data-group="resp" data-value="Supervisora" onclick="selectRadio(this,'resp','hiddenResp','teal')">👤 Supervisora</span>
+              <span class="radio-btn" data-group="resp" data-value="Mecanico" onclick="selectRadio(this,'resp','hiddenResp','teal')">🔧 Mecánico</span>
+            </div>
+            <input type="hidden" name="responsablePrueba" id="hiddenResp">
           </div>
 
           <!-- Observaciones -->
@@ -744,6 +754,19 @@ tr:hover td{background:#f8fafc;}
               <span class="radio-btn" data-group="tipoMant" data-value="Mantenimiento de Fugas" onclick="selectRadio(this,'tipoMant','hiddenTipoMant','warning')">💧 Fugas</span>
             </div>
             <input type="hidden" name="tipoMantenimiento" id="hiddenTipoMant" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Estado del trabajo <span class="required">*</span></label>
+            <div class="radio-group-3col">
+              <span class="radio-btn" data-group="estadoMant" data-value="No empezada" onclick="selectRadio(this,'estadoMant','hiddenEstadoMant','danger');toggleEstadoNota()">⏳ No empezada</span>
+              <span class="radio-btn" data-group="estadoMant" data-value="En proceso" onclick="selectRadio(this,'estadoMant','hiddenEstadoMant','warning');toggleEstadoNota()">🔧 En proceso</span>
+              <span class="radio-btn" data-group="estadoMant" data-value="Concluida" onclick="selectRadio(this,'estadoMant','hiddenEstadoMant','teal');toggleEstadoNota()">✅ Concluida</span>
+            </div>
+            <input type="hidden" name="estadoMantenimiento" id="hiddenEstadoMant">
+          </div>
+          <div class="form-group" id="estado-nota-wrap" style="display:none;">
+            <label class="form-label" id="estado-nota-label">Nota <span class="required">*</span></label>
+            <textarea class="form-textarea" name="notaEstado" id="estadoNota" placeholder=""></textarea>
           </div>
 
           <!-- ── PERSONAL ── -->
@@ -1354,6 +1377,36 @@ function selectRadio(el, group, hiddenId, colorClass) {
   document.getElementById(hiddenId).value = el.dataset.value;
 }
 
+// Mostrar el campo "Responsable" solo cuando la Prueba de Costura es "No" (Rechazada).
+function togglePruebaResp(){
+  const wrap = document.getElementById('resp-wrap');
+  if (!wrap) return;
+  const esNo = (document.getElementById('hiddenPrueba')||{}).value === 'Rechazada';
+  wrap.style.display = esNo ? 'flex' : 'none';
+  if (!esNo) {
+    // Si no es "No", limpiar la selección de responsable
+    const h = document.getElementById('hiddenResp'); if (h) h.value = '';
+    document.querySelectorAll('[data-group="resp"]').forEach(b => b.classList.remove('selected','teal'));
+  }
+}
+
+// Muestra la nota (obligatoria) según el estado del mantenimiento:
+//  - No empezada → "¿Qué daño tiene?"   - En proceso → "¿Por qué no se concluyó?"
+function toggleEstadoNota(){
+  const wrap = document.getElementById('estado-nota-wrap');
+  const lbl  = document.getElementById('estado-nota-label');
+  const ta   = document.getElementById('estadoNota');
+  if (!wrap) return;
+  const v = (document.getElementById('hiddenEstadoMant')||{}).value;
+  if (v === 'No empezada') {
+    wrap.style.display = ''; if(lbl) lbl.innerHTML = '¿Qué daño tiene? <span class="required">*</span>'; if(ta) ta.placeholder = 'Describe el daño de la máquina';
+  } else if (v === 'En proceso') {
+    wrap.style.display = ''; if(lbl) lbl.innerHTML = '¿Por qué no se concluyó? <span class="required">*</span>'; if(ta) ta.placeholder = 'Explica por qué quedó en proceso';
+  } else {
+    wrap.style.display = 'none'; if(ta) ta.value = '';
+  }
+}
+
 // ===== LOAD DATA =====
 async function loadAlistamientos() {
   try {
@@ -1465,8 +1518,8 @@ async function renderDashboard() {
 }
 
 function estadoBadge(prueba) {
-  if (prueba === 'Aprobada') return '<span class="badge badge badge-green">Aprobado</span>';
-  if (prueba === 'Rechazada') return '<span class="badge badge badge-red">Rechazado</span>';
+  if (prueba === 'Aprobada') return '<span class="badge badge badge-green">Sí</span>';
+  if (prueba === 'Rechazada') return '<span class="badge badge badge-red">No</span>';
   return '<span class="badge badge badge-yellow">Observación</span>';
 }
 
@@ -1715,6 +1768,7 @@ function imprimirMantenimiento(id) {
     ${seccion('Información General')}
     ${fila('Fecha', r.fecha, 'Hora', r.fechaHora ? new Date(r.fechaHora).toLocaleTimeString('es-CO') : r.hora||'')}
     ${fila('Mecánico', r.mecanico, 'Módulo', r.modulo)}
+    ${r.estadoMantenimiento ? fila('Estado', r.estadoMantenimiento, 'Nota', r.notaEstado) : ''}
   </table>
   <table>
     ${seccion('Datos de la Máquina')}
@@ -1839,6 +1893,12 @@ function editarMantenimiento(id){
       document.querySelectorAll('[data-group="tipoMant"]').forEach(btn=>{
         if(btn.dataset.value===r.tipoMantenimiento) btn.click();
       });
+      // Estado del trabajo + su nota (el click muestra la nota si corresponde)
+      document.querySelectorAll('[data-group="estadoMant"]').forEach(btn=>{
+        if(btn.dataset.value===r.estadoMantenimiento) btn.click();
+      });
+      const naEl = form.querySelector('[name="notaEstado"]');
+      if (naEl) naEl.value = r.notaEstado||'';
       document.getElementById('mantModulo').value = r.modulo||'';
       const selMec = document.getElementById('mantMecanico');
       if (selMec) selMec.value = r.mecanico||'';
@@ -2036,17 +2096,21 @@ function exportarAlistamientosExcel(){
   const rows = getAlistFiltrados();
   if (!rows.length) { showToast('No hay datos para exportar','warning'); return; }
   const ws_data = [
-    ['Fecha','Mecánico','Supervisora','Módulo','Referencia','Máquina','Código','Serial','Guía','Tipo Aguja','Calibre','PPP','Ficha Técnica','Muestra Física','Costura','Observaciones'],
+    ['Fecha','Hora','Mecánico','Supervisora','Módulo','Referencia','Máquina','Código','Serial','Guía','Tipo Aguja','Calibre','PPP','Ficha Técnica','Muestra Física','Costura','Responsable','Observaciones'],
     ...rows.map(r => [
-      r.fecha||'', r.mecanico||'', r.supervisor||'', r.modulo||'', r.referencia||'',
+      r.fecha||'',
+      r.fechaHora ? new Date(r.fechaHora).toLocaleTimeString('es-CO') : (r.hora||''),
+      r.mecanico||'', r.supervisor||'', r.modulo||'', r.referencia||'',
       r.tipoMaquina||'', getMaqCodigo(r.serial,r.tipoMaquina)||'', r.serial||'',
       r.numeroGuia||'', r.tipoAguja||'', r.calibreAguja||'', r.ppp||'',
-      r.fichaTecnica||'', r.muestraFisica||'', r.pruebaCostura||'', r.observaciones||''
+      r.fichaTecnica||'', r.muestraFisica||'',
+      (r.pruebaCostura==='Aprobada'?'Sí':r.pruebaCostura==='Rechazada'?'No':r.pruebaCostura||''),
+      r.responsablePrueba||'', r.observaciones||''
     ])
   ];
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(ws_data);
-  ws['!cols'] = [{wch:12},{wch:16},{wch:16},{wch:8},{wch:14},{wch:14},{wch:18},{wch:12},{wch:14},{wch:10},{wch:8},{wch:6},{wch:8},{wch:8},{wch:10},{wch:30}];
+  ws['!cols'] = [{wch:12},{wch:10},{wch:16},{wch:16},{wch:8},{wch:14},{wch:14},{wch:18},{wch:12},{wch:14},{wch:10},{wch:8},{wch:6},{wch:8},{wch:8},{wch:10},{wch:14},{wch:30}];
   XLSX.utils.book_append_sheet(wb, ws, 'Alistamientos');
   const desde = document.getElementById('alist-fecha-desde')?.value || '';
   const hasta  = document.getElementById('alist-fecha-hasta')?.value || '';
@@ -2058,9 +2122,10 @@ function exportarMantenimientosExcel(){
   const rows = getMantFiltrados();
   if (!rows.length) { showToast('No hay datos para exportar','warning'); return; }
   const ws_data = [
-    ['Tipo','Mecánico','Módulo','Máquina','Código','Serial','Guía','Repuestos','Fecha','Hora','Observaciones'],
+    ['Tipo','Estado','Nota Estado','Mecánico','Módulo','Máquina','Código','Serial','Guía','Repuestos','Fecha','Hora','Observaciones'],
     ...rows.map(r => [
-      r.tipoMantenimiento||'', r.mecanico||'', r.modulo||'', r.tipoMaquina||'',
+      r.tipoMantenimiento||'', r.estadoMantenimiento||'', r.notaEstado||'',
+      r.mecanico||'', r.modulo||'', r.tipoMaquina||'',
       getMaqCodigo(r.serial,r.tipoMaquina)||'', r.serial||'', r.numeroGuia||'',
       r.repuestos||'', r.fecha||'',
       r.fechaHora ? new Date(r.fechaHora).toLocaleTimeString('es-CO') : (r.hora||''),
@@ -2069,7 +2134,7 @@ function exportarMantenimientosExcel(){
   ];
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(ws_data);
-  ws['!cols'] = [{wch:12},{wch:18},{wch:8},{wch:14},{wch:18},{wch:12},{wch:14},{wch:20},{wch:12},{wch:10},{wch:30}];
+  ws['!cols'] = [{wch:14},{wch:13},{wch:28},{wch:18},{wch:8},{wch:14},{wch:18},{wch:12},{wch:14},{wch:20},{wch:12},{wch:10},{wch:30}];
   XLSX.utils.book_append_sheet(wb, ws, 'Mantenimiento');
   const desde = document.getElementById('mant-fecha-desde')?.value || '';
   const hasta  = document.getElementById('mant-fecha-hasta')?.value || '';
@@ -2206,6 +2271,13 @@ async function guardarMantenimiento(e) {
   const form = document.getElementById('formMantenimiento');
   const formData = new FormData(form);
   if (!formData.get('tipoMantenimiento')) { showToast('Selecciona el tipo de mantenimiento','error'); return; }
+  // Estado del trabajo + nota obligatoria cuando corresponde
+  const _estado = formData.get('estadoMantenimiento');
+  if (!_estado) { showToast('Selecciona el estado del trabajo','error'); return; }
+  if ((_estado === 'No empezada' || _estado === 'En proceso') && !(formData.get('notaEstado')||'').trim()) {
+    showToast(_estado === 'No empezada' ? 'Indica qué daño tiene la máquina (nota obligatoria)' : 'Indica por qué no se concluyó (nota obligatoria)','error');
+    return;
+  }
   if (!formData.get('tipoMaquina'))       { showToast('Selecciona el tipo de máquina','error'); return; }
 
   // Si no es ADMINISTRADOR, usar el mecánico logueado
@@ -2401,10 +2473,16 @@ function editarAlistamiento(id) {
         });
       }
 
-      // Prueba de costura
+      // Prueba de costura (el click dispara togglePruebaResp y muestra Responsable si es "No")
       if (r.pruebaCostura) {
         document.querySelectorAll('[data-group="prueba"]').forEach(btn => {
           if (btn.dataset.value === r.pruebaCostura) btn.click();
+        });
+      }
+      // Responsable (si la prueba fue "No" y hay responsable guardado)
+      if (r.responsablePrueba) {
+        document.querySelectorAll('[data-group="resp"]').forEach(btn => {
+          if (btn.dataset.value === r.responsablePrueba) btn.click();
         });
       }
 
@@ -2419,9 +2497,9 @@ function imprimirAlistamiento(id) {
   const r = alistamientos.find(a => a.id === id);
   if (!r) return;
   const badge = r.pruebaCostura === 'Aprobada'
-    ? '<span style="background:#dcfce7;color:#15803d;font-size:12px;font-weight:700;padding:4px 14px;border-radius:20px;">Aprobada</span>'
+    ? '<span style="background:#dcfce7;color:#15803d;font-size:12px;font-weight:700;padding:4px 14px;border-radius:20px;">Sí</span>'
     : r.pruebaCostura === 'Rechazada'
-    ? '<span style="background:#fee2e2;color:#dc2626;font-size:12px;font-weight:700;padding:4px 14px;border-radius:20px;">Rechazada</span>'
+    ? '<span style="background:#fee2e2;color:#dc2626;font-size:12px;font-weight:700;padding:4px 14px;border-radius:20px;">No</span>'
     : r.pruebaCostura
     ? '<span style="background:#fef9c3;color:#a16207;font-size:12px;font-weight:700;padding:4px 14px;border-radius:20px;">' + r.pruebaCostura + '</span>' : '';
 
@@ -2474,7 +2552,8 @@ function imprimirAlistamiento(id) {
   <table>
     ${seccion('Verificación')}
     ${fila('Ficha Técnica', r.fichaTecnica, 'Muestra Física', r.muestraFisica)}
-    ${fila('Prueba de Costura', r.pruebaCostura, 'Observaciones', r.observaciones)}
+    ${fila('Prueba de Costura', (r.pruebaCostura==='Aprobada'?'Sí':r.pruebaCostura==='Rechazada'?'No':r.pruebaCostura), 'Observaciones', r.observaciones)}
+    ${r.responsablePrueba ? fila('Responsable', r.responsablePrueba, '', '') : ''}
   </table>
   <table>
     ${seccion('Fotos de Evidencia')}
@@ -2731,6 +2810,8 @@ function switchAlistTab(tab, el) {
 function resetRadios() {
   document.querySelectorAll('.radio-btn').forEach(b => b.classList.remove('selected','success','danger','warning','teal'));
   document.querySelectorAll('input[type="hidden"]').forEach(h => h.value = '');
+  const rw = document.getElementById('resp-wrap'); if (rw) rw.style.display = 'none';
+  const en = document.getElementById('estado-nota-wrap'); if (en) en.style.display = 'none';
   document.getElementById('previewAlist').innerHTML = '';
   document.getElementById('previewMant').innerHTML = '';
 }
