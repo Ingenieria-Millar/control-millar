@@ -715,8 +715,9 @@ app.get('/', (req, res) =>
 app.get('/ingresos', (req, res) =>
   res.sendFile(path.join(__dirname, 'ingresos.html'))
 );
-app.get('/alistamiento', (req, res) =>
-  res.sendFile(path.join(__dirname, 'alistamientos.html'))
+// Registro Mecánicos (antes "Alistamiento"). Servido en la ruta nueva y la vieja (alias).
+app.get(['/registro-mecanicos', '/alistamiento'], (req, res) =>
+  res.sendFile(path.join(__dirname, 'registro-mecanicos.html'))
 );
 
 app.get('/solicitar-insumos', (req, res) =>
