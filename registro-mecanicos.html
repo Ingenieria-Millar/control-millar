@@ -352,7 +352,8 @@ tr:hover td{background:#f8fafc;}
 
 <!-- NAV TABS -->
 <nav class="nav-bar" id="nav-bar-main" style="display:none">
-  <div class="nav-tab active" id="tab-alistamiento"   onclick="switchSection('alistamiento')">⚙️ Alistamiento</div>
+  <div class="nav-tab active" id="tab-todos"          onclick="switchSection('todos')">📋 Todos</div>
+  <div class="nav-tab"        id="tab-alistamiento"   onclick="switchSection('alistamiento')">⚙️ Alistamiento</div>
   <div class="nav-tab mant"   id="tab-mantenimiento"  onclick="switchSection('mantenimiento')">🔧 Mantenimiento</div>
   <div class="nav-tab"        id="tab-multitarea"     onclick="switchSection('multitarea')">⚡ Multitareas</div>
 </nav>
@@ -385,6 +386,31 @@ tr:hover td{background:#f8fafc;}
             <tbody id="dashMantBody"></tbody>
           </table>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TODOS (vista unificada) -->
+  <div id="section-todos" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:#1e293b;letter-spacing:.5px;">Todos los registros</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex-shrink:0;">
+        <button class="btn btn-primary" style="background:linear-gradient(135deg,#1e3a8a,#2563eb);border:none;" onclick="abrirNuevoRegistro()">＋ Nuevo Registro</button>
+      </div>
+    </div>
+    <div class="table-panel">
+      <div style="width:100%;">
+        <table style="width:100%;table-layout:fixed;font-size:12px;">
+          <thead><tr>
+            <th style="width:90px;">Fecha</th>
+            <th style="width:60px;">Hora</th>
+            <th style="width:110px;">Tipo</th>
+            <th style="width:120px;">Mecánico</th>
+            <th style="width:auto;">Módulo / Actividad</th>
+            <th style="width:90px;" id="th-todos-acciones">Acciones</th>
+          </tr></thead>
+          <tbody id="todos-tbody"></tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -604,27 +630,32 @@ tr:hover td{background:#f8fafc;}
 
 <!-- MODAL: Nueva Multitarea -->
 <div class="modal-overlay" id="modalMultitarea" style="display:none;align-items:center;justify-content:center;">
-  <div class="modal" style="max-width:440px;">
-    <div class="modal-title" style="display:flex;align-items:center;justify-content:space-between;">
-      <span>⚡ Nueva Multitarea</span>
-      <button id="mt-gear-btn" onclick="abrirTiposMultitarea()" title="Configurar tipos de multitarea" style="display:none;background:none;border:none;font-size:20px;cursor:pointer;line-height:1;">⚙️</button>
+  <div class="modal" style="max-width:480px;padding:32px 28px 24px;">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:24px;">
+      <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#7c3aed,#6d28d9);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">⚡</div>
+      <div>
+        <div style="font-size:18px;font-weight:800;color:#1e293b;letter-spacing:.2px;">Nueva Multitarea</div>
+        <div style="font-size:12px;color:#94a3b8;margin-top:2px;">Actividades y labores mecánicas</div>
+      </div>
     </div>
-    <div class="form-group">
-      <label class="form-label">Actividad <span class="required">*</span></label>
-      <select class="form-select" id="mt-tarea" onchange="mtOnTareaChange()"><option value="">— Seleccionar —</option></select>
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div class="form-group" style="margin:0;">
+        <label class="form-label" style="font-size:13px;font-weight:700;color:#475569;margin-bottom:6px;display:block;">Actividad <span class="required">*</span></label>
+        <select class="form-select" id="mt-tarea" onchange="mtOnTareaChange()" style="width:100%;"><option value="">— Seleccionar —</option></select>
+      </div>
+      <div class="form-group" id="mt-otros-wrap" style="display:none;margin:0;">
+        <label class="form-label" style="font-size:13px;font-weight:700;color:#475569;margin-bottom:6px;display:block;">¿Cuál actividad? <span class="required">*</span></label>
+        <input type="text" class="form-input" id="mt-otros-desc" placeholder="Describe la actividad..." style="text-transform:uppercase;width:100%;">
+        <div class="form-group" id="mt-obs-wrap" style="margin-top:12px;">
+          <label class="form-label" style="font-size:13px;font-weight:700;color:#475569;margin-bottom:6px;display:block;">Justificación <span class="required">*</span></label>
+          <textarea class="form-textarea" id="mt-obs" style="width:100%;min-height:80px;resize:vertical;" placeholder="Explica brevemente por qué..."></textarea>
+        </div>
+      </div>
     </div>
-    <div class="form-group" id="mt-otros-wrap" style="display:none;">
-      <label class="form-label">¿Cuál otra actividad? <span class="required">*</span></label>
-      <input type="text" class="form-input" id="mt-otros-desc" placeholder="Describe la actividad..." style="text-transform:uppercase;">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Observaciones</label>
-      <textarea class="form-textarea" id="mt-obs"></textarea>
-    </div>
-    <div id="mt-error" style="color:#ef4444;font-size:12px;font-weight:700;min-height:18px;"></div>
-    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:8px;">
-      <button onclick="cerrarModalMultitarea()" style="padding:10px 18px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:13px;font-weight:600;cursor:pointer;">Cancelar</button>
-      <button onclick="guardarMultitarea()" style="padding:10px 20px;border-radius:8px;border:none;background:#7c3aed;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">▶ Guardar</button>
+    <div id="mt-error" style="color:#ef4444;font-size:12px;font-weight:700;min-height:18px;margin-top:10px;"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;gap:10px;">
+      <button onclick="cerrarModalMultitarea()" style="padding:10px 24px;border-radius:10px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:13px;font-weight:600;cursor:pointer;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#f8fafc'">Cancelar</button>
+      <button onclick="guardarMultitarea()" style="padding:10px 28px;border-radius:10px;border:none;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;" onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">💾 Guardar</button>
     </div>
   </div>
 </div>
@@ -1088,28 +1119,33 @@ let alertas = [];
 
 // ===== INIT =====
 async function init() {
-  // ── Configurar vista según ?seccion= ANTES de cualquier fetch ──
-  const params = new URLSearchParams(window.location.search);
-  const seccion = params.get('seccion');
-
-  if (seccion === 'alistamiento') {
-    document.getElementById('page-title').textContent = 'Registro Mecánicos';
-    document.getElementById('tab-mantenimiento').style.display = 'none';
-    document.getElementById('panel-mant').style.display = 'none';
-    document.getElementById('dash-panels').style.gridTemplateColumns = '1fr';
-  } else if (seccion === 'mantenimiento') {
-    document.getElementById('page-title').textContent = 'Registro Mecánicos';
-    document.getElementById('tab-alistamiento').style.display = 'none';
-    document.getElementById('panel-alist').style.display = 'none';
-    document.getElementById('dash-panels').style.gridTemplateColumns = '1fr';
-  }
-
   startClock();
+
+  // Ocultar nav/config hasta login
+  const navWrap = document.getElementById('millar-nav-wrap');
+  const btnCfg  = document.getElementById('btn-configuracion');
+  if (navWrap) navWrap.style.display = 'none';
+  if (btnCfg)  btnCfg.style.display  = 'none';
+
+  // Logo y títulos del login
+  const hdLogo = document.querySelector('.hd-logo img');
+  const mlLogo = document.getElementById('ml-logo-img');
+  if (hdLogo && mlLogo) mlLogo.src = hdLogo.src;
+  const titleEl = document.getElementById('ml-login-title');
+  const subEl   = document.getElementById('ml-login-sub');
+  if (titleEl) titleEl.innerHTML = 'Registro <em>Mecánicos</em>';
+  if (subEl)   subEl.textContent = 'Alistamiento · Mantenimiento · Multitareas';
+
+  // Mostrar login INMEDIATAMENTE — sin esperar ningún fetch
+  document.getElementById('mant-login').style.display = 'flex';
+
+  // Cargar config y poblar select del login
   await loadConfig();
+  poblarSelectLogin();
   _populateFormsNow();
   aplicarConfigAFormularios();
 
-  // Filtro de fecha: por defecto "Hoy" sin rango previo
+  // Filtros de fecha por defecto "Hoy"
   const hoy = new Date().toISOString().split('T')[0];
   const desdeEl = document.getElementById('mant-fecha-desde');
   const hastaEl = document.getElementById('mant-fecha-hasta');
@@ -1118,13 +1154,12 @@ async function init() {
   if (hastaEl) hastaEl.value = hoy;
   if (lblEl)   lblEl.textContent = 'Hoy';
 
-  // Cargar datos en secuencia: primero config, luego datos
-  await loadAlistamientos();
-  await loadMantenimientos();
-  await loadMultitareas();
-  await loadGuiasReferencias();
-  await loadAlertas();
-  setInterval(loadAlertas, 30000);
+  // Cargar datos en background (no bloquean el login)
+  loadAlistamientos();
+  loadMantenimientos();
+  loadMultitareas();
+  loadGuiasReferencias();
+  loadAlertas().then(() => setInterval(loadAlertas, 30000));
 
   // Fecha dinámica en header
   function updateAlistDate(){
@@ -1133,29 +1168,6 @@ async function init() {
   }
   setInterval(updateAlistDate, 60000);
   updateAlistDate();
-
-  // Guías usan acFilterGuias directamente (igual que mantGuiaInput)
-
-  // Ocultar nav y configuración hasta que se loguee
-  const navWrap = document.getElementById('millar-nav-wrap');
-  const btnCfg  = document.getElementById('btn-configuracion');
-  if (navWrap) navWrap.style.display = 'none';
-  if (btnCfg)  btnCfg.style.display  = 'none';
-
-  // Copiar logo del header al login
-  const hdLogo = document.querySelector('.hd-logo img');
-  const mlLogo = document.getElementById('ml-logo-img');
-  if (hdLogo && mlLogo) mlLogo.src = hdLogo.src;
-
-  // Título del login (módulo unificado)
-  const titleEl = document.getElementById('ml-login-title');
-  const subEl   = document.getElementById('ml-login-sub');
-  if (titleEl) titleEl.innerHTML = 'Registro <em>Mecánicos</em>';
-  if (subEl)   subEl.textContent = 'Alistamiento · Mantenimiento · Multitareas';
-
-  // Siempre mostrar login (seleccionar mecánico) antes de entrar
-  await poblarSelectLogin();
-  document.getElementById('mant-login').style.display = 'flex';
 }
 
 // Volver a la pantalla de selección Alistamiento/Mantenimiento
@@ -1514,9 +1526,10 @@ function toggleEstadoNota(){
 async function loadAlistamientos() {
   try {
     const r = await fetch(`${API}/api/alistamientos`);
-    alistamientos = await r.json();
-    renderAlistamientos();
+    alistamientos = r.ok ? await r.json() : [];
   } catch(e) { alistamientos = []; }
+  renderAlistamientos();
+  if (document.getElementById('section-todos')?.style.display !== 'none') renderTodos();
 }
 
 async function loadMantenimientos() {
@@ -1549,6 +1562,7 @@ async function loadMantenimientos() {
     }
   }
   renderMantenimientos(getMantFiltrados());
+  if (document.getElementById('section-todos')?.style.display !== 'none') renderTodos();
 }
 
 async function loadAlertas() {
@@ -2712,8 +2726,6 @@ function abrirModalMultitarea(){
   document.getElementById('mt-otros-desc').value = '';
   document.getElementById('mt-obs').value = '';
   document.getElementById('mt-error').textContent = '';
-  const gear = document.getElementById('mt-gear-btn');
-  if (gear) gear.style.display = (mecanicoActual === 'ADMINISTRADOR') ? '' : 'none';
   document.getElementById('modalMultitarea').style.display = 'flex';
 }
 function cerrarModalMultitarea(){ document.getElementById('modalMultitarea').style.display = 'none'; }
@@ -2725,12 +2737,15 @@ async function guardarMultitarea(){
   const errEl = document.getElementById('mt-error');
   let tarea = document.getElementById('mt-tarea').value;
   if (!tarea) { errEl.textContent = 'Selecciona una actividad'; return; }
+  let observaciones = '';
   if (tarea === '__otros__') {
     tarea = (document.getElementById('mt-otros-desc').value||'').trim().toUpperCase();
     if (!tarea) { errEl.textContent = 'Describe la actividad'; return; }
+    observaciones = (document.getElementById('mt-obs').value||'').trim();
+    if (!observaciones) { errEl.textContent = 'La justificación es obligatoria para "Otros"'; return; }
   }
   errEl.textContent = '';
-  const reg = { tarea, mecanico: mecanicoActual || '', observaciones: (document.getElementById('mt-obs').value||'').trim() };
+  const reg = { tarea, mecanico: mecanicoActual || '', observaciones };
   try {
     const r = await fetch(`${API}/api/multitareas`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(reg) });
     const data = await r.json();
@@ -2770,6 +2785,7 @@ async function loadMultitareas(){
   try { const r = await fetch(`${API}/api/multitareas`); multitareas = r.ok ? await r.json() : []; }
   catch(e){ multitareas = []; }
   renderMultitareas();
+  if (document.getElementById('section-todos')?.style.display !== 'none') renderTodos();
 }
 function getMultiFiltrados(){
   let rows = [...multitareas];
@@ -2793,6 +2809,101 @@ function renderMultitareas(){
     <td>${r.observaciones||'—'}</td>
   </tr>`).join('');
 }
+function renderTodos() {
+  const tbody = document.getElementById('todos-tbody');
+  if (!tbody) return;
+  const esAdmin = mecanicoActual === 'ADMINISTRADOR';
+
+  // Construir filas unificadas
+  const filas = [];
+
+  (alistamientos || []).forEach(r => {
+    if (mecanicoActual && !esAdmin && (r.mecanico||'').toLowerCase() !== mecanicoActual.toLowerCase()) return;
+    filas.push({
+      fecha: r.fecha || '',
+      hora:  r.hora  || '',
+      tipo:  'alistamiento',
+      mecanico: r.mecanico || '—',
+      detalle:  (r.modulo ? 'M' + r.modulo : '') + (r.tipoMaquina ? ' · ' + r.tipoMaquina : ''),
+      id: r.id,
+      _orig: r
+    });
+  });
+
+  (mantenimientos || []).forEach(r => {
+    if (mecanicoActual && !esAdmin && (r.mecanico||'').toLowerCase() !== mecanicoActual.toLowerCase()) return;
+    filas.push({
+      fecha: r.fecha || '',
+      hora:  r.hora  || '',
+      tipo:  'mantenimiento',
+      mecanico: r.mecanico || '—',
+      detalle:  (r.tipoMantenimiento || '') + (r.modulo ? ' · M' + r.modulo : ''),
+      id: r.id,
+      _orig: r
+    });
+  });
+
+  (multitareas || []).forEach(r => {
+    if (mecanicoActual && !esAdmin && (r.mecanico||'').toLowerCase() !== mecanicoActual.toLowerCase()) return;
+    const hora = r.fechaHora ? new Date(r.fechaHora).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'}) : (r.hora||'');
+    filas.push({
+      fecha: r.fecha || '',
+      hora,
+      tipo:  'multitarea',
+      mecanico: r.mecanico || '—',
+      detalle:  r.tarea || '—',
+      id: r.id,
+      _orig: r
+    });
+  });
+
+  // Ordenar por fecha+hora descendente
+  filas.sort((a, b) => {
+    const ka = (a.fecha + ' ' + a.hora);
+    const kb = (b.fecha + ' ' + b.hora);
+    return kb.localeCompare(ka);
+  });
+
+  if (!filas.length) {
+    tbody.innerHTML = '<tr><td colspan="6"><div style="text-align:center;padding:32px;color:#64748b;font-style:italic;"><div style="font-size:32px;margin-bottom:8px;">📋</div><div>No hay registros aún</div></div></td></tr>';
+    return;
+  }
+
+  const tipoBadgeTodos = t => {
+    if (t === 'alistamiento')  return '<span style="padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;background:#eff6ff;color:#1e40af;">⚙️ Alist.</span>';
+    if (t === 'mantenimiento') return '<span style="padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;background:#f0fdfa;color:#0f766e;">🔧 Mant.</span>';
+    if (t === 'multitarea')    return '<span style="padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;background:#f5f3ff;color:#5b21b6;">⚡ Multi</span>';
+    return t;
+  };
+
+  tbody.innerHTML = filas.map(f => {
+    const acciones = esAdmin ? `
+      <button class="btn" style="padding:3px 7px;font-size:11px;background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;margin-right:2px;"
+        onclick="editarRegistroTodos('${f.tipo}','${f.id}')">✏️</button>
+      <button class="btn btn-danger" style="padding:3px 7px;font-size:11px;"
+        onclick="eliminarRegistroTodos('${f.tipo}','${f.id}')">🗑️</button>` : '<span style="color:#94a3b8;">—</span>';
+    return `<tr>
+      <td style="font-size:11px;">${f.fecha||'—'}</td>
+      <td style="font-size:11px;">${f.hora||'—'}</td>
+      <td>${tipoBadgeTodos(f.tipo)}</td>
+      <td style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.mecanico}</td>
+      <td style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.detalle}</td>
+      <td style="white-space:nowrap;">${acciones}</td>
+    </tr>`;
+  }).join('');
+}
+
+function editarRegistroTodos(tipo, id) {
+  if (tipo === 'alistamiento')  editarAlistamiento(id);
+  else if (tipo === 'mantenimiento') editarMantenimiento(id);
+}
+
+function eliminarRegistroTodos(tipo, id) {
+  if (tipo === 'alistamiento')  eliminar('alistamientos', id);
+  else if (tipo === 'mantenimiento') eliminar('mantenimientos', id);
+  else if (tipo === 'multitarea') eliminar('multitareas', id);
+}
+
 function exportarMultitareasExcel(){
   const rows = getMultiFiltrados();
   if (!rows.length) { showToast('No hay datos para exportar','warning'); return; }
@@ -2879,7 +2990,7 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
 // ===== NAVIGATION =====
 // ── LOGIN MANTENIMIENTO ─────────────────────────────────────────
 async function poblarSelectLogin() {
-  await loadConfig();
+  if (!(config.mecanicos && config.mecanicos.length)) await loadConfig();
   const sel = document.getElementById('mant-login-select');
   if (!sel) return;
   // Limpiar opciones excepto placeholder y ADMINISTRADOR
@@ -2914,14 +3025,14 @@ function confirmarLoginMant() {
 
   if (badge)    { badge.style.display = 'flex'; }
   if (lbl)      { lbl.textContent = esAdmin ? '👤 ADMINISTRADOR' : '🔧 ' + val; }
-  if (nav)      { nav.style.display = esAdmin ? '' : 'none'; }
+  if (nav)      { nav.style.display = ''; }
   if (expMant)  { expMant.style.display = esAdmin ? '' : 'none'; }
   if (expAlist) { expAlist.style.display = esAdmin ? '' : 'none'; }
 
   document.getElementById('mant-login').style.display = 'none';
-  // Ir a la sección según la URL
+  // Ir a la sección según la URL (default: todos)
   const params  = new URLSearchParams(window.location.search);
-  const seccion = params.get('seccion') || 'mantenimiento';
+  const seccion = params.get('seccion') || 'todos';
   switchSection(seccion);
 }
 
@@ -2966,7 +3077,7 @@ function cerrarSesionMant() {
   if (lblAlist) lblAlist.textContent = 'Hoy';
 
   // Ocultar secciones y mostrar login
-  ['section-alistamiento','section-mantenimiento','section-dashboard'].forEach(id => {
+  ['section-todos','section-alistamiento','section-mantenimiento','section-multitarea','section-dashboard'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
@@ -2980,12 +3091,17 @@ function cerrarSesionMant() {
 }
 
 function switchSection(section) {
-  ['dashboard','alistamiento','mantenimiento','multitarea'].forEach(s => {
+  ['dashboard','todos','alistamiento','mantenimiento','multitarea'].forEach(s => {
     const sec = document.getElementById(`section-${s}`);
     const tab = document.getElementById(`tab-${s}`);
     if (sec) sec.style.display = s === section ? '' : 'none';
     if (tab) tab.classList.toggle('active', s === section);
   });
+  if (section === 'todos') {
+    const nav = document.getElementById('nav-bar-main');
+    if (nav) nav.style.display = '';
+    renderTodos();
+  }
   if (section === 'alistamiento') {
     // Inicializar fecha si no está puesta
     const hoy = new Date().toISOString().split('T')[0];
