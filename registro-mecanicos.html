@@ -1656,8 +1656,7 @@ function toggleMic(textareaId, btnId){
   _micRecognition.continuous    = true;
   _micRecognition.interimResults = true;
 
-  let textoBase       = textarea.value;
-  let _lastFinalIdx   = 0;  // rastrear qué resultados ya se procesaron
+  let textoBase = textarea.value;
 
   _micRecognition.onstart = () => {
     _micActive = true;
@@ -1668,18 +1667,18 @@ function toggleMic(textareaId, btnId){
 
   const toUp = textarea.style.textTransform === 'uppercase';
   _micRecognition.onresult = (e) => {
-    let interim = '';
-    let final   = '';
-    for (let i = _lastFinalIdx; i < e.results.length; i++) {
-      if (e.results[i].isFinal) {
-        final += e.results[i][0].transcript;
-        _lastFinalIdx = i + 1;  // marcar como procesado, no repetir
-      } else {
-        interim += e.results[i][0].transcript;
-      }
+    // Solo procesar el resultado nuevo en e.resultIndex — evita repetición
+    // en Chrome Android donde e.results no acumula y e.resultIndex es siempre 0
+    const result = e.results[e.resultIndex];
+    if (!result) return;
+    const texto = result[0].transcript;
+    if (result.isFinal) {
+      textoBase += (textoBase ? ' ' : '') + (toUp ? texto.toUpperCase() : texto);
+      textarea.value = textoBase;
+    } else {
+      // Preview del interim — no modifica textoBase
+      textarea.value = textoBase + (texto ? ' ' + (toUp ? texto.toUpperCase() : texto) : '');
     }
-    if (final) textoBase += (textoBase ? ' ' : '') + (toUp ? final.toUpperCase() : final);
-    textarea.value = textoBase + (interim ? ' ' + (toUp ? interim.toUpperCase() : interim) : '');
   };
 
   _micRecognition.onerror = () => { _micRecognition.stop(); };
@@ -2110,7 +2109,7 @@ function imprimirMantenimiento(id) {
     table{width:100%;border-collapse:collapse;margin-bottom:8px;}
     .fotos{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;}
     .footer{position:fixed;bottom:0;left:0;right:0;border-top:1px solid #e2e8f0;padding:5px 16px;font-size:9px;color:#94a3b8;text-align:center;background:#fff;}
-    @media print{body{padding:10px 12px 40px;}@page{margin:0.6cm;size:A4;}}
+    @media print{body{padding:10px 12px 40px;}@page{margin:0.6cm;size:A4 landscape;}}
   </style></head><body>
   <div class="header">
     <div>
