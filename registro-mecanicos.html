@@ -339,7 +339,6 @@ tr:hover td{background:#f8fafc;}
       <p class="hd-date" id="alist-header-date"></p>
     </div>
   </div>
-  <div data-millar-nav id="millar-nav-wrap"></div>
   <div class="hd-right">
     <!-- Botón pendientes — mecánicos (no admin) -->
     <button id="btn-pendientes-mec" onclick="abrirPendientesMecanico()" style="display:none;position:relative;padding:7px 14px;border-radius:8px;border:1.5px solid #f59e0b;background:#fffbeb;color:#92400e;font-size:12px;font-weight:700;cursor:pointer;gap:6px;align-items:center;">
@@ -607,7 +606,7 @@ tr:hover td{background:#f8fafc;}
     <div class="table-panel">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Fecha</th><th>Hora</th><th>Mecánico</th><th>Actividad</th><th>Observaciones</th></tr></thead>
+          <thead><tr><th>Fecha</th><th>Hora inicio</th><th>Duración</th><th>Mecánico</th><th>Actividad</th></tr></thead>
           <tbody id="multi-tbody"></tbody>
         </table>
       </div>
@@ -705,21 +704,33 @@ tr:hover td{background:#f8fafc;}
         <div style="font-size:12px;color:#94a3b8;margin-top:2px;">Actividades y labores mecánicas</div>
       </div>
     </div>
-    <div style="display:flex;flex-direction:column;gap:16px;">
-      <div class="form-group" style="margin:0;">
-        <label class="form-label" style="font-size:13px;font-weight:700;color:#475569;margin-bottom:6px;display:block;">Actividad <span class="required">*</span></label>
-        <select class="form-select" id="mt-tarea" onchange="mtOnTareaChange()" style="width:100%;"><option value="">— Seleccionar —</option></select>
+
+    <!-- FASE 1: Selección de actividad -->
+    <div id="mt-fase-seleccion">
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div class="form-group" style="margin:0;">
+          <label class="form-label" style="font-size:13px;font-weight:700;color:#475569;margin-bottom:6px;display:block;">Actividad <span class="required">*</span></label>
+          <select class="form-select" id="mt-tarea" onchange="mtOnTareaChange()" style="width:100%;"><option value="">— Seleccionar —</option></select>
+        </div>
+        <div class="form-group" id="mt-otros-wrap" style="display:none;margin:0;">
+          <label class="form-label" style="font-size:13px;font-weight:700;color:#475569;margin-bottom:6px;display:block;">¿Cuál actividad? <span class="required">*</span></label>
+          <input type="text" class="form-input" id="mt-otros-desc" placeholder="Describe la actividad..." style="text-transform:uppercase;width:100%;">
+          <input type="hidden" id="mt-obs" value="">
+        </div>
       </div>
-      <div class="form-group" id="mt-otros-wrap" style="display:none;margin:0;">
-        <label class="form-label" style="font-size:13px;font-weight:700;color:#475569;margin-bottom:6px;display:block;">¿Cuál actividad? <span class="required">*</span></label>
-        <input type="text" class="form-input" id="mt-otros-desc" placeholder="Describe la actividad..." style="text-transform:uppercase;width:100%;">
-        <input type="hidden" id="mt-obs" value="">
+      <div id="mt-error" style="color:#ef4444;font-size:12px;font-weight:700;min-height:18px;margin-top:10px;"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;gap:10px;">
+        <button onclick="cerrarModalMultitarea()" style="padding:10px 24px;border-radius:10px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:13px;font-weight:600;cursor:pointer;">Cancelar</button>
+        <button onclick="iniciarMultitarea()" style="padding:10px 28px;border-radius:10px;border:none;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;">⏱ Iniciar</button>
       </div>
     </div>
-    <div id="mt-error" style="color:#ef4444;font-size:12px;font-weight:700;min-height:18px;margin-top:10px;"></div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;gap:10px;">
-      <button onclick="cerrarModalMultitarea()" style="padding:10px 24px;border-radius:10px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:13px;font-weight:600;cursor:pointer;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#f8fafc'">Cancelar</button>
-      <button onclick="guardarMultitarea()" style="padding:10px 28px;border-radius:10px;border:none;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;" onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">💾 Guardar</button>
+
+    <!-- FASE 2: Timer en curso -->
+    <div id="mt-fase-curso" style="display:none;text-align:center;">
+      <div id="mt-actividad-lbl" style="font-size:14px;font-weight:700;color:#7c3aed;margin-bottom:18px;padding:8px 16px;background:#f5f3ff;border-radius:10px;"></div>
+      <div style="font-size:56px;font-weight:900;color:#1e293b;letter-spacing:2px;font-variant-numeric:tabular-nums;margin-bottom:8px;" id="mt-timer-display">00:00</div>
+      <div style="font-size:12px;color:#94a3b8;margin-bottom:28px;">tiempo transcurrido</div>
+      <button onclick="finalizarMultitarea()" style="width:100%;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;font-size:15px;font-weight:800;cursor:pointer;letter-spacing:.3px;">✅ Finalizar actividad</button>
     </div>
   </div>
 </div>
@@ -1089,20 +1100,6 @@ tr:hover td{background:#f8fafc;}
             </div>
             <input type="hidden" name="tipoMantenimiento" id="hiddenTipoMant" required>
           </div>
-          <div class="form-group">
-            <label class="form-label">Estado del trabajo <span class="required">*</span></label>
-            <div class="radio-group-3col">
-              <span class="radio-btn" data-group="estadoMant" data-value="No empezada" onclick="selectRadio(this,'estadoMant','hiddenEstadoMant','danger');toggleEstadoNota()">⏳ No empezada</span>
-              <span class="radio-btn" data-group="estadoMant" data-value="En proceso" onclick="selectRadio(this,'estadoMant','hiddenEstadoMant','warning');toggleEstadoNota()">🔧 En proceso</span>
-              <span class="radio-btn" data-group="estadoMant" data-value="Concluida" onclick="selectRadio(this,'estadoMant','hiddenEstadoMant','teal');toggleEstadoNota()">✅ Concluida</span>
-            </div>
-            <input type="hidden" name="estadoMantenimiento" id="hiddenEstadoMant">
-          </div>
-          <div class="form-group" id="estado-nota-wrap" style="display:none;">
-            <label class="form-label" id="estado-nota-label">Nota <span class="required">*</span></label>
-            <textarea class="form-textarea" name="notaEstado" id="estadoNota" placeholder=""></textarea>
-          </div>
-
           <!-- ── PERSONAL ── -->
           <div class="mant-section-label">👤 Personal</div>
           <div class="form-group" id="mant-mecanico-wrap">
@@ -1132,16 +1129,13 @@ tr:hover td{background:#f8fafc;}
           </div>
           <div class="form-group">
             <label class="form-label">Serial <span class="required">*</span></label>
-            <div style="display:flex;gap:8px;align-items:center;">
-              <div class="autocomplete-wrap" style="flex:1;">
-                <input type="text" class="form-input" name="serial" id="mantSerial" required
-                  autocomplete="off"
-                  oninput="acFilterSeriales('mantSerial','mantSerialList')"
-                  onfocus="acFilterSeriales('mantSerial','mantSerialList')"
-                  onblur="setTimeout(()=>acClose('mantSerialList'),200)">
-                <div class="autocomplete-list" id="mantSerialList"></div>
-              </div>
-              <button type="button" class="btn btn-secondary" style="padding:13px 14px;white-space:nowrap;font-size:13px;" onclick="abrirQR('mant')" title="Escanear QR">📷 QR</button>
+            <div class="autocomplete-wrap">
+              <input type="text" class="form-input" name="serial" id="mantSerial" required
+                autocomplete="off"
+                oninput="acFilterSeriales('mantSerial','mantSerialList')"
+                onfocus="acFilterSeriales('mantSerial','mantSerialList')"
+                onblur="setTimeout(()=>acClose('mantSerialList'),200)">
+              <div class="autocomplete-list" id="mantSerialList"></div>
             </div>
           </div>
           <div class="form-group">
@@ -1161,7 +1155,7 @@ tr:hover td{background:#f8fafc;}
           <div class="mant-section-label">📝 Detalles</div>
           <div class="form-group">
             <label class="form-label">Repuestos Utilizados</label>
-            <input type="text" class="form-input" name="repuestos">
+            <input type="text" class="form-input" name="repuestos" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()">
           </div>
           <div class="form-group">
             <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;">
@@ -1170,15 +1164,42 @@ tr:hover td{background:#f8fafc;}
                 style="background:none;border:1.5px solid #e2e8f0;border-radius:8px;padding:3px 10px;cursor:pointer;font-size:14px;color:#64748b;display:flex;align-items:center;gap:4px;transition:all .2s;"
                 title="Dictar texto">🎙️ <span style="font-size:11px;font-weight:700;letter-spacing:.5px;">DICTAR</span></button>
             </label>
-            <textarea class="form-textarea" name="observaciones" id="mantObs"></textarea>
+            <textarea class="form-textarea" name="observaciones" id="mantObs" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()"></textarea>
           </div>
           <div class="form-group">
             <label class="form-label">Fotos de Evidencia</label>
-            <div class="photo-area" onclick="document.getElementById('fotosMant').click()">
-              📷 Toca para adjuntar fotos desde cámara o galería
-              <input type="file" id="fotosMant" name="fotos" multiple accept="image/*" style="display:none" onchange="previewFotos(this,'previewMant')">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+              <button type="button" onclick="document.getElementById('fotosMant-cam').click()"
+                style="flex:1;min-width:130px;padding:12px;border-radius:10px;border:1.5px solid #cbd5e1;background:#f8fafc;color:#334155;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+                📷 Tomar foto
+              </button>
+              <button type="button" onclick="document.getElementById('fotosMant-gal').click()"
+                style="flex:1;min-width:130px;padding:12px;border-radius:10px;border:1.5px solid #cbd5e1;background:#f8fafc;color:#334155;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+                🖼️ Desde galería
+              </button>
             </div>
+            <input type="file" id="fotosMant-cam" accept="image/*" capture="environment" style="display:none" onchange="agregarFotosMant(this)">
+            <input type="file" id="fotosMant-gal" accept="image/*" multiple style="display:none" onchange="agregarFotosMant(this)">
             <div class="photo-previews" id="previewMant"></div>
+          </div>
+
+          <!-- ── ESTADO DEL TRABAJO ── -->
+          <div class="mant-section-label">🚦 Estado del trabajo</div>
+          <div class="form-group">
+            <label class="form-label">¿Cómo quedó? <span class="required">*</span></label>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <span class="radio-btn" data-group="estadoMant" data-value="Terminado"
+                onclick="selectRadio(this,'estadoMant','hiddenEstadoMant','teal');toggleEstadoNota()"
+                style="flex:1;min-width:120px;text-align:center;">✅ Terminado</span>
+              <span class="radio-btn" data-group="estadoMant" data-value="Pendiente"
+                onclick="selectRadio(this,'estadoMant','hiddenEstadoMant','warning');toggleEstadoNota()"
+                style="flex:1;min-width:120px;text-align:center;">⏳ Pendiente</span>
+            </div>
+            <input type="hidden" name="estadoMantenimiento" id="hiddenEstadoMant">
+          </div>
+          <div class="form-group" id="estado-nota-wrap" style="display:none;">
+            <label class="form-label" id="estado-nota-label">¿Por qué quedó pendiente? <span class="required">*</span></label>
+            <textarea class="form-textarea" name="notaEstado" id="estadoNota" placeholder="DESCRIBE POR QUÉ QUEDÓ PENDIENTE..." style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()"></textarea>
           </div>
         </div>
         <div style="display:none"><button type="submit" id="submitMant">Guardar</button></div>
@@ -1322,9 +1343,7 @@ async function init() {
   startClock();
 
   // Ocultar nav/config hasta login
-  const navWrap = document.getElementById('millar-nav-wrap');
   const btnCfg  = document.getElementById('btn-configuracion');
-  if (navWrap) navWrap.style.display = 'none';
   if (btnCfg)  btnCfg.style.display  = 'none';
 
   // Logo y títulos del login
@@ -1641,6 +1660,7 @@ function toggleMic(textareaId, btnId){
     btn.querySelector('span').textContent = 'GRABANDO';
   };
 
+  const toUp = textarea.style.textTransform === 'uppercase';
   _micRecognition.onresult = (e) => {
     let interim = '';
     let final   = '';
@@ -1648,8 +1668,8 @@ function toggleMic(textareaId, btnId){
       if (e.results[i].isFinal) final   += e.results[i][0].transcript;
       else                       interim += e.results[i][0].transcript;
     }
-    if (final) textoBase += (textoBase ? ' ' : '') + final;
-    textarea.value = textoBase + (interim ? ' ' + interim : '');
+    if (final) textoBase += (textoBase ? ' ' : '') + (toUp ? final.toUpperCase() : final);
+    textarea.value = textoBase + (interim ? ' ' + (toUp ? interim.toUpperCase() : interim) : '');
   };
 
   _micRecognition.onerror = () => { _micRecognition.stop(); };
@@ -1718,16 +1738,15 @@ function togglePruebaResp(){
 //  - No empezada → "¿Qué daño tiene?"   - En proceso → "¿Por qué no se concluyó?"
 function toggleEstadoNota(){
   const wrap = document.getElementById('estado-nota-wrap');
-  const lbl  = document.getElementById('estado-nota-label');
   const ta   = document.getElementById('estadoNota');
   if (!wrap) return;
   const v = (document.getElementById('hiddenEstadoMant')||{}).value;
-  if (v === 'No empezada') {
-    wrap.style.display = ''; if(lbl) lbl.innerHTML = '¿Qué daño tiene? <span class="required">*</span>'; if(ta) ta.placeholder = 'Describe el daño de la máquina';
-  } else if (v === 'En proceso') {
-    wrap.style.display = ''; if(lbl) lbl.innerHTML = '¿Por qué no se concluyó? <span class="required">*</span>'; if(ta) ta.placeholder = 'Explica por qué quedó en proceso';
+  if (v === 'Pendiente') {
+    wrap.style.display = '';
+    if (ta) ta.placeholder = 'DESCRIBE POR QUÉ QUEDÓ PENDIENTE...';
   } else {
-    wrap.style.display = 'none'; if(ta) ta.value = '';
+    wrap.style.display = 'none';
+    if (ta) ta.value = '';
   }
 }
 
@@ -2547,6 +2566,25 @@ async function guardarAlistamiento(e) {
 // Array para rastrear archivos seleccionados (permite eliminar antes de guardar)
 let _mantFotosFiles = [];
 
+function agregarFotosMant(input) {
+  const nuevos = Array.from(input.files);
+  _mantFotosFiles = _mantFotosFiles.concat(nuevos);
+  input.value = ''; // reset para poder seleccionar el mismo archivo de nuevo
+  const container = document.getElementById('previewMant');
+  container.innerHTML = '';
+  _mantFotosFiles.forEach((file, i) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const d = document.createElement('div');
+      d.className = 'photo-preview';
+      d.dataset.idx = i;
+      d.innerHTML = `<img src="${e.target.result}"><button class="photo-remove" onclick="removePhoto(this,'fotosMant','previewMant')">✕</button>`;
+      container.appendChild(d);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 function previewFotos(input, previewId) {
   const container = document.getElementById(previewId);
   container.innerHTML = '';
@@ -2598,11 +2636,11 @@ async function guardarMantenimiento(e) {
   const form = document.getElementById('formMantenimiento');
   const formData = new FormData(form);
   if (!formData.get('tipoMantenimiento')) { showToast('Selecciona el tipo de mantenimiento','error'); return; }
-  // Estado del trabajo + nota obligatoria cuando corresponde
+  // Estado del trabajo
   const _estado = formData.get('estadoMantenimiento');
-  if (!_estado) { showToast('Selecciona el estado del trabajo','error'); return; }
-  if ((_estado === 'No empezada' || _estado === 'En proceso') && !(formData.get('notaEstado')||'').trim()) {
-    showToast(_estado === 'No empezada' ? 'Indica qué daño tiene la máquina (nota obligatoria)' : 'Indica por qué no se concluyó (nota obligatoria)','error');
+  if (!_estado) { showToast('Selecciona el estado del trabajo (Terminado o Pendiente)','error'); return; }
+  if (_estado === 'Pendiente' && !(formData.get('notaEstado')||'').trim()) {
+    showToast('Describe por qué quedó pendiente (obligatorio)','error');
     return;
   }
   if (!formData.get('tipoMaquina'))       { showToast('Selecciona el tipo de máquina','error'); return; }
@@ -2628,7 +2666,22 @@ async function guardarMantenimiento(e) {
     const r    = await fetch(url, { method, body: formData });
     const data = await r.json();
     if (data.success) {
-      showToast(editId ? '✅ Mantenimiento actualizado' : '✅ Mantenimiento guardado','success');
+      // Si quedó Pendiente, crear tarea automáticamente
+      if (_estado === 'Pendiente') {
+        const _mec  = formData.get('mecanico') || mecanicoActual || '';
+        const _maq  = formData.get('tipoMaquina') || '';
+        const _ser  = formData.get('serial') || '';
+        const _nota = formData.get('notaEstado') || '';
+        const _desc = `🔧 Mant. pendiente: ${_maq}${_ser?' ('+_ser+')':''} — ${_nota}`.substring(0,200);
+        try {
+          await fetch(`${API}/api/tareas`, { method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ mecanico:_mec, descripcion:_desc, maquina:_maq, observaciones:_nota, asignadoPor:'Sistema' }) });
+          await loadTareas();
+        } catch(e) {}
+        showToast('⚠️ Mantenimiento guardado — tarea pendiente creada','warning');
+      } else {
+        showToast(editId ? '✅ Mantenimiento actualizado' : '✅ Mantenimiento guardado','success');
+      }
       cerrarModal('modalMantenimiento');
       form.reset();
       form.dataset.editId = '';
@@ -2938,28 +2991,83 @@ function abrirModalMultitarea(){
   document.getElementById('mt-error').textContent = '';
   document.getElementById('modalMultitarea').style.display = 'flex';
 }
-function cerrarModalMultitarea(){ document.getElementById('modalMultitarea').style.display = 'none'; }
+let _mtTimerInterval = null;
+let _mtHoraInicio    = null;
+let _mtTareaLabel    = '';
+
+function cerrarModalMultitarea(){
+  if (_mtTimerInterval) { clearInterval(_mtTimerInterval); _mtTimerInterval = null; }
+  _mtHoraInicio = null;
+  _mtTareaLabel = '';
+  // reset fases
+  document.getElementById('mt-fase-seleccion').style.display = '';
+  document.getElementById('mt-fase-curso').style.display = 'none';
+  document.getElementById('mt-timer-display').textContent = '00:00';
+  document.getElementById('mt-tarea').value = '';
+  document.getElementById('mt-otros-wrap').style.display = 'none';
+  document.getElementById('mt-otros-desc').value = '';
+  document.getElementById('mt-error').textContent = '';
+  document.getElementById('modalMultitarea').style.display = 'none';
+}
+
 function mtOnTareaChange(){
   const v = document.getElementById('mt-tarea').value;
   document.getElementById('mt-otros-wrap').style.display = (v === '__otros__') ? '' : 'none';
 }
-async function guardarMultitarea(){
+
+function iniciarMultitarea(){
   const errEl = document.getElementById('mt-error');
   let tarea = document.getElementById('mt-tarea').value;
   if (!tarea) { errEl.textContent = 'Selecciona una actividad'; return; }
-  let observaciones = '';
   if (tarea === '__otros__') {
     tarea = (document.getElementById('mt-otros-desc').value||'').trim().toUpperCase();
     if (!tarea) { errEl.textContent = 'Describe la actividad'; return; }
   }
   errEl.textContent = '';
-  const reg = { tarea, mecanico: mecanicoActual || '', observaciones };
+  _mtTareaLabel  = tarea;
+  _mtHoraInicio  = new Date();
+
+  // Pasar a fase 2
+  document.getElementById('mt-fase-seleccion').style.display = 'none';
+  document.getElementById('mt-actividad-lbl').textContent = '⚡ ' + tarea;
+  document.getElementById('mt-timer-display').textContent = '00:00';
+  document.getElementById('mt-fase-curso').style.display = '';
+
+  // Iniciar ticker
+  _mtTimerInterval = setInterval(() => {
+    const seg = Math.floor((Date.now() - _mtHoraInicio.getTime()) / 1000);
+    const mm  = String(Math.floor(seg / 60)).padStart(2,'0');
+    const ss  = String(seg % 60).padStart(2,'0');
+    document.getElementById('mt-timer-display').textContent = mm + ':' + ss;
+  }, 1000);
+}
+
+async function finalizarMultitarea(){
+  if (_mtTimerInterval) { clearInterval(_mtTimerInterval); _mtTimerInterval = null; }
+  const horaFin   = new Date();
+  const segTotales = Math.floor((horaFin.getTime() - _mtHoraInicio.getTime()) / 1000);
+  const mm = String(Math.floor(segTotales / 60)).padStart(2,'0');
+  const ss = String(segTotales % 60).padStart(2,'0');
+  const duracion  = mm + ':' + ss;
+  const reg = {
+    tarea:      _mtTareaLabel,
+    mecanico:   mecanicoActual || '',
+    horaInicio: _mtHoraInicio.toISOString(),
+    horaFin:    horaFin.toISOString(),
+    duracion,
+    observaciones: ''
+  };
   try {
     const r = await fetch(`${API}/api/multitareas`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(reg) });
     const data = await r.json();
-    if (data.success) { showToast('✅ Multitarea registrada','success'); cerrarModalMultitarea(); await loadMultitareas(); }
-    else { errEl.textContent = data.error || 'Error al guardar'; }
-  } catch(e){ errEl.textContent = 'Error de conexión'; }
+    if (data.success) {
+      showToast(`✅ Multitarea finalizada — ${duracion}`, 'success');
+      cerrarModalMultitarea();
+      await loadMultitareas();
+    } else {
+      showToast(data.error || 'Error al guardar','danger');
+    }
+  } catch(e){ showToast('Error de conexión','danger'); }
 }
 
 // Tipos de multitarea (solo ADMINISTRADOR)
@@ -3009,13 +3117,18 @@ function renderMultitareas(){
   if (!tbody) return;
   const rows = getMultiFiltrados();
   if (!rows.length) { tbody.innerHTML = '<tr><td colspan="5"><div style="text-align:center;padding:24px;color:#64748b;font-style:italic;"><div style="font-size:28px;margin-bottom:6px;">⚡</div><div>No hay multitareas registradas</div></div></td></tr>'; return; }
-  tbody.innerHTML = rows.map(r => `<tr>
-    <td>${r.fecha||'—'}</td>
-    <td>${r.fechaHora ? new Date(r.fechaHora).toLocaleTimeString('es-CO') : (r.hora||'—')}</td>
-    <td>${r.mecanico||'—'}</td>
-    <td>${r.tarea||'—'}</td>
-    <td>${r.observaciones||'—'}</td>
-  </tr>`).join('');
+  tbody.innerHTML = rows.map(r => {
+    const horaIni = r.horaInicio
+      ? new Date(r.horaInicio).toLocaleTimeString('es-CO', {hour:'2-digit',minute:'2-digit'})
+      : (r.hora||'—');
+    return `<tr>
+      <td>${r.fecha||'—'}</td>
+      <td>${horaIni}</td>
+      <td style="font-weight:700;color:#7c3aed;">${r.duracion||'—'}</td>
+      <td>${r.mecanico||'—'}</td>
+      <td>${r.tarea||'—'}</td>
+    </tr>`;
+  }).join('');
 }
 function getTodosFiltrados() {
   const desde = document.getElementById('todos-fecha-desde')?.value || '';
@@ -3263,13 +3376,11 @@ function confirmarLoginMant() {
   // Mostrar/ocultar elementos según rol
   const badge   = document.getElementById('mant-user-badge');
   const lbl     = document.getElementById('mant-user-label');
-  const nav     = document.getElementById('millar-nav-wrap');
   const expMant = document.getElementById('btn-export-mant');
   const expAlist= document.getElementById('btn-export-alist');
 
   if (badge)    { badge.style.display = 'flex'; }
   if (lbl)      { lbl.textContent = esAdmin ? '👤 ADMINISTRADOR' : '🔧 ' + val; }
-  if (nav)      { nav.style.display = ''; }
   if (expMant)  { expMant.style.display = esAdmin ? '' : 'none'; }
   if (expAlist) { expAlist.style.display = esAdmin ? '' : 'none'; }
 
@@ -3320,9 +3431,7 @@ function cerrarSesionMant() {
   const lbl = document.getElementById('mant-user-label');
   if (lbl) lbl.textContent = '';
 
-  // Ocultar nav y exportar
-  const nav = document.getElementById('millar-nav-wrap');
-  if (nav) nav.style.display = 'none';
+  // Ocultar exportar
   const expMant = document.getElementById('btn-export-mant');
   if (expMant) expMant.style.display = 'none';
   const expAlist = document.getElementById('btn-export-alist');
@@ -3880,6 +3989,7 @@ async function loadTareas() {
 function estadoTareaBadge(e) {
   if (e === 'pendiente')  return '<span style="padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;background:#fef9c3;color:#a16207;">⏳ Pendiente</span>';
   if (e === 'en_proceso') return '<span style="padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;background:#dbeafe;color:#1e40af;">🔧 En proceso</span>';
+  if (e === 'detenida')   return '<span style="padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;background:#fee2e2;color:#b91c1c;">⏸ Detenida</span>';
   if (e === 'finalizada') return '<span style="padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;background:#dcfce7;color:#15803d;">✅ Finalizada</span>';
   return e;
 }
@@ -3999,33 +4109,54 @@ function actualizarBadgePendientes() {
   if (btn)   btn.style.display = 'flex';
 }
 
+function botonesEstadoTarea(t) {
+  const desc = (t.descripcion||'').replace(/'/g,'').substring(0,60);
+  const BTN  = 'padding:7px 14px;border-radius:8px;border:none;font-size:12px;font-weight:700;cursor:pointer;width:100%;margin-top:4px;';
+  if (t.estado === 'pendiente') return `
+    <button onclick="cambiarEstadoTarea('${t.id}','en_proceso')" style="${BTN}background:#2563eb;color:#fff;">▶ Iniciar</button>`;
+  if (t.estado === 'en_proceso') return `
+    <button onclick="cambiarEstadoTarea('${t.id}','detenida')"  style="${BTN}background:#f59e0b;color:#fff;">⏸ Detener</button>
+    <button onclick="abrirFinalizarTarea('${t.id}','${desc}')"  style="${BTN}background:#22c55e;color:#fff;">✅ Finalizar</button>`;
+  if (t.estado === 'detenida') return `
+    <button onclick="cambiarEstadoTarea('${t.id}','en_proceso')" style="${BTN}background:#2563eb;color:#fff;">▶ Reanudar</button>
+    <button onclick="abrirFinalizarTarea('${t.id}','${desc}')"   style="${BTN}background:#22c55e;color:#fff;">✅ Finalizar</button>`;
+  return '';
+}
+
+function bgTarjeta(estado) {
+  if (estado === 'en_proceso') return '#eff6ff';
+  if (estado === 'detenida')   return '#fff1f2';
+  return '#fffbeb';
+}
+
 function abrirPendientesMecanico() {
-  const mis = tareas.filter(t => t.mecanico === mecanicoActual && t.estado !== 'finalizada');
+  const mis  = tareas.filter(t => t.mecanico === mecanicoActual && t.estado !== 'finalizada');
   const sub  = document.getElementById('pendientes-subtitulo');
   const lista = document.getElementById('pendientes-lista');
-  if (sub)  sub.textContent = mis.length ? `${mis.length} tarea(s) asignada(s)` : 'Sin tareas pendientes';
-  if (lista) {
-    if (!mis.length) {
-      lista.innerHTML = '<div style="text-align:center;padding:24px;color:#64748b;font-style:italic;">No tienes tareas pendientes 🎉</div>';
-    } else {
-      lista.innerHTML = mis.map(t => `
-        <div style="border:1.5px solid #e2e8f0;border-radius:12px;padding:14px 16px;background:#fffbeb;">
-          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
-            <div style="flex:1;">
-              <div style="font-size:14px;font-weight:700;color:#1e293b;margin-bottom:4px;">${t.descripcion}</div>
-              ${t.maquina?`<div style="font-size:12px;color:#64748b;">🔧 ${t.maquina}</div>`:''}
-              ${t.ppp?`<div style="font-size:12px;color:#64748b;">PPP: ${t.ppp}</div>`:''}
-              ${t.tipoAguja?`<div style="font-size:12px;color:#64748b;">Aguja: ${t.tipoAguja}</div>`:''}
-              ${t.observaciones?`<div style="font-size:12px;color:#475569;margin-top:4px;font-style:italic;">${t.observaciones}</div>`:''}
-              <div style="font-size:11px;color:#94a3b8;margin-top:6px;">Asignada: ${t.fechaAsignada?t.fechaAsignada.split('T')[0]:'—'}</div>
+  if (sub) sub.textContent = mis.length ? `${mis.length} tarea(s) asignada(s)` : 'Sin tareas pendientes';
+  if (!lista) { document.getElementById('modalPendientesMec').style.display = 'flex'; return; }
+  if (!mis.length) {
+    lista.innerHTML = '<div style="text-align:center;padding:24px;color:#64748b;font-style:italic;">No tienes tareas pendientes 🎉</div>';
+  } else {
+    lista.innerHTML = mis.map(t => `
+      <div style="border:1.5px solid #e2e8f0;border-radius:12px;padding:14px 16px;background:${bgTarjeta(t.estado)};margin-bottom:10px;">
+        <div style="display:flex;align-items:flex-start;gap:10px;">
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+              ${estadoTareaBadge(t.estado)}
             </div>
-            <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
-              ${t.estado==='pendiente'?`<button onclick="cambiarEstadoTarea('${t.id}','en_proceso')" style="padding:6px 12px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-size:12px;font-weight:700;cursor:pointer;">▶ Iniciar</button>`:''}
-              <button onclick="abrirFinalizarTarea('${t.id}','${(t.descripcion||'').replace(/'/g,'').substring(0,60)}')" style="padding:6px 12px;border-radius:8px;border:none;background:#22c55e;color:#fff;font-size:12px;font-weight:700;cursor:pointer;">✅ Finalizar</button>
-            </div>
+            <div style="font-size:14px;font-weight:700;color:#1e293b;margin-bottom:4px;">${t.descripcion}</div>
+            ${t.maquina    ? `<div style="font-size:12px;color:#64748b;">🔧 ${t.maquina}</div>`   : ''}
+            ${t.ppp        ? `<div style="font-size:12px;color:#64748b;">PPP: ${t.ppp}</div>`      : ''}
+            ${t.tipoAguja  ? `<div style="font-size:12px;color:#64748b;">Aguja: ${t.tipoAguja}</div>` : ''}
+            ${t.observaciones ? `<div style="font-size:12px;color:#475569;margin-top:4px;font-style:italic;">${t.observaciones}</div>` : ''}
+            <div style="font-size:11px;color:#94a3b8;margin-top:6px;">📅 Asignada: ${t.fechaAsignada ? t.fechaAsignada.split('T')[0] : '—'}</div>
           </div>
-        </div>`).join('');
-    }
+          <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;min-width:110px;">
+            ${botonesEstadoTarea(t)}
+          </div>
+        </div>
+      </div>`).join('');
   }
   document.getElementById('modalPendientesMec').style.display = 'flex';
 }
