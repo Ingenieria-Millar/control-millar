@@ -340,10 +340,6 @@ tr:hover td{background:#f8fafc;}
     </div>
   </div>
   <div class="hd-right">
-    <!-- Botón pendientes — mecánicos (no admin) -->
-    <button id="btn-pendientes-mec" onclick="abrirPendientesMecanico()" style="display:none;position:relative;padding:7px 14px;border-radius:8px;border:1.5px solid #f59e0b;background:#fffbeb;color:#92400e;font-size:12px;font-weight:700;cursor:pointer;gap:6px;align-items:center;">
-      📌 Pendientes <span id="badge-pendientes" style="background:#ef4444;color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;margin-left:4px;display:none;">0</span>
-    </button>
     <!-- Botón config (engrane) — solo admin -->
     <button id="btn-cfg-mmt" onclick="abrirConfigMmt()" style="display:none;padding:7px 12px;border-radius:8px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#475569;font-size:16px;cursor:pointer;" title="Configuraciones">⚙️</button>
     <!-- Badge usuario — solo visible después del login -->
@@ -361,6 +357,9 @@ tr:hover td{background:#f8fafc;}
   <div class="nav-tab"        id="tab-alistamiento"   onclick="switchSection('alistamiento')">⚙️ Alistamiento</div>
   <div class="nav-tab mant"   id="tab-mantenimiento"  onclick="switchSection('mantenimiento')">🔧 Mantenimiento</div>
   <div class="nav-tab"        id="tab-multitarea"     onclick="switchSection('multitarea')">⚡ Multitareas</div>
+  <div id="btn-pendientes-mec" onclick="abrirPendientesMecanico()" style="display:none;cursor:pointer;padding:8px 14px;font-size:13px;font-weight:700;color:#92400e;background:#fffbeb;border-top:3px solid #f59e0b;align-items:center;gap:6px;white-space:nowrap;">
+    📌 Pendientes <span id="badge-pendientes" style="background:#ef4444;color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;margin-left:2px;display:none;">0</span>
+  </div>
   <div class="nav-tab"        id="tab-tareas"         onclick="switchSection('tareas')" style="display:none;">📌 Tareas</div>
   <div class="nav-tab"        id="tab-dashboard"      onclick="switchSection('dashboard-mmt')" style="display:none;">📊 Dashboard</div>
 </nav>
@@ -1010,7 +1009,7 @@ tr:hover td{background:#f8fafc;}
           <!-- Ficha + Muestra -->
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding-bottom:18px;">
             <div style="display:flex;flex-direction:column;gap:8px;">
-              <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;">Ficha Técnica</label>
+              <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;">Ficha Técnica <span style="color:#e24b4a;">*</span></label>
               <div class="radio-group">
                 <span class="radio-btn" data-group="fichaTecnica" data-value="Sí" onclick="selectRadio(this,'fichaTecnica','hiddenFicha')">Sí</span>
                 <span class="radio-btn" data-group="fichaTecnica" data-value="No" onclick="selectRadio(this,'fichaTecnica','hiddenFicha')">No</span>
@@ -1018,7 +1017,7 @@ tr:hover td{background:#f8fafc;}
               <input type="hidden" name="fichaTecnica" id="hiddenFicha">
             </div>
             <div style="display:flex;flex-direction:column;gap:8px;">
-              <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;">Muestra Física</label>
+              <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;">Muestra Física <span style="color:#e24b4a;">*</span></label>
               <div class="radio-group">
                 <span class="radio-btn" data-group="muestraFisica" data-value="Sí" onclick="selectRadio(this,'muestraFisica','hiddenMuestra')">Sí</span>
                 <span class="radio-btn" data-group="muestraFisica" data-value="No" onclick="selectRadio(this,'muestraFisica','hiddenMuestra')">No</span>
@@ -1029,7 +1028,7 @@ tr:hover td{background:#f8fafc;}
 
           <!-- Prueba Costura -->
           <div style="display:flex;flex-direction:column;gap:8px;padding-bottom:18px;">
-            <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;">Prueba de Costura</label>
+            <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;">Prueba de Costura <span style="color:#e24b4a;">*</span></label>
             <div class="radio-group">
               <span class="radio-btn" data-group="prueba" data-value="Aprobada" onclick="selectRadio(this,'prueba','hiddenPrueba','success');togglePruebaResp()">✅ Sí</span>
               <span class="radio-btn" data-group="prueba" data-value="Rechazada" onclick="selectRadio(this,'prueba','hiddenPrueba','danger');togglePruebaResp()">❌ No</span>
@@ -1049,8 +1048,43 @@ tr:hover td{background:#f8fafc;}
 
           <!-- Observaciones -->
           <div style="display:flex;flex-direction:column;gap:6px;padding-bottom:18px;">
-            <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;">Observaciones</label>
-            <textarea class="form-textarea" name="observaciones"></textarea>
+            <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between;">
+              Observaciones
+              <button type="button" id="btn-mic-alist" onclick="toggleMic('alistObs','btn-mic-alist')"
+                style="background:none;border:1.5px solid #e2e8f0;border-radius:8px;padding:3px 10px;cursor:pointer;font-size:14px;color:#64748b;display:flex;align-items:center;gap:4px;transition:all .2s;"
+                title="Dictar texto">🎙️ <span style="font-size:11px;font-weight:700;letter-spacing:.5px;">DICTAR</span></button>
+            </label>
+            <textarea class="form-textarea" name="observaciones" id="alistObs" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()"></textarea>
+          </div>
+
+          <!-- Estado del trabajo -->
+          <div style="border-top:1.5px solid #e2e8f0;margin-bottom:18px;"></div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:18px;">
+            <div style="width:3px;height:18px;background:#1e3a8a;border-radius:2px;"></div>
+            <span style="font-size:12px;font-weight:700;color:#1e3a8a;letter-spacing:1px;text-transform:uppercase;">Estado del Trabajo</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;padding-bottom:18px;">
+            <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;">¿Cómo quedó? <span style="color:#e24b4a;">*</span></label>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <span class="radio-btn" data-group="estadoAlist" data-value="Terminado"
+                onclick="selectRadio(this,'estadoAlist','hiddenEstadoAlist','teal');toggleEstadoNotaAlist()"
+                style="flex:1;min-width:120px;text-align:center;">✅ Terminado</span>
+              <span class="radio-btn" data-group="estadoAlist" data-value="Pendiente"
+                onclick="selectRadio(this,'estadoAlist','hiddenEstadoAlist','warning');toggleEstadoNotaAlist()"
+                style="flex:1;min-width:120px;text-align:center;">⏳ Pendiente</span>
+            </div>
+            <input type="hidden" name="estadoAlistamiento" id="hiddenEstadoAlist">
+          </div>
+          <div id="alist-estado-nota-wrap" style="display:none;flex-direction:column;gap:6px;padding-bottom:18px;">
+            <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between;">
+              ¿Por qué quedó pendiente? <span style="color:#e24b4a;">*</span>
+              <button type="button" id="btn-mic-alist-pend" onclick="toggleMic('alistEstadoNota','btn-mic-alist-pend')"
+                style="background:none;border:1.5px solid #e2e8f0;border-radius:8px;padding:3px 10px;cursor:pointer;font-size:14px;color:#64748b;display:flex;align-items:center;gap:4px;"
+                title="Dictar texto">🎙️ <span style="font-size:11px;font-weight:700;letter-spacing:.5px;">DICTAR</span></button>
+            </label>
+            <textarea class="form-textarea" name="notaEstadoAlist" id="alistEstadoNota"
+              placeholder="DESCRIBE POR QUÉ QUEDÓ PENDIENTE..."
+              style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()"></textarea>
           </div>
 
           <!-- Fotos -->
@@ -1652,11 +1686,11 @@ function toggleMic(textareaId, btnId){
 
   const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
   _micRecognition = new SpeechRec();
-  _micRecognition.lang      = 'es-CO';
-  _micRecognition.continuous    = true;
-  _micRecognition.interimResults = true;
+  _micRecognition.lang           = 'es-CO';
+  _micRecognition.continuous     = false;  // para después de cada frase, sin repetición
+  _micRecognition.interimResults = false;  // solo resultados finales, sin repetición
 
-  let textoBase = textarea.value;
+  const toUp = textarea.style.textTransform === 'uppercase';
 
   _micRecognition.onstart = () => {
     _micActive = true;
@@ -1665,20 +1699,13 @@ function toggleMic(textareaId, btnId){
     btn.querySelector('span').textContent = 'GRABANDO';
   };
 
-  const toUp = textarea.style.textTransform === 'uppercase';
+  let _yaProcess = false;
   _micRecognition.onresult = (e) => {
-    // Solo procesar el resultado nuevo en e.resultIndex — evita repetición
-    // en Chrome Android donde e.results no acumula y e.resultIndex es siempre 0
-    const result = e.results[e.resultIndex];
-    if (!result) return;
-    const texto = result[0].transcript;
-    if (result.isFinal) {
-      textoBase += (textoBase ? ' ' : '') + (toUp ? texto.toUpperCase() : texto);
-      textarea.value = textoBase;
-    } else {
-      // Preview del interim — no modifica textoBase
-      textarea.value = textoBase + (texto ? ' ' + (toUp ? texto.toUpperCase() : texto) : '');
-    }
+    if (_yaProcess) return;  // Chrome Android dispara onresult varias veces — ignorar duplicados
+    _yaProcess = true;
+    const texto = e.results[0][0].transcript;
+    const actual = textarea.value;
+    textarea.value = actual + (actual ? ' ' : '') + (toUp ? texto.toUpperCase() : texto);
   };
 
   _micRecognition.onerror = () => { _micRecognition.stop(); };
@@ -1752,6 +1779,20 @@ function toggleEstadoNota(){
   const v = (document.getElementById('hiddenEstadoMant')||{}).value;
   if (v === 'Pendiente') {
     wrap.style.display = '';
+    if (ta) ta.placeholder = 'DESCRIBE POR QUÉ QUEDÓ PENDIENTE...';
+  } else {
+    wrap.style.display = 'none';
+    if (ta) ta.value = '';
+  }
+}
+
+function toggleEstadoNotaAlist(){
+  const wrap = document.getElementById('alist-estado-nota-wrap');
+  const ta   = document.getElementById('alistEstadoNota');
+  if (!wrap) return;
+  const v = (document.getElementById('hiddenEstadoAlist')||{}).value;
+  if (v === 'Pendiente') {
+    wrap.style.display = 'flex';
     if (ta) ta.placeholder = 'DESCRIBE POR QUÉ QUEDÓ PENDIENTE...';
   } else {
     wrap.style.display = 'none';
@@ -2539,6 +2580,16 @@ async function guardarAlistamiento(e) {
   if (!formData.get('supervisor')) { showToast('Selecciona una supervisora','error'); return; }
   if (!formData.get('tipoMaquina')) { showToast('Selecciona el tipo de máquina','error'); return; }
   if (!formData.get('serial')) { showToast('Ingresa el serial','error'); return; }
+  // Verificación obligatoria
+  if (!formData.get('fichaTecnica')) { showToast('Selecciona si hay Ficha Técnica','error'); return; }
+  if (!formData.get('muestraFisica')) { showToast('Selecciona si hay Muestra Física','error'); return; }
+  if (!formData.get('pruebaCostura')) { showToast('Selecciona el resultado de la Prueba de Costura','error'); return; }
+  // Estado del trabajo
+  const _estadoAlist = formData.get('estadoAlistamiento');
+  if (!_estadoAlist) { showToast('Selecciona el estado del trabajo (Terminado o Pendiente)','error'); return; }
+  if (_estadoAlist === 'Pendiente' && !(formData.get('notaEstadoAlist')||'').trim()) {
+    showToast('Describe por qué quedó pendiente (obligatorio)','error'); return;
+  }
 
   // Fotos — eliminar campo duplicado del form
   formData.delete('fotos');
@@ -2554,9 +2605,22 @@ async function guardarAlistamiento(e) {
     const r = await fetch(url, { method, body: formData });
     const data = await r.json();
     if (data.success) {
-      // Confirmación visual con resumen
-      const resumen = `✅ Alistamiento guardado\n🔧 ${formData.get('mecanico')||mecanicoActual} — Módulo ${formData.get('modulo')||''} — ${formData.get('tipoMaquina')||''}`;
-      showToast(resumen, 'success');
+      if (_estadoAlist === 'Pendiente') {
+        const _mec  = formData.get('mecanico') || mecanicoActual || '';
+        const _maq  = formData.get('tipoMaquina') || '';
+        const _ser  = formData.get('serial') || '';
+        const _nota = formData.get('notaEstadoAlist') || '';
+        const _desc = `⚙️ Alist. pendiente: ${_maq}${_ser?' ('+_ser+')':''} — ${_nota}`.substring(0,200);
+        try {
+          await fetch(`${API}/api/tareas`, { method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ mecanico:_mec, descripcion:_desc, maquina:_maq, observaciones:_nota, asignadoPor:'Sistema' }) });
+          await loadTareas();
+        } catch(e) {}
+        showToast('⚠️ Alistamiento guardado — tarea pendiente creada','warning');
+      } else {
+        const resumen = `✅ Alistamiento guardado\n🔧 ${formData.get('mecanico')||mecanicoActual} — Módulo ${formData.get('modulo')||''} — ${formData.get('tipoMaquina')||''}`;
+        showToast(resumen, 'success');
+      }
       cerrarModal('modalAlistamiento');
       form.reset();
       form.dataset.editId = '';
