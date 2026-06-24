@@ -1198,7 +1198,12 @@ tr:hover td{background:#f8fafc;}
             <input type="hidden" name="estadoMantenimiento" id="hiddenEstadoMant">
           </div>
           <div class="form-group" id="estado-nota-wrap" style="display:none;">
-            <label class="form-label" id="estado-nota-label">¿Por qué quedó pendiente? <span class="required">*</span></label>
+            <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;">
+              ¿Por qué quedó pendiente? <span class="required">*</span>
+              <button type="button" id="btn-mic-pendiente" onclick="toggleMic('estadoNota','btn-mic-pendiente')"
+                style="background:none;border:1.5px solid #e2e8f0;border-radius:8px;padding:3px 10px;cursor:pointer;font-size:14px;color:#64748b;display:flex;align-items:center;gap:4px;transition:all .2s;"
+                title="Dictar texto">🎙️ <span style="font-size:11px;font-weight:700;letter-spacing:.5px;">DICTAR</span></button>
+            </label>
             <textarea class="form-textarea" name="notaEstado" id="estadoNota" placeholder="DESCRIBE POR QUÉ QUEDÓ PENDIENTE..." style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()"></textarea>
           </div>
         </div>
@@ -1651,7 +1656,8 @@ function toggleMic(textareaId, btnId){
   _micRecognition.continuous    = true;
   _micRecognition.interimResults = true;
 
-  let textoBase = textarea.value;
+  let textoBase       = textarea.value;
+  let _lastFinalIdx   = 0;  // rastrear qué resultados ya se procesaron
 
   _micRecognition.onstart = () => {
     _micActive = true;
@@ -1664,9 +1670,13 @@ function toggleMic(textareaId, btnId){
   _micRecognition.onresult = (e) => {
     let interim = '';
     let final   = '';
-    for (let i = e.resultIndex; i < e.results.length; i++) {
-      if (e.results[i].isFinal) final   += e.results[i][0].transcript;
-      else                       interim += e.results[i][0].transcript;
+    for (let i = _lastFinalIdx; i < e.results.length; i++) {
+      if (e.results[i].isFinal) {
+        final += e.results[i][0].transcript;
+        _lastFinalIdx = i + 1;  // marcar como procesado, no repetir
+      } else {
+        interim += e.results[i][0].transcript;
+      }
     }
     if (final) textoBase += (textoBase ? ' ' : '') + (toUp ? final.toUpperCase() : final);
     textarea.value = textoBase + (interim ? ' ' + (toUp ? interim.toUpperCase() : interim) : '');
@@ -2088,24 +2098,24 @@ function imprimirMantenimiento(id) {
     <tr><td colspan="4" style="padding:10px 12px;background:#1e3a8a;color:#fff;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;border:1px solid #1e3a8a;">${titulo}</td></tr>`;
 
   const fotosHTML = r.fotos && r.fotos.length
-    ? r.fotos.map(f => `<img src="${buildFotoUrl(f)}" style="width:150px;height:110px;object-fit:cover;border-radius:6px;border:1px solid #e2e8f0;margin:4px;" onerror="this.style.display='none'">`).join('')
-    : '<p style="color:#94a3b8;font-size:12px;font-style:italic;">Sin fotos de evidencia</p>';
+    ? r.fotos.map(f => `<img src="${buildFotoUrl(f)}" style="width:110px;height:80px;object-fit:cover;border-radius:4px;border:1px solid #e2e8f0;margin:3px;" onerror="this.style.display='none'">`).join('')
+    : '<p style="color:#94a3b8;font-size:11px;font-style:italic;">Sin fotos de evidencia</p>';
 
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
   <title>Mantenimiento - ${r.mecanico||''} - ${r.tipoMaquina||''}</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0;}
-    body{font-family:'Segoe UI',Arial,sans-serif;padding:24px;color:#0f172a;background:#fff;}
-    .header{display:flex;align-items:flex-start;justify-content:space-between;border-bottom:3px solid #1e3a8a;padding-bottom:14px;margin-bottom:20px;}
-    table{width:100%;border-collapse:collapse;margin-bottom:16px;}
-    .fotos{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
-    .footer{margin-top:20px;border-top:1px solid #e2e8f0;padding-top:12px;font-size:10px;color:#94a3b8;text-align:center;}
-    @media print{body{padding:12px;}@page{margin:1cm;}}
+    body{font-family:'Segoe UI',Arial,sans-serif;padding:14px 16px 50px;color:#0f172a;background:#fff;font-size:11px;}
+    .header{display:flex;align-items:flex-start;justify-content:space-between;border-bottom:2px solid #1e3a8a;padding-bottom:8px;margin-bottom:10px;}
+    table{width:100%;border-collapse:collapse;margin-bottom:8px;}
+    .fotos{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;}
+    .footer{position:fixed;bottom:0;left:0;right:0;border-top:1px solid #e2e8f0;padding:5px 16px;font-size:9px;color:#94a3b8;text-align:center;background:#fff;}
+    @media print{body{padding:10px 12px 40px;}@page{margin:0.6cm;size:A4;}}
   </style></head><body>
   <div class="header">
     <div>
-      <div style="font-size:20px;font-weight:700;color:#1e3a8a;">Tarjeta de Mantenimiento</div>
-      <div style="font-size:11px;color:#64748b;margin-top:4px;">Generado: ${new Date().toLocaleString('es-CO')}</div>
+      <div style="font-size:16px;font-weight:700;color:#1e3a8a;">Tarjeta de Mantenimiento</div>
+      <div style="font-size:10px;color:#64748b;margin-top:2px;">Generado: ${new Date().toLocaleString('es-CO')}</div>
     </div>
     <div>${badge}</div>
   </div>
@@ -2121,10 +2131,10 @@ function imprimirMantenimiento(id) {
     ${fila('Código', getMaqCodigo(r.serial, r.tipoMaquina), 'Guía', r.numeroGuia)}
     ${fila('Repuestos', r.repuestos, '', '')}
   </table>
-  ${r.observaciones ? `<table>${seccion('Observaciones')}<tr><td colspan="4" style="padding:10px 12px;border:1px solid #e2e8f0;font-size:13px;">${r.observaciones}</td></tr></table>` : ''}
+  ${r.observaciones ? `<table>${seccion('Observaciones')}<tr><td colspan="4" style="padding:6px 10px;border:1px solid #e2e8f0;font-size:11px;">${r.observaciones}</td></tr></table>` : ''}
   <table>
     ${seccion('Fotos de Evidencia')}
-    <tr><td colspan="4" style="padding:12px;border:1px solid #e2e8f0;">
+    <tr><td colspan="4" style="padding:8px;border:1px solid #e2e8f0;">
       <div class="fotos">${fotosHTML}</div>
     </td></tr>
   </table>
