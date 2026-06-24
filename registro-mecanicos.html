@@ -1090,10 +1090,18 @@ tr:hover td{background:#f8fafc;}
           <!-- Fotos -->
           <div style="display:flex;flex-direction:column;gap:8px;">
             <label style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.5px;text-transform:uppercase;">Fotos de Evidencia</label>
-            <div class="photo-area" onclick="document.getElementById('fotosAlist').click()">
-              📷 Toca para adjuntar fotos desde cámara o galería
-              <input type="file" id="fotosAlist" name="fotos" multiple accept="image/*" style="display:none" onchange="previewFotos(this,'previewAlist')">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button type="button" onclick="document.getElementById('fotosAlist-cam').click()"
+                style="flex:1;min-width:130px;padding:12px;border-radius:10px;border:1.5px solid #cbd5e1;background:#f8fafc;color:#334155;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+                📷 Tomar foto
+              </button>
+              <button type="button" onclick="document.getElementById('fotosAlist-gal').click()"
+                style="flex:1;min-width:130px;padding:12px;border-radius:10px;border:1.5px solid #cbd5e1;background:#f8fafc;color:#334155;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+                🖼️ Desde galería
+              </button>
             </div>
+            <input type="file" id="fotosAlist-cam" accept="image/*" capture="environment" style="display:none" onchange="agregarFotosAlist(this)">
+            <input type="file" id="fotosAlist-gal" accept="image/*" multiple style="display:none" onchange="agregarFotosAlist(this)">
             <div class="photo-previews" id="previewAlist"></div>
           </div>
 
@@ -2591,12 +2599,9 @@ async function guardarAlistamiento(e) {
     showToast('Describe por qué quedó pendiente (obligatorio)','error'); return;
   }
 
-  // Fotos — eliminar campo duplicado del form
+  // Fotos
   formData.delete('fotos');
-  const fotosInput = document.getElementById('fotosAlist');
-  if (fotosInput && fotosInput.files.length) {
-    Array.from(fotosInput.files).forEach(f => formData.append('fotos', f));
-  }
+  _alistFotosFiles.slice(0, 10).forEach(f => formData.append('fotos', f));
 
   try {
     const editId = form.dataset.editId;
@@ -2624,6 +2629,7 @@ async function guardarAlistamiento(e) {
       cerrarModal('modalAlistamiento');
       form.reset();
       form.dataset.editId = '';
+      _alistFotosFiles = [];
       resetRadios();
       await loadAlistamientos();
       renderAlistamientos(getAlistFiltrados());
@@ -2638,6 +2644,26 @@ async function guardarAlistamiento(e) {
 // ===== GUARDAR MANTENIMIENTO =====
 // Array para rastrear archivos seleccionados (permite eliminar antes de guardar)
 let _mantFotosFiles = [];
+
+let _alistFotosFiles = [];
+
+function agregarFotosAlist(input) {
+  _alistFotosFiles = _alistFotosFiles.concat(Array.from(input.files));
+  input.value = '';
+  const container = document.getElementById('previewAlist');
+  container.innerHTML = '';
+  _alistFotosFiles.forEach((file, i) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const d = document.createElement('div');
+      d.className = 'photo-preview';
+      d.dataset.idx = i;
+      d.innerHTML = `<img src="${e.target.result}"><button class="photo-remove" onclick="removePhoto(this,'fotosAlist','previewAlist')">✕</button>`;
+      container.appendChild(d);
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 function agregarFotosMant(input) {
   const nuevos = Array.from(input.files);
@@ -2682,13 +2708,12 @@ function previewFotos(input, previewId) {
 function removePhoto(btn, inputId, previewId) {
   const div = btn.closest('.photo-preview');
   const idx = parseInt(div.dataset.idx);
-  if (inputId === 'fotosMant') {
-    _mantFotosFiles.splice(idx, 1);
-    // Reconstruir input files no es posible directamente, usamos _mantFotosFiles
-    // Re-renderizar preview
+  const arr = inputId === 'fotosMant' ? _mantFotosFiles : inputId === 'fotosAlist' ? _alistFotosFiles : null;
+  if (arr) {
+    arr.splice(idx, 1);
     const container = document.getElementById(previewId);
     container.innerHTML = '';
-    _mantFotosFiles.forEach((file, i) => {
+    arr.forEach((file, i) => {
       const reader = new FileReader();
       reader.onload = e => {
         const d = document.createElement('div');
