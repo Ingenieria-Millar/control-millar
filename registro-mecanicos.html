@@ -430,11 +430,14 @@ tr:hover td{background:#f8fafc;}
       <div style="width:100%;">
         <table style="width:100%;table-layout:fixed;font-size:12px;">
           <thead><tr>
-            <th style="width:90px;">Fecha</th>
-            <th style="width:60px;">Hora</th>
-            <th style="width:110px;">Tipo</th>
-            <th style="width:120px;">Mecánico</th>
-            <th style="width:auto;">Módulo / Actividad</th>
+            <th style="width:85px;">Fecha</th>
+            <th style="width:105px;">Mecánico</th>
+            <th style="width:75px;">Tipo</th>
+            <th style="width:52px;">Módulo</th>
+            <th style="width:90px;">Máquina</th>
+            <th style="width:105px;">Actividad</th>
+            <th style="width:auto;">Observación</th>
+            <th style="width:55px;">Evidencia</th>
             <th style="width:90px;" id="th-todos-acciones">Acciones</th>
           </tr></thead>
           <tbody id="todos-tbody"></tbody>
@@ -479,12 +482,13 @@ tr:hover td{background:#f8fafc;}
         <div style="width:100%;">
           <table style="width:100%;table-layout:fixed;font-size:12px;">
             <thead><tr>
-              <th style="width:115px;">Mecánico</th>
-              <th style="width:60px;">Módulo</th>
-              <th style="width:115px;">Referencia</th>
-              <th style="width:100px;">Máquina</th>
-              <th style="width:100px;">Código</th>
-              <th style="width:90px;">Serial</th>
+              <th style="width:85px;">Fecha</th>
+              <th style="width:105px;">Mecánico</th>
+              <th style="width:55px;">Módulo</th>
+              <th style="width:105px;">Referencia</th>
+              <th style="width:90px;">Máquina</th>
+              <th style="width:95px;">Código</th>
+              <th style="width:85px;">Serial</th>
               <th style="width:55px;">Evidencia</th>
               <th style="width:105px;" id="th-alist-acciones" class="col-acciones-alist">Acciones</th>
             </tr></thead>
@@ -570,13 +574,14 @@ tr:hover td{background:#f8fafc;}
       <div style="width:100%;">
         <table style="width:100%;table-layout:fixed;font-size:12px;">
           <thead><tr>
-            <th style="width:90px;">Tipo</th>
-            <th style="width:110px;">Mecánico</th>
-            <th style="width:55px;">Módulo</th>
-            <th style="width:95px;">Máquina</th>
-            <th style="width:100px;">Código</th>
-            <th style="width:90px;">Serial</th>
-            <th style="width:140px;">Observación</th>
+            <th style="width:85px;">Fecha</th>
+            <th style="width:85px;">Tipo</th>
+            <th style="width:105px;">Mecánico</th>
+            <th style="width:50px;">Módulo</th>
+            <th style="width:90px;">Máquina</th>
+            <th style="width:95px;">Código</th>
+            <th style="width:85px;">Serial</th>
+            <th style="width:130px;">Observación</th>
             <th style="width:55px;">Evidencia</th>
             <th style="width:105px;" id="th-acciones" class="col-acciones-mant">Acciones</th>
           </tr></thead>
@@ -1982,7 +1987,7 @@ function renderAlistamientos(data) {
   // La columna acciones se controla por clase en switchSection
 
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="8"><div style="text-align:center;padding:24px;color:#64748b;font-style:italic;"><div style="font-size:28px;margin-bottom:6px;">⚙️</div><div>No hay registros de alistamiento</div></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9"><div style="text-align:center;padding:24px;color:#64748b;font-style:italic;"><div style="font-size:28px;margin-bottom:6px;">⚙️</div><div>No hay registros de alistamiento</div></div></td></tr>';
     renderAlistKPIs(rows);
     return;
   }
@@ -1993,7 +1998,7 @@ function renderAlistamientos(data) {
   if (thead && !document.getElementById('alist-filter-row')) {
     const filterRow = document.createElement('tr');
     filterRow.id = 'alist-filter-row';
-    const cols = ['mecanico','modulo','referencia','maquina','codigo','serial','',''];
+    const cols = ['','mecanico','modulo','referencia','maquina','codigo','serial','',''];
     filterRow.innerHTML = cols.map(function(c) {
       if (!c) return '<td style="padding:4px;"></td>';
       return '<td style="padding:4px 3px;">' +
@@ -2014,7 +2019,7 @@ function renderAlistamientos(data) {
   }
 
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="8"><div style="text-align:center;padding:24px;color:#64748b;font-style:italic;"><div style="font-size:28px;margin-bottom:6px;">⚙️</div><div>No hay registros de alistamiento</div></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9"><div style="text-align:center;padding:24px;color:#64748b;font-style:italic;"><div style="font-size:28px;margin-bottom:6px;">⚙️</div><div>No hay registros de alistamiento</div></div></td></tr>';
     renderAlistKPIs(rows);
     return;
   }
@@ -2029,6 +2034,7 @@ function renderAlistamientos(data) {
         '<button class="btn btn-danger" style="padding:4px 6px;font-size:12px;" onclick="eliminar(\'alistamientos\',\'' + r.id + '\')">&#128465;&#65039;</button>'
       : '<span style="color:#94a3b8;">&#8212;</span>';
     return '<tr>' +
+      '<td style="' + TD + 'white-space:nowrap;">' + (r.fecha||'—') + '</td>' +
       '<td style="' + TD + '">' + (r.mecanico||'-') + '</td>' +
       '<td style="' + TD + 'font-weight:700;text-align:center;">' + (r.modulo||'-') + '</td>' +
       '<td style="' + TD + '">' + (r.referencia||'-') + '</td>' +
@@ -2070,7 +2076,7 @@ function renderMantenimientos(data) {
   if (theadMant && !document.getElementById('mant-filter-row')) {
     const filterRow = document.createElement('tr');
     filterRow.id = 'mant-filter-row';
-    const cols = ['tipo','mecanico','modulo','maquina','codigo','serial','','',''];
+    const cols = ['','tipo','mecanico','modulo','maquina','codigo','serial','','',''];
     filterRow.innerHTML = cols.map(function(c) {
       if (!c) return '<td style="padding:4px;"></td>';
       return '<td style="padding:4px 3px;">' +
@@ -2084,7 +2090,7 @@ function renderMantenimientos(data) {
   }
 
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="9"><div style="text-align:center;padding:24px;color:#64748b;font-style:italic;"><div style="font-size:28px;margin-bottom:6px;">&#128295;</div><div>No hay registros de mantenimiento</div></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10"><div style="text-align:center;padding:24px;color:#64748b;font-style:italic;"><div style="font-size:28px;margin-bottom:6px;">&#128295;</div><div>No hay registros de mantenimiento</div></div></td></tr>';
     renderMantKPIs(rows);
     return;
   }
@@ -2093,6 +2099,7 @@ function renderMantenimientos(data) {
       ? '<button class="btn" style="padding:4px 8px;font-size:14px;background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;" onclick="verFotos(\'' + r.id + '\')">&#128247;</button>'
       : '<span style="color:#94a3b8;">&#8212;</span>';
     return '<tr>' +
+      '<td style="' + TD + 'white-space:nowrap;">' + (r.fecha||'—') + '</td>' +
       '<td>' + tipoBadge(r.tipoMantenimiento) + '</td>' +
       '<td style="' + TD + '">' + (r.mecanico||'-') + '</td>' +
       '<td style="' + TD + 'text-align:center;">' + (r.modulo||'-') + '</td>' +
@@ -3328,21 +3335,25 @@ function getTodosFiltrados() {
     if (desde && (r.fecha||'') < desde) return;
     if (hasta && (r.fecha||'') > hasta) return;
     filas.push({ fecha:r.fecha||'', hora:r.hora||'', tipo:'alistamiento', mecanico:r.mecanico||'—',
-      detalle:(r.modulo?'M'+r.modulo:'')+(r.tipoMaquina?' · '+r.tipoMaquina:''), id:r.id });
+      modulo:r.modulo||'', maquina:r.tipoMaquina||'', actividad:r.referencia||'—',
+      observacion:r.observaciones||'', fotos:r.fotos||[], id:r.id });
   });
   (mantenimientos || []).forEach(r => {
     if (mecanicoActual && !esAdmin && (r.mecanico||'').toLowerCase() !== mecanicoActual.toLowerCase()) return;
     if (desde && (r.fecha||'') < desde) return;
     if (hasta && (r.fecha||'') > hasta) return;
     filas.push({ fecha:r.fecha||'', hora:r.hora||'', tipo:'mantenimiento', mecanico:r.mecanico||'—',
-      detalle:(r.tipoMantenimiento||'')+(r.modulo?' · M'+r.modulo:''), id:r.id });
+      modulo:r.modulo||'', maquina:r.tipoMaquina||'', actividad:r.tipoMantenimiento||'—',
+      observacion:r.observaciones||'', fotos:r.fotos||[], id:r.id });
   });
   (multitareas || []).forEach(r => {
     if (mecanicoActual && !esAdmin && (r.mecanico||'').toLowerCase() !== mecanicoActual.toLowerCase()) return;
     if (desde && (r.fecha||'') < desde) return;
     if (hasta && (r.fecha||'') > hasta) return;
     const hora = r.fechaHora ? new Date(r.fechaHora).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'}) : (r.hora||'');
-    filas.push({ fecha:r.fecha||'', hora, tipo:'multitarea', mecanico:r.mecanico||'—', detalle:r.tarea||'—', id:r.id });
+    filas.push({ fecha:r.fecha||'', hora, tipo:'multitarea', mecanico:r.mecanico||'—',
+      modulo:'', maquina:'', actividad:r.tarea||'—',
+      observacion:r.observaciones||'', fotos:[], id:r.id });
   });
   filas.sort((a,b) => (b.fecha+' '+b.hora).localeCompare(a.fecha+' '+a.hora));
   return filas;
@@ -3358,29 +3369,35 @@ function renderTodos() {
   const filas = getTodosFiltrados();
 
   if (!filas.length) {
-    tbody.innerHTML = '<tr><td colspan="6"><div style="text-align:center;padding:32px;color:#64748b;font-style:italic;"><div style="font-size:32px;margin-bottom:8px;">📋</div><div>No hay registros para este período</div></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9"><div style="text-align:center;padding:32px;color:#64748b;font-style:italic;"><div style="font-size:32px;margin-bottom:8px;">📋</div><div>No hay registros para este período</div></div></td></tr>';
     return;
   }
 
   const tipoBadgeTodos = t => {
-    if (t === 'alistamiento')  return '<span style="padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;background:#eff6ff;color:#1e40af;">⚙️ Alist.</span>';
-    if (t === 'mantenimiento') return '<span style="padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;background:#f0fdfa;color:#0f766e;">🔧 Mant.</span>';
-    if (t === 'multitarea')    return '<span style="padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;background:#f5f3ff;color:#5b21b6;">⚡ Multi</span>';
+    if (t === 'alistamiento')  return '<span style="padding:3px 8px;border-radius:20px;font-size:11px;font-weight:700;background:#eff6ff;color:#1e40af;">⚙️ Alist.</span>';
+    if (t === 'mantenimiento') return '<span style="padding:3px 8px;border-radius:20px;font-size:11px;font-weight:700;background:#f0fdfa;color:#0f766e;">🔧 Mant.</span>';
+    if (t === 'multitarea')    return '<span style="padding:3px 8px;border-radius:20px;font-size:11px;font-weight:700;background:#f5f3ff;color:#5b21b6;">⚡ Multi</span>';
     return t;
   };
 
   tbody.innerHTML = filas.map(f => {
+    const fotoBtn = f.fotos && f.fotos.length
+      ? `<button class="btn" style="padding:3px 7px;font-size:13px;background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;" onclick="verFotos('${f.id}')">📷</button>`
+      : '<span style="color:#94a3b8;">—</span>';
     const acciones = esAdmin ? `
       <button class="btn" style="padding:3px 7px;font-size:11px;background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;margin-right:2px;"
         onclick="editarRegistroTodos('${f.tipo}','${f.id}')">✏️</button>
       <button class="btn btn-danger" style="padding:3px 7px;font-size:11px;"
         onclick="eliminarRegistroTodos('${f.tipo}','${f.id}')">🗑️</button>` : '<span style="color:#94a3b8;">—</span>';
     return `<tr>
-      <td style="font-size:11px;">${f.fecha||'—'}</td>
-      <td style="font-size:11px;">${f.hora||'—'}</td>
-      <td>${tipoBadgeTodos(f.tipo)}</td>
+      <td style="font-size:11px;white-space:nowrap;color:#64748b;">${f.fecha||'—'}</td>
       <td style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.mecanico}</td>
-      <td style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.detalle}</td>
+      <td>${tipoBadgeTodos(f.tipo)}</td>
+      <td style="font-size:11px;font-weight:700;text-align:center;">${f.modulo||'—'}</td>
+      <td style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.maquina||'—'}</td>
+      <td style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.actividad||'—'}</td>
+      <td style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${(f.observacion||'').replace(/"/g,'&quot;')}">${f.observacion||'—'}</td>
+      <td style="text-align:center;">${fotoBtn}</td>
       <td style="white-space:nowrap;">${acciones}</td>
     </tr>`;
   }).join('');
@@ -4197,7 +4214,7 @@ function renderTareas() {
     return;
   }
   tbody.innerHTML = rows.map(t => `<tr>
-    <td style="font-size:11px;color:#64748b;">${t.fechaAsignada?t.fechaAsignada.split('T')[0]:'—'}</td>
+    <td style="font-size:11px;color:#64748b;white-space:nowrap;">${t.fechaAsignada?(t.fechaAsignada.split('T')[0]):'—'}</td>
     <td style="font-size:11px;font-weight:700;">${t.mecanico||'—'}</td>
     <td style="font-size:11px;">${t.descripcion||'—'}${t.observacionFinal?'<br><span style="color:#15803d;font-style:italic;">✅ '+t.observacionFinal+'</span>':''}</td>
     <td>${estadoTareaBadge(t.estado)}</td>
