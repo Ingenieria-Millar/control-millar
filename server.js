@@ -100,6 +100,7 @@ const FILES = {
   revision_telas: path.join(DATA_DIR, 'revision_telas.json'),
   incentivos:     path.join(DATA_DIR, 'incentivos.json'),
   users:          path.join(DATA_DIR, 'users.json'),
+  multitareas:    path.join(DATA_DIR, 'multitareas.json'),
 };
 
 // ══════════════════════════════════════════════════════════════════
@@ -1257,6 +1258,37 @@ app.put(
     } catch(e) { res.status(500).json({ error: e.message }); }
   }
 );
+
+// ── Multitareas (Registro Mecánicos) ───────────────────────────────
+app.get('/alistamiento/api/multitareas', (req, res) => {
+  let data = [...loadDB('multitareas')];
+  const { fecha, mecanico } = req.query;
+  if (fecha)    data = data.filter(r => r.fecha && r.fecha.startsWith(fecha));
+  if (mecanico) data = data.filter(r => r.mecanico === mecanico);
+  res.json(data.sort((a, b) => new Date(b.fechaHora) - new Date(a.fechaHora)));
+});
+app.post('/alistamiento/api/multitareas', (req, res) => {
+  try {
+    const missing = requireFields(req.body, ['tarea', 'mecanico']);
+    if (missing) return res.status(400).json({ error: `Campos requeridos faltantes: ${missing.join(', ')}` });
+    const data  = loadDB('multitareas');
+    const ahora = new Date();
+    const nuevo = {
+      id: uuidv4(), ...req.body,
+      fechaHora: ahora.toISOString(),
+      fecha:     ahora.toISOString().split('T')[0],
+      hora:      ahora.toTimeString().slice(0, 8)
+    };
+    data.push(nuevo);
+    saveDB('multitareas', data);
+    res.json({ success: true, data: nuevo });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+app.delete('/alistamiento/api/multitareas/:id', (req, res) => {
+  const data = loadDB('multitareas').filter(r => r.id !== req.params.id);
+  saveDB('multitareas', data);
+  res.json({ success: true });
+});
 
 // ── Mantenimientos ─────────────────────────────────────────────────
 app.get('/alistamiento/api/mantenimientos', (req, res) => {

@@ -2922,7 +2922,7 @@ function setView(v){
   }
   if(v==='grid'){
     const eb=document.getElementById('btn-excel-bar'); if(eb) eb.style.display=hasPerm('excel')?'':'none';
-    const hb=document.getElementById('btn-historico-bar'); if(hb) hb.style.display=(currentUser&&currentUser!=='Modulos'&&currentUser!=='Televisor'&&currentUser!=='Mecanicos')?'':'none';
+    const hb=document.getElementById('btn-historico-bar'); if(hb) hb.style.display=(currentUser&&currentUser!=='Modulos'&&currentUser!=='Televisor')?'':'none';
     const fb=document.getElementById('btn-fix-mec');   if(fb) fb.style.display=hasPerm('fix')  ?'':'none';
     const cb=document.getElementById('btn-cambiar-user'); if(cb) cb.style.display=isProg()?'':'none';
     renderGrid();
@@ -8101,6 +8101,11 @@ function siEnviar(){
       <span class="em-label">Mecánico</span>
       <input type="text" id="hem-mecanico" class="em-input" placeholder="Nombre mecánico">
     </div>
+    <div>
+      <span class="em-label">Contraseña para guardar</span>
+      <input type="password" id="hem-pass" class="em-input" placeholder="····" maxlength="20" onkeydown="if(event.key==='Enter')confirmarEditarRegistro()">
+      <div id="hem-pass-error" style="color:#dc2626;font-size:12px;font-weight:700;margin-top:4px;min-height:16px;"></div>
+    </div>
     <div class="em-btns">
       <button class="em-cancel" onclick="cerrarEditModal()">Cancelar</button>
       <button class="em-confirm" onclick="confirmarEditarRegistro()">Guardar cambios</button>
@@ -8272,6 +8277,8 @@ function renderHistorico(){
   // Registros individuales del historial persistido
   hist.forEach((r,idx)=>{
     if(!r.tipo || r.tipo==='green') return;
+    // Tablero mecánico: solo Espera Mecánico (rojo) y Atención Mecánico (amarillo)
+    if(window._tableroModo==='mecanicos' && r.tipo!=='red' && r.tipo!=='yellow') return;
     if(desde && r.fechaISO && r.fechaISO < desde) return;
     if(hasta  && r.fechaISO && r.fechaISO > hasta) return;
     rows.push({
@@ -8351,6 +8358,7 @@ function exportarHistoricoExcel(){
 
   hist.forEach(r=>{
     if(!r.tipo || r.tipo==='green') return;
+    if(window._tableroModo==='mecanicos' && r.tipo!=='red' && r.tipo!=='yellow') return;
     if(desde && r.fechaISO && r.fechaISO < desde) return;
     if(hasta  && r.fechaISO && r.fechaISO > hasta) return;
     const t = HST_TIPOS[r.tipo] || { label: r.tipo };
@@ -8453,6 +8461,8 @@ function abrirEditModal(histIdx){
   document.getElementById('hem-inicio').value   = r.horaInicio||'';
   document.getElementById('hem-fin').value      = r.hora||'';
   document.getElementById('hem-mecanico').value = r.mecanico||'';
+  const pe=document.getElementById('hem-pass'); if(pe) pe.value='';
+  const ee=document.getElementById('hem-pass-error'); if(ee) ee.textContent='';
   document.getElementById('hst-edit-modal').classList.add('open');
 }
 
@@ -8463,6 +8473,15 @@ function cerrarEditModal(){
 
 function confirmarEditarRegistro(){
   if(_pendingEditIdx === null) return;
+  // Pedir contraseña (igual que eliminar)
+  const passEl = document.getElementById('hem-pass');
+  const errEl  = document.getElementById('hem-pass-error');
+  if(passEl && passEl.value !== '1'){
+    if(errEl) errEl.textContent = 'Contraseña incorrecta';
+    if(passEl){ passEl.value=''; passEl.focus(); }
+    return;
+  }
+  if(errEl) errEl.textContent = '';
   const idx = _pendingEditIdx;
   const cambios = {
     modulo:     document.getElementById('hem-modulo').value.trim(),
