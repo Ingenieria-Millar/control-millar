@@ -101,6 +101,7 @@ const FILES = {
   incentivos:     path.join(DATA_DIR, 'incentivos.json'),
   users:          path.join(DATA_DIR, 'users.json'),
   multitareas:    path.join(DATA_DIR, 'multitareas.json'),
+  tareas:         path.join(DATA_DIR, 'tareas.json'),
 };
 
 // ══════════════════════════════════════════════════════════════════
@@ -1288,6 +1289,60 @@ app.delete('/alistamiento/api/multitareas/:id', (req, res) => {
   const data = loadDB('multitareas').filter(r => r.id !== req.params.id);
   saveDB('multitareas', data);
   res.json({ success: true });
+});
+
+// ── Tareas asignadas (Registro Mecánicos) ──────────────────────────
+app.get('/alistamiento/api/tareas', (req, res) => {
+  let data = [...readJSON(FILES.tareas, [])];
+  const { mecanico, estado } = req.query;
+  if (mecanico) data = data.filter(r => r.mecanico === mecanico);
+  if (estado)   data = data.filter(r => r.estado === estado);
+  res.json(data.sort((a,b) => (b.fechaAsignada||'').localeCompare(a.fechaAsignada||'')));
+});
+app.post('/alistamiento/api/tareas', (req, res) => {
+  try {
+    const { mecanico, descripcion } = req.body;
+    if (!mecanico || !descripcion) return res.status(400).json({ error: 'mecanico y descripcion requeridos' });
+    const data  = readJSON(FILES.tareas, []);
+    const ahora = new Date();
+    const nueva = {
+      id:             require('crypto').randomUUID(),
+      mecanico:       mecanico,
+      maquina:        req.body.maquina        || '',
+      descripcion:    descripcion,
+      ppp:            req.body.ppp            || '',
+      tipoAguja:      req.body.tipoAguja      || '',
+      observaciones:  req.body.observaciones  || '',
+      estado:         'pendiente',
+      fechaAsignada:  ahora.toISOString(),
+      fechaFinalizada: null,
+      observacionFinal: '',
+      asignadoPor:    req.body.asignadoPor || 'ADMINISTRADOR'
+    };
+    data.push(nueva);
+    writeJSON(FILES.tareas, data);
+    res.json({ success: true, data: nueva });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+app.put('/alistamiento/api/tareas/:id', (req, res) => {
+  try {
+    const data = readJSON(FILES.tareas, []);
+    const idx  = data.findIndex(r => r.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'No encontrada' });
+    const campos = ['maquina','descripcion','ppp','tipoAguja','observaciones','estado','observacionFinal','mecanico'];
+    campos.forEach(c => { if (req.body[c] !== undefined) data[idx][c] = req.body[c]; });
+    if (req.body.estado === 'finalizada' && !data[idx].fechaFinalizada)
+      data[idx].fechaFinalizada = new Date().toISOString();
+    writeJSON(FILES.tareas, data);
+    res.json({ success: true, data: data[idx] });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+app.delete('/alistamiento/api/tareas/:id', (req, res) => {
+  try {
+    const data = readJSON(FILES.tareas, []).filter(r => r.id !== req.params.id);
+    writeJSON(FILES.tareas, data);
+    res.json({ success: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 // ── Mantenimientos ─────────────────────────────────────────────────

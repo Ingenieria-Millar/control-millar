@@ -341,6 +341,12 @@ tr:hover td{background:#f8fafc;}
   </div>
   <div data-millar-nav id="millar-nav-wrap"></div>
   <div class="hd-right">
+    <!-- Botón pendientes — mecánicos (no admin) -->
+    <button id="btn-pendientes-mec" onclick="abrirPendientesMecanico()" style="display:none;position:relative;padding:7px 14px;border-radius:8px;border:1.5px solid #f59e0b;background:#fffbeb;color:#92400e;font-size:12px;font-weight:700;cursor:pointer;gap:6px;align-items:center;">
+      📌 Pendientes <span id="badge-pendientes" style="background:#ef4444;color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;margin-left:4px;display:none;">0</span>
+    </button>
+    <!-- Botón config (engrane) — solo admin -->
+    <button id="btn-cfg-mmt" onclick="abrirConfigMmt()" style="display:none;padding:7px 12px;border-radius:8px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#475569;font-size:16px;cursor:pointer;" title="Configuraciones">⚙️</button>
     <!-- Badge usuario — solo visible después del login -->
     <div id="mant-user-badge" style="display:none;align-items:center;gap:6px;padding:5px 12px;background:#eff6ff;border:1.5px solid #93c5fd;border-radius:20px;font-size:12px;font-weight:700;color:#1e40af;white-space:nowrap;">
       <span id="mant-user-label">👤</span>
@@ -356,6 +362,8 @@ tr:hover td{background:#f8fafc;}
   <div class="nav-tab"        id="tab-alistamiento"   onclick="switchSection('alistamiento')">⚙️ Alistamiento</div>
   <div class="nav-tab mant"   id="tab-mantenimiento"  onclick="switchSection('mantenimiento')">🔧 Mantenimiento</div>
   <div class="nav-tab"        id="tab-multitarea"     onclick="switchSection('multitarea')">⚡ Multitareas</div>
+  <div class="nav-tab"        id="tab-tareas"         onclick="switchSection('tareas')" style="display:none;">📌 Tareas</div>
+  <div class="nav-tab"        id="tab-dashboard"      onclick="switchSection('dashboard-mmt')" style="display:none;">📊 Dashboard</div>
 </nav>
 
 <!-- MAIN -->
@@ -395,6 +403,26 @@ tr:hover td{background:#f8fafc;}
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:#1e293b;letter-spacing:.5px;">Todos los registros</div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex-shrink:0;">
+        <div style="position:relative;">
+          <button class="btn-export" onclick="toggleTodosFechaPopup()" id="btn-fecha-todos">📅 <span id="lbl-fecha-todos">Hoy</span></button>
+          <div id="fecha-popup-todos" style="display:none;position:absolute;top:calc(100% + 6px);right:0;background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:18px;z-index:300;min-width:220px;">
+            <div style="display:flex;flex-direction:column;gap:12px;">
+              <div style="display:flex;flex-direction:column;gap:4px;">
+                <label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">Desde</label>
+                <input type="date" id="todos-fecha-desde" class="form-input" style="padding:8px 10px;font-size:13px;" onchange="actualizarLblFechasTodos()">
+              </div>
+              <div style="display:flex;flex-direction:column;gap:4px;">
+                <label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">Hasta</label>
+                <input type="date" id="todos-fecha-hasta" class="form-input" style="padding:8px 10px;font-size:13px;" onchange="actualizarLblFechasTodos()">
+              </div>
+              <div style="display:flex;gap:8px;margin-top:4px;">
+                <button onclick="aplicarTodosFiltroFecha()" style="flex:1;padding:9px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">Filtrar</button>
+                <button onclick="resetTodosFecha()" style="flex:1;padding:9px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:13px;font-weight:700;cursor:pointer;">Limpiar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <button class="btn-export" id="btn-export-todos" onclick="exportarTodosExcel()" style="display:none;">📥 Exportar Excel</button>
         <button class="btn btn-primary" style="background:linear-gradient(135deg,#1e3a8a,#2563eb);border:none;" onclick="abrirNuevoRegistro()">＋ Nuevo Registro</button>
       </div>
     </div>
@@ -586,6 +614,45 @@ tr:hover td{background:#f8fafc;}
     </div>
   </div>
 
+  <!-- TAREAS (solo admin) -->
+  <div id="section-tareas" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:#1e293b;letter-spacing:.5px;">📌 Tareas Asignadas</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <select id="tareas-filtro-estado" onchange="renderTareas()" style="padding:7px 12px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:13px;color:#334155;background:#fff;">
+          <option value="">Todos los estados</option>
+          <option value="pendiente">⏳ Pendiente</option>
+          <option value="en_proceso">🔧 En proceso</option>
+          <option value="finalizada">✅ Finalizada</option>
+        </select>
+        <button class="btn-export" onclick="exportarTareasExcel()">📥 Excel</button>
+        <button class="btn btn-primary" style="background:linear-gradient(135deg,#f59e0b,#d97706);border:none;" onclick="abrirCrearTarea()">＋ Asignar Tarea</button>
+      </div>
+    </div>
+    <div class="table-panel">
+      <div style="width:100%;overflow-x:auto;">
+        <table style="width:100%;min-width:700px;font-size:12px;">
+          <thead><tr>
+            <th style="width:80px;">Estado</th>
+            <th style="width:110px;">Mecánico</th>
+            <th style="width:auto;">Descripción</th>
+            <th style="width:90px;">Máquina</th>
+            <th style="width:80px;">Asignada</th>
+            <th style="width:80px;">Finalizada</th>
+            <th style="width:100px;">Acciones</th>
+          </tr></thead>
+          <tbody id="tareas-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD MMT -->
+  <div id="section-dashboard-mmt" style="display:none">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:#1e293b;letter-spacing:.5px;margin-bottom:20px;">📊 Dashboard Mecánicos</div>
+    <div id="dash-mmt-content"></div>
+  </div>
+
 </main>
 
 <!-- MODAL: ¿Qué tipo de registro? -->
@@ -646,10 +713,7 @@ tr:hover td{background:#f8fafc;}
       <div class="form-group" id="mt-otros-wrap" style="display:none;margin:0;">
         <label class="form-label" style="font-size:13px;font-weight:700;color:#475569;margin-bottom:6px;display:block;">¿Cuál actividad? <span class="required">*</span></label>
         <input type="text" class="form-input" id="mt-otros-desc" placeholder="Describe la actividad..." style="text-transform:uppercase;width:100%;">
-        <div class="form-group" id="mt-obs-wrap" style="margin-top:12px;">
-          <label class="form-label" style="font-size:13px;font-weight:700;color:#475569;margin-bottom:6px;display:block;">Justificación <span class="required">*</span></label>
-          <textarea class="form-textarea" id="mt-obs" style="width:100%;min-height:80px;resize:vertical;" placeholder="Explica brevemente por qué..."></textarea>
-        </div>
+        <input type="hidden" id="mt-obs" value="">
       </div>
     </div>
     <div id="mt-error" style="color:#ef4444;font-size:12px;font-weight:700;min-height:18px;margin-top:10px;"></div>
@@ -672,6 +736,142 @@ tr:hover td{background:#f8fafc;}
     <div id="mt-tipos-lista" style="display:flex;flex-direction:column;gap:6px;max-height:260px;overflow:auto;"></div>
     <div style="display:flex;justify-content:flex-end;margin-top:16px;">
       <button onclick="cerrarTiposMultitarea()" style="padding:10px 18px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:13px;font-weight:600;cursor:pointer;">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Crear / editar tarea (admin) -->
+<div class="modal-overlay" id="modalCrearTarea" style="display:none;align-items:center;justify-content:center;">
+  <div class="modal" style="max-width:500px;padding:28px 28px 20px;">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:22px;">
+      <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#f59e0b,#d97706);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">📌</div>
+      <div>
+        <div style="font-size:17px;font-weight:800;color:#1e293b;" id="tarea-modal-titulo">Asignar Tarea</div>
+        <div style="font-size:12px;color:#94a3b8;margin-top:2px;">Completa los datos de la tarea</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div>
+        <label style="font-size:12px;font-weight:700;color:#475569;display:block;margin-bottom:5px;">Mecánico <span style="color:#ef4444;">*</span></label>
+        <select class="form-select" id="tarea-mecanico" style="width:100%;"><option value="">— Seleccionar —</option></select>
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:700;color:#475569;display:block;margin-bottom:5px;">Descripción / Tarea <span style="color:#ef4444;">*</span></label>
+        <textarea class="form-textarea" id="tarea-descripcion" style="width:100%;min-height:70px;resize:vertical;" placeholder="Ej: Reparar máquina fileteadora M5 — falla en el diferencial"></textarea>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <label style="font-size:12px;font-weight:700;color:#475569;display:block;margin-bottom:5px;">Máquina / Módulo</label>
+          <input type="text" class="form-input" id="tarea-maquina" placeholder="Ej: Fileteadora M5" style="width:100%;">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:700;color:#475569;display:block;margin-bottom:5px;">PPP</label>
+          <input type="text" class="form-input" id="tarea-ppp" placeholder="Ej: 12" style="width:100%;">
+        </div>
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:700;color:#475569;display:block;margin-bottom:5px;">Tipo de Aguja</label>
+        <input type="text" class="form-input" id="tarea-tipo-aguja" placeholder="Ej: DB×1 Nº 14" style="width:100%;">
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:700;color:#475569;display:block;margin-bottom:5px;">Observaciones adicionales</label>
+        <textarea class="form-textarea" id="tarea-obs" style="width:100%;min-height:55px;resize:vertical;" placeholder="Instrucciones, materiales necesarios, etc."></textarea>
+      </div>
+    </div>
+    <div id="tarea-error" style="color:#ef4444;font-size:12px;min-height:16px;margin-top:8px;"></div>
+    <input type="hidden" id="tarea-edit-id">
+    <div style="display:flex;justify-content:space-between;margin-top:18px;gap:10px;">
+      <button onclick="cerrarCrearTarea()" style="padding:10px 22px;border-radius:10px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:13px;font-weight:600;cursor:pointer;">Cancelar</button>
+      <button onclick="guardarTarea()" style="padding:10px 26px;border-radius:10px;border:none;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Pendientes mecánico -->
+<div class="modal-overlay" id="modalPendientesMec" style="display:none;align-items:center;justify-content:center;">
+  <div class="modal" style="max-width:560px;padding:28px 28px 20px;max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#f59e0b,#d97706);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">📌</div>
+        <div>
+          <div style="font-size:16px;font-weight:800;color:#1e293b;">Mis Tareas Pendientes</div>
+          <div id="pendientes-subtitulo" style="font-size:12px;color:#94a3b8;margin-top:2px;"></div>
+        </div>
+      </div>
+      <button onclick="cerrarPendientesMecanico()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8;">✕</button>
+    </div>
+    <div id="pendientes-lista" style="display:flex;flex-direction:column;gap:12px;"></div>
+  </div>
+</div>
+
+<!-- MODAL: Finalizar tarea (mecánico) -->
+<div class="modal-overlay" id="modalFinalizarTarea" style="display:none;align-items:center;justify-content:center;">
+  <div class="modal" style="max-width:440px;padding:28px 28px 20px;">
+    <div style="font-size:17px;font-weight:800;color:#1e293b;margin-bottom:6px;">✅ Finalizar Tarea</div>
+    <div id="finalizar-tarea-desc" style="font-size:13px;color:#64748b;margin-bottom:18px;"></div>
+    <div>
+      <label style="font-size:12px;font-weight:700;color:#475569;display:block;margin-bottom:5px;">Observación final <span style="color:#ef4444;">*</span></label>
+      <textarea class="form-textarea" id="finalizar-obs" style="width:100%;min-height:80px;resize:vertical;" placeholder="Describe qué hiciste, resultados, materiales usados..."></textarea>
+    </div>
+    <div id="finalizar-error" style="color:#ef4444;font-size:12px;min-height:16px;margin-top:6px;"></div>
+    <input type="hidden" id="finalizar-tarea-id">
+    <div style="display:flex;justify-content:space-between;margin-top:18px;gap:10px;">
+      <button onclick="cerrarFinalizarTarea()" style="padding:10px 22px;border-radius:10px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:13px;font-weight:600;cursor:pointer;">Cancelar</button>
+      <button onclick="confirmarFinalizarTarea()" style="padding:10px 26px;border-radius:10px;border:none;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">✅ Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Configuraciones MMT (admin) -->
+<div class="modal-overlay" id="modalConfigMmt" style="display:none;align-items:center;justify-content:center;">
+  <div class="modal" style="max-width:520px;padding:28px 28px 20px;max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div style="font-size:18px;font-weight:800;color:#1e293b;">⚙️ Configuraciones</div>
+      <button onclick="cerrarConfigMmt()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8;">✕</button>
+    </div>
+    <!-- Tabs config -->
+    <div style="display:flex;gap:4px;border-bottom:1.5px solid #e2e8f0;margin-bottom:18px;overflow-x:auto;">
+      <button class="cfg-tab active" id="cfgTab-mecanicos"  onclick="switchCfgTabMmt('mecanicos',this)"  style="padding:8px 14px;border:none;background:none;font-size:13px;font-weight:700;color:#2563eb;border-bottom:2px solid #2563eb;cursor:pointer;white-space:nowrap;">👤 Mecánicos</button>
+      <button class="cfg-tab"        id="cfgTab-multitareas" onclick="switchCfgTabMmt('multitareas',this)" style="padding:8px 14px;border:none;background:none;font-size:13px;font-weight:700;color:#64748b;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;">⚡ Multitareas</button>
+      <button class="cfg-tab"        id="cfgTab-ppp"         onclick="switchCfgTabMmt('ppp',this)"         style="padding:8px 14px;border:none;background:none;font-size:13px;font-weight:700;color:#64748b;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;">🔢 PPP</button>
+      <button class="cfg-tab"        id="cfgTab-agujas"      onclick="switchCfgTabMmt('agujas',this)"      style="padding:8px 14px;border:none;background:none;font-size:13px;font-weight:700;color:#64748b;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;">🪡 Agujas</button>
+    </div>
+    <!-- Panel Mecánicos -->
+    <div id="cfgPanel-mecanicos">
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <input type="text" class="form-input" id="cfg-mec-nuevo" placeholder="Nombre del mecánico..." style="flex:1;" onkeydown="if(event.key==='Enter')cfgAgregarMecanico()">
+        <button onclick="cfgAgregarMecanico()" style="padding:9px 14px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">＋</button>
+      </div>
+      <div id="cfg-mec-lista" style="display:flex;flex-direction:column;gap:6px;max-height:220px;overflow:auto;"></div>
+    </div>
+    <!-- Panel Multitareas -->
+    <div id="cfgPanel-multitareas" style="display:none;">
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <input type="text" class="form-input" id="cfg-mt-nuevo" placeholder="Nueva actividad..." style="flex:1;text-transform:uppercase;" onkeydown="if(event.key==='Enter')cfgAgregarMultitarea()">
+        <button onclick="cfgAgregarMultitarea()" style="padding:9px 14px;border-radius:8px;border:none;background:#7c3aed;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">＋</button>
+      </div>
+      <div id="cfg-mt-lista" style="display:flex;flex-direction:column;gap:6px;max-height:220px;overflow:auto;"></div>
+    </div>
+    <!-- Panel PPP -->
+    <div id="cfgPanel-ppp" style="display:none;">
+      <p style="font-size:13px;color:#64748b;margin-bottom:12px;">Valores de PPP (puntadas por pulgada) disponibles en los formularios.</p>
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <input type="text" class="form-input" id="cfg-ppp-nuevo" placeholder="Ej: 12" style="flex:1;" onkeydown="if(event.key==='Enter')cfgAgregarPpp()">
+        <button onclick="cfgAgregarPpp()" style="padding:9px 14px;border-radius:8px;border:none;background:#0d9488;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">＋</button>
+      </div>
+      <div id="cfg-ppp-lista" style="display:flex;flex-wrap:wrap;gap:8px;min-height:40px;"></div>
+    </div>
+    <!-- Panel Agujas -->
+    <div id="cfgPanel-agujas" style="display:none;">
+      <p style="font-size:13px;color:#64748b;margin-bottom:12px;">Tipos de aguja disponibles en los formularios.</p>
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <input type="text" class="form-input" id="cfg-aguja-nuevo" placeholder="Ej: DB×1 Nº 14" style="flex:1;" onkeydown="if(event.key==='Enter')cfgAgregarAguja()">
+        <button onclick="cfgAgregarAguja()" style="padding:9px 14px;border-radius:8px;border:none;background:#0d9488;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">＋</button>
+      </div>
+      <div id="cfg-aguja-lista" style="display:flex;flex-direction:column;gap:6px;max-height:220px;overflow:auto;"></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:18px;">
+      <button onclick="cerrarConfigMmt()" style="padding:10px 22px;border-radius:10px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:13px;font-weight:600;cursor:pointer;">Cerrar</button>
     </div>
   </div>
 </div>
@@ -1280,15 +1480,24 @@ async function loadConfig() {
     }
   } catch(e) {}
 
-  // ── Tipos de multitarea (configurables por admin; guardados en app_config) ──
+  // ── Tipos de multitarea + PPP + Tipos de Aguja (configurables por admin) ──
   let multitareaTipos = [];
+  let pppValues = [];
+  let tiposAguja = [];
   try {
     const r = await fetch('/api/app-config');
-    if (r.ok) { const cfg = await r.json(); multitareaTipos = Array.isArray(cfg._multitarea_tipos) ? cfg._multitarea_tipos : []; }
+    if (r.ok) {
+      const cfg = await r.json();
+      multitareaTipos = Array.isArray(cfg._multitarea_tipos) ? cfg._multitarea_tipos : [];
+      pppValues       = Array.isArray(cfg._ppp_values)       ? cfg._ppp_values       : [];
+      tiposAguja      = Array.isArray(cfg._tipos_aguja)      ? cfg._tipos_aguja      : [];
+    }
   } catch(e) {}
   if (!multitareaTipos.length) multitareaTipos = ['Limpieza de máquina','Cambio de aceite','Ajuste general','Capacitación','Reunión'];
+  if (!pppValues.length)  pppValues  = ['PPP 1','PPP 2','PPP 3','PPP 4','PPP 5'];
+  if (!tiposAguja.length) tiposAguja = ['10/70','11/75','14/90','16/100','18/110'];
 
-  config = { supervisoras, mecanicos, modulos, maquinas, empleados, multitareaTipos };
+  config = { supervisoras, mecanicos, modulos, maquinas, empleados, multitareaTipos, pppValues, tiposAguja };
 }
 
 
@@ -2741,8 +2950,6 @@ async function guardarMultitarea(){
   if (tarea === '__otros__') {
     tarea = (document.getElementById('mt-otros-desc').value||'').trim().toUpperCase();
     if (!tarea) { errEl.textContent = 'Describe la actividad'; return; }
-    observaciones = (document.getElementById('mt-obs').value||'').trim();
-    if (!observaciones) { errEl.textContent = 'La justificación es obligatoria para "Otros"'; return; }
   }
   errEl.textContent = '';
   const reg = { tarea, mecanico: mecanicoActual || '', observaciones };
@@ -2809,63 +3016,48 @@ function renderMultitareas(){
     <td>${r.observaciones||'—'}</td>
   </tr>`).join('');
 }
-function renderTodos() {
-  const tbody = document.getElementById('todos-tbody');
-  if (!tbody) return;
+function getTodosFiltrados() {
+  const desde = document.getElementById('todos-fecha-desde')?.value || '';
+  const hasta  = document.getElementById('todos-fecha-hasta')?.value  || '';
   const esAdmin = mecanicoActual === 'ADMINISTRADOR';
-
-  // Construir filas unificadas
   const filas = [];
 
   (alistamientos || []).forEach(r => {
     if (mecanicoActual && !esAdmin && (r.mecanico||'').toLowerCase() !== mecanicoActual.toLowerCase()) return;
-    filas.push({
-      fecha: r.fecha || '',
-      hora:  r.hora  || '',
-      tipo:  'alistamiento',
-      mecanico: r.mecanico || '—',
-      detalle:  (r.modulo ? 'M' + r.modulo : '') + (r.tipoMaquina ? ' · ' + r.tipoMaquina : ''),
-      id: r.id,
-      _orig: r
-    });
+    if (desde && (r.fecha||'') < desde) return;
+    if (hasta && (r.fecha||'') > hasta) return;
+    filas.push({ fecha:r.fecha||'', hora:r.hora||'', tipo:'alistamiento', mecanico:r.mecanico||'—',
+      detalle:(r.modulo?'M'+r.modulo:'')+(r.tipoMaquina?' · '+r.tipoMaquina:''), id:r.id });
   });
-
   (mantenimientos || []).forEach(r => {
     if (mecanicoActual && !esAdmin && (r.mecanico||'').toLowerCase() !== mecanicoActual.toLowerCase()) return;
-    filas.push({
-      fecha: r.fecha || '',
-      hora:  r.hora  || '',
-      tipo:  'mantenimiento',
-      mecanico: r.mecanico || '—',
-      detalle:  (r.tipoMantenimiento || '') + (r.modulo ? ' · M' + r.modulo : ''),
-      id: r.id,
-      _orig: r
-    });
+    if (desde && (r.fecha||'') < desde) return;
+    if (hasta && (r.fecha||'') > hasta) return;
+    filas.push({ fecha:r.fecha||'', hora:r.hora||'', tipo:'mantenimiento', mecanico:r.mecanico||'—',
+      detalle:(r.tipoMantenimiento||'')+(r.modulo?' · M'+r.modulo:''), id:r.id });
   });
-
   (multitareas || []).forEach(r => {
     if (mecanicoActual && !esAdmin && (r.mecanico||'').toLowerCase() !== mecanicoActual.toLowerCase()) return;
+    if (desde && (r.fecha||'') < desde) return;
+    if (hasta && (r.fecha||'') > hasta) return;
     const hora = r.fechaHora ? new Date(r.fechaHora).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'}) : (r.hora||'');
-    filas.push({
-      fecha: r.fecha || '',
-      hora,
-      tipo:  'multitarea',
-      mecanico: r.mecanico || '—',
-      detalle:  r.tarea || '—',
-      id: r.id,
-      _orig: r
-    });
+    filas.push({ fecha:r.fecha||'', hora, tipo:'multitarea', mecanico:r.mecanico||'—', detalle:r.tarea||'—', id:r.id });
   });
+  filas.sort((a,b) => (b.fecha+' '+b.hora).localeCompare(a.fecha+' '+a.hora));
+  return filas;
+}
 
-  // Ordenar por fecha+hora descendente
-  filas.sort((a, b) => {
-    const ka = (a.fecha + ' ' + a.hora);
-    const kb = (b.fecha + ' ' + b.hora);
-    return kb.localeCompare(ka);
-  });
+function renderTodos() {
+  const tbody = document.getElementById('todos-tbody');
+  if (!tbody) return;
+  const esAdmin = mecanicoActual === 'ADMINISTRADOR';
+  const btnExp = document.getElementById('btn-export-todos');
+  if (btnExp) btnExp.style.display = esAdmin ? '' : 'none';
+
+  const filas = getTodosFiltrados();
 
   if (!filas.length) {
-    tbody.innerHTML = '<tr><td colspan="6"><div style="text-align:center;padding:32px;color:#64748b;font-style:italic;"><div style="font-size:32px;margin-bottom:8px;">📋</div><div>No hay registros aún</div></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6"><div style="text-align:center;padding:32px;color:#64748b;font-style:italic;"><div style="font-size:32px;margin-bottom:8px;">📋</div><div>No hay registros para este período</div></div></td></tr>';
     return;
   }
 
@@ -2897,6 +3089,57 @@ function editarRegistroTodos(tipo, id) {
   if (tipo === 'alistamiento')  editarAlistamiento(id);
   else if (tipo === 'mantenimiento') editarMantenimiento(id);
 }
+
+// ── Todos: filtro fecha ──────────────────────────────────────────
+function toggleTodosFechaPopup() {
+  const p = document.getElementById('fecha-popup-todos');
+  if (p) p.style.display = p.style.display === 'none' ? '' : 'none';
+}
+function actualizarLblFechasTodos() {
+  const desde = document.getElementById('todos-fecha-desde')?.value || '';
+  const hasta  = document.getElementById('todos-fecha-hasta')?.value  || '';
+  const lbl   = document.getElementById('lbl-fecha-todos');
+  const hoy   = new Date().toISOString().split('T')[0];
+  if (!lbl) return;
+  if (desde === hoy && (!hasta || hasta === hoy)) lbl.textContent = 'Hoy';
+  else if (desde && hasta) lbl.textContent = desde + ' → ' + hasta;
+  else if (desde) lbl.textContent = 'desde ' + desde;
+  else lbl.textContent = 'Hoy';
+}
+function aplicarTodosFiltroFecha() {
+  document.getElementById('fecha-popup-todos').style.display = 'none';
+  actualizarLblFechasTodos();
+  renderTodos();
+}
+function resetTodosFecha() {
+  const hoy = new Date().toISOString().split('T')[0];
+  const d = document.getElementById('todos-fecha-desde');
+  const h = document.getElementById('todos-fecha-hasta');
+  if (d) d.value = hoy;
+  if (h) h.value = hoy;
+  document.getElementById('fecha-popup-todos').style.display = 'none';
+  document.getElementById('lbl-fecha-todos').textContent = 'Hoy';
+  renderTodos();
+}
+function exportarTodosExcel() {
+  const filas = getTodosFiltrados();
+  if (!filas.length) { showToast('No hay datos para exportar','warning'); return; }
+  const tipoLabel = t => t === 'alistamiento' ? 'Alistamiento' : t === 'mantenimiento' ? 'Mantenimiento' : 'Multitarea';
+  const ws_data = [['Fecha','Hora','Tipo','Mecánico','Módulo / Actividad'],
+    ...filas.map(f => [f.fecha, f.hora, tipoLabel(f.tipo), f.mecanico, f.detalle])];
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(ws_data);
+  ws['!cols'] = [{wch:12},{wch:8},{wch:14},{wch:20},{wch:35}];
+  XLSX.utils.book_append_sheet(wb, ws, 'Todos');
+  XLSX.writeFile(wb, `Registros_${new Date().toISOString().split('T')[0]}.xlsx`);
+  showToast('✅ Excel descargado','success');
+}
+// Cerrar popup todos al click fuera
+document.addEventListener('click', e => {
+  const popup = document.getElementById('fecha-popup-todos');
+  const btn   = document.getElementById('btn-fecha-todos');
+  if (popup && btn && !popup.contains(e.target) && !btn.contains(e.target)) popup.style.display = 'none';
+});
 
 function eliminarRegistroTodos(tipo, id) {
   if (tipo === 'alistamiento')  eliminar('alistamientos', id);
@@ -3029,6 +3272,25 @@ function confirmarLoginMant() {
   if (expMant)  { expMant.style.display = esAdmin ? '' : 'none'; }
   if (expAlist) { expAlist.style.display = esAdmin ? '' : 'none'; }
 
+  // Nav-bar principal
+  const navBarMain = document.getElementById('nav-bar-main');
+  if (navBarMain) navBarMain.style.display = '';
+
+  // Tabs exclusivos de admin
+  const tabTareas = document.getElementById('tab-tareas');
+  const tabDash   = document.getElementById('tab-dashboard');
+  if (tabTareas) tabTareas.style.display = esAdmin ? '' : 'none';
+  if (tabDash)   tabDash.style.display   = esAdmin ? '' : 'none';
+
+  // Botones de cabecera según rol
+  const btnCfg  = document.getElementById('btn-cfg-mmt');
+  const btnPend = document.getElementById('btn-pendientes-mec');
+  if (btnCfg)  btnCfg.style.display  = esAdmin ? '' : 'none';
+  if (btnPend) btnPend.style.display = esAdmin ? 'none' : 'flex';
+
+  // Cargar tareas (admin: todas; mecánico: sus pendientes para el badge)
+  loadTareas();
+
   document.getElementById('mant-login').style.display = 'none';
   // Ir a la sección según la URL (default: todos)
   const params  = new URLSearchParams(window.location.search);
@@ -3076,8 +3338,21 @@ function cerrarSesionMant() {
   const lblAlist = document.getElementById('lbl-fecha-alist');
   if (lblAlist) lblAlist.textContent = 'Hoy';
 
+  // Ocultar botones de cabecera
+  const btnCfgOut  = document.getElementById('btn-cfg-mmt');
+  const btnPendOut = document.getElementById('btn-pendientes-mec');
+  const badgePend  = document.getElementById('badge-pendientes');
+  if (btnCfgOut)  btnCfgOut.style.display  = 'none';
+  if (btnPendOut) btnPendOut.style.display = 'none';
+  if (badgePend)  { badgePend.style.display = 'none'; badgePend.textContent = '0'; }
+
+  // Ocultar nav-bar principal
+  const navBarMainOut = document.getElementById('nav-bar-main');
+  if (navBarMainOut) navBarMainOut.style.display = 'none';
+
   // Ocultar secciones y mostrar login
-  ['section-todos','section-alistamiento','section-mantenimiento','section-multitarea','section-dashboard'].forEach(id => {
+  ['section-todos','section-alistamiento','section-mantenimiento','section-multitarea',
+   'section-dashboard','section-tareas','section-dashboard-mmt'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
@@ -3091,7 +3366,7 @@ function cerrarSesionMant() {
 }
 
 function switchSection(section) {
-  ['dashboard','todos','alistamiento','mantenimiento','multitarea'].forEach(s => {
+  ['dashboard','todos','alistamiento','mantenimiento','multitarea','tareas','dashboard-mmt'].forEach(s => {
     const sec = document.getElementById(`section-${s}`);
     const tab = document.getElementById(`tab-${s}`);
     if (sec) sec.style.display = s === section ? '' : 'none';
@@ -3100,6 +3375,12 @@ function switchSection(section) {
   if (section === 'todos') {
     const nav = document.getElementById('nav-bar-main');
     if (nav) nav.style.display = '';
+    const hoy = new Date().toISOString().split('T')[0];
+    const d = document.getElementById('todos-fecha-desde');
+    const h = document.getElementById('todos-fecha-hasta');
+    if (d && !d.value) d.value = hoy;
+    if (h && !h.value) h.value = hoy;
+    actualizarLblFechasTodos();
     renderTodos();
   }
   if (section === 'alistamiento') {
@@ -3141,6 +3422,12 @@ function switchSection(section) {
   }
   if (section === 'multitarea') {
     loadMultitareas();
+  }
+  if (section === 'tareas') {
+    loadTareas();
+  }
+  if (section === 'dashboard-mmt') {
+    renderDashboardMmt();
   }
 }
 
@@ -3577,6 +3864,441 @@ function initGuiaAutocomplete(inputId, descId) {
   });
 }
 
+// ═══════════════════════════════════════════════════════════════
+// TAREAS ASIGNADAS
+// ═══════════════════════════════════════════════════════════════
+let tareas = [];
+
+async function loadTareas() {
+  try { const r = await fetch(`${API}/api/tareas`); tareas = r.ok ? await r.json() : []; }
+  catch(e) { tareas = []; }
+  renderTareas();
+  actualizarBadgePendientes();
+}
+
+function estadoTareaBadge(e) {
+  if (e === 'pendiente')  return '<span style="padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;background:#fef9c3;color:#a16207;">⏳ Pendiente</span>';
+  if (e === 'en_proceso') return '<span style="padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;background:#dbeafe;color:#1e40af;">🔧 En proceso</span>';
+  if (e === 'finalizada') return '<span style="padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;background:#dcfce7;color:#15803d;">✅ Finalizada</span>';
+  return e;
+}
+
+function renderTareas() {
+  const tbody  = document.getElementById('tareas-tbody');
+  if (!tbody) return;
+  const filtro = document.getElementById('tareas-filtro-estado')?.value || '';
+  let rows = [...tareas];
+  if (filtro) rows = rows.filter(t => t.estado === filtro);
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="7"><div style="text-align:center;padding:28px;color:#64748b;font-style:italic;">No hay tareas para este filtro</div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(t => `<tr>
+    <td>${estadoTareaBadge(t.estado)}</td>
+    <td style="font-size:11px;font-weight:700;">${t.mecanico||'—'}</td>
+    <td style="font-size:11px;">${t.descripcion||'—'}${t.observacionFinal?'<br><span style="color:#15803d;font-style:italic;">✅ '+t.observacionFinal+'</span>':''}</td>
+    <td style="font-size:11px;">${t.maquina||'—'}</td>
+    <td style="font-size:10px;color:#64748b;">${t.fechaAsignada?t.fechaAsignada.split('T')[0]:'—'}</td>
+    <td style="font-size:10px;color:#64748b;">${t.fechaFinalizada?t.fechaFinalizada.split('T')[0]:'—'}</td>
+    <td style="white-space:nowrap;">
+      <button class="btn" style="padding:3px 7px;font-size:11px;background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;margin-right:2px;" onclick="editarTarea('${t.id}')">✏️</button>
+      <button class="btn btn-danger" style="padding:3px 7px;font-size:11px;" onclick="eliminarTarea('${t.id}')">🗑️</button>
+    </td>
+  </tr>`).join('');
+}
+
+function abrirCrearTarea() {
+  document.getElementById('tarea-modal-titulo').textContent = 'Asignar Tarea';
+  document.getElementById('tarea-mecanico').innerHTML = '<option value="">— Seleccionar —</option>' +
+    (config.mecanicos||[]).map(m => { const n=typeof m==='string'?m:(m.nombre||m.name||''); return n&&n!=='ADMINISTRADOR'?`<option value="${n}">${n}</option>`:''; }).join('');
+  document.getElementById('tarea-descripcion').value = '';
+  document.getElementById('tarea-maquina').value = '';
+  document.getElementById('tarea-ppp').value = '';
+  document.getElementById('tarea-tipo-aguja').value = '';
+  document.getElementById('tarea-obs').value = '';
+  document.getElementById('tarea-error').textContent = '';
+  document.getElementById('tarea-edit-id').value = '';
+  document.getElementById('modalCrearTarea').style.display = 'flex';
+}
+
+function editarTarea(id) {
+  const t = tareas.find(x => x.id === id);
+  if (!t) return;
+  document.getElementById('tarea-modal-titulo').textContent = 'Editar Tarea';
+  document.getElementById('tarea-mecanico').innerHTML = '<option value="">— Seleccionar —</option>' +
+    (config.mecanicos||[]).map(m => { const n=typeof m==='string'?m:(m.nombre||m.name||''); return n&&n!=='ADMINISTRADOR'?`<option value="${n}"${n===t.mecanico?' selected':''}>${n}</option>`:''; }).join('');
+  document.getElementById('tarea-descripcion').value = t.descripcion||'';
+  document.getElementById('tarea-maquina').value = t.maquina||'';
+  document.getElementById('tarea-ppp').value = t.ppp||'';
+  document.getElementById('tarea-tipo-aguja').value = t.tipoAguja||'';
+  document.getElementById('tarea-obs').value = t.observaciones||'';
+  document.getElementById('tarea-error').textContent = '';
+  document.getElementById('tarea-edit-id').value = id;
+  document.getElementById('modalCrearTarea').style.display = 'flex';
+}
+
+function cerrarCrearTarea() { document.getElementById('modalCrearTarea').style.display = 'none'; }
+
+async function guardarTarea() {
+  const errEl = document.getElementById('tarea-error');
+  const mecanico    = document.getElementById('tarea-mecanico').value.trim();
+  const descripcion = document.getElementById('tarea-descripcion').value.trim();
+  if (!mecanico)    { errEl.textContent = 'Selecciona un mecánico'; return; }
+  if (!descripcion) { errEl.textContent = 'Escribe la descripción de la tarea'; return; }
+  errEl.textContent = '';
+  const editId = document.getElementById('tarea-edit-id').value;
+  const body = {
+    mecanico, descripcion,
+    maquina:       document.getElementById('tarea-maquina').value.trim(),
+    ppp:           document.getElementById('tarea-ppp').value.trim(),
+    tipoAguja:     document.getElementById('tarea-tipo-aguja').value.trim(),
+    observaciones: document.getElementById('tarea-obs').value.trim(),
+    asignadoPor:   'ADMINISTRADOR'
+  };
+  try {
+    const url    = editId ? `${API}/api/tareas/${editId}` : `${API}/api/tareas`;
+    const method = editId ? 'PUT' : 'POST';
+    const r = await fetch(url, { method, headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+    const d = await r.json();
+    if (d.success) { showToast('✅ Tarea guardada','success'); cerrarCrearTarea(); await loadTareas(); }
+    else errEl.textContent = d.error || 'Error al guardar';
+  } catch(e) { errEl.textContent = 'Error de conexión'; }
+}
+
+async function eliminarTarea(id) {
+  if (!confirm('¿Eliminar esta tarea?')) return;
+  try {
+    await fetch(`${API}/api/tareas/${id}`, { method:'DELETE' });
+    showToast('Tarea eliminada','success');
+    await loadTareas();
+  } catch(e) { showToast('Error al eliminar','danger'); }
+}
+
+function exportarTareasExcel() {
+  if (!tareas.length) { showToast('No hay tareas','warning'); return; }
+  const ws_data = [['Estado','Mecánico','Descripción','Máquina','PPP','Tipo Aguja','Asignada','Finalizada','Obs.Final'],
+    ...tareas.map(t => [t.estado,t.mecanico,t.descripcion,t.maquina||'',t.ppp||'',t.tipoAguja||'',
+      t.fechaAsignada?t.fechaAsignada.split('T')[0]:'',
+      t.fechaFinalizada?t.fechaFinalizada.split('T')[0]:'',t.observacionFinal||''])];
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(ws_data);
+  ws['!cols'] = [{wch:12},{wch:16},{wch:35},{wch:18},{wch:6},{wch:14},{wch:12},{wch:12},{wch:30}];
+  XLSX.utils.book_append_sheet(wb, ws, 'Tareas');
+  XLSX.writeFile(wb, `Tareas_${new Date().toISOString().split('T')[0]}.xlsx`);
+  showToast('✅ Excel descargado','success');
+}
+
+// ── Pendientes mecánico ──────────────────────────────────────────
+function actualizarBadgePendientes() {
+  if (!mecanicoActual || mecanicoActual === 'ADMINISTRADOR') return;
+  const pendientes = tareas.filter(t => t.mecanico === mecanicoActual && t.estado !== 'finalizada');
+  const badge = document.getElementById('badge-pendientes');
+  const btn   = document.getElementById('btn-pendientes-mec');
+  if (badge) { badge.textContent = pendientes.length; badge.style.display = pendientes.length ? '' : 'none'; }
+  if (btn)   btn.style.display = 'flex';
+}
+
+function abrirPendientesMecanico() {
+  const mis = tareas.filter(t => t.mecanico === mecanicoActual && t.estado !== 'finalizada');
+  const sub  = document.getElementById('pendientes-subtitulo');
+  const lista = document.getElementById('pendientes-lista');
+  if (sub)  sub.textContent = mis.length ? `${mis.length} tarea(s) asignada(s)` : 'Sin tareas pendientes';
+  if (lista) {
+    if (!mis.length) {
+      lista.innerHTML = '<div style="text-align:center;padding:24px;color:#64748b;font-style:italic;">No tienes tareas pendientes 🎉</div>';
+    } else {
+      lista.innerHTML = mis.map(t => `
+        <div style="border:1.5px solid #e2e8f0;border-radius:12px;padding:14px 16px;background:#fffbeb;">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+            <div style="flex:1;">
+              <div style="font-size:14px;font-weight:700;color:#1e293b;margin-bottom:4px;">${t.descripcion}</div>
+              ${t.maquina?`<div style="font-size:12px;color:#64748b;">🔧 ${t.maquina}</div>`:''}
+              ${t.ppp?`<div style="font-size:12px;color:#64748b;">PPP: ${t.ppp}</div>`:''}
+              ${t.tipoAguja?`<div style="font-size:12px;color:#64748b;">Aguja: ${t.tipoAguja}</div>`:''}
+              ${t.observaciones?`<div style="font-size:12px;color:#475569;margin-top:4px;font-style:italic;">${t.observaciones}</div>`:''}
+              <div style="font-size:11px;color:#94a3b8;margin-top:6px;">Asignada: ${t.fechaAsignada?t.fechaAsignada.split('T')[0]:'—'}</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+              ${t.estado==='pendiente'?`<button onclick="cambiarEstadoTarea('${t.id}','en_proceso')" style="padding:6px 12px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-size:12px;font-weight:700;cursor:pointer;">▶ Iniciar</button>`:''}
+              <button onclick="abrirFinalizarTarea('${t.id}','${(t.descripcion||'').replace(/'/g,'').substring(0,60)}')" style="padding:6px 12px;border-radius:8px;border:none;background:#22c55e;color:#fff;font-size:12px;font-weight:700;cursor:pointer;">✅ Finalizar</button>
+            </div>
+          </div>
+        </div>`).join('');
+    }
+  }
+  document.getElementById('modalPendientesMec').style.display = 'flex';
+}
+function cerrarPendientesMecanico() { document.getElementById('modalPendientesMec').style.display = 'none'; }
+
+async function cambiarEstadoTarea(id, estado) {
+  try {
+    await fetch(`${API}/api/tareas/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({estado}) });
+    await loadTareas();
+    abrirPendientesMecanico();
+  } catch(e) { showToast('Error','danger'); }
+}
+
+function abrirFinalizarTarea(id, desc) {
+  document.getElementById('finalizar-tarea-id').value = id;
+  document.getElementById('finalizar-tarea-desc').textContent = desc;
+  document.getElementById('finalizar-obs').value = '';
+  document.getElementById('finalizar-error').textContent = '';
+  document.getElementById('modalFinalizarTarea').style.display = 'flex';
+}
+function cerrarFinalizarTarea() { document.getElementById('modalFinalizarTarea').style.display = 'none'; }
+
+async function confirmarFinalizarTarea() {
+  const id  = document.getElementById('finalizar-tarea-id').value;
+  const obs = document.getElementById('finalizar-obs').value.trim();
+  const err = document.getElementById('finalizar-error');
+  if (!obs) { err.textContent = 'Escribe una observación final'; return; }
+  try {
+    const r = await fetch(`${API}/api/tareas/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ estado:'finalizada', observacionFinal: obs }) });
+    const d = await r.json();
+    if (d.success) {
+      showToast('✅ Tarea finalizada','success');
+      cerrarFinalizarTarea();
+      cerrarPendientesMecanico();
+      await loadTareas();
+    } else err.textContent = d.error || 'Error';
+  } catch(e) { err.textContent = 'Error de conexión'; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CONFIGURACIONES MMT (engrane)
+// ═══════════════════════════════════════════════════════════════
+function abrirConfigMmt() {
+  switchCfgTabMmt('mecanicos', document.getElementById('cfgTab-mecanicos'));
+  document.getElementById('modalConfigMmt').style.display = 'flex';
+}
+function cerrarConfigMmt() { document.getElementById('modalConfigMmt').style.display = 'none'; }
+
+function switchCfgTabMmt(panel, btn) {
+  ['mecanicos','multitareas','ppp','agujas'].forEach(p => {
+    document.getElementById('cfgPanel-'+p).style.display = p===panel ? '' : 'none';
+    const b = document.getElementById('cfgTab-'+p);
+    if (b) { b.style.color = p===panel?'#2563eb':'#64748b'; b.style.borderBottomColor = p===panel?'#2563eb':'transparent'; }
+  });
+  if (panel==='mecanicos')   renderCfgMecanicos();
+  if (panel==='multitareas') renderCfgMultitareas();
+  if (panel==='ppp')         renderCfgPpp();
+  if (panel==='agujas')      renderCfgAgujas();
+}
+
+// Mecánicos
+function renderCfgMecanicos() {
+  const lista = document.getElementById('cfg-mec-lista');
+  const mecs  = (config.mecanicos||[]).filter(m=>{ const n=typeof m==='string'?m:(m.nombre||m.name||''); return n&&n!=='ADMINISTRADOR'; });
+  lista.innerHTML = mecs.map((m,i) => {
+    const n = typeof m==='string'?m:(m.nombre||m.name||'');
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;">
+      <span style="font-size:13px;font-weight:600;color:#334155;">🔧 ${n}</span>
+      <button onclick="cfgEliminarMecanico(${i})" style="background:none;border:none;color:#ef4444;font-size:16px;cursor:pointer;">✕</button>
+    </div>`;
+  }).join('') || '<div style="color:#94a3b8;font-size:13px;padding:8px;">Sin mecánicos configurados</div>';
+}
+
+async function cfgAgregarMecanico() {
+  const inp = document.getElementById('cfg-mec-nuevo');
+  const nombre = (inp.value||'').trim().toUpperCase();
+  if (!nombre) return;
+  if (!(config.mecanicos)) config.mecanicos = [];
+  if (config.mecanicos.some(m=>(typeof m==='string'?m:(m.nombre||m.name||'')).toUpperCase()===nombre)) {
+    showToast('Ya existe ese mecánico','warning'); return;
+  }
+  config.mecanicos.push(nombre);
+  await guardarConfigMmt({ _alist_mecanicos: config.mecanicos });
+  inp.value = '';
+  renderCfgMecanicos();
+  poblarSelectLogin();
+  showToast('Mecánico agregado','success');
+}
+
+async function cfgEliminarMecanico(idx) {
+  const mecs = (config.mecanicos||[]).filter(m=>{ const n=typeof m==='string'?m:(m.nombre||m.name||''); return n&&n!=='ADMINISTRADOR'; });
+  if (!confirm(`¿Eliminar a ${typeof mecs[idx]==='string'?mecs[idx]:(mecs[idx].nombre||mecs[idx].name||'')}?`)) return;
+  config.mecanicos = config.mecanicos.filter((_,i) => {
+    const filtrados = config.mecanicos.filter(m=>{ const n=typeof m==='string'?m:(m.nombre||m.name||''); return n&&n!=='ADMINISTRADOR'; });
+    return m !== filtrados[idx];
+  });
+  await guardarConfigMmt({ _alist_mecanicos: config.mecanicos });
+  renderCfgMecanicos();
+  showToast('Mecánico eliminado','success');
+}
+
+// Multitareas
+function renderCfgMultitareas() {
+  const lista = document.getElementById('cfg-mt-lista');
+  const tipos = config.multitareaTipos || [];
+  lista.innerHTML = tipos.filter(t=>t!=='__otros__').map((t,i) => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;">
+      <span style="font-size:13px;font-weight:600;color:#334155;">⚡ ${t}</span>
+      <button onclick="cfgEliminarMultitarea('${t}')" style="background:none;border:none;color:#ef4444;font-size:16px;cursor:pointer;">✕</button>
+    </div>`).join('') || '<div style="color:#94a3b8;font-size:13px;padding:8px;">Sin tipos configurados</div>';
+}
+
+async function cfgAgregarMultitarea() {
+  const inp  = document.getElementById('cfg-mt-nuevo');
+  const tipo = (inp.value||'').trim().toUpperCase();
+  if (!tipo) return;
+  if (!config.multitareaTipos) config.multitareaTipos = [];
+  if (config.multitareaTipos.includes(tipo)) { showToast('Ya existe','warning'); return; }
+  config.multitareaTipos.push(tipo);
+  await guardarConfigMmt({ _multitarea_tipos: config.multitareaTipos });
+  inp.value = '';
+  renderCfgMultitareas();
+  showToast('Actividad agregada','success');
+}
+
+async function cfgEliminarMultitarea(tipo) {
+  if (!confirm(`¿Eliminar actividad "${tipo}"?`)) return;
+  config.multitareaTipos = (config.multitareaTipos||[]).filter(t=>t!==tipo);
+  await guardarConfigMmt({ _multitarea_tipos: config.multitareaTipos });
+  renderCfgMultitareas();
+  showToast('Actividad eliminada','success');
+}
+
+// PPP
+function renderCfgPpp() {
+  const lista = document.getElementById('cfg-ppp-lista');
+  const vals  = config.pppValues || [];
+  lista.innerHTML = vals.map(v => `
+    <div style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:#f0fdfa;border-radius:20px;border:1px solid #99f6e4;font-size:13px;font-weight:700;color:#0f766e;">
+      ${v} <button onclick="cfgEliminarPpp('${v}')" style="background:none;border:none;color:#0d9488;cursor:pointer;font-size:14px;line-height:1;">✕</button>
+    </div>`).join('') || '<div style="color:#94a3b8;font-size:13px;">Sin valores configurados</div>';
+}
+
+async function cfgAgregarPpp() {
+  const inp = document.getElementById('cfg-ppp-nuevo');
+  const val = (inp.value||'').trim();
+  if (!val) return;
+  if (!config.pppValues) config.pppValues = [];
+  if (config.pppValues.includes(val)) { showToast('Ya existe','warning'); return; }
+  config.pppValues.push(val);
+  await guardarConfigMmt({ _ppp_values: config.pppValues });
+  inp.value = '';
+  renderCfgPpp();
+  showToast('PPP agregado','success');
+}
+
+async function cfgEliminarPpp(val) {
+  config.pppValues = (config.pppValues||[]).filter(v=>v!==val);
+  await guardarConfigMmt({ _ppp_values: config.pppValues });
+  renderCfgPpp();
+}
+
+// Agujas
+function renderCfgAgujas() {
+  const lista = document.getElementById('cfg-aguja-lista');
+  const vals  = config.tiposAguja || [];
+  lista.innerHTML = vals.map(v => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;">
+      <span style="font-size:13px;font-weight:600;color:#334155;">🪡 ${v}</span>
+      <button onclick="cfgEliminarAguja('${v}')" style="background:none;border:none;color:#ef4444;font-size:16px;cursor:pointer;">✕</button>
+    </div>`).join('') || '<div style="color:#94a3b8;font-size:13px;padding:8px;">Sin tipos configurados</div>';
+}
+
+async function cfgAgregarAguja() {
+  const inp = document.getElementById('cfg-aguja-nuevo');
+  const val = (inp.value||'').trim();
+  if (!val) return;
+  if (!config.tiposAguja) config.tiposAguja = [];
+  if (config.tiposAguja.includes(val)) { showToast('Ya existe','warning'); return; }
+  config.tiposAguja.push(val);
+  await guardarConfigMmt({ _tipos_aguja: config.tiposAguja });
+  inp.value = '';
+  renderCfgAgujas();
+  showToast('Tipo de aguja agregado','success');
+}
+
+async function cfgEliminarAguja(val) {
+  config.tiposAguja = (config.tiposAguja||[]).filter(v=>v!==val);
+  await guardarConfigMmt({ _tipos_aguja: config.tiposAguja });
+  renderCfgAgujas();
+}
+
+async function guardarConfigMmt(data) {
+  try { await fetch('/api/app-config', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) }); }
+  catch(e) { showToast('Error guardando config','danger'); }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DASHBOARD MMT
+// ═══════════════════════════════════════════════════════════════
+function renderDashboardMmt() {
+  const el = document.getElementById('dash-mmt-content');
+  if (!el) return;
+  const hoy = new Date().toISOString().split('T')[0];
+
+  const alistHoy   = alistamientos.filter(r => r.fecha===hoy);
+  const mantHoy    = mantenimientos.filter(r => r.fecha===hoy);
+  const multiHoy   = multitareas.filter(r => r.fecha===hoy);
+  const tarPend    = tareas.filter(t => t.estado==='pendiente').length;
+  const tarProc    = tareas.filter(t => t.estado==='en_proceso').length;
+  const tarFin     = tareas.filter(t => t.estado==='finalizada').length;
+
+  // Actividad por mecánico (todos los tiempos)
+  const mecActiv = {};
+  [...alistamientos,...mantenimientos,...multitareas].forEach(r => {
+    const m = r.mecanico||'Sin nombre';
+    mecActiv[m] = (mecActiv[m]||0)+1;
+  });
+  const topMecs = Object.entries(mecActiv).sort((a,b)=>b[1]-a[1]).slice(0,5);
+
+  // Mantenimientos por tipo
+  const mantTipos = { Preventivo:0, Correctivo:0, 'Mantenimiento de Fugas':0 };
+  mantenimientos.forEach(r => { if (mantTipos[r.tipoMantenimiento]!==undefined) mantTipos[r.tipoMantenimiento]++; });
+
+  el.innerHTML = `
+    <!-- KPIs HOY -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px;">
+      ${kpiCard('⚙️','Alistamientos hoy',alistHoy.length,'#2563eb')}
+      ${kpiCard('🔧','Mantenimientos hoy',mantHoy.length,'#0d9488')}
+      ${kpiCard('⚡','Multitareas hoy',multiHoy.length,'#7c3aed')}
+      ${kpiCard('⏳','Tareas pendientes',tarPend,'#f59e0b')}
+      ${kpiCard('🔧','Tareas en proceso',tarProc,'#3b82f6')}
+      ${kpiCard('✅','Tareas finalizadas',tarFin,'#22c55e')}
+    </div>
+    <!-- Totales históricos -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:24px;">
+      ${kpiCard('📋','Total alistamientos',alistamientos.length,'#1e3a8a')}
+      ${kpiCard('📋','Total mantenimientos',mantenimientos.length,'#0f766e')}
+      ${kpiCard('📋','Total multitareas',multitareas.length,'#5b21b6')}
+      ${kpiCard('📌','Total tareas',tareas.length,'#92400e')}
+    </div>
+    <!-- Mantenimientos por tipo + Top mecánicos -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;flex-wrap:wrap;">
+      <div class="table-panel" style="padding:16px;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:#1e293b;margin-bottom:12px;">🔧 Mantenimientos por tipo</div>
+        ${Object.entries(mantTipos).map(([k,v])=>`
+          <div style="margin-bottom:10px;">
+            <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;color:#334155;margin-bottom:3px;"><span>${k}</span><span>${v}</span></div>
+            <div style="background:#e2e8f0;border-radius:8px;height:8px;overflow:hidden;">
+              <div style="height:8px;border-radius:8px;background:#0d9488;width:${mantenimientos.length?Math.round(v/mantenimientos.length*100):0}%;"></div>
+            </div>
+          </div>`).join('')}
+      </div>
+      <div class="table-panel" style="padding:16px;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:#1e293b;margin-bottom:12px;">👤 Mecánicos más activos</div>
+        ${topMecs.length ? topMecs.map(([m,n],i)=>`
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f1f5f9;">
+            <span style="font-size:12px;color:#334155;">${i+1}. ${m}</span>
+            <span style="font-size:12px;font-weight:700;color:#2563eb;">${n} registros</span>
+          </div>`).join('') : '<div style="color:#94a3b8;font-size:13px;">Sin datos aún</div>'}
+      </div>
+    </div>`;
+}
+
+function kpiCard(icon, label, val, color) {
+  return `<div style="background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;padding:16px 18px;box-shadow:0 1px 4px rgba(0,0,0,.05);">
+    <div style="font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#94a3b8;margin-bottom:6px;">${label}</div>
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:36px;font-weight:700;line-height:1;color:${color};">${val}</div>
+    <div style="font-size:20px;margin-top:4px;">${icon}</div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
 // ===== START =====
 init();
 </script>
