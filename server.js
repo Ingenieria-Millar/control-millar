@@ -1285,6 +1285,16 @@ app.post('/alistamiento/api/multitareas', (req, res) => {
     res.json({ success: true, data: nuevo });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
+app.put('/alistamiento/api/multitareas/:id', (req, res) => {
+  try {
+    const data = loadDB('multitareas');
+    const idx  = data.findIndex(r => r.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'No encontrado' });
+    data[idx] = { ...data[idx], ...req.body, id: data[idx].id };
+    saveDB('multitareas', data);
+    res.json({ success: true, data: data[idx] });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
 app.delete('/alistamiento/api/multitareas/:id', (req, res) => {
   const data = loadDB('multitareas').filter(r => r.id !== req.params.id);
   saveDB('multitareas', data);
