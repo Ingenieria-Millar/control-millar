@@ -190,6 +190,8 @@ tr:hover td{background:#f8fafc;}
 .hide-acciones td:last-child { display:none !important; }
 .hide-alist-acciones .col-acciones-alist { display:none !important; }
 .hide-alist-acciones td.td-alist-acc { display:none !important; }
+.hide-multi-acciones .col-acciones-multi { display:none !important; }
+.hide-multi-acciones td.td-multi-acc { display:none !important; }
 .modal-overlay{display:none;position:fixed;inset:0;z-index:500;background:rgba(15,23,42,.5);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:16px;}
 .modal-overlay.open{display:flex;}
 .modal{background:#fff;border-radius:18px;width:100%;max-width:640px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(15,23,42,.25);}
@@ -477,19 +479,15 @@ tr:hover td{background:#f8fafc;}
         <div style="width:100%;">
           <table style="width:100%;table-layout:fixed;font-size:12px;">
             <thead><tr>
-              <th style="width:110px;">Mecánico</th>
+              <th style="width:100px;">Mecánico</th>
               <th style="width:55px;">Módulo</th>
               <th style="width:90px;">Referencia</th>
-              <th style="width:90px;">Máquina</th>
-              <th style="width:115px;">Código</th>
-              <th style="width:85px;">Serial</th>
-              <th style="width:80px;">Guía</th>
-              <th style="width:75px;">T.Aguja</th>
-              <th style="width:60px;">Calibre</th>
-              <th style="width:45px;">PPP</th>
-              <th style="width:50px;">Ficha</th>
-              <th style="width:60px;">Muestra</th>
-              <th style="width:85px;">Costura</th>
+              <th style="width:85px;">Máquina</th>
+              <th style="width:80px;">Serial</th>
+              <th style="width:65px;">Guía</th>
+              <th style="width:90px;">Aguja / Cal.</th>
+              <th style="width:42px;">PPP</th>
+              <th style="width:90px;">Verificación</th>
               <th style="width:42px;">📷</th>
               <th style="width:90px;" id="th-alist-acciones" class="col-acciones-alist">Acciones</th>
             </tr></thead>
@@ -605,7 +603,7 @@ tr:hover td{background:#f8fafc;}
     <div class="table-panel">
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Fecha</th><th>Hora inicio</th><th>Duración</th><th>Mecánico</th><th>Actividad</th></tr></thead>
+          <thead><tr><th>Fecha</th><th>Hora inicio</th><th>Duración</th><th>Mecánico</th><th>Actividad</th><th>Observaciones</th><th class="col-acciones-multi">Acciones</th></tr></thead>
           <tbody id="multi-tbody"></tbody>
         </table>
       </div>
@@ -728,8 +726,38 @@ tr:hover td{background:#f8fafc;}
     <div id="mt-fase-curso" style="display:none;text-align:center;">
       <div id="mt-actividad-lbl" style="font-size:14px;font-weight:700;color:#7c3aed;margin-bottom:18px;padding:8px 16px;background:#f5f3ff;border-radius:10px;"></div>
       <div style="font-size:56px;font-weight:900;color:#1e293b;letter-spacing:2px;font-variant-numeric:tabular-nums;margin-bottom:8px;" id="mt-timer-display">00:00</div>
-      <div style="font-size:12px;color:#94a3b8;margin-bottom:28px;">tiempo transcurrido</div>
+      <div style="font-size:12px;color:#94a3b8;margin-bottom:20px;">tiempo transcurrido</div>
+      <div style="text-align:left;margin-bottom:16px;">
+        <label style="font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:6px;">Observaciones <span style="font-weight:400;color:#94a3b8;">(opcional)</span></label>
+        <textarea id="mt-obs" rows="2" style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;color:#334155;resize:vertical;box-sizing:border-box;font-family:inherit;" placeholder="Ej: requirió ajuste extra, sin novedad..."></textarea>
+      </div>
       <button onclick="finalizarMultitarea()" style="width:100%;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;font-size:15px;font-weight:800;cursor:pointer;letter-spacing:.3px;">✅ Finalizar actividad</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Editar Multitarea (admin) -->
+<div class="modal-overlay" id="modalEditMultitarea" style="display:none;align-items:center;justify-content:center;">
+  <div class="modal" style="max-width:440px;padding:28px 24px 20px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+      <span style="font-size:22px;">✏️</span>
+      <div>
+        <div style="font-size:16px;font-weight:800;color:#1e293b;">Editar Multitarea</div>
+        <div id="emt-info" style="font-size:12px;color:#94a3b8;"></div>
+      </div>
+    </div>
+    <input type="hidden" id="emt-id">
+    <div class="form-group" style="margin-bottom:14px;">
+      <label style="font-size:12px;font-weight:600;color:#475569;margin-bottom:4px;display:block;">Actividad</label>
+      <input type="text" id="emt-tarea" style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;color:#334155;box-sizing:border-box;" readonly>
+    </div>
+    <div class="form-group" style="margin-bottom:20px;">
+      <label style="font-size:12px;font-weight:600;color:#475569;margin-bottom:4px;display:block;">Observaciones</label>
+      <textarea id="emt-obs" rows="3" style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;color:#334155;resize:vertical;box-sizing:border-box;font-family:inherit;" placeholder="Observaciones opcionales..."></textarea>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="cerrarEditMultitarea()" style="flex:1;padding:10px;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;font-size:13px;font-weight:600;cursor:pointer;color:#475569;">Cancelar</button>
+      <button onclick="guardarEdicionMultitarea()" style="flex:2;padding:10px;border-radius:8px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">💾 Guardar cambios</button>
     </div>
   </div>
 </div>
@@ -1961,7 +1989,7 @@ function renderAlistamientos(data) {
   // La columna acciones se controla por clase en switchSection
 
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="12"><div style="text-align:center;padding:24px;color:#64748b;font-style:italic;"><div style="font-size:28px;margin-bottom:6px;">⚙️</div><div>No hay registros de alistamiento</div></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11"><div style="text-align:center;padding:24px;color:#64748b;font-style:italic;"><div style="font-size:28px;margin-bottom:6px;">⚙️</div><div>No hay registros de alistamiento</div></div></td></tr>';
     renderAlistKPIs(rows);
     return;
   }
@@ -1972,7 +2000,7 @@ function renderAlistamientos(data) {
   if (thead && !document.getElementById('alist-filter-row')) {
     const filterRow = document.createElement('tr');
     filterRow.id = 'alist-filter-row';
-    const cols = ['mecanico','modulo','referencia','maquina','codigo','serial','guia','aguja','calibre','ppp','ficha','muestra','costura','',''];
+    const cols = ['mecanico','modulo','referencia','maquina','serial','guia','aguja','ppp','','',''];
     filterRow.innerHTML = cols.map(function(c) {
       if (!c) return '<td style="padding:4px;"></td>';
       return '<td style="padding:4px 3px;">' +
@@ -1993,7 +2021,7 @@ function renderAlistamientos(data) {
   }
 
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="15"><div style="text-align:center;padding:24px;color:#64748b;font-style:italic;"><div style="font-size:28px;margin-bottom:6px;">⚙️</div><div>No hay registros de alistamiento</div></div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11"><div style="text-align:center;padding:24px;color:#64748b;font-style:italic;"><div style="font-size:28px;margin-bottom:6px;">⚙️</div><div>No hay registros de alistamiento</div></div></td></tr>';
     renderAlistKPIs(rows);
     return;
   }
@@ -2007,20 +2035,22 @@ function renderAlistamientos(data) {
         '<button class="btn" style="padding:4px 6px;font-size:12px;background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;margin-right:2px;" onclick="editarAlistamiento(\'' + r.id + '\')">&#9999;&#65039;</button>' +
         '<button class="btn btn-danger" style="padding:4px 6px;font-size:12px;" onclick="eliminar(\'alistamientos\',\'' + r.id + '\')">&#128465;&#65039;</button>'
       : '<span style="color:#94a3b8;">&#8212;</span>';
+    const agujaStr = [r.tipoAguja, r.calibreAguja ? 'Cal.'+r.calibreAguja : ''].filter(Boolean).join(' / ') || '—';
+    const verifCell = '<div style="display:flex;flex-direction:column;gap:2px;font-size:10px;line-height:1.4;">' +
+      '<span><b>F:</b> ' + (r.fichaTecnica||'—') + '</span>' +
+      '<span><b>M:</b> ' + (r.muestraFisica||'—') + '</span>' +
+      estadoBadge(r.pruebaCostura) +
+      '</div>';
     return '<tr>' +
       '<td style="' + TD + '">' + (r.mecanico||'-') + '</td>' +
       '<td style="' + TD + 'font-weight:700;text-align:center;">' + (r.modulo||'-') + '</td>' +
       '<td style="' + TD + '">' + (r.referencia||'-') + '</td>' +
       '<td style="' + TD + '">' + (r.tipoMaquina||'-') + '</td>' +
-      '<td style="' + TD + '"><code style="font-size:11px;background:#f1f5f9;padding:2px 5px;border-radius:4px;">' + getMaqCodigo(r.serial,r.tipoMaquina) + '</code></td>' +
       '<td style="' + TD + '"><code style="font-size:11px;background:var(--bg3);padding:2px 5px;border-radius:4px;">' + (r.serial||'-') + '</code></td>' +
       '<td style="' + TD + '">' + (r.numeroGuia||'—') + '</td>' +
-      '<td style="' + TD + '">' + (r.tipoAguja||'—') + '</td>' +
-      '<td style="' + TD + '">' + (r.calibreAguja||'—') + '</td>' +
-      '<td style="' + TD + '">' + (r.ppp||'—') + '</td>' +
-      '<td style="' + TD + 'text-align:center;">' + (r.fichaTecnica||'—') + '</td>' +
-      '<td style="' + TD + 'text-align:center;">' + (r.muestraFisica||'—') + '</td>' +
-      '<td>' + estadoBadge(r.pruebaCostura) + '</td>' +
+      '<td style="' + TD + '">' + agujaStr + '</td>' +
+      '<td style="' + TD + 'text-align:center;">' + (r.ppp||'—') + '</td>' +
+      '<td style="padding:4px 6px;">' + verifCell + '</td>' +
       '<td style="text-align:center;">' + fotoBtn + '</td>' +
       '<td style="text-align:center;white-space:nowrap;" class="td-alist-acc">' + accionBtn + '</td>' +
     '</tr>';
@@ -3080,9 +3110,12 @@ function abrirModalMultitarea(){
   if (sel) {
     sel.innerHTML = '<option value="">— Seleccionar —</option>'
       + (config.multitareaTipos||[]).map(t => `<option value="${t}">${t}</option>`).join('')
+      + '<option value="__alistamiento__">⚙️ Alistamiento</option>'
+      + '<option value="__mantenimiento__">🔧 Mantenimiento</option>'
       + '<option value="__otros__">✏️ Otros</option>';
     sel.value = '';
   }
+  _mtTipoEspecial = '';
   document.getElementById('mt-otros-wrap').style.display = 'none';
   document.getElementById('mt-otros-desc').value = '';
   document.getElementById('mt-obs').value = '';
@@ -3092,11 +3125,13 @@ function abrirModalMultitarea(){
 let _mtTimerInterval = null;
 let _mtHoraInicio    = null;
 let _mtTareaLabel    = '';
+let _mtTipoEspecial  = '';
 
 function cerrarModalMultitarea(){
   if (_mtTimerInterval) { clearInterval(_mtTimerInterval); _mtTimerInterval = null; }
-  _mtHoraInicio = null;
-  _mtTareaLabel = '';
+  _mtHoraInicio   = null;
+  _mtTareaLabel   = '';
+  _mtTipoEspecial = '';
   // reset fases
   document.getElementById('mt-fase-seleccion').style.display = '';
   document.getElementById('mt-fase-curso').style.display = 'none';
@@ -3104,8 +3139,55 @@ function cerrarModalMultitarea(){
   document.getElementById('mt-tarea').value = '';
   document.getElementById('mt-otros-wrap').style.display = 'none';
   document.getElementById('mt-otros-desc').value = '';
+  document.getElementById('mt-obs').value = '';
   document.getElementById('mt-error').textContent = '';
   document.getElementById('modalMultitarea').style.display = 'none';
+}
+
+function editarMultitarea(id){
+  const r = multitareas.find(m => m.id === id);
+  if (!r) return;
+  document.getElementById('emt-id').value        = id;
+  document.getElementById('emt-tarea').value      = r.tarea || '';
+  document.getElementById('emt-obs').value        = r.observaciones || '';
+  document.getElementById('emt-info').textContent = (r.fecha||'') + '  ·  ' + (r.duracion||'') + '  ·  ' + (r.mecanico||'');
+  document.getElementById('modalEditMultitarea').style.display = 'flex';
+}
+function cerrarEditMultitarea(){
+  document.getElementById('modalEditMultitarea').style.display = 'none';
+}
+async function guardarEdicionMultitarea(){
+  const id  = document.getElementById('emt-id').value;
+  const obs = document.getElementById('emt-obs').value.trim();
+  try {
+    const r = await fetch(`${API}/api/multitareas/${id}`, {
+      method:'PUT', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ observaciones: obs })
+    });
+    const data = await r.json();
+    if (data.success) {
+      showToast('Multitarea actualizada','success');
+      cerrarEditMultitarea();
+      await loadMultitareas();
+    } else {
+      showToast(data.error || 'Error al guardar','error');
+    }
+  } catch(e){ showToast('Error de conexión','error'); }
+}
+function eliminarMultitarea(id){
+  pedirPass(
+    '🗑️ Eliminar multitarea',
+    'Esta acción no se puede deshacer. Ingresa la contraseña para confirmar.',
+    () => {
+      fetch(`${API}/api/multitareas/${id}`, { method:'DELETE' })
+        .then(r => {
+          if (!r.ok) throw new Error();
+          showToast('Multitarea eliminada','success');
+          loadMultitareas();
+        })
+        .catch(() => showToast('Error al eliminar','error'));
+    }
+  );
 }
 
 function mtOnTareaChange(){
@@ -3115,15 +3197,21 @@ function mtOnTareaChange(){
 
 function iniciarMultitarea(){
   const errEl = document.getElementById('mt-error');
-  let tarea = document.getElementById('mt-tarea').value;
-  if (!tarea) { errEl.textContent = 'Selecciona una actividad'; return; }
-  if (tarea === '__otros__') {
+  const rawVal = document.getElementById('mt-tarea').value;
+  if (!rawVal) { errEl.textContent = 'Selecciona una actividad'; return; }
+  let tarea = rawVal;
+  if (rawVal === '__otros__') {
     tarea = (document.getElementById('mt-otros-desc').value||'').trim().toUpperCase();
     if (!tarea) { errEl.textContent = 'Describe la actividad'; return; }
+  } else if (rawVal === '__alistamiento__') {
+    tarea = '⚙️ ALISTAMIENTO';
+  } else if (rawVal === '__mantenimiento__') {
+    tarea = '🔧 MANTENIMIENTO';
   }
   errEl.textContent = '';
-  _mtTareaLabel  = tarea;
-  _mtHoraInicio  = new Date();
+  _mtTipoEspecial = rawVal;
+  _mtTareaLabel   = tarea;
+  _mtHoraInicio   = new Date();
 
   // Pasar a fase 2
   document.getElementById('mt-fase-seleccion').style.display = 'none';
@@ -3153,15 +3241,21 @@ async function finalizarMultitarea(){
     horaInicio: _mtHoraInicio.toISOString(),
     horaFin:    horaFin.toISOString(),
     duracion,
-    observaciones: ''
+    observaciones: (document.getElementById('mt-obs')?.value || '').trim()
   };
   try {
     const r = await fetch(`${API}/api/multitareas`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(reg) });
     const data = await r.json();
     if (data.success) {
+      const tipoAbierto = _mtTipoEspecial;
       showToast(`✅ Multitarea finalizada — ${duracion}`, 'success');
       cerrarModalMultitarea();
       await loadMultitareas();
+      if (tipoAbierto === '__alistamiento__') {
+        setTimeout(() => abrirModalAlistamiento(), 150);
+      } else if (tipoAbierto === '__mantenimiento__') {
+        setTimeout(() => abrirModalMantenimiento(), 150);
+      }
     } else {
       showToast(data.error || 'Error al guardar','danger');
     }
@@ -3214,17 +3308,29 @@ function renderMultitareas(){
   const tbody = document.getElementById('multi-tbody');
   if (!tbody) return;
   const rows = getMultiFiltrados();
-  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="5"><div style="text-align:center;padding:24px;color:#64748b;font-style:italic;"><div style="font-size:28px;margin-bottom:6px;">⚡</div><div>No hay multitareas registradas</div></div></td></tr>'; return; }
+  const esAdmin = mecanicoActual === 'ADMINISTRADOR';
+  const tabla = tbody.closest('table');
+  if (tabla) {
+    if (esAdmin) tabla.classList.remove('hide-multi-acciones');
+    else         tabla.classList.add('hide-multi-acciones');
+  }
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="7"><div style="text-align:center;padding:24px;color:#64748b;font-style:italic;"><div style="font-size:28px;margin-bottom:6px;">⚡</div><div>No hay multitareas registradas</div></div></td></tr>'; return; }
   tbody.innerHTML = rows.map(r => {
     const horaIni = r.horaInicio
       ? new Date(r.horaInicio).toLocaleTimeString('es-CO', {hour:'2-digit',minute:'2-digit'})
       : (r.hora||'—');
+    const accionBtn = esAdmin
+      ? `<button class="btn" style="padding:4px 6px;font-size:12px;background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;margin-right:2px;" onclick="editarMultitarea('${r.id}')" title="Editar">✏️</button>` +
+        `<button class="btn btn-danger" style="padding:4px 6px;font-size:12px;" onclick="eliminarMultitarea('${r.id}')" title="Eliminar">🗑️</button>`
+      : '<span style="color:#94a3b8;">—</span>';
     return `<tr>
       <td>${r.fecha||'—'}</td>
       <td>${horaIni}</td>
       <td style="font-weight:700;color:#7c3aed;">${r.duracion||'—'}</td>
       <td>${r.mecanico||'—'}</td>
       <td>${r.tarea||'—'}</td>
+      <td style="font-size:11px;color:#475569;">${r.observaciones||'—'}</td>
+      <td style="text-align:center;white-space:nowrap;" class="td-multi-acc">${accionBtn}</td>
     </tr>`;
   }).join('');
 }
@@ -3629,6 +3735,11 @@ function switchSection(section) {
     }
   }
   if (section === 'multitarea') {
+    const tablaMulti = document.getElementById('multi-tbody')?.closest('table');
+    if (tablaMulti) {
+      if (mecanicoActual === 'ADMINISTRADOR') tablaMulti.classList.remove('hide-multi-acciones');
+      else tablaMulti.classList.add('hide-multi-acciones');
+    }
     loadMultitareas();
   }
   if (section === 'tareas') {
