@@ -354,13 +354,28 @@ tr:hover td{background:#f8fafc;}
 </header>
 
 <!-- BARRA DE FECHA GLOBAL -->
-<div id="global-date-bar" style="display:none;background:#f0f9ff;border-bottom:1.5px solid #bae6fd;padding:7px 20px;align-items:center;gap:10px;flex-wrap:wrap;">
-  <span style="font-size:12px;font-weight:700;color:#0369a1;white-space:nowrap;">📅 Período:</span>
-  <input type="date" id="gf-desde" style="padding:4px 8px;font-size:12px;border:1.5px solid #7dd3fc;border-radius:7px;color:#0f172a;outline:none;" onchange="aplicarFechaGlobal()">
-  <span style="font-size:12px;color:#64748b;">→</span>
-  <input type="date" id="gf-hasta" style="padding:4px 8px;font-size:12px;border:1.5px solid #7dd3fc;border-radius:7px;color:#0f172a;outline:none;" onchange="aplicarFechaGlobal()">
-  <button onclick="setFechaHoyGlobal()" style="padding:4px 12px;border-radius:7px;border:1.5px solid #7dd3fc;background:#fff;color:#0369a1;font-size:12px;font-weight:700;cursor:pointer;">Hoy</button>
-  <button onclick="clearFechaGlobal()" style="padding:4px 12px;border-radius:7px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:12px;font-weight:700;cursor:pointer;">Todas las fechas</button>
+<div id="global-date-bar" style="display:none;background:#f8fafc;border-bottom:1.5px solid #e2e8f0;padding:7px 20px;align-items:center;gap:10px;">
+  <div style="position:relative;">
+    <button onclick="toggleGlobalFechaPopup()" id="btn-fecha-global" style="padding:5px 14px;border-radius:8px;border:1.5px solid #bae6fd;background:#f0f9ff;color:#0369a1;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;">
+      📅 <span id="lbl-fecha-global">Hoy</span>
+    </button>
+    <div id="fecha-popup-global" style="display:none;position:absolute;top:calc(100% + 6px);left:0;background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:18px;z-index:300;min-width:220px;">
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">Desde</label>
+          <input type="date" id="gf-desde" class="form-input" style="padding:8px 10px;font-size:13px;">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">Hasta</label>
+          <input type="date" id="gf-hasta" class="form-input" style="padding:8px 10px;font-size:13px;">
+        </div>
+        <div style="display:flex;gap:8px;margin-top:4px;">
+          <button onclick="aplicarFechaGlobalYCerrar()" style="flex:1;padding:9px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">Filtrar</button>
+          <button onclick="clearFechaGlobal()" style="flex:1;padding:9px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:13px;font-weight:700;cursor:pointer;">Limpiar</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- NAV TABS -->
@@ -440,15 +455,15 @@ tr:hover td{background:#f8fafc;}
       <div style="width:100%;overflow-x:auto;">
         <table style="width:100%;min-width:900px;table-layout:fixed;font-size:12px;">
           <thead><tr>
-            <th style="width:85px;">Fecha</th>
-            <th style="width:105px;">Mecánico</th>
-            <th style="width:75px;">Tipo</th>
-            <th style="width:52px;">Módulo</th>
-            <th style="width:90px;">Máquina</th>
-            <th style="width:105px;">Actividad</th>
-            <th style="width:auto;">Observación</th>
-            <th style="width:55px;">Evidencia</th>
-            <th style="width:90px;" id="th-todos-acciones">Acciones</th>
+            <th style="width:80px;">Fecha</th>
+            <th style="width:110px;">Mecánico</th>
+            <th style="width:72px;">Tipo</th>
+            <th style="width:50px;">Módulo</th>
+            <th style="width:95px;">Máquina</th>
+            <th style="width:120px;">Actividad</th>
+            <th style="width:38px;text-align:center;" title="Observación">💬</th>
+            <th style="width:48px;">Evidencia</th>
+            <th style="width:78px;" id="th-todos-acciones">Acciones</th>
           </tr></thead>
           <tbody id="todos-tbody"></tbody>
         </table>
@@ -3420,6 +3435,10 @@ function renderTodos() {
         onclick="editarRegistroTodos('${f.tipo}','${f.id}')">✏️</button>
       <button class="btn btn-danger" style="padding:3px 7px;font-size:11px;"
         onclick="eliminarRegistroTodos('${f.tipo}','${f.id}')">🗑️</button>` : '<span style="color:#94a3b8;">—</span>';
+    const obsEsc = (f.observacion||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    const obsBtn = f.observacion
+      ? `<button onclick="mostrarObsGlobal(this)" data-obs="${obsEsc}" style="border:none;background:none;cursor:pointer;font-size:15px;padding:2px 4px;color:#64748b;" title="${obsEsc}">💬</button>`
+      : '<span style="color:#e2e8f0;">—</span>';
     return `<tr>
       <td style="font-size:11px;white-space:nowrap;color:#64748b;">${f.fecha||'—'}</td>
       <td style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.mecanico}</td>
@@ -3427,7 +3446,7 @@ function renderTodos() {
       <td style="font-size:11px;font-weight:700;text-align:center;">${f.modulo||'—'}</td>
       <td style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.maquina||'—'}</td>
       <td style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.actividad||'—'}</td>
-      <td style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${(f.observacion||'').replace(/"/g,'&quot;')}">${f.observacion||'—'}</td>
+      <td style="text-align:center;">${obsBtn}</td>
       <td style="text-align:center;">${fotoBtn}</td>
       <td style="white-space:nowrap;">${acciones}</td>
     </tr>`;
@@ -4425,6 +4444,21 @@ function renderSeccionPendientes() {
   </tr>`).join('');
 }
 
+function toggleGlobalFechaPopup() {
+  const popup = document.getElementById('fecha-popup-global');
+  if (popup) popup.style.display = popup.style.display === 'none' ? '' : 'none';
+}
+function actualizarLblFechaGlobal() {
+  const d   = document.getElementById('gf-desde')?.value || '';
+  const h   = document.getElementById('gf-hasta')?.value || '';
+  const lbl = document.getElementById('lbl-fecha-global');
+  if (!lbl) return;
+  const hoy = new Date().toISOString().split('T')[0];
+  if (!d && !h)          { lbl.textContent = 'Todas las fechas'; return; }
+  if (d === hoy && h === hoy) { lbl.textContent = 'Hoy'; return; }
+  if (d === h)           { lbl.textContent = d; return; }
+  lbl.textContent = (d||'...') + ' → ' + (h||'...');
+}
 function aplicarFechaGlobal() {
   const desde = document.getElementById('gf-desde')?.value || '';
   const hasta  = document.getElementById('gf-hasta')?.value  || '';
@@ -4434,11 +4468,17 @@ function aplicarFechaGlobal() {
   ['alist-fecha-hasta','mant-fecha-hasta','todos-fecha-hasta'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = hasta;
   });
+  actualizarLblFechaGlobal();
   const sec = s => document.getElementById(`section-${s}`)?.style.display !== 'none';
   if (sec('todos'))         renderTodos();
   if (sec('alistamiento'))  renderAlistamientos(getAlistFiltrados());
   if (sec('mantenimiento')) renderMantenimientos(getMantFiltrados());
   if (sec('multitarea'))    renderMultitareas();
+}
+function aplicarFechaGlobalYCerrar() {
+  aplicarFechaGlobal();
+  const popup = document.getElementById('fecha-popup-global');
+  if (popup) popup.style.display = 'none';
 }
 function setFechaHoyGlobal() {
   const hoy = new Date().toISOString().split('T')[0];
@@ -4453,8 +4493,37 @@ function clearFechaGlobal() {
   const h = document.getElementById('gf-hasta');
   if (d) d.value = '';
   if (h) h.value = '';
+  const popup = document.getElementById('fecha-popup-global');
+  if (popup) popup.style.display = 'none';
   aplicarFechaGlobal();
 }
+function mostrarObsGlobal(btn) {
+  let el = document.getElementById('obs-popup-global');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'obs-popup-global';
+    el.style.cssText = 'position:fixed;max-width:320px;background:#1e293b;color:#f8fafc;padding:12px 16px;border-radius:10px;font-size:12px;line-height:1.6;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.3);cursor:pointer;';
+    el.title = 'Clic para cerrar';
+    el.onclick = () => el.style.display = 'none';
+    document.body.appendChild(el);
+  }
+  const rect = btn.getBoundingClientRect();
+  el.textContent = btn.dataset.obs || '';
+  el.style.display = 'block';
+  el.style.left = Math.min(rect.left, window.innerWidth - 340) + 'px';
+  el.style.top  = Math.min(rect.bottom + 8, window.innerHeight - 120) + 'px';
+}
+document.addEventListener('click', function(e) {
+  const popup = document.getElementById('fecha-popup-global');
+  const btn   = document.getElementById('btn-fecha-global');
+  if (popup && popup.style.display !== 'none' && !popup.contains(e.target) && !btn?.contains(e.target)) {
+    popup.style.display = 'none';
+  }
+  const obs = document.getElementById('obs-popup-global');
+  if (obs && obs.style.display !== 'none' && !obs.contains(e.target) && !e.target.closest('[data-obs]')) {
+    obs.style.display = 'none';
+  }
+});
 
 async function cambiarEstadoTarea(id, estado) {
   try {
