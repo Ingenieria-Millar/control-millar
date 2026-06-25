@@ -461,7 +461,7 @@ tr:hover td{background:#f8fafc;}
             <th style="width:50px;">Módulo</th>
             <th style="width:95px;">Máquina</th>
             <th style="width:120px;">Actividad</th>
-            <th style="width:38px;text-align:center;" title="Observación">💬</th>
+            <th style="width:80px;">Observaciones</th>
             <th style="width:48px;">Evidencia</th>
             <th style="width:78px;" id="th-todos-acciones">Acciones</th>
           </tr></thead>
@@ -505,17 +505,17 @@ tr:hover td{background:#f8fafc;}
 
     <div class="table-panel">
         <div style="width:100%;overflow-x:auto;">
-          <table style="width:100%;min-width:820px;table-layout:fixed;font-size:12px;">
+          <table style="width:100%;table-layout:fixed;font-size:12px;">
             <thead><tr>
-              <th style="width:85px;">Fecha</th>
-              <th style="width:105px;">Mecánico</th>
-              <th style="width:55px;">Módulo</th>
-              <th style="width:105px;">Referencia</th>
-              <th style="width:90px;">Máquina</th>
-              <th style="width:95px;">Código</th>
-              <th style="width:85px;">Serial</th>
-              <th style="width:55px;">Evidencia</th>
-              <th style="width:105px;" id="th-alist-acciones" class="col-acciones-alist">Acciones</th>
+              <th style="width:9%;">Fecha</th>
+              <th style="width:13%;">Mecánico</th>
+              <th style="width:6%;">Módulo</th>
+              <th style="width:auto;">Referencia</th>
+              <th style="width:11%;">Máquina</th>
+              <th style="width:11%;">Código</th>
+              <th style="width:10%;">Serial</th>
+              <th style="width:6%;">Evidencia</th>
+              <th style="width:12%;" id="th-alist-acciones" class="col-acciones-alist">Acciones</th>
             </tr></thead>
             <tbody id="alistBody"></tbody>
           </table>
@@ -606,7 +606,7 @@ tr:hover td{background:#f8fafc;}
             <th style="width:90px;">Máquina</th>
             <th style="width:95px;">Código</th>
             <th style="width:85px;">Serial</th>
-            <th style="width:130px;">Observación</th>
+            <th style="width:80px;">Observaciones</th>
             <th style="width:55px;">Evidencia</th>
             <th style="width:105px;" id="th-acciones" class="col-acciones-mant">Acciones</th>
           </tr></thead>
@@ -2152,7 +2152,7 @@ function renderMantenimientos(data) {
       '<td style="' + TD + '">' + (r.tipoMaquina||'-') + '</td>' +
       '<td style="' + TD + '"><code style="font-size:11px;background:#f1f5f9;padding:2px 5px;border-radius:4px;">' + getMaqCodigo(r.serial,r.tipoMaquina) + '</code></td>' +
       '<td style="' + TD + '"><code style="font-size:11px;background:var(--bg3);padding:2px 5px;border-radius:4px;">' + (r.serial||'-') + '</code></td>' +
-      '<td style="font-size:10px;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + (r.observaciones||'').replace(/"/g,"&quot;") + '">' + (r.observaciones||'—') + '</td>' +
+      (function(){ var ob=(r.observaciones||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); return r.observaciones ? '<td style="text-align:center;"><button onclick="mostrarObsGlobal(this)" data-obs="'+ob+'" style="border:none;background:none;cursor:pointer;font-size:15px;padding:2px 4px;color:#64748b;">💬</button></td>' : '<td style="text-align:center;"><span style="color:#e2e8f0;">—</span></td>'; })()+
       '<td style="text-align:center;">' + fotoBtn + '</td>' +
       '<td style="text-align:center;white-space:nowrap;">' +
         (mecanicoActual === 'ADMINISTRADOR' ?
@@ -3437,7 +3437,7 @@ function renderTodos() {
         onclick="eliminarRegistroTodos('${f.tipo}','${f.id}')">🗑️</button>` : '<span style="color:#94a3b8;">—</span>';
     const obsEsc = (f.observacion||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
     const obsBtn = f.observacion
-      ? `<button onclick="mostrarObsGlobal(this)" data-obs="${obsEsc}" style="border:none;background:none;cursor:pointer;font-size:15px;padding:2px 4px;color:#64748b;" title="${obsEsc}">💬</button>`
+      ? `<button onclick="mostrarObsGlobal(this)" data-obs="${obsEsc}" style="border:none;background:none;cursor:pointer;font-size:15px;padding:2px 4px;color:#64748b;">💬</button>`
       : '<span style="color:#e2e8f0;">—</span>';
     return `<tr>
       <td style="font-size:11px;white-space:nowrap;color:#64748b;">${f.fecha||'—'}</td>
