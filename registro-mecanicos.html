@@ -211,6 +211,7 @@ tr:hover td{background:#f8fafc;}
 .form-label{font-size:12px;font-weight:700;letter-spacing:.3px;color:var(--text);}
 .required{color:var(--red);}
 .form-input,.form-select,.form-textarea{padding:13px 14px;border-radius:9px;border:1.5px solid #0f172a;background:#fff;font-family:'Nunito',sans-serif;font-size:15px;color:var(--text);outline:none;transition:border-color .2s,box-shadow .2s;width:100%;}
+input.form-input[type="text"],textarea.form-textarea{text-transform:uppercase;}
 .form-input:focus,.form-select:focus,.form-textarea:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.1);}
 .form-input::placeholder,.form-textarea::placeholder{color:transparent;}
 .form-textarea{resize:vertical;min-height:88px;}
@@ -642,13 +643,13 @@ tr:hover td{background:#f8fafc;}
     </div>
     <div class="table-panel">
       <div style="width:100%;overflow-x:auto;">
-        <table style="width:100%;min-width:600px;font-size:12px;">
+        <table style="width:100%;min-width:500px;font-size:12px;">
           <thead><tr>
-            <th style="width:90px;">Fecha</th>
+            <th style="width:105px;">Fechas</th>
             <th style="width:auto;">Descripción</th>
-            <th style="width:130px;">Máquina</th>
-            <th style="width:120px;">Estado</th>
-            <th style="width:200px;">Acciones</th>
+            <th style="width:105px;">Máquina</th>
+            <th style="width:105px;">Estado</th>
+            <th style="width:120px;">Acciones</th>
           </tr></thead>
           <tbody id="pendientes-tbody"></tbody>
         </table>
@@ -1257,11 +1258,7 @@ tr:hover td{background:#f8fafc;}
             <div class="autocomplete-wrap">
               <input type="text" class="form-input" name="numeroGuia" id="mantGuiaInput"
                 autocomplete="off"
-                placeholder="Escribe para buscar..."
-                oninput="acFilterGuias('mantGuiaInput','mantGuiaList')"
-                onfocus="acFilterGuias('mantGuiaInput','mantGuiaList')"
-                onblur="setTimeout(()=>{ acClose('mantGuiaList'); validarGuiaSeleccionada(); },200)">
-              <div class="autocomplete-list" id="mantGuiaList"></div>
+                placeholder="Escribe para buscar...">
             </div>
           </div>
 
@@ -2155,11 +2152,11 @@ function renderMantenimientos(data) {
       (function(){ var ob=(r.observaciones||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); return r.observaciones ? '<td style="text-align:center;"><button onclick="mostrarObsGlobal(this)" data-obs="'+ob+'" style="border:none;background:none;cursor:pointer;font-size:15px;padding:2px 4px;color:#64748b;">💬</button></td>' : '<td style="text-align:center;"><span style="color:#e2e8f0;">—</span></td>'; })()+
       '<td style="text-align:center;">' + fotoBtn + '</td>' +
       '<td style="text-align:center;white-space:nowrap;">' +
+        '<button class="btn" style="padding:4px 6px;font-size:12px;background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;margin-right:2px;" onclick="imprimirMantenimiento(\'' + r.id + '\')" title="Imprimir PDF">&#128438;</button>' +
         (mecanicoActual === 'ADMINISTRADOR' ?
-          '<button class="btn" style="padding:4px 6px;font-size:12px;background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;margin-right:2px;" onclick="imprimirMantenimiento(\'' + r.id + '\')" title="Imprimir PDF">&#128438;</button>' +
           '<button class="btn" style="padding:4px 8px;font-size:12px;background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;margin-right:2px;" onclick="editarMantenimiento(\'' + r.id + '\')">&#9999;&#65039;</button>' +
           '<button class="btn btn-danger" style="padding:4px 8px;font-size:12px;" onclick="eliminar(\'mantenimientos\',\'' + r.id + '\')">&#128465;&#65039;</button>'
-          : '<span style="color:#94a3b8;font-size:12px;">—</span>') +
+          : '') +
       '</td>' +
     '</tr>';
   }).join('');
@@ -2710,8 +2707,12 @@ let _mantFotosFiles = [];
 let _alistFotosFiles = [];
 
 function agregarFotosAlist(input) {
-  _alistFotosFiles = _alistFotosFiles.concat(Array.from(input.files));
+  const nuevas = Array.from(input.files);
   input.value = '';
+  const disponibles = 10 - _alistFotosFiles.length;
+  if (disponibles <= 0) { showToast('Máximo 10 fotos permitidas', 'warning'); return; }
+  if (nuevas.length > disponibles) showToast(`Solo se agregaron ${disponibles} foto(s) — límite de 10`, 'warning');
+  _alistFotosFiles = _alistFotosFiles.concat(nuevas.slice(0, disponibles));
   const container = document.getElementById('previewAlist');
   container.innerHTML = '';
   _alistFotosFiles.forEach((file, i) => {
@@ -2729,8 +2730,11 @@ function agregarFotosAlist(input) {
 
 function agregarFotosMant(input) {
   const nuevos = Array.from(input.files);
-  _mantFotosFiles = _mantFotosFiles.concat(nuevos);
-  input.value = ''; // reset para poder seleccionar el mismo archivo de nuevo
+  input.value = '';
+  const disponibles = 10 - _mantFotosFiles.length;
+  if (disponibles <= 0) { showToast('Máximo 10 fotos permitidas', 'warning'); return; }
+  if (nuevos.length > disponibles) showToast(`Solo se agregaron ${disponibles} foto(s) — límite de 10`, 'warning');
+  _mantFotosFiles = _mantFotosFiles.concat(nuevos.slice(0, disponibles));
   const container = document.getElementById('previewMant');
   container.innerHTML = '';
   _mantFotosFiles.forEach((file, i) => {
@@ -4430,18 +4434,35 @@ function cerrarPendientesMecanico() { document.getElementById('modalPendientesMe
 function renderSeccionPendientes() {
   const tbody = document.getElementById('pendientes-tbody');
   if (!tbody) return;
-  const mis = tareas.filter(t => t.mecanico === mecanicoActual && t.estado !== 'finalizada');
+  const mis = tareas.filter(t => t.mecanico === mecanicoActual);
   if (!mis.length) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:#64748b;font-style:italic;"><div style="font-size:32px;margin-bottom:8px;">✅</div><div>No tienes tareas pendientes</div></td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:#64748b;font-style:italic;"><div style="font-size:32px;margin-bottom:8px;">✅</div><div>No tienes tareas asignadas</div></td></tr>';
     return;
   }
-  tbody.innerHTML = mis.map(t => `<tr>
-    <td style="font-size:11px;color:#64748b;white-space:nowrap;">${t.fechaAsignada ? t.fechaAsignada.split('T')[0] : '—'}</td>
-    <td style="font-size:11px;">${t.descripcion||'—'}${t.observaciones ? '<br><span style="font-size:10px;color:#64748b;font-style:italic;">'+t.observaciones+'</span>' : ''}</td>
-    <td style="font-size:11px;">${t.maquina||'—'}</td>
-    <td>${estadoTareaBadge(t.estado)}</td>
-    <td style="white-space:nowrap;">${botonesEstadoTarea(t)}</td>
-  </tr>`).join('');
+  tbody.innerHTML = mis.map(t => {
+    const finalizada = t.estado === 'finalizada';
+    const rowStyle   = finalizada ? 'background:#f0fdf4;' : '';
+    const descExtra  = finalizada && t.observacionFinal
+      ? `<br><span style="font-size:10px;color:#15803d;font-weight:700;">✅ ${t.observacionFinal}</span>`
+      : (t.observaciones ? `<br><span style="font-size:10px;color:#64748b;font-style:italic;">${t.observaciones}</span>` : '');
+    const acciones   = finalizada
+      ? '<span style="font-size:11px;color:#15803d;font-weight:700;">Completada</span>'
+      : `<div style="display:flex;flex-direction:column;gap:4px;">${botonesEstadoTarea(t)}</div>`;
+    const fProg  = t.fechaAsignada   ? t.fechaAsignada.split('T')[0]   : '—';
+    const fIni   = t.fechaInicio     ? t.fechaInicio.split('T')[0]     : '—';
+    const fFin   = t.fechaFinalizada ? t.fechaFinalizada.split('T')[0] : '—';
+    return `<tr style="${rowStyle}">
+      <td style="font-size:10px;color:#64748b;line-height:1.8;">
+        <span title="Programada">📅 ${fProg}</span><br>
+        <span title="Inicio">▶️ ${fIni}</span><br>
+        <span title="Terminación">✅ ${fFin}</span>
+      </td>
+      <td style="font-size:11px;">${t.descripcion||'—'}${descExtra}</td>
+      <td style="font-size:11px;">${t.maquina||'—'}</td>
+      <td>${estadoTareaBadge(t.estado)}</td>
+      <td style="vertical-align:middle;">${acciones}</td>
+    </tr>`;
+  }).join('');
 }
 
 function toggleGlobalFechaPopup() {
@@ -4522,6 +4543,15 @@ document.addEventListener('click', function(e) {
   const obs = document.getElementById('obs-popup-global');
   if (obs && obs.style.display !== 'none' && !obs.contains(e.target) && !e.target.closest('[data-obs]')) {
     obs.style.display = 'none';
+  }
+});
+document.addEventListener('input', function(e) {
+  const el = e.target;
+  if ((el.classList.contains('form-input') && el.type === 'text') ||
+       el.classList.contains('form-textarea')) {
+    const pos = el.selectionStart;
+    el.value = el.value.toUpperCase();
+    try { el.setSelectionRange(pos, pos); } catch(_) {}
   }
 });
 
