@@ -781,6 +781,28 @@ input.form-input[type="text"],textarea.form-textarea{text-transform:uppercase;}
   </div>
 </div>
 
+<!-- MODAL: Finalizar Multitarea activa -->
+<div class="modal-overlay" id="modalFinalizarMulti" style="display:none;align-items:center;justify-content:center;">
+  <div class="modal" style="max-width:420px;padding:28px 24px 20px;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+      <span style="font-size:22px;">✅</span>
+      <div>
+        <div style="font-size:16px;font-weight:800;color:#1e293b;">Finalizar Multitarea</div>
+        <div id="fmulti-tarea-lbl" style="font-size:12px;color:#7c3aed;font-weight:700;margin-top:2px;"></div>
+      </div>
+    </div>
+    <input type="hidden" id="fmulti-id">
+    <div class="form-group" style="margin-bottom:20px;">
+      <label style="font-size:12px;font-weight:600;color:#475569;margin-bottom:4px;display:block;">Observaciones <span style="color:#94a3b8;">(opcional)</span></label>
+      <textarea class="form-textarea" id="fmulti-obs" rows="3" style="width:100%;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;color:#334155;resize:vertical;box-sizing:border-box;font-family:inherit;" placeholder="Describe lo realizado..."></textarea>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="cerrarFinalizarMulti()" style="flex:1;padding:10px;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;font-size:13px;font-weight:600;cursor:pointer;color:#475569;">Cancelar</button>
+      <button onclick="confirmarFinalizarMulti()" style="flex:2;padding:10px;border-radius:8px;border:none;background:linear-gradient(135deg,#15803d,#22c55e);color:#fff;font-size:13px;font-weight:700;cursor:pointer;">✅ Finalizar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: Editar Multitarea (admin) -->
 <div class="modal-overlay" id="modalEditMultitarea" style="display:none;align-items:center;justify-content:center;">
   <div class="modal" style="max-width:440px;padding:28px 24px 20px;">
@@ -3231,7 +3253,7 @@ function mtOnTareaChange(){
   document.getElementById('mt-otros-wrap').style.display = (v === '__otros__') ? '' : 'none';
 }
 
-function iniciarMultitarea(){
+async function iniciarMultitarea(){
   const errEl = document.getElementById('mt-error');
   const rawVal = document.getElementById('mt-tarea').value;
   if (!rawVal) { errEl.textContent = 'Selecciona una actividad'; return; }
@@ -3245,23 +3267,24 @@ function iniciarMultitarea(){
     tarea = '🔧 MANTENIMIENTO';
   }
   errEl.textContent = '';
-  _mtTipoEspecial = rawVal;
-  _mtTareaLabel   = tarea;
-  _mtHoraInicio   = new Date();
-
-  // Pasar a fase 2
-  document.getElementById('mt-fase-seleccion').style.display = 'none';
-  document.getElementById('mt-actividad-lbl').textContent = '⚡ ' + tarea;
-  document.getElementById('mt-timer-display').textContent = '00:00';
-  document.getElementById('mt-fase-curso').style.display = '';
-
-  // Iniciar ticker
-  _mtTimerInterval = setInterval(() => {
-    const seg = Math.floor((Date.now() - _mtHoraInicio.getTime()) / 1000);
-    const mm  = String(Math.floor(seg / 60)).padStart(2,'0');
-    const ss  = String(seg % 60).padStart(2,'0');
-    document.getElementById('mt-timer-display').textContent = mm + ':' + ss;
-  }, 1000);
+  const reg = {
+    tarea,
+    mecanico: mecanicoActual || '',
+    horaInicio: new Date().toISOString(),
+    estado: 'en_proceso',
+    tipoEspecial: rawVal
+  };
+  try {
+    const r = await fetch(`${API}/api/multitareas`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(reg) });
+    const data = await r.json();
+    if (data.success) {
+      showToast('⚡ Multitarea iniciada', 'success');
+      cerrarModalMultitarea();
+      await loadMultitareas();
+    } else {
+      errEl.textContent = data.error || 'Error al guardar';
+    }
+  } catch(e){ errEl.textContent = 'Error de conexión'; }
 }
 
 async function finalizarMultitarea(){
@@ -3296,6 +3319,46 @@ async function finalizarMultitarea(){
       showToast(data.error || 'Error al guardar','danger');
     }
   } catch(e){ showToast('Error de conexión','danger'); }
+}
+
+// Finalizar multitarea activa desde tabla
+function abrirFinalizarMulti(id, tarea) {
+  document.getElementById('fmulti-id').value = id;
+  document.getElementById('fmulti-tarea-lbl').textContent = tarea;
+  document.getElementById('fmulti-obs').value = '';
+  document.getElementById('modalFinalizarMulti').style.display = 'flex';
+}
+function cerrarFinalizarMulti() {
+  document.getElementById('modalFinalizarMulti').style.display = 'none';
+}
+async function confirmarFinalizarMulti() {
+  const id  = document.getElementById('fmulti-id').value;
+  const obs = (document.getElementById('fmulti-obs').value || '').trim();
+  const horaFin = new Date();
+  const reg = (multitareas || []).find(r => r.id === id);
+  let duracion = '—';
+  if (reg && reg.horaInicio) {
+    const seg = Math.floor((horaFin - new Date(reg.horaInicio)) / 1000);
+    duracion = String(Math.floor(seg / 60)).padStart(2,'0') + ':' + String(seg % 60).padStart(2,'0');
+  }
+  const tipoEspecial = reg ? (reg.tipoEspecial || '') : '';
+  try {
+    const r = await fetch(`${API}/api/multitareas/${id}`, {
+      method: 'PUT',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ horaFin: horaFin.toISOString(), duracion, observaciones: obs, estado: 'finalizado' })
+    });
+    const data = await r.json();
+    if (data.success) {
+      showToast(`✅ Multitarea finalizada — ${duracion}`, 'success');
+      cerrarFinalizarMulti();
+      await loadMultitareas();
+      if (tipoEspecial === '__alistamiento__') setTimeout(() => abrirModalAlistamiento(), 150);
+      else if (tipoEspecial === '__mantenimiento__') setTimeout(() => abrirModalMantenimiento(), 150);
+    } else {
+      showToast(data.error || 'Error al finalizar', 'danger');
+    }
+  } catch(e){ showToast('Error de conexión', 'danger'); }
 }
 
 // Tipos de multitarea (solo ADMINISTRADOR)
@@ -3346,29 +3409,37 @@ function renderMultitareas(){
   const rows = getMultiFiltrados();
   const esAdmin = mecanicoActual === 'ADMINISTRADOR';
   const tabla = tbody.closest('table');
-  if (tabla) {
-    if (esAdmin) tabla.classList.remove('hide-multi-acciones');
-    else         tabla.classList.add('hide-multi-acciones');
-  }
+  if (tabla) tabla.classList.remove('hide-multi-acciones');
   if (!rows.length) { tbody.innerHTML = '<tr><td colspan="8"><div style="text-align:center;padding:24px;color:#64748b;font-style:italic;"><div style="font-size:28px;margin-bottom:6px;">⚡</div><div>No hay multitareas registradas</div></div></td></tr>'; return; }
   tbody.innerHTML = rows.map(r => {
+    const enProceso = r.estado === 'en_proceso';
     const horaIni = r.horaInicio
       ? new Date(r.horaInicio).toLocaleTimeString('es-CO', {hour:'2-digit',minute:'2-digit'})
       : (r.hora||'—');
     const horaFin = r.horaFin
       ? new Date(r.horaFin).toLocaleTimeString('es-CO', {hour:'2-digit',minute:'2-digit'})
-      : '—';
-    const accionBtn = esAdmin
-      ? `<button class="btn" style="padding:4px 6px;font-size:12px;background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;margin-right:2px;" onclick="editarMultitarea('${r.id}')" title="Editar">✏️</button>` +
-        `<button class="btn btn-danger" style="padding:4px 6px;font-size:12px;" onclick="eliminarMultitarea('${r.id}')" title="Eliminar">🗑️</button>`
-      : '<span style="color:#94a3b8;">—</span>';
-    return `<tr>
+      : (enProceso ? '<span style="color:#f59e0b;font-size:10px;">⏳ En curso</span>' : '—');
+    const duracion = enProceso
+      ? '<span style="color:#f59e0b;font-size:11px;">⏳</span>'
+      : (r.duracion||'—');
+    const tareaEsc = (r.tarea||'').replace(/'/g,'&#39;');
+    let accionBtn;
+    if (enProceso) {
+      accionBtn = `<button class="btn" style="padding:4px 8px;font-size:11px;background:#22c55e;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:700;" onclick="abrirFinalizarMulti('${r.id}','${tareaEsc}')">✅ Finalizar</button>`;
+    } else if (esAdmin) {
+      accionBtn = `<button class="btn" style="padding:4px 6px;font-size:12px;background:#eff6ff;color:#1e40af;border:1px solid #93c5fd;margin-right:2px;" onclick="editarMultitarea('${r.id}')" title="Editar">✏️</button>` +
+        `<button class="btn btn-danger" style="padding:4px 6px;font-size:12px;" onclick="eliminarMultitarea('${r.id}')" title="Eliminar">🗑️</button>`;
+    } else {
+      accionBtn = '<span style="color:#94a3b8;">—</span>';
+    }
+    const rowStyle = enProceso ? 'background:#fffbeb;' : '';
+    return `<tr style="${rowStyle}">
       <td style="font-size:11px;color:#64748b;">${r.fecha||'—'}</td>
       <td style="font-size:11px;font-weight:600;">${r.mecanico||'—'}</td>
       <td style="font-size:11px;">${r.tarea||'—'}</td>
       <td style="font-size:11px;">${horaIni}</td>
       <td style="font-size:11px;">${horaFin}</td>
-      <td style="font-weight:700;color:#7c3aed;font-size:12px;">${r.duracion||'—'}</td>
+      <td style="font-weight:700;color:#7c3aed;font-size:12px;">${duracion}</td>
       <td style="font-size:11px;color:#475569;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${(r.observaciones||'').replace(/"/g,'&quot;')}">${r.observaciones||'—'}</td>
       <td style="text-align:center;white-space:nowrap;" class="td-multi-acc">${accionBtn}</td>
     </tr>`;
