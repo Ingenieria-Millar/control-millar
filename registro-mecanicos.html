@@ -353,13 +353,23 @@ tr:hover td{background:#f8fafc;}
   </div>
 </header>
 
+<!-- BARRA DE FECHA GLOBAL -->
+<div id="global-date-bar" style="display:none;background:#f0f9ff;border-bottom:1.5px solid #bae6fd;padding:7px 20px;align-items:center;gap:10px;flex-wrap:wrap;">
+  <span style="font-size:12px;font-weight:700;color:#0369a1;white-space:nowrap;">📅 Período:</span>
+  <input type="date" id="gf-desde" style="padding:4px 8px;font-size:12px;border:1.5px solid #7dd3fc;border-radius:7px;color:#0f172a;outline:none;" onchange="aplicarFechaGlobal()">
+  <span style="font-size:12px;color:#64748b;">→</span>
+  <input type="date" id="gf-hasta" style="padding:4px 8px;font-size:12px;border:1.5px solid #7dd3fc;border-radius:7px;color:#0f172a;outline:none;" onchange="aplicarFechaGlobal()">
+  <button onclick="setFechaHoyGlobal()" style="padding:4px 12px;border-radius:7px;border:1.5px solid #7dd3fc;background:#fff;color:#0369a1;font-size:12px;font-weight:700;cursor:pointer;">Hoy</button>
+  <button onclick="clearFechaGlobal()" style="padding:4px 12px;border-radius:7px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:12px;font-weight:700;cursor:pointer;">Todas las fechas</button>
+</div>
+
 <!-- NAV TABS -->
 <nav class="nav-bar" id="nav-bar-main" style="display:none">
   <div class="nav-tab active" id="tab-todos"          onclick="switchSection('todos')">📋 Todos</div>
   <div class="nav-tab"        id="tab-alistamiento"   onclick="switchSection('alistamiento')">⚙️ Alistamiento</div>
   <div class="nav-tab mant"   id="tab-mantenimiento"  onclick="switchSection('mantenimiento')">🔧 Mantenimiento</div>
   <div class="nav-tab"        id="tab-multitarea"     onclick="switchSection('multitarea')">⚡ Multitareas</div>
-  <div id="btn-pendientes-mec" onclick="abrirPendientesMecanico()" style="display:none;cursor:pointer;padding:8px 14px;font-size:13px;font-weight:700;color:#92400e;background:#fffbeb;border-top:3px solid #f59e0b;align-items:center;gap:6px;white-space:nowrap;">
+  <div id="btn-pendientes-mec" onclick="switchSection('pendientes')" style="display:none;cursor:pointer;padding:8px 14px;font-size:13px;font-weight:700;color:#92400e;background:#fffbeb;border-top:3px solid #f59e0b;align-items:center;gap:6px;white-space:nowrap;">
     📌 Pendientes <span id="badge-pendientes" style="background:#ef4444;color:#fff;border-radius:10px;padding:1px 7px;font-size:11px;margin-left:2px;display:none;">0</span>
   </div>
   <div class="nav-tab"        id="tab-tareas"         onclick="switchSection('tareas')" style="display:none;">📌 Tareas</div>
@@ -403,7 +413,7 @@ tr:hover td{background:#f8fafc;}
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:#1e293b;letter-spacing:.5px;">Todos los registros</div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex-shrink:0;">
-        <div style="position:relative;">
+        <div style="position:relative;display:none;">
           <button class="btn-export" onclick="toggleTodosFechaPopup()" id="btn-fecha-todos">📅 <span id="lbl-fecha-todos">Hoy</span></button>
           <div id="fecha-popup-todos" style="display:none;position:absolute;top:calc(100% + 6px);right:0;background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:18px;z-index:300;min-width:220px;">
             <div style="display:flex;flex-direction:column;gap:12px;">
@@ -427,8 +437,8 @@ tr:hover td{background:#f8fafc;}
       </div>
     </div>
     <div class="table-panel">
-      <div style="width:100%;">
-        <table style="width:100%;table-layout:fixed;font-size:12px;">
+      <div style="width:100%;overflow-x:auto;">
+        <table style="width:100%;min-width:900px;table-layout:fixed;font-size:12px;">
           <thead><tr>
             <th style="width:85px;">Fecha</th>
             <th style="width:105px;">Mecánico</th>
@@ -454,7 +464,7 @@ tr:hover td{background:#f8fafc;}
       <div id="alist-kpis" style="display:flex;flex-wrap:wrap;gap:12px;flex:1;"></div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex-shrink:0;">
         <!-- Botón Fecha con popup anclado -->
-        <div style="position:relative;">
+        <div style="position:relative;display:none;">
           <button class="btn-export" onclick="toggleAlistFechaPopup()" id="btn-fecha-alist">📅 <span id="lbl-fecha-alist">Hoy</span></button>
           <div id="fecha-popup-alist" style="display:none;position:absolute;top:calc(100% + 6px);right:0;background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:18px;z-index:300;min-width:220px;">
             <div style="display:flex;flex-direction:column;gap:12px;">
@@ -479,8 +489,8 @@ tr:hover td{background:#f8fafc;}
     </div>
 
     <div class="table-panel">
-        <div style="width:100%;">
-          <table style="width:100%;table-layout:fixed;font-size:12px;">
+        <div style="width:100%;overflow-x:auto;">
+          <table style="width:100%;min-width:820px;table-layout:fixed;font-size:12px;">
             <thead><tr>
               <th style="width:85px;">Fecha</th>
               <th style="width:105px;">Mecánico</th>
@@ -544,7 +554,7 @@ tr:hover td{background:#f8fafc;}
       <div id="mant-kpis" style="display:flex;flex-wrap:wrap;gap:12px;flex:1;"></div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;flex-shrink:0;">
         <!-- Botón Fecha con popup anclado -->
-        <div style="position:relative;">
+        <div style="position:relative;display:none;">
           <button class="btn-export" onclick="toggleFechaPopup()" id="btn-fecha-mant">📅 <span id="lbl-fecha-mant">Hoy</span></button>
           <!-- Popup de fecha — anclado justo debajo del botón -->
           <div id="fecha-popup-mant" style="display:none;position:absolute;top:calc(100% + 6px);right:0;background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:18px;z-index:300;min-width:220px;">
@@ -571,8 +581,8 @@ tr:hover td{background:#f8fafc;}
 
     <!-- Tabla -->
     <div class="table-panel">
-      <div style="width:100%;">
-        <table style="width:100%;table-layout:fixed;font-size:12px;">
+      <div style="width:100%;overflow-x:auto;">
+        <table style="width:100%;min-width:880px;table-layout:fixed;font-size:12px;">
           <thead><tr>
             <th style="width:85px;">Fecha</th>
             <th style="width:85px;">Tipo</th>
@@ -605,6 +615,27 @@ tr:hover td{background:#f8fafc;}
         <table>
           <thead><tr><th>Fecha</th><th>Mecánico</th><th>Actividad</th><th>Hora inicio</th><th>Hora fin</th><th>Duración</th><th>Observaciones</th><th class="col-acciones-multi">Acciones</th></tr></thead>
           <tbody id="multi-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- PENDIENTES (mecánico) -->
+  <div id="section-pendientes" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:#92400e;letter-spacing:.5px;">📌 Mis Tareas Pendientes</div>
+    </div>
+    <div class="table-panel">
+      <div style="width:100%;overflow-x:auto;">
+        <table style="width:100%;min-width:600px;font-size:12px;">
+          <thead><tr>
+            <th style="width:90px;">Fecha</th>
+            <th style="width:auto;">Descripción</th>
+            <th style="width:130px;">Máquina</th>
+            <th style="width:120px;">Estado</th>
+            <th style="width:200px;">Acciones</th>
+          </tr></thead>
+          <tbody id="pendientes-tbody"></tbody>
         </table>
       </div>
     </div>
@@ -3588,9 +3619,12 @@ function confirmarLoginMant() {
   if (expMant)  { expMant.style.display = esAdmin ? '' : 'none'; }
   if (expAlist) { expAlist.style.display = esAdmin ? '' : 'none'; }
 
-  // Nav-bar principal
+  // Nav-bar principal y barra de fecha global
   const navBarMain = document.getElementById('nav-bar-main');
   if (navBarMain) navBarMain.style.display = '';
+  const globalBar = document.getElementById('global-date-bar');
+  if (globalBar) globalBar.style.display = 'flex';
+  setFechaHoyGlobal();
 
   // Tabs exclusivos de admin
   const tabTareas = document.getElementById('tab-tareas');
@@ -3660,13 +3694,15 @@ function cerrarSesionMant() {
   if (btnPendOut) btnPendOut.style.display = 'none';
   if (badgePend)  { badgePend.style.display = 'none'; badgePend.textContent = '0'; }
 
-  // Ocultar nav-bar principal
+  // Ocultar nav-bar principal y barra de fecha
+  const globalBarOut = document.getElementById('global-date-bar');
+  if (globalBarOut) globalBarOut.style.display = 'none';
   const navBarMainOut = document.getElementById('nav-bar-main');
   if (navBarMainOut) navBarMainOut.style.display = 'none';
 
   // Ocultar secciones y mostrar login
   ['section-todos','section-alistamiento','section-mantenimiento','section-multitarea',
-   'section-dashboard','section-tareas','section-dashboard-mmt'].forEach(id => {
+   'section-dashboard','section-tareas','section-dashboard-mmt','section-pendientes'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
@@ -3680,7 +3716,7 @@ function cerrarSesionMant() {
 }
 
 function switchSection(section) {
-  ['dashboard','todos','alistamiento','mantenimiento','multitarea','tareas','dashboard-mmt'].forEach(s => {
+  ['dashboard','todos','alistamiento','mantenimiento','multitarea','tareas','dashboard-mmt','pendientes'].forEach(s => {
     const sec = document.getElementById(`section-${s}`);
     const tab = document.getElementById(`tab-${s}`);
     if (sec) sec.style.display = s === section ? '' : 'none';
@@ -3747,6 +3783,9 @@ function switchSection(section) {
   }
   if (section === 'dashboard-mmt') {
     renderDashboardMmt();
+  }
+  if (section === 'pendientes') {
+    renderSeccionPendientes();
   }
 }
 
@@ -4369,11 +4408,59 @@ function abrirPendientesMecanico() {
 }
 function cerrarPendientesMecanico() { document.getElementById('modalPendientesMec').style.display = 'none'; }
 
+function renderSeccionPendientes() {
+  const tbody = document.getElementById('pendientes-tbody');
+  if (!tbody) return;
+  const mis = tareas.filter(t => t.mecanico === mecanicoActual && t.estado !== 'finalizada');
+  if (!mis.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:#64748b;font-style:italic;"><div style="font-size:32px;margin-bottom:8px;">✅</div><div>No tienes tareas pendientes</div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = mis.map(t => `<tr>
+    <td style="font-size:11px;color:#64748b;white-space:nowrap;">${t.fechaAsignada ? t.fechaAsignada.split('T')[0] : '—'}</td>
+    <td style="font-size:11px;">${t.descripcion||'—'}${t.observaciones ? '<br><span style="font-size:10px;color:#64748b;font-style:italic;">'+t.observaciones+'</span>' : ''}</td>
+    <td style="font-size:11px;">${t.maquina||'—'}</td>
+    <td>${estadoTareaBadge(t.estado)}</td>
+    <td style="white-space:nowrap;">${botonesEstadoTarea(t)}</td>
+  </tr>`).join('');
+}
+
+function aplicarFechaGlobal() {
+  const desde = document.getElementById('gf-desde')?.value || '';
+  const hasta  = document.getElementById('gf-hasta')?.value  || '';
+  ['alist-fecha-desde','mant-fecha-desde','todos-fecha-desde'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = desde;
+  });
+  ['alist-fecha-hasta','mant-fecha-hasta','todos-fecha-hasta'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = hasta;
+  });
+  const sec = s => document.getElementById(`section-${s}`)?.style.display !== 'none';
+  if (sec('todos'))         renderTodos();
+  if (sec('alistamiento'))  renderAlistamientos(getAlistFiltrados());
+  if (sec('mantenimiento')) renderMantenimientos(getMantFiltrados());
+  if (sec('multitarea'))    renderMultitareas();
+}
+function setFechaHoyGlobal() {
+  const hoy = new Date().toISOString().split('T')[0];
+  const d = document.getElementById('gf-desde');
+  const h = document.getElementById('gf-hasta');
+  if (d) d.value = hoy;
+  if (h) h.value = hoy;
+  aplicarFechaGlobal();
+}
+function clearFechaGlobal() {
+  const d = document.getElementById('gf-desde');
+  const h = document.getElementById('gf-hasta');
+  if (d) d.value = '';
+  if (h) h.value = '';
+  aplicarFechaGlobal();
+}
+
 async function cambiarEstadoTarea(id, estado) {
   try {
     await fetch(`${API}/api/tareas/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({estado}) });
     await loadTareas();
-    abrirPendientesMecanico();
+    renderSeccionPendientes();
   } catch(e) { showToast('Error','danger'); }
 }
 
@@ -4400,6 +4487,7 @@ async function confirmarFinalizarTarea() {
       cerrarFinalizarTarea();
       cerrarPendientesMecanico();
       await loadTareas();
+      renderSeccionPendientes();
     } else err.textContent = d.error || 'Error';
   } catch(e) { err.textContent = 'Error de conexión'; }
 }
