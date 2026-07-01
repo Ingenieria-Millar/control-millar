@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es" data-theme="light">
 <head>
 <meta charset="UTF-8">
@@ -7,7 +7,7 @@
 var F=window.fetch;window.fetch=function(u,o){o=o||{};var t=T();if(t){var h=new Headers(o.headers||{});if(!h.has('Authorization'))h.set('Authorization','Bearer '+t);o.headers=h;}return F.call(this,u,o);};
 var W=window.WebSocket;function MW(u,p){try{var t=T();if(t&&typeof u==='string'&&u.indexOf('token=')<0){u+=(u.indexOf('?')<0?'?':'&')+'token='+encodeURIComponent(t);}}catch(e){}return p!==undefined?new W(u,p):new W(u);}MW.prototype=W.prototype;MW.CONNECTING=W.CONNECTING;MW.OPEN=W.OPEN;MW.CLOSING=W.CLOSING;MW.CLOSED=W.CLOSED;window.WebSocket=MW;})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Producción — Confecciones Millar</title>
+<title>Producción — MES | Millar</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Nunito:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -1726,7 +1726,7 @@ let ws=null, wsReady=false, wsReconnectTimer=null;
 function connectWS(){
   const proto=location.protocol==='https:'?'wss':'ws';
   ws=new WebSocket(proto+'://'+location.host);
-  ws.onopen=()=>{ wsReady=true; clearTimeout(wsReconnectTimer); };
+  ws.onopen=()=>{ wsReady=true; clearTimeout(wsReconnectTimer); ws.send(JSON.stringify({type:'subscribe',topics:['prod']})); };
   ws.onmessage=e=>{
     try{
       const msg=JSON.parse(e.data);

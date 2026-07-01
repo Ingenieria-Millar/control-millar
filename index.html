@@ -1,6 +1,6 @@
-
+﻿
 <!-- ╔══════════════════════════════════════════════════════════════╗ -->
-<!-- ║          CONTROL DE PISO — Confecciones Millar v2.0          ║ -->
+<!-- ║          MES — Confecciones Millar v2.0          ║ -->
 <!-- ║  index.html — Archivo principal del sistema                  ║ -->
 <!-- ╠══════════════════════════════════════════════════════════════╣ -->
 <!-- ║  ÍNDICE DE SECCIONES                                         ║ -->
@@ -45,7 +45,7 @@ window.addEventListener('load', function(){
     document.body.appendChild(b);
   }catch(e){}
 });</script>
-<title>Control de Piso — Confecciones Millar</title>
+<title>MES — Millar</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <!-- Screen & Session Persistence -->
 <script>
@@ -1616,16 +1616,17 @@ function connectWS(){
 
   ws.onopen=()=>{
     wsReady=true;
-    reconnectDelay=1000; // reset backoff on successful connect
+    reconnectDelay=1000;
     clearTimeout(reconnectTimer);
     setConnStatus(true);
+    ws.send(JSON.stringify({ type: 'subscribe', topics: ['modulos', 'ci', 'ia'] }));
   };
 
   ws.onmessage=(e)=>{
     try{
       const msg=JSON.parse(e.data);
 
-      // ── Control de Piso ──────────────────────────────────────
+      // ── MES ──────────────────────────────────────
       // ── server_reset: el servidor fue reseteado ─────────────
       if(msg.type==='server_reset'){
         alert('⚠️ El servidor fue reseteado. La página se recargará.');

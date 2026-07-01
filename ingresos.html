@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -7,7 +7,7 @@
 var F=window.fetch;window.fetch=function(u,o){o=o||{};var t=T();if(t){var h=new Headers(o.headers||{});if(!h.has('Authorization'))h.set('Authorization','Bearer '+t);o.headers=h;}return F.call(this,u,o);};
 var W=window.WebSocket;function MW(u,p){try{var t=T();if(t&&typeof u==='string'&&u.indexOf('token=')<0){u+=(u.indexOf('?')<0?'?':'&')+'token='+encodeURIComponent(t);}}catch(e){}return p!==undefined?new W(u,p):new W(u);}MW.prototype=W.prototype;MW.CONNECTING=W.CONNECTING;MW.OPEN=W.OPEN;MW.CLOSING=W.CLOSING;MW.CLOSED=W.CLOSED;window.WebSocket=MW;})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Control de Ingresos — Confecciones Millar</title>
+<title>Control de Ingresos — MES | Millar</title>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Nunito:wght@300;400;500;600;700;800&display=swap&font-display=swap" rel="stylesheet">
@@ -240,6 +240,7 @@ function connectWS(){
     reconnectDelay = 1000;
     clearTimeout(reconnectTimer);
     dbg('WS conectado ✓');
+    ws.send(JSON.stringify({ type: 'subscribe', topics: ['ia', 'modulos'] }));
   };
 
   ws.onmessage = (e) => {
@@ -994,7 +995,7 @@ function getIngresoHTML(){
 
 
 /* ═══════════════════════════════════════════════════════════════
-   RESPONSIVE — Control de Piso · Confecciones Millar
+   RESPONSIVE — MES · Confecciones Millar
    Breakpoints:
      TV / 4K   : ≥ 1920px
      Desktop   : 1200 – 1919px  (base, sin query)
@@ -1006,7 +1007,7 @@ function getIngresoHTML(){
 ═══════════════════════════════════════════════════════════════ */
 
 /* ═══════════════════════════════════════════════════════════
-   RESPONSIVE GLOBAL — Control de Piso Millar
+   RESPONSIVE GLOBAL — MES Millar
    TV≥1920 | Desktop 1200-1919 | Laptop 900-1199
    Tablet-H 768-899 | Tablet-V 600-767
    Mobile-L 480-599 | Mobile-S ≤479
@@ -1328,14 +1329,14 @@ html { overflow-x: hidden; max-width: 100%; }
 }
 
 /* ══════════════════════════════════════════════════════════════
-   RESPONSIVE GLOBAL — Control de Piso · Asistencia · CI
+   RESPONSIVE GLOBAL — MES · Asistencia · CI
    TV (+1400px) · PC (1024-1399) · Tablet L (768-1023)
    Tablet P (480-767) · Celular (-480px)
 ══════════════════════════════════════════════════════════════ */
 
 /* ── TV / Pantallas grandes (≥ 1400px) ──────────────────────── */
 @media (min-width: 1400px) {
-  /* Control de Piso */
+  /* MES */
   header { padding: 0 40px; }
   h1 { font-size: 20px; letter-spacing: 5px; }
   .clock { font-size: 18px; }
@@ -1379,7 +1380,7 @@ html { overflow-x: hidden; max-width: 100%; }
   h1 { font-size: 14px; letter-spacing: 2px; }
   .clock { font-size: 13px; }
   .hd-logo { width: 32px; height: 32px; }
-  /* Control de Piso grid */
+  /* MES grid */
   .grid { grid-template-columns: repeat(5, 1fr); gap: 10px; }
   main { padding: 16px; }
   .light { width: 44px; height: 44px; }

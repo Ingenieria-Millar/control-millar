@@ -918,8 +918,8 @@ app.post('/api/produccion', (req, res) => {
   if (!boards || typeof boards !== 'object')
     return res.status(400).json({ error: 'Payload inválido' });
   saveDB('produccion', { boards, history: history || [] });
-  // Notificar a todos los clientes WS conectados
-  broadcastLocal({ type: 'prod_update', boards, history: history || [] });
+  // Notificar clientes prod — sin history (payload grande, no es tiempo real)
+  broadcastProdUpdate({ type: 'prod_update', boards });
   res.json({ ok: true });
 });
 
@@ -1162,14 +1162,51 @@ function ejecutarCierreMedianoche() {
 // Iniciar el job al arrancar el servidor
 programarCierreMedianoche();
 
+// Mapa: tipo de mensaje → topic. Sin entry = enviar a todos (init, server_reset, etc.)
+const MSG_TOPICS = {
+  'change':              'modulos',
+  'change2':             'modulos',
+  'change_pink':         'modulos',
+  'multi_imp_change':    'modulos',
+  'modules_config':      'modulos',
+  'ci_new_request':      'ci',
+  'ci_update_request':   'ci',
+  'ci_delete_request':   'ci',
+  'ci_cumplido_request': 'ci',
+  'ci_config_sync':      'ci',
+  'ci_reactivar_alerta': 'ci',
+  'ia_add_record':       'ia',
+  'ia_delete_record':    'ia',
+  'ia_edit_record':      'ia',
+  'ia_save_state':       'ia',
+  'prod_update':         'prod',
+  'rt_update':           'rt',
+};
+
 function broadcast(payload, excludeWs = null) {
   if (!wss) return;
-  const str = JSON.stringify(payload);
+  const str   = JSON.stringify(payload);
+  const topic = MSG_TOPICS[payload.type] || null;
   wss.clients.forEach(c => {
     if (c.readyState !== 1) return;
     if (excludeWs && c === excludeWs) return;
+    // Filtrar por topic solo si el cliente ya se suscribió (tiene topics definidos)
+    if (topic && c.topics && c.topics.size > 0 && !c.topics.has(topic)) return;
     c.send(str);
   });
+}
+
+// Debounce para prod_update: evita floods si varios cambios llegan en <300ms
+let _prodUpdateTimer = null;
+let _prodUpdatePending = null;
+function broadcastProdUpdate(payload, excludeWs) {
+  _prodUpdatePending = { payload, excludeWs };
+  if (_prodUpdateTimer) return;
+  _prodUpdateTimer = setTimeout(() => {
+    _prodUpdateTimer = null;
+    if (_prodUpdatePending) broadcast(_prodUpdatePending.payload, _prodUpdatePending.excludeWs);
+    _prodUpdatePending = null;
+  }, 300);
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -1341,6 +1378,8 @@ app.put('/alistamiento/api/tareas/:id', (req, res) => {
     if (idx === -1) return res.status(404).json({ error: 'No encontrada' });
     const campos = ['maquina','descripcion','ppp','tipoAguja','observaciones','estado','observacionFinal','mecanico'];
     campos.forEach(c => { if (req.body[c] !== undefined) data[idx][c] = req.body[c]; });
+    if (req.body.estado === 'en_proceso' && !data[idx].fechaInicio)
+      data[idx].fechaInicio = new Date().toISOString();
     if (req.body.estado === 'finalizada' && !data[idx].fechaFinalizada)
       data[idx].fechaFinalizada = new Date().toISOString();
     writeJSON(FILES.tareas, data);
@@ -1960,14 +1999,14 @@ const server = http.createServer(app);
 // Asignar wss ANTES de que puedan llegar requests (el listen es async)
 wss = new WebSocketServer({ server });
 
-// Ping/pong — evita timeout de 60s en Render
+// Ping/pong — evita timeout de 60s en Render (50s: margen sin desperdiciar ciclos)
 setInterval(() => {
   wss.clients.forEach(ws => {
     if (ws.isAlive === false) { ws.terminate(); return; }
     ws.isAlive = false;
     ws.ping();
   });
-}, 30_000);
+}, 50_000);
 
 wss.on('connection', (ws, req) => {
   // Puerta de atrás: si el interruptor está encendido, exigir token válido
@@ -1980,6 +2019,7 @@ wss.on('connection', (ws, req) => {
     if (!ok) { try { ws.close(4001, 'No autenticado'); } catch(e){} return; }
   }
   ws.isAlive = true;
+  ws.topics  = new Set(); // temas suscritos — vacío = recibe todo (retrocompat.)
   ws.on('pong', () => { ws.isAlive = true; });
 
   // Estado completo al conectar
@@ -2009,7 +2049,15 @@ wss.on('connection', (ws, req) => {
     const broadcastLocal = (payload) => broadcast(payload, ws);
 
     try {
-      // ── Control de Piso ─────────────────────────────────────────
+      // ── Suscripción a topics ─────────────────────────────────────
+      if (msg.type === 'subscribe') {
+        if (Array.isArray(msg.topics)) {
+          ws.topics = new Set(msg.topics.filter(t => typeof t === 'string'));
+        }
+        return;
+      }
+
+      // ── MES ──────────────────────────────────────────────────────
       if (msg.type === 'change') {
         if (!msg.id) { console.warn('WS change: sin id'); return; }
         // Aceptar módulos extra aunque no estén en states aún
