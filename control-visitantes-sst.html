@@ -31,7 +31,7 @@
     min-height:100vh;
     -webkit-tap-highlight-color:transparent;
   }
-  #app{max-width:900px;margin:0 auto;min-height:100vh;background:var(--paper);display:flex;flex-direction:column;}
+  #app{max-width:100%;margin:0;min-height:100vh;background:var(--paper);display:flex;flex-direction:column;}
 
   /* ---------- HEADER ---------- */
   .topbar{
@@ -45,8 +45,8 @@
     gap:16px;
     position:relative;
   }
-  .topbar::before{
-    content:'';position:absolute;top:0;left:0;right:0;height:4px;
+  .topbar::after{
+    content:'';position:absolute;bottom:0;left:0;right:0;height:4px;
     background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);
   }
   .topbar .left{display:flex;align-items:center;gap:14px;}
@@ -63,9 +63,10 @@
   .brand-title{
     font-family:'Barlow Condensed',sans-serif;
     font-weight:800;
-    font-size:1.25rem;
+    font-size:1.5rem;
     line-height:1;
-    letter-spacing:.5px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
     color:var(--ink);
   }
   .topbar-right{display:flex;align-items:center;gap:14px;}
@@ -104,7 +105,7 @@
 
   /* ---------- MODULE BAR ---------- */
   .module-bar{
-    display:flex;gap:8px;padding:12px clamp(16px,4vw,40px);background:var(--ink);
+    display:flex;gap:8px;padding:10px clamp(16px,4vw,40px);background:#1e3a8a;
   }
   .module-pill{
     font-family:'Barlow Condensed',sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.04em;
@@ -357,6 +358,7 @@
   .stamp-sub{font-family:'IBM Plex Mono',monospace;font-size:.7rem;margin:0;color:var(--steel);}
 
   :focus-visible{outline:2.5px solid var(--safety-dark);outline-offset:2px;}
+  input.uc-field, textarea.uc-field{text-transform:uppercase;}
 
   /* ---------- TOAST ---------- */
   #toastBox{
@@ -454,7 +456,7 @@
 
     <div class="module-bar" id="moduleBar">
       <button class="module-pill" data-action="cambiarModulo" data-modulo="visitantes">👥 Visitantes</button>
-      <button class="module-pill" data-action="cambiarModulo" data-modulo="personal">🚶 Salidas de personal</button>
+      <button class="module-pill" data-action="cambiarModulo" data-modulo="personal">👷 Empleados</button>
     </div>
 
     <nav class="tabs" id="tabsNav"></nav>
@@ -516,6 +518,10 @@ const ARL_DEFAULT = [
 ];
 const SANGRE_OPCIONES = ['O+','O-','A+','A-','B+','B-','AB+','AB-','No registra'];
 const PARENTESCO_OPCIONES = ['Esposo/a','Padre/Madre','Hijo/a','Hermano/a','Amigo/a','Compañero de trabajo'];
+const TIPOS_DOC_DEFAULT = ['CC — Cédula de ciudadanía','CE — Cédula de extranjería','PA — Pasaporte','TI — Tarjeta de identidad','PPT — Permiso por Protección Temporal'];
+const MOTIVOS_VISITA_DEFAULT = ['Reunión','Entrega / mensajería','Mantenimiento','Auditoría','Entrevista','Capacitación','Proveedor'];
+const SANGRE_DEFAULT = [...SANGRE_OPCIONES];
+const PARENTESCOS_DEFAULT = [...PARENTESCO_OPCIONES];
 const OTRO_VAL = '__OTRA__';
 
 /* ============================ UTILIDADES ============================ */
@@ -584,13 +590,17 @@ async function loadDB(){
     if(!Array.isArray(DB.config.epsList)) DB.config.epsList = [...EPS_DEFAULT];
     if(!Array.isArray(DB.config.arlList)) DB.config.arlList = [...ARL_DEFAULT];
     if(!Array.isArray(DB.config.listaPersonal)) DB.config.listaPersonal = [];
+    if(!Array.isArray(DB.config.tiposDocumento)) DB.config.tiposDocumento = [...TIPOS_DOC_DEFAULT];
+    if(!Array.isArray(DB.config.motivosVisita)) DB.config.motivosVisita = [...MOTIVOS_VISITA_DEFAULT];
+    if(!Array.isArray(DB.config.tiposSangre)) DB.config.tiposSangre = [...SANGRE_DEFAULT];
+    if(!Array.isArray(DB.config.parentescos)) DB.config.parentescos = [...PARENTESCOS_DEFAULT];
     if(!DB.perfilesPersonal) DB.perfilesPersonal = {};
     if(!Array.isArray(DB.salidasPersonal)) DB.salidasPersonal = [];
     DB.salidasPersonal.forEach(s=>{
       if(!s.estado) s.estado = s.fechaRegreso ? 'regresado' : 'pendiente';
     });
   }catch(e){
-    DB = { perfiles:{}, visitas:[], perfilesPersonal:{}, salidasPersonal:[], config:{ empresaNombre:'', epsList:[...EPS_DEFAULT], arlList:[...ARL_DEFAULT], listaPersonal:[] } };
+    DB = { perfiles:{}, visitas:[], perfilesPersonal:{}, salidasPersonal:[], config:{ empresaNombre:'', epsList:[...EPS_DEFAULT], arlList:[...ARL_DEFAULT], listaPersonal:[], tiposDocumento:[...TIPOS_DOC_DEFAULT], motivosVisita:[...MOTIVOS_VISITA_DEFAULT], tiposSangre:[...SANGRE_DEFAULT], parentescos:[...PARENTESCOS_DEFAULT] } };
     await saveDB();
   }
 }
@@ -770,16 +780,12 @@ function renderIngreso(){
           <div class="field">
             <label for="tipoDocSelect">Tipo de documento</label>
             <select id="tipoDocSelect">
-              <option value="CC" ${ingresoUI.tipoDoc==='CC'?'selected':''}>Cédula de ciudadanía</option>
-              <option value="CE" ${ingresoUI.tipoDoc==='CE'?'selected':''}>Cédula de extranjería</option>
-              <option value="PA" ${ingresoUI.tipoDoc==='PA'?'selected':''}>Pasaporte</option>
-              <option value="TI" ${ingresoUI.tipoDoc==='TI'?'selected':''}>Tarjeta de identidad</option>
-              <option value="PPT" ${ingresoUI.tipoDoc==='PPT'?'selected':''}>PPT (Permiso por Protección Temporal)</option>
+              ${(DB.config.tiposDocumento||TIPOS_DOC_DEFAULT).map(t=>{const v=t.split(' — ')[0];return`<option value="${v}" ${ingresoUI.tipoDoc===v?'selected':''}>${t}</option>`}).join('')}
             </select>
           </div>
           <div class="field grow">
             <label for="numDocInput">Número de documento</label>
-            <input id="numDocInput" inputmode="numeric" placeholder="Ej: 1020304050" value="${esc(ingresoUI.numDoc)}">
+            <input id="numDocInput" inputmode="numeric" placeholder="" value="${esc(ingresoUI.numDoc)}">
           </div>
         </div>
         <button class="btn btn-primary" data-action="buscarVisitante">Continuar →</button>
@@ -798,36 +804,31 @@ function renderIngreso(){
 
       <div class="field">
         <label for="nombreInput">Nombre completo</label>
-        <input id="nombreInput" value="${esc(p?.nombre||'')}" placeholder="Nombre y apellidos">
+        <input id="nombreInput" class="uc-field" value="${esc(p?.nombre||'')}" placeholder="">
       </div>
 
       <div class="field">
         <label for="empresaInput">Empresa o entidad que representa</label>
-        <input id="empresaInput" value="${esc(p?.empresa||'')}" placeholder="Ej: Transportes Andina S.A.S.">
+        <input id="empresaInput" class="uc-field" value="${esc(p?.empresa||'')}" placeholder="">
       </div>
 
       <div class="field-row">
         <div class="field">
           <label for="motivoSelect">Motivo de la visita</label>
           <select id="motivoSelect">
-            <option>Reunión</option>
-            <option>Entrega / mensajería</option>
-            <option>Mantenimiento</option>
-            <option>Auditoría</option>
-            <option>Entrevista</option>
-            <option>Capacitación</option>
+            ${(DB.config.motivosVisita||MOTIVOS_VISITA_DEFAULT).map(m=>`<option value="${esc(m)}">${esc(m)}</option>`).join('')}
             <option value="Otro">Otro</option>
           </select>
         </div>
         <div class="field" id="motivoOtroWrap" style="display:none">
           <label for="motivoOtroInput">Especifica el motivo</label>
-          <input id="motivoOtroInput" placeholder="Detalle">
+          <input id="motivoOtroInput" class="uc-field" placeholder="">
         </div>
       </div>
 
       <div class="field">
         <label for="areaInput">Área o persona que visita</label>
-        <input id="areaInput" placeholder="Ej: Bodega, Recursos Humanos, Juan Pérez">
+        <input id="areaInput" class="uc-field" placeholder="">
       </div>
 
       <div class="form-section">
@@ -837,7 +838,7 @@ function renderIngreso(){
             <label for="sangreSelect">Tipo de sangre</label>
             <select id="sangreSelect">
               <option value="">Selecciona…</option>
-              ${SANGRE_OPCIONES.map(o=>`<option value="${o}" ${p?.sangre===o?'selected':''}>${o}</option>`).join('')}
+              ${(DB.config.tiposSangre||SANGRE_DEFAULT).map(o=>`<option value="${o}" ${p?.sangre===o?'selected':''}>${o}</option>`).join('')}
             </select>
           </div>
         </div>
@@ -853,16 +854,16 @@ function renderIngreso(){
         </div>
         <div class="field">
           <label for="emergenciaNombreInput">En caso de emergencia llamar a (nombre)</label>
-          <input id="emergenciaNombreInput" value="${esc(p?.emergenciaNombre||'')}" placeholder="Nombre del contacto">
+          <input id="emergenciaNombreInput" class="uc-field" value="${esc(p?.emergenciaNombre||'')}" placeholder="">
         </div>
         <div class="field-row">
           <div class="field">
             <label for="emergenciaCelularInput">Celular del contacto</label>
-            <input id="emergenciaCelularInput" inputmode="tel" value="${esc(p?.emergenciaCelular||'')}" placeholder="Ej: 3001234567">
+            <input id="emergenciaCelularInput" inputmode="tel" value="${esc(p?.emergenciaCelular||'')}" placeholder="">
           </div>
           <div class="field">
             <label for="parentescoSelect">Parentesco</label>
-            ${renderSelectConOtro('parentescoSelect','parentescoOtroInput','parentescoOtroWrap', PARENTESCO_OPCIONES, p?.emergenciaParentesco||'', 'Selecciona…')}
+            ${renderSelectConOtro('parentescoSelect','parentescoOtroInput','parentescoOtroWrap', DB.config.parentescos||PARENTESCOS_DEFAULT, p?.emergenciaParentesco||'', 'Selecciona…')}
           </div>
         </div>
       </div>
@@ -872,11 +873,11 @@ function renderIngreso(){
         <div class="field-row">
           <div class="field">
             <label for="telefonoInput">Teléfono del visitante <span class="hint">(opcional)</span></label>
-            <input id="telefonoInput" inputmode="tel" placeholder="Ej: 3001234567">
+            <input id="telefonoInput" inputmode="tel" placeholder="">
           </div>
           <div class="field">
             <label for="placaInput">Placa de vehículo <span class="hint">(si aplica)</span></label>
-            <input id="placaInput" placeholder="Ej: ABC123">
+            <input id="placaInput" class="uc-field" placeholder="">
           </div>
         </div>
         <label class="declaracion">
@@ -1269,12 +1270,50 @@ function renderChipList(list, removeAction){
 function renderConfiguracion(){
   return `
     <section class="panel wide">
-      <p class="step-eyebrow">Configuración</p>
-      <h2>Entidades EPS y ARL</h2>
-      <p style="color:var(--steel);font-size:.85rem;margin-top:-10px;margin-bottom:22px;">
-        Estas listas alimentan los menús desplegables del formulario de ingreso. Agrega o elimina entidades cuando cambien — en Colombia las EPS se reorganizan con frecuencia.
-      </p>
+      <p class="step-eyebrow">Configuración · Listas del formulario</p>
+      <h2>Tipos de documento · Motivos de visita</h2>
       <div class="config-grid">
+        <div class="config-col">
+          <h3>Tipos de documento</h3>
+          ${renderChipList(DB.config.tiposDocumento||[], 'quitarTipoDoc')}
+          <div class="add-row">
+            <input id="nuevoTipoDocInput" placeholder="Ej: NIT — Número de identificación tributaria">
+            <button class="btn btn-ghost small" data-action="agregarTipoDoc">Agregar</button>
+          </div>
+        </div>
+        <div class="config-col">
+          <h3>Motivos de visita</h3>
+          ${renderChipList(DB.config.motivosVisita||[], 'quitarMotivoVisita')}
+          <div class="add-row">
+            <input id="nuevoMotivoVisitaInput" placeholder="Ej: Visita comercial">
+            <button class="btn btn-ghost small" data-action="agregarMotivoVisita">Agregar</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel wide" style="margin-top:20px;">
+      <p class="step-eyebrow">Configuración · Salud</p>
+      <h2>Tipos de sangre · EPS · ARL · Parentescos</h2>
+      <div class="config-grid">
+        <div class="config-col">
+          <h3>Tipos de sangre</h3>
+          ${renderChipList(DB.config.tiposSangre||[], 'quitarTipoSangre')}
+          <div class="add-row">
+            <input id="nuevoTipoSangreInput" placeholder="Ej: AB-">
+            <button class="btn btn-ghost small" data-action="agregarTipoSangre">Agregar</button>
+          </div>
+        </div>
+        <div class="config-col">
+          <h3>Parentescos</h3>
+          ${renderChipList(DB.config.parentescos||[], 'quitarParentesco')}
+          <div class="add-row">
+            <input id="nuevoParentescoInput" placeholder="Ej: Cuñado/a">
+            <button class="btn btn-ghost small" data-action="agregarParentesco">Agregar</button>
+          </div>
+        </div>
+      </div>
+      <div class="config-grid" style="margin-top:20px;">
         <div class="config-col">
           <h3>EPS</h3>
           ${renderChipList(DB.config.epsList, 'quitarEps')}
@@ -1377,6 +1416,70 @@ async function quitarArl(name){
   DB.config.arlList = DB.config.arlList.filter(e => e !== name);
   const ok = await saveDB();
   if(ok) renderView();
+}
+
+/* ── Tipos de documento ── */
+async function agregarTipoDoc(){
+  const input = document.getElementById('nuevoTipoDocInput');
+  const val = input.value.trim();
+  if(!val) return;
+  if(!(DB.config.tiposDocumento||[]).some(e=>e.toLowerCase()===val.toLowerCase())){
+    DB.config.tiposDocumento = [...(DB.config.tiposDocumento||[]), val];
+    const ok = await saveDB(); if(ok){input.value=''; renderView();}
+  } else { showToast('Ya existe en la lista.'); }
+}
+async function quitarTipoDoc(name){
+  const c = await showConfirm(`¿Eliminar "${name}"?`); if(!c) return;
+  DB.config.tiposDocumento = (DB.config.tiposDocumento||[]).filter(e=>e!==name);
+  const ok = await saveDB(); if(ok) renderView();
+}
+
+/* ── Motivos de visita ── */
+async function agregarMotivoVisita(){
+  const input = document.getElementById('nuevoMotivoVisitaInput');
+  const val = input.value.trim();
+  if(!val) return;
+  if(!(DB.config.motivosVisita||[]).some(e=>e.toLowerCase()===val.toLowerCase())){
+    DB.config.motivosVisita = [...(DB.config.motivosVisita||[]), val];
+    const ok = await saveDB(); if(ok){input.value=''; renderView();}
+  } else { showToast('Ya existe en la lista.'); }
+}
+async function quitarMotivoVisita(name){
+  const c = await showConfirm(`¿Eliminar "${name}"?`); if(!c) return;
+  DB.config.motivosVisita = (DB.config.motivosVisita||[]).filter(e=>e!==name);
+  const ok = await saveDB(); if(ok) renderView();
+}
+
+/* ── Tipos de sangre ── */
+async function agregarTipoSangre(){
+  const input = document.getElementById('nuevoTipoSangreInput');
+  const val = input.value.trim().toUpperCase();
+  if(!val) return;
+  if(!(DB.config.tiposSangre||[]).some(e=>e===val)){
+    DB.config.tiposSangre = [...(DB.config.tiposSangre||[]), val];
+    const ok = await saveDB(); if(ok){input.value=''; renderView();}
+  } else { showToast('Ya existe.'); }
+}
+async function quitarTipoSangre(name){
+  const c = await showConfirm(`¿Eliminar "${name}"?`); if(!c) return;
+  DB.config.tiposSangre = (DB.config.tiposSangre||[]).filter(e=>e!==name);
+  const ok = await saveDB(); if(ok) renderView();
+}
+
+/* ── Parentescos ── */
+async function agregarParentesco(){
+  const input = document.getElementById('nuevoParentescoInput');
+  const val = input.value.trim();
+  if(!val) return;
+  if(!(DB.config.parentescos||[]).some(e=>e.toLowerCase()===val.toLowerCase())){
+    DB.config.parentescos = [...(DB.config.parentescos||[]), val];
+    const ok = await saveDB(); if(ok){input.value=''; renderView();}
+  } else { showToast('Ya existe.'); }
+}
+async function quitarParentesco(name){
+  const c = await showConfirm(`¿Eliminar "${name}"?`); if(!c) return;
+  DB.config.parentescos = (DB.config.parentescos||[]).filter(e=>e!==name);
+  const ok = await saveDB(); if(ok) renderView();
 }
 
 /* ============================ LISTA DE PERSONAL (CARGA MASIVA) ============================ */
@@ -1515,34 +1618,28 @@ function renderSalidaPersonal(){
     const hayNomina = DB.config.listaPersonal && DB.config.listaPersonal.length > 0;
     return `
       <section class="panel">
-        <p class="step-eyebrow">Paso 1 · Identificación</p>
-        <h2>¿Quién sale de la empresa?</h2>
+        <p class="step-eyebrow">Paso 1 · Identificación del empleado</p>
+        <h2>Registro de salida</h2>
         <div id="formError" class="form-error"></div>
 
-        ${hayNomina ? `
-          <div class="field">
-            <label for="buscarNominaInput">Buscar por nombre o cédula</label>
-            <input id="buscarNominaInput" placeholder="Escribe para buscar en la lista de personal…" autocomplete="off">
-            <div id="nominaSuggestions" class="nomina-suggestions"></div>
-          </div>
-          <div class="divider-or"><span>o ingresa el documento manualmente</span></div>
-        ` : ''}
+        <div class="field">
+          <label for="numDocInputP">Cédula del empleado</label>
+          <input id="numDocInputP" inputmode="numeric" placeholder="" value="${esc(personalUI.numDoc)}" autocomplete="off" style="font-size:1.1rem;">
+          ${hayNomina ? `<div id="nominaSuggestions" class="nomina-suggestions"></div>` : ''}
+        </div>
 
-        <div class="field-row">
-          <div class="field">
-            <label for="tipoDocSelectP">Tipo de documento</label>
-            <select id="tipoDocSelectP">
-              <option value="CC" ${personalUI.tipoDoc==='CC'?'selected':''}>Cédula de ciudadanía</option>
-              <option value="CE" ${personalUI.tipoDoc==='CE'?'selected':''}>Cédula de extranjería</option>
-              <option value="PA" ${personalUI.tipoDoc==='PA'?'selected':''}>Pasaporte</option>
-              <option value="TI" ${personalUI.tipoDoc==='TI'?'selected':''}>Tarjeta de identidad</option>
-              <option value="PPT" ${personalUI.tipoDoc==='PPT'?'selected':''}>PPT (Permiso por Protección Temporal)</option>
-            </select>
-          </div>
-          <div class="field grow">
-            <label for="numDocInputP">Número de documento</label>
-            <input id="numDocInputP" inputmode="numeric" placeholder="Ej: 1020304050" value="${esc(personalUI.numDoc)}">
-          </div>
+        ${hayNomina ? `<div class="divider-or"><span>o busca por nombre</span></div>
+        <div class="field">
+          <label for="buscarNominaInput">Buscar por nombre</label>
+          <input id="buscarNominaInput" placeholder="" autocomplete="off">
+          <div id="nominaSuggestions2" class="nomina-suggestions"></div>
+        </div>` : `<p style="font-size:.82rem;color:var(--steel);margin:0 0 14px;">Carga la lista de personal en la pestaña <strong>Configuración</strong> para autocompletar desde la cédula.</p>`}
+
+        <div class="field">
+          <label for="tipoDocSelectP">Tipo de documento</label>
+          <select id="tipoDocSelectP">
+            ${(DB.config.tiposDocumento||TIPOS_DOC_DEFAULT).map(t=>{const v=t.split(' — ')[0];return`<option value="${v}" ${personalUI.tipoDoc===v?'selected':''}>${t}</option>`}).join('')}
+          </select>
         </div>
         <button class="btn btn-primary" data-action="buscarPersonal">Continuar →</button>
       </section>`;
@@ -1565,12 +1662,12 @@ function renderSalidaPersonal(){
 
       <div class="field">
         <label for="nombreInputP">Nombre completo</label>
-        <input id="nombreInputP" value="${esc(p?.nombre||'')}" placeholder="Nombre y apellidos">
+        <input id="nombreInputP" class="uc-field" value="${esc(p?.nombre||'')}" placeholder="">
       </div>
 
       <div class="field">
         <label for="cargoInputP">Área a la que pertenece <span class="hint">(opcional)</span></label>
-        <input id="cargoInputP" value="${esc(p?.cargo||'')}" placeholder="Ej: Compras, Recursos Humanos">
+        <input id="cargoInputP" class="uc-field" value="${esc(p?.cargo||'')}" placeholder="">
       </div>
 
       <div class="field-row">
@@ -1582,13 +1679,13 @@ function renderSalidaPersonal(){
         </div>
         <div class="field" id="motivoOtroWrapP" style="display:none">
           <label for="motivoOtroInputP">Especifica el motivo</label>
-          <input id="motivoOtroInputP" placeholder="Detalle">
+          <input id="motivoOtroInputP" class="uc-field" placeholder="">
         </div>
       </div>
 
       <div class="field">
         <label for="destinoInputP">Destino / lugar a donde se dirige</label>
-        <input id="destinoInputP" placeholder="Ej: Oficinas del cliente XYZ, Centro de la ciudad">
+        <input id="destinoInputP" class="uc-field" placeholder="">
       </div>
 
       <div class="field-row">
@@ -2403,16 +2500,13 @@ document.getElementById('app').addEventListener('change', (e)=>{
     if(wrap) wrap.style.display = e.target.checked ? 'block' : 'none';
   }
 });
-document.getElementById('empresaNombreInput').addEventListener('focusout', async (e)=>{
-  DB.config.empresaNombre = e.target.value.trim();
-  await saveDB();
-});
+// empresaNombreInput removido del header — ya no aplica
 
 /* ============================ INICIO ============================ */
 async function init(){
   tickClock();
+  renderView();
   await loadDB();
-  document.getElementById('empresaNombreInput').value = DB.config.empresaNombre || '';
   const badge = document.getElementById('storageModeBadge');
   if(badge){
     badge.style.display = 'inline-block';
@@ -2440,6 +2534,15 @@ async function init(){
     }
   }, 5 * 60 * 1000);
 }
+/* Convertir a mayúsculas todos los campos marcados con uc-field */
+document.addEventListener('input', e => {
+  if(e.target.classList.contains('uc-field')){
+    const pos = e.target.selectionStart;
+    e.target.value = e.target.value.toUpperCase();
+    try{ e.target.setSelectionRange(pos, pos); }catch(_){}
+  }
+});
+
 init();
 </script>
 </body>
