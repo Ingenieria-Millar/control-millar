@@ -1,0 +1,2433 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Control de Visitantes · SST</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1C2333;
+    --paper:#F7F4EC;
+    --paper-2:#EFEADC;
+    --steel:#3D5A73;
+    --steel-soft:#3D5A731a;
+    --safety:#E8A23D;
+    --safety-dark:#C9821F;
+    --line:#D9D2BF;
+    --confirm:#4F7858;
+    --confirm-soft:#4F78581a;
+    --alert:#B8443A;
+    --alert-soft:#B8443A14;
+    --radius:7px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    -webkit-tap-highlight-color:transparent;
+  }
+  #app{max-width:900px;margin:0 auto;min-height:100vh;background:var(--paper);display:flex;flex-direction:column;}
+
+  /* ---------- HEADER ---------- */
+  .topbar{
+    padding:22px clamp(16px,4vw,40px) 14px;
+    border-bottom:3px solid var(--ink);
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    gap:16px;
+    flex-wrap:wrap;
+  }
+  .topbar .left{display:flex;flex-direction:column;gap:4px;}
+  .eyebrow{
+    font-family:'Barlow Condensed',sans-serif;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.12em;
+    font-size:.72rem;
+    color:var(--steel);
+  }
+  .brand-title{
+    font-family:'Barlow Condensed',sans-serif;
+    font-weight:700;
+    font-size:clamp(1.5rem,4vw,2rem);
+    line-height:1;
+    letter-spacing:.01em;
+  }
+  #empresaNombreInput{
+    font-family:'Inter',sans-serif;
+    font-size:.85rem;
+    color:var(--steel);
+    border:none;
+    background:transparent;
+    padding:2px 0;
+    border-bottom:1px dashed transparent;
+    width:240px;
+  }
+  #empresaNombreInput::placeholder{color:#3D5A7399;}
+  #empresaNombreInput:focus{outline:none;border-bottom:1px dashed var(--steel);}
+  .clock-wrap{text-align:right;}
+  #clockDisplay{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.8rem;
+    color:var(--ink);
+    font-weight:500;
+  }
+  .clock-label{
+    font-family:'Barlow Condensed',sans-serif;
+    font-size:.68rem;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--steel);
+    display:block;
+  }
+  .storage-badge{
+    display:inline-block;margin-top:4px;font-size:.64rem;font-weight:600;
+    padding:2px 8px;border-radius:10px;letter-spacing:.03em;
+    font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;
+  }
+  .storage-badge.local{background:#E8A23D26;color:var(--safety-dark);}
+  .storage-badge.cloud{background:var(--confirm-soft);color:var(--confirm);}
+
+  /* ---------- MODULE BAR ---------- */
+  .module-bar{
+    display:flex;gap:8px;padding:12px clamp(16px,4vw,40px);background:var(--ink);
+  }
+  .module-pill{
+    font-family:'Barlow Condensed',sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.04em;
+    font-size:.82rem;padding:9px 16px;border-radius:30px;border:1.5px solid #ffffff33;
+    background:transparent;color:#ffffffb0;cursor:pointer;transition:all .15s;
+  }
+  .module-pill:hover{border-color:#ffffff66;color:#fff;}
+  .module-pill.active{background:var(--safety);border-color:var(--safety);color:var(--ink);}
+
+  /* ---------- TABS ---------- */
+  .tabs{
+    display:flex;
+    gap:2px;
+    padding:0 clamp(16px,4vw,40px);
+    border-bottom:1px solid var(--line);
+    background:var(--paper-2);
+  }
+  .tab{
+    font-family:'Barlow Condensed',sans-serif;
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:.05em;
+    font-size:.92rem;
+    padding:14px 18px 12px;
+    border:none;
+    background:none;
+    color:var(--steel);
+    cursor:pointer;
+    position:relative;
+    transition:color .15s;
+  }
+  .tab:hover{color:var(--ink);}
+  .tab.active{color:var(--ink);}
+  .tab.active::after{
+    content:'';
+    position:absolute;left:14px;right:14px;bottom:-1px;height:3px;
+    background:var(--safety);
+    border-radius:2px 2px 0 0;
+  }
+
+  /* ---------- MAIN VIEW ---------- */
+  #view{flex:1;padding:clamp(16px,4vw,40px);}
+  .panel{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:clamp(20px,4vw,32px);
+    max-width:620px;
+    margin:0 auto;
+  }
+  .panel.wide{max-width:100%;}
+  .step-eyebrow{
+    font-family:'Barlow Condensed',sans-serif;
+    font-weight:600;
+    text-transform:uppercase;
+    letter-spacing:.1em;
+    font-size:.72rem;
+    color:var(--safety-dark);
+    margin:0 0 6px;
+  }
+  .panel h2{
+    font-family:'Barlow Condensed',sans-serif;
+    font-size:clamp(1.4rem,3vw,1.7rem);
+    margin:0 0 18px;
+    font-weight:700;
+  }
+  .banner{
+    background:var(--confirm-soft);
+    border:1px solid var(--confirm);
+    color:var(--confirm);
+    border-radius:var(--radius);
+    padding:10px 14px;
+    font-size:.88rem;
+    margin-bottom:18px;
+    font-weight:500;
+  }
+  .banner.banner-nuevo{
+    background:#E8A23D1f;
+    border-color:var(--safety-dark);
+    color:var(--safety-dark);
+  }
+  .field-row{display:flex;gap:14px;}
+  .field{margin-bottom:16px;flex:1;}
+  .field.grow{flex:2;}
+  .field label{
+    display:block;
+    font-size:.78rem;
+    font-weight:600;
+    color:var(--steel);
+    margin-bottom:5px;
+    letter-spacing:.01em;
+  }
+  .field .hint{font-size:.72rem;color:#8a8473;font-weight:400;margin-left:4px;}
+  input[type="text"], input[type="tel"], input:not([type]), select, input[inputmode]{
+    width:100%;
+    padding:12px 13px;
+    border:1.5px solid var(--line);
+    border-radius:var(--radius);
+    font-family:'Inter',sans-serif;
+    font-size:1rem;
+    background:#fdfcf9;
+    color:var(--ink);
+  }
+  input:focus, select:focus{outline:none;border-color:var(--steel);background:#fff;}
+  select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--steel) 50%),linear-gradient(135deg,var(--steel) 50%,transparent 50%);background-position:calc(100% - 18px) center,calc(100% - 13px) center;background-size:5px 5px,5px 5px;background-repeat:no-repeat;}
+
+  .meta-row{
+    display:flex;justify-content:space-between;align-items:baseline;
+    padding:10px 0;border-top:1px dashed var(--line);border-bottom:1px dashed var(--line);
+    margin:18px 0;font-size:.85rem;color:var(--steel);
+  }
+  .meta-row strong{font-family:'IBM Plex Mono',monospace;color:var(--ink);font-weight:600;font-size:.85rem;}
+
+  .declaracion{
+    display:flex;gap:10px;align-items:flex-start;
+    background:var(--paper-2);border:1px solid var(--line);border-radius:var(--radius);
+    padding:13px 14px;margin-bottom:20px;font-size:.83rem;line-height:1.45;color:var(--ink);
+  }
+  .declaracion input{width:auto;margin-top:3px;flex-shrink:0;accent-color:var(--steel);}
+
+  .firma-label{
+    font-family:'Barlow Condensed',sans-serif;font-weight:600;text-transform:uppercase;
+    letter-spacing:.08em;font-size:.74rem;color:var(--steel);margin:0 0 8px;
+  }
+  .firma-box{margin-bottom:18px;}
+  .sig-canvas{
+    width:100%;height:160px;border-radius:var(--radius);
+    border:1.5px dashed var(--steel);
+    background:
+      repeating-linear-gradient(transparent,transparent 39px,var(--line) 39px,var(--line) 40px),
+      #fdfcf9;
+    touch-action:none;cursor:crosshair;
+  }
+  .firma-existente{
+    border:1.5px solid var(--line);border-radius:var(--radius);padding:12px;background:#fdfcf9;
+    display:flex;flex-direction:column;align-items:flex-start;gap:8px;
+  }
+  .firma-existente img{height:90px;max-width:100%;object-fit:contain;background:#fff;border:1px solid var(--line);border-radius:4px;padding:4px;}
+
+  .form-error{
+    display:none;background:var(--alert-soft);border:1px solid var(--alert);color:var(--alert);
+    padding:10px 13px;border-radius:var(--radius);font-size:.85rem;margin-bottom:14px;font-weight:500;
+  }
+
+  .btn{
+    font-family:'Barlow Condensed',sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.04em;
+    font-size:.88rem;padding:13px 22px;border-radius:var(--radius);border:1.5px solid transparent;
+    cursor:pointer;transition:transform .08s, background .15s;
+  }
+  .btn:active{transform:scale(0.97);}
+  .btn-primary{background:var(--safety);color:var(--ink);width:100%;padding:15px 22px;font-size:.95rem;}
+  .btn-primary:hover{background:var(--safety-dark);}
+  .btn-ghost{background:transparent;border-color:var(--line);color:var(--steel);}
+  .btn-ghost:hover{border-color:var(--steel);color:var(--ink);}
+  .btn-ghost.small{padding:8px 14px;font-size:.78rem;}
+  .btn-row{display:flex;gap:10px;align-items:center;margin-top:6px;}
+  .btn-row .btn-ghost{flex-shrink:0;}
+  .btn-danger{background:transparent;border-color:var(--alert);color:var(--alert);}
+  .btn-danger:hover{background:var(--alert-soft);}
+
+  /* ---------- SALIDA ---------- */
+  .filtro-bar{display:flex;gap:10px;margin-bottom:18px;max-width:620px;margin-inline:auto;}
+  .filtro-bar input{flex:1;}
+  .lista-activos{display:flex;flex-direction:column;gap:10px;max-width:620px;margin:0 auto;}
+  .visitante-card{
+    background:#fff;border:1px solid var(--line);border-radius:var(--radius);
+    padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;
+  }
+  .visitante-card .info strong{display:block;font-size:1rem;}
+  .visitante-card .info span{font-size:.8rem;color:var(--steel);}
+  .empty-state{
+    text-align:center;color:var(--steel);padding:50px 20px;max-width:620px;margin:0 auto;
+    border:1.5px dashed var(--line);border-radius:10px;font-size:.92rem;
+  }
+  .empty-state strong{display:block;color:var(--ink);font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;margin-bottom:6px;font-weight:700;}
+
+  /* ---------- HISTORIAL ---------- */
+  .historial-head{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;margin-bottom:16px;flex-wrap:wrap;}
+  .historial-filtros{display:flex;gap:10px;flex-wrap:wrap;flex:1;}
+  .historial-filtros input{min-width:160px;flex:1;}
+  .historial-acciones{display:flex;gap:8px;}
+  table.hist-table{width:100%;border-collapse:collapse;font-size:.83rem;background:#fff;}
+  table.hist-table th{
+    font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.05em;
+    font-size:.68rem;color:var(--steel);text-align:left;padding:9px 10px;border-bottom:2px solid var(--ink);white-space:nowrap;
+  }
+  table.hist-table td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:middle;}
+  table.hist-table tr:hover td{background:var(--paper-2);}
+  .badge{
+    font-family:'Barlow Condensed',sans-serif;font-size:.66rem;font-weight:700;text-transform:uppercase;
+    letter-spacing:.04em;padding:3px 8px;border-radius:20px;white-space:nowrap;
+  }
+  .badge.dentro{background:var(--confirm-soft);color:var(--confirm);}
+  .badge.fuera{background:var(--steel-soft);color:var(--steel);}
+  .badge.noregreso{background:var(--alert-soft);color:var(--alert);}
+  .badge.entrada{background:#6B3FA01a;color:#6B3FA0;}
+
+  /* ---------- BÚSQUEDA EN NÓMINA ---------- */
+  .nomina-suggestions{
+    margin-top:6px;border:1px solid var(--line);border-radius:var(--radius);
+    background:#fff;max-height:230px;overflow-y:auto;display:none;
+  }
+  .nomina-suggestions.show{display:block;}
+  .nomina-item{
+    padding:10px 13px;cursor:pointer;border-bottom:1px solid var(--line);
+    display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:.88rem;
+  }
+  .nomina-item:last-child{border-bottom:none;}
+  .nomina-item:hover{background:var(--paper-2);}
+  .nomina-item .nm-doc{font-family:'IBM Plex Mono',monospace;font-size:.76rem;color:var(--steel);flex-shrink:0;}
+  .nomina-empty-msg{padding:10px 13px;font-size:.82rem;color:var(--steel);}
+  .divider-or{
+    display:flex;align-items:center;gap:10px;margin:20px 0 16px;color:var(--steel);font-size:.74rem;
+    text-transform:uppercase;letter-spacing:.08em;font-family:'Barlow Condensed',sans-serif;font-weight:600;
+  }
+  .divider-or::before,.divider-or::after{content:'';flex:1;height:1px;background:var(--line);}
+
+  /* ---------- CARGA DE NÓMINA (CONFIG) ---------- */
+  .nomina-upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;}
+  .nomina-upload-grid textarea{
+    width:100%;min-height:120px;padding:12px 13px;border:1.5px solid var(--line);border-radius:var(--radius);
+    font-family:'IBM Plex Mono',monospace;font-size:.8rem;background:#fdfcf9;resize:vertical;
+  }
+  .nomina-upload-grid textarea:focus{outline:none;border-color:var(--steel);background:#fff;}
+  .nomina-stats{display:flex;justify-content:space-between;align-items:center;margin:14px 0 10px;}
+  .nomina-table-wrap{max-height:280px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;}
+  @media (max-width:680px){ .nomina-upload-grid{grid-template-columns:1fr;} }
+  .mono{font-family:'IBM Plex Mono',monospace;font-size:.78rem;}
+  .firma-thumb{height:24px;max-width:60px;object-fit:contain;}
+  .table-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:8px;}
+  .historial-footer{display:flex;justify-content:space-between;align-items:center;margin-top:16px;}
+  .count-note{font-size:.78rem;color:var(--steel);}
+
+  /* ---------- STAMP OVERLAY ---------- */
+  .stamp-overlay{
+    position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    background:rgba(28,35,51,.55);opacity:0;pointer-events:none;transition:opacity .25s;z-index:50;
+  }
+  .stamp-overlay.show{opacity:1;pointer-events:auto;}
+  .stamp-ring{
+    width:230px;height:230px;border-radius:50%;border:6px solid var(--confirm);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+    background:#fdfcf9;color:var(--confirm);
+    transform:scale(1.45) rotate(-12deg);opacity:0;
+  }
+  .stamp-overlay.show .stamp-ring{animation:stampPress .45s cubic-bezier(.2,1.5,.4,1) forwards;}
+  @keyframes stampPress{to{transform:scale(1) rotate(-7deg);opacity:1;}}
+  .stamp-check{font-size:2.6rem;line-height:1;}
+  .stamp-title{font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.06em;font-size:1rem;margin:0;text-align:center;padding:0 14px;}
+  .stamp-sub{font-family:'IBM Plex Mono',monospace;font-size:.7rem;margin:0;color:var(--steel);}
+
+  :focus-visible{outline:2.5px solid var(--safety-dark);outline-offset:2px;}
+
+  /* ---------- TOAST ---------- */
+  #toastBox{
+    position:fixed;left:50%;bottom:24px;transform:translate(-50%,12px);
+    background:var(--ink);color:#fff;padding:12px 20px;border-radius:8px;
+    font-size:.85rem;font-weight:500;opacity:0;pointer-events:none;transition:opacity .2s, transform .2s;
+    z-index:80;max-width:90vw;text-align:center;
+  }
+  #toastBox.show{opacity:1;transform:translate(-50%,0);}
+  #toastBox.error{background:var(--alert);}
+
+  /* ---------- CONFIRM MODAL ---------- */
+  .confirm-overlay{
+    position:fixed;inset:0;background:rgba(28,35,51,.55);display:flex;align-items:center;justify-content:center;
+    z-index:90;padding:20px;
+  }
+  .confirm-box{
+    background:#fff;border-radius:10px;padding:24px;max-width:380px;width:100%;
+    border:1px solid var(--line);
+  }
+  .confirm-box p{margin:0 0 18px;font-size:.92rem;line-height:1.5;color:var(--ink);}
+  .confirm-actions{display:flex;justify-content:flex-end;gap:10px;}
+
+  /* ---------- SECCIONES DEL FORMULARIO ---------- */
+  .form-section{margin:26px 0 14px;padding-top:16px;border-top:1px dashed var(--line);}
+  .form-section h3{
+    font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.08em;
+    font-size:.8rem;color:var(--steel);margin:0 0 14px;font-weight:600;
+  }
+  .field .otro-wrap{margin-top:8px;}
+
+  /* ---------- CONFIGURACIÓN ---------- */
+  .config-grid{display:grid;grid-template-columns:1fr 1fr;gap:28px;}
+  .config-col h3{
+    font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.06em;
+    font-size:.95rem;color:var(--ink);margin:0 0 12px;font-weight:700;
+  }
+  .chip-list{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;max-height:320px;overflow-y:auto;padding-right:4px;}
+  .chip-row{
+    display:flex;justify-content:space-between;align-items:center;gap:8px;
+    background:var(--paper-2);border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-size:.85rem;
+  }
+  .chip-row button{
+    background:none;border:none;color:var(--alert);font-size:1rem;cursor:pointer;line-height:1;padding:0 4px;font-weight:700;
+  }
+  .add-row{display:flex;gap:8px;}
+  .add-row input{flex:1;}
+  .config-empty{font-size:.82rem;color:var(--steel);padding:8px 0;}
+  @media (max-width:680px){ .config-grid{grid-template-columns:1fr;} }
+
+  /* ---------- TARJETA SALIDA: INFO EXTRA ---------- */
+  .visitante-card .info .extra-info{display:block;font-size:.76rem;color:var(--steel);margin-top:2px;}
+
+  /* ---------- MODAL DETALLE ---------- */
+  .detalle-overlay{
+    position:fixed;inset:0;background:rgba(28,35,51,.55);display:flex;align-items:center;justify-content:center;
+    z-index:90;padding:20px;
+  }
+  .detalle-box{background:#fff;border-radius:10px;padding:24px;max-width:460px;width:100%;max-height:85vh;overflow-y:auto;border:1px solid var(--line);}
+  .detalle-box h3{font-family:'Barlow Condensed',sans-serif;font-size:1.2rem;margin:0 0 4px;font-weight:700;}
+  .detalle-box .detalle-sub{font-size:.78rem;color:var(--steel);margin:0 0 16px;}
+  .detalle-row{display:flex;justify-content:space-between;gap:14px;padding:8px 0;border-bottom:1px solid var(--line);font-size:.85rem;}
+  .detalle-row span:first-child{color:var(--steel);}
+  .detalle-row span:last-child{font-weight:500;text-align:right;}
+  .detalle-firma{margin-top:14px;text-align:center;}
+  .detalle-firma img{height:70px;border:1px solid var(--line);border-radius:4px;background:#fff;padding:4px;}
+  .detalle-close{margin-top:18px;width:100%;}
+
+  @media (max-width:560px){
+    .field-row{flex-direction:column;gap:0;}
+    .panel{padding:18px;border-radius:8px;}
+    .historial-head{flex-direction:column;align-items:stretch;}
+  }
+</style>
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div class="left">
+        <span class="eyebrow">Control de acceso · SST</span>
+        <span class="brand-title">Control de Visitantes</span>
+        <input id="empresaNombreInput" placeholder="Nombre de tu empresa (aparece aquí)" autocomplete="off">
+      </div>
+      <div class="clock-wrap">
+        <span class="clock-label">Hoy</span>
+        <span id="clockDisplay">—</span>
+        <span id="storageModeBadge" class="storage-badge" style="display:none;"></span>
+      </div>
+    </header>
+
+    <div class="module-bar" id="moduleBar">
+      <button class="module-pill" data-action="cambiarModulo" data-modulo="visitantes">👥 Visitantes</button>
+      <button class="module-pill" data-action="cambiarModulo" data-modulo="personal">🚶 Salidas de personal</button>
+    </div>
+
+    <nav class="tabs" id="tabsNav"></nav>
+
+    <main id="view">
+      <div class="empty-state"><strong>Cargando…</strong>Conectando con el registro de visitantes.</div>
+    </main>
+  </div>
+
+  <div class="stamp-overlay" id="stampOverlay">
+    <div class="stamp-ring">
+      <span class="stamp-check">✓</span>
+      <p class="stamp-title" id="stampTitle">INGRESO REGISTRADO</p>
+      <p class="stamp-sub" id="stampSub"></p>
+    </div>
+  </div>
+
+<script>
+/* ============================ ESTADO ============================ */
+let DB = { perfiles:{}, visitas:[], perfilesPersonal:{}, salidasPersonal:[], config:{ empresaNombre:'', epsList:[], arlList:[], listaPersonal:[] } };
+let activeModule = 'visitantes';
+let activeTab = 'ingreso';
+let ingresoUI = { step:'buscar', numDoc:'', tipoDoc:'CC', perfilExistente:null, modoFirma:'nueva' };
+let personalUI = { step:'buscar', numDoc:'', tipoDoc:'CC', perfilExistente:null, modoFirma:'nueva' };
+let entradaUI  = { step:'buscar', numDoc:'', tipoDoc:'CC', perfilExistente:null, modoFirma:'nueva' };
+let currentSigPad = null;
+const STORAGE_KEY = 'visitantes-db';
+
+const TABS_VISITANTES = [
+  { key:'ingreso', label:'Ingreso' },
+  { key:'salida', label:'Salida' },
+  { key:'historial', label:'Historial' },
+  { key:'config', label:'Configuración' }
+];
+const TABS_PERSONAL = [
+  { key:'salidaPersonal', label:'Salida' },
+  { key:'regresoPersonal', label:'Regreso' },
+  { key:'entradaExterna', label:'Entrada directa' },
+  { key:'historialPersonal', label:'Historial' }
+];
+const MOTIVOS_PERSONAL = ['Reunión externa','Visita a cliente','Trámites / vueltas de la empresa','Diligencia bancaria','Capacitación externa','Otro'];
+const TIPO_DOC_OPTIONS = `
+  <option value="CC">Cédula de ciudadanía</option>
+  <option value="CE">Cédula de extranjería</option>
+  <option value="PA">Pasaporte</option>
+  <option value="TI">Tarjeta de identidad</option>
+  <option value="PPT">PPT (Permiso por Protección Temporal)</option>`;
+
+const EPS_DEFAULT = [
+  'Aliansalud EPS','Asmet Salud','Cajacopi EPS','Capital Salud EPS-S','Comfenalco Valle EPS',
+  'Compensar EPS','Coosalud EPS','EPS Familiar de Colombia','Sanitas EPS','Sura EPS',
+  'Emssanar EPS','Famisanar EPS','Fundación Salud Mía','Mallamas EPS','Mutual Ser EPS',
+  'Nueva EPS','Salud Total EPS','Savia Salud EPS','Servicio Occidental de Salud (SOS) EPS'
+];
+const ARL_DEFAULT = [
+  'ARL Sura (Seguros Generales Suramericana)','ARL Positiva Compañía de Seguros','ARL Colmena Seguros',
+  'ARL Seguros Bolívar','ARL Mapfre Seguros Generales','ARL La Equidad Seguros',
+  'ARL Axa Colpatria Seguros','ARL Seguros Alfa','ARL Colsanitas Seguros','ARL Aurora Seguros de Vida'
+];
+const SANGRE_OPCIONES = ['O+','O-','A+','A-','B+','B-','AB+','AB-','No registra'];
+const PARENTESCO_OPCIONES = ['Esposo/a','Padre/Madre','Hijo/a','Hermano/a','Amigo/a','Compañero de trabajo'];
+const OTRO_VAL = '__OTRA__';
+
+/* ============================ UTILIDADES ============================ */
+function fmtDateTime(d){ return new Intl.DateTimeFormat('es-CO',{dateStyle:'medium',timeStyle:'short'}).format(d); }
+function fmtTime(d){ return new Intl.DateTimeFormat('es-CO',{timeStyle:'short'}).format(d); }
+function fmtDate(d){ return new Intl.DateTimeFormat('es-CO',{dateStyle:'medium'}).format(d); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function renderSelectConOtro(selectId, otroId, otroWrapId, options, currentValue, placeholder){
+  const inList = options.includes(currentValue);
+  const isOtro = !!currentValue && !inList;
+  const opts = options.map(o => `<option value="${esc(o)}" ${currentValue===o?'selected':''}>${esc(o)}</option>`).join('');
+  return `
+    <select id="${selectId}" data-otrowrap="${otroWrapId}">
+      <option value="">${esc(placeholder)}</option>
+      ${opts}
+      <option value="${OTRO_VAL}" ${isOtro?'selected':''}>Otra (especificar)</option>
+    </select>
+    <div class="otro-wrap" id="${otroWrapId}" style="display:${isOtro?'block':'none'}">
+      <input id="${otroId}" placeholder="Especifica" value="${isOtro?esc(currentValue):''}">
+    </div>`;
+}
+function resolveEntityValue(selectId, otroId){
+  const sel = document.getElementById(selectId);
+  if(!sel) return '';
+  if(sel.value === OTRO_VAL){
+    return document.getElementById(otroId)?.value.trim() || '';
+  }
+  return sel.value;
+}
+
+/* ============================ PERSISTENCIA ============================ */
+/* ---------- Capa de almacenamiento: usa window.storage (dentro de Claude)
+   y cae automáticamente a localStorage cuando se ejecuta como archivo
+   descargado o fuera del entorno de Claude.ai ---------- */
+let storageMode = null; // 'cloud' | 'local'
+
+async function probarStorageCloud(){
+  try{
+    if(!window.storage || typeof window.storage.get !== 'function') return false;
+    await window.storage.get(STORAGE_KEY, true);
+    return true;
+  }catch(e){
+    // Si el error es "no encontrado" (clave nueva), igual significa que el backend SÍ responde
+    const msg = (e && e.message ? e.message : String(e)).toLowerCase();
+    if(msg.includes('not found') || msg.includes('no encontrado') || msg.includes('404')) return true;
+    return false;
+  }
+}
+
+async function loadDB(){
+  const cloudOk = await probarStorageCloud();
+  storageMode = cloudOk ? 'cloud' : 'local';
+
+  let raw = null;
+  try{
+    if(storageMode === 'cloud'){
+      const res = await window.storage.get(STORAGE_KEY, true);
+      raw = res.value;
+    } else {
+      raw = localStorage.getItem(STORAGE_KEY);
+    }
+    if(raw == null) throw new Error('sin datos previos');
+    DB = JSON.parse(raw);
+    if(!DB.config) DB.config = {};
+    if(DB.config.empresaNombre === undefined) DB.config.empresaNombre = '';
+    if(!Array.isArray(DB.config.epsList)) DB.config.epsList = [...EPS_DEFAULT];
+    if(!Array.isArray(DB.config.arlList)) DB.config.arlList = [...ARL_DEFAULT];
+    if(!Array.isArray(DB.config.listaPersonal)) DB.config.listaPersonal = [];
+    if(!DB.perfilesPersonal) DB.perfilesPersonal = {};
+    if(!Array.isArray(DB.salidasPersonal)) DB.salidasPersonal = [];
+    DB.salidasPersonal.forEach(s=>{
+      if(!s.estado) s.estado = s.fechaRegreso ? 'regresado' : 'pendiente';
+    });
+  }catch(e){
+    DB = { perfiles:{}, visitas:[], perfilesPersonal:{}, salidasPersonal:[], config:{ empresaNombre:'', epsList:[...EPS_DEFAULT], arlList:[...ARL_DEFAULT], listaPersonal:[] } };
+    await saveDB();
+  }
+}
+
+async function saveDB(){
+  // Si el modo todavía no se determinó (llamada muy temprana), decide ahora.
+  if(storageMode === null){
+    storageMode = (await probarStorageCloud()) ? 'cloud' : 'local';
+  }
+  try{
+    if(storageMode === 'cloud'){
+      const result = await window.storage.set(STORAGE_KEY, JSON.stringify(DB), true);
+      if(!result) throw new Error('sin resultado');
+    } else {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(DB));
+    }
+    return true;
+  }catch(e){
+    console.error('Error guardando registro en modo', storageMode, e);
+    // Si falla la nube a mitad de uso, intenta una sola vez con localStorage como respaldo
+    if(storageMode === 'cloud'){
+      try{
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(DB));
+        storageMode = 'local';
+        showToast('Se perdió la conexión con el almacenamiento en la nube. Continuando en modo local en este dispositivo.', 'error');
+        return true;
+      }catch(e2){ /* sigue al mensaje de error genérico abajo */ }
+    }
+    showToast('No se pudo guardar el registro. Verifica tu conexión e intenta de nuevo.');
+    return false;
+  }
+}
+
+/* ============================ RELOJ ============================ */
+function tickClock(){
+  const now = new Date();
+  const clockEl = document.getElementById('clockDisplay');
+  if(clockEl) clockEl.textContent = new Intl.DateTimeFormat('es-CO',{dateStyle:'full',timeStyle:'medium'}).format(now);
+  const liveEl = document.getElementById('horaIngresoLive');
+  if(liveEl) liveEl.textContent = fmtDateTime(now);
+}
+setInterval(tickClock, 1000);
+
+/* ============================ TOAST Y CONFIRMACIÓN ============================ */
+function showToast(msg, type='error'){
+  let box = document.getElementById('toastBox');
+  if(!box){
+    box = document.createElement('div');
+    box.id = 'toastBox';
+    document.body.appendChild(box);
+  }
+  box.className = `${type} show`;
+  box.textContent = msg;
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(()=>{ box.classList.remove('show'); }, 3800);
+}
+function showConfirm(message){
+  return new Promise(resolve=>{
+    const overlay = document.createElement('div');
+    overlay.className = 'confirm-overlay';
+    overlay.innerHTML = `
+      <div class="confirm-box">
+        <p>${esc(message)}</p>
+        <div class="confirm-actions">
+          <button class="btn btn-ghost" id="confirmCancelBtn">Cancelar</button>
+          <button class="btn btn-danger" id="confirmOkBtn">Confirmar</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    overlay.querySelector('#confirmCancelBtn').addEventListener('click', ()=>{ overlay.remove(); resolve(false); });
+    overlay.querySelector('#confirmOkBtn').addEventListener('click', ()=>{ overlay.remove(); resolve(true); });
+  });
+}
+
+/* ============================ SELLO DE CONFIRMACIÓN ============================ */
+function showStamp(title, sub){
+  const overlay = document.getElementById('stampOverlay');
+  document.getElementById('stampTitle').textContent = title;
+  document.getElementById('stampSub').textContent = sub;
+  overlay.classList.add('show');
+  setTimeout(()=>overlay.classList.remove('show'), 1900);
+}
+
+/* ============================ FIRMA (CANVAS) ============================ */
+function attachSignaturePad(){
+  const canvas = document.getElementById('sigCanvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  function resize(){
+    const ratio = Math.max(window.devicePixelRatio||1, 1);
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width*ratio;
+    canvas.height = rect.height*ratio;
+    ctx.scale(ratio, ratio);
+    ctx.lineWidth = 2.4; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle = '#1C2333';
+  }
+  resize();
+  let drawing=false, last=null, hasDrawn=false;
+  function pos(e){ const r=canvas.getBoundingClientRect(); return {x:e.clientX-r.left, y:e.clientY-r.top}; }
+  canvas.addEventListener('pointerdown', e=>{
+    drawing=true; last=pos(e); hasDrawn=true;
+    try{ canvas.setPointerCapture(e.pointerId); }catch(err){}
+    e.preventDefault();
+  });
+  canvas.addEventListener('pointermove', e=>{
+    if(!drawing) return;
+    const p = pos(e);
+    ctx.beginPath(); ctx.moveTo(last.x,last.y); ctx.lineTo(p.x,p.y); ctx.stroke();
+    last = p;
+    e.preventDefault();
+  });
+  ['pointerup','pointercancel','pointerleave'].forEach(ev=>canvas.addEventListener(ev, ()=>{ drawing=false; }));
+  currentSigPad = {
+    clear(){ ctx.clearRect(0,0,canvas.width,canvas.height); hasDrawn=false; },
+    isEmpty(){ return !hasDrawn; },
+    toDataURL(){ return canvas.toDataURL('image/png'); }
+  };
+}
+
+/* ============================ RENDER: SHELL ============================ */
+function renderModuleBar(){
+  document.querySelectorAll('.module-pill').forEach(btn=>{
+    btn.classList.toggle('active', btn.dataset.modulo === activeModule);
+  });
+}
+function renderTabsNav(){
+  const tabs = activeModule === 'visitantes' ? TABS_VISITANTES : TABS_PERSONAL;
+  document.getElementById('tabsNav').innerHTML = tabs.map(t => `
+    <button class="tab ${activeTab===t.key?'active':''}" data-action="cambiarTab" data-tab="${t.key}">${t.label}</button>
+  `).join('');
+}
+function renderView(){
+  renderModuleBar();
+  renderTabsNav();
+  const view = document.getElementById('view');
+  if(activeTab === 'ingreso'){
+    view.innerHTML = renderIngreso();
+    if(ingresoUI.step === 'formulario' && ingresoUI.modoFirma === 'nueva'){
+      attachSignaturePad();
+    }
+  } else if(activeTab === 'salida'){
+    view.innerHTML = renderSalidaShell();
+    setupSalidaFilter();
+  } else if(activeTab === 'historial'){
+    view.innerHTML = renderHistorialShell();
+    setupHistorialFilters();
+  } else if(activeTab === 'config'){
+    view.innerHTML = renderConfiguracion();
+  } else if(activeTab === 'salidaPersonal'){
+    view.innerHTML = renderSalidaPersonal();
+    if(personalUI.step === 'formulario' && personalUI.modoFirma === 'nueva'){
+      attachSignaturePad();
+    }
+  } else if(activeTab === 'regresoPersonal'){
+    view.innerHTML = renderRegresoPersonalShell();
+    setupRegresoPersonalFilter();
+  } else if(activeTab === 'entradaExterna'){
+    view.innerHTML = renderEntradaExterna();
+    if(entradaUI.step === 'formulario' && entradaUI.modoFirma === 'nueva'){
+      attachSignaturePad();
+    }
+  } else if(activeTab === 'historialPersonal'){
+    view.innerHTML = renderHistorialPersonalShell();
+    setupHistorialPersonalFilters();
+  }
+}
+
+/* ============================ INGRESO ============================ */
+function renderIngreso(){
+  if(ingresoUI.step === 'buscar'){
+    return `
+      <section class="panel">
+        <p class="step-eyebrow">Paso 1 · Identificación</p>
+        <h2>¿Quién visita hoy?</h2>
+        <div id="formError" class="form-error"></div>
+        <div class="field-row">
+          <div class="field">
+            <label for="tipoDocSelect">Tipo de documento</label>
+            <select id="tipoDocSelect">
+              <option value="CC" ${ingresoUI.tipoDoc==='CC'?'selected':''}>Cédula de ciudadanía</option>
+              <option value="CE" ${ingresoUI.tipoDoc==='CE'?'selected':''}>Cédula de extranjería</option>
+              <option value="PA" ${ingresoUI.tipoDoc==='PA'?'selected':''}>Pasaporte</option>
+              <option value="TI" ${ingresoUI.tipoDoc==='TI'?'selected':''}>Tarjeta de identidad</option>
+              <option value="PPT" ${ingresoUI.tipoDoc==='PPT'?'selected':''}>PPT (Permiso por Protección Temporal)</option>
+            </select>
+          </div>
+          <div class="field grow">
+            <label for="numDocInput">Número de documento</label>
+            <input id="numDocInput" inputmode="numeric" placeholder="Ej: 1020304050" value="${esc(ingresoUI.numDoc)}">
+          </div>
+        </div>
+        <button class="btn btn-primary" data-action="buscarVisitante">Continuar →</button>
+      </section>`;
+  }
+
+  const p = ingresoUI.perfilExistente;
+  const usandoFirmaExistente = p && ingresoUI.modoFirma === 'usarExistente';
+
+  return `
+    <section class="panel">
+      <p class="step-eyebrow">Paso 2 · Datos de la visita</p>
+      <h2>${p ? 'Confirma tus datos' : 'Registra tus datos'}</h2>
+      ${p ? `<div class="banner">Bienvenido(a) de nuevo, ${esc(p.nombre)} — verifica los datos y confirma para registrar el ingreso de hoy.</div>` : ''}
+      <div id="formError" class="form-error"></div>
+
+      <div class="field">
+        <label for="nombreInput">Nombre completo</label>
+        <input id="nombreInput" value="${esc(p?.nombre||'')}" placeholder="Nombre y apellidos">
+      </div>
+
+      <div class="field">
+        <label for="empresaInput">Empresa o entidad que representa</label>
+        <input id="empresaInput" value="${esc(p?.empresa||'')}" placeholder="Ej: Transportes Andina S.A.S.">
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="motivoSelect">Motivo de la visita</label>
+          <select id="motivoSelect">
+            <option>Reunión</option>
+            <option>Entrega / mensajería</option>
+            <option>Mantenimiento</option>
+            <option>Auditoría</option>
+            <option>Entrevista</option>
+            <option>Capacitación</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </div>
+        <div class="field" id="motivoOtroWrap" style="display:none">
+          <label for="motivoOtroInput">Especifica el motivo</label>
+          <input id="motivoOtroInput" placeholder="Detalle">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="areaInput">Área o persona que visita</label>
+        <input id="areaInput" placeholder="Ej: Bodega, Recursos Humanos, Juan Pérez">
+      </div>
+
+      <div class="form-section">
+        <h3>Salud y contacto de emergencia</h3>
+        <div class="field-row">
+          <div class="field">
+            <label for="sangreSelect">Tipo de sangre</label>
+            <select id="sangreSelect">
+              <option value="">Selecciona…</option>
+              ${SANGRE_OPCIONES.map(o=>`<option value="${o}" ${p?.sangre===o?'selected':''}>${o}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="epsSelect">EPS</label>
+            ${renderSelectConOtro('epsSelect','epsOtroInput','epsOtroWrap', DB.config.epsList, p?.eps||'', 'Selecciona tu EPS…')}
+          </div>
+          <div class="field">
+            <label for="arlSelect">ARL</label>
+            ${renderSelectConOtro('arlSelect','arlOtroInput','arlOtroWrap', DB.config.arlList, p?.arl||'', 'Selecciona tu ARL…')}
+          </div>
+        </div>
+        <div class="field">
+          <label for="emergenciaNombreInput">En caso de emergencia llamar a (nombre)</label>
+          <input id="emergenciaNombreInput" value="${esc(p?.emergenciaNombre||'')}" placeholder="Nombre del contacto">
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="emergenciaCelularInput">Celular del contacto</label>
+            <input id="emergenciaCelularInput" inputmode="tel" value="${esc(p?.emergenciaCelular||'')}" placeholder="Ej: 3001234567">
+          </div>
+          <div class="field">
+            <label for="parentescoSelect">Parentesco</label>
+            ${renderSelectConOtro('parentescoSelect','parentescoOtroInput','parentescoOtroWrap', PARENTESCO_OPCIONES, p?.emergenciaParentesco||'', 'Selecciona…')}
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3>Bienes que ingresan</h3>
+        <div class="field-row">
+          <div class="field">
+            <label for="telefonoInput">Teléfono del visitante <span class="hint">(opcional)</span></label>
+            <input id="telefonoInput" inputmode="tel" placeholder="Ej: 3001234567">
+          </div>
+          <div class="field">
+            <label for="placaInput">Placa de vehículo <span class="hint">(si aplica)</span></label>
+            <input id="placaInput" placeholder="Ej: ABC123">
+          </div>
+        </div>
+        <label class="declaracion">
+          <input type="checkbox" id="traeEquipoCheckbox">
+          <span>Trae equipo(s) de cómputo (portátil, tablet u otro dispositivo)</span>
+        </label>
+        <div class="field" id="equipoDetalleWrap" style="display:none;margin-top:-6px;">
+          <label for="equipoDetalleInput">Detalle del equipo <span class="hint">(marca / serial, opcional)</span></label>
+          <input id="equipoDetalleInput" placeholder="Ej: Portátil Dell, serial ABC123">
+        </div>
+      </div>
+
+      <div class="meta-row">
+        <span>Fecha y hora de ingreso</span>
+        <strong id="horaIngresoLive">${fmtDateTime(new Date())}</strong>
+      </div>
+
+      <label class="declaracion">
+        <input type="checkbox" id="declaracionCheckbox">
+        <span>Declaro que he sido informado(a) sobre las normas de seguridad y salud en el trabajo (SST) de esta organización, y me comprometo a cumplirlas durante el tiempo de mi visita. Recuerda: el uso de elementos de protección personal (EPP) es obligatorio en las áreas señalizadas.</span>
+      </label>
+
+      <div class="firma-box">
+        <p class="firma-label">Firma</p>
+        ${usandoFirmaExistente ? `
+          <div class="firma-existente">
+            <img src="${p.firma}" alt="Firma registrada de ${esc(p.nombre)}">
+            <button class="btn btn-ghost small" data-action="firmarDeNuevo">Firmar de nuevo</button>
+          </div>
+        ` : `
+          <canvas id="sigCanvas" class="sig-canvas"></canvas>
+          <div class="btn-row">
+            <button class="btn btn-ghost small" data-action="limpiarFirma">Limpiar</button>
+          </div>
+        `}
+      </div>
+
+      <div class="btn-row" style="margin-bottom:14px;">
+        <button class="btn btn-ghost" data-action="volverBuscar">← Cambiar documento</button>
+      </div>
+      <button class="btn btn-primary" data-action="confirmarIngreso">Registrar ingreso</button>
+    </section>`;
+}
+
+function buscarVisitante(){
+  const tipoDoc = document.getElementById('tipoDocSelect').value;
+  const numDoc = document.getElementById('numDocInput').value.trim();
+  if(!numDoc){
+    showFormError('Ingresa el número de documento para continuar.');
+    return;
+  }
+  ingresoUI.tipoDoc = tipoDoc;
+  ingresoUI.numDoc = numDoc;
+  const perfil = DB.perfiles[numDoc] || null;
+  ingresoUI.perfilExistente = perfil;
+  ingresoUI.modoFirma = perfil ? 'usarExistente' : 'nueva';
+  ingresoUI.step = 'formulario';
+  renderView();
+}
+
+function showFormError(msg){
+  const el = document.getElementById('formError');
+  if(el){ el.textContent = msg; el.style.display = 'block'; }
+}
+
+async function confirmarIngreso(){
+  const nombre = document.getElementById('nombreInput').value.trim();
+  const empresa = document.getElementById('empresaInput').value.trim();
+  const motivoSel = document.getElementById('motivoSelect').value;
+  const motivoOtro = document.getElementById('motivoOtroInput')?.value.trim() || '';
+  const motivo = motivoSel === 'Otro' ? (motivoOtro || 'Otro') : motivoSel;
+  const area = document.getElementById('areaInput').value.trim();
+  const telefono = document.getElementById('telefonoInput').value.trim();
+  const placa = document.getElementById('placaInput').value.trim();
+  const declarado = document.getElementById('declaracionCheckbox').checked;
+
+  const sangre = document.getElementById('sangreSelect').value;
+  const eps = resolveEntityValue('epsSelect','epsOtroInput');
+  const arl = resolveEntityValue('arlSelect','arlOtroInput');
+  const emergenciaNombre = document.getElementById('emergenciaNombreInput').value.trim();
+  const emergenciaCelular = document.getElementById('emergenciaCelularInput').value.trim();
+  const emergenciaParentesco = resolveEntityValue('parentescoSelect','parentescoOtroInput');
+  const traeEquipo = document.getElementById('traeEquipoCheckbox').checked;
+  const equipoDetalle = document.getElementById('equipoDetalleInput')?.value.trim() || '';
+
+  if(!nombre || !empresa || !area){
+    showFormError('Completa nombre, empresa y área/persona a visitar.');
+    return;
+  }
+  if(esColumnaDeDocumento(nombre)){
+    showFormError('El nombre completo no puede ser solo un número. Verifica que no hayas escrito el documento en el campo de nombre.');
+    return;
+  }
+  if(motivoSel === 'Otro' && !motivoOtro){
+    showFormError('Especifica el motivo de la visita.');
+    return;
+  }
+  if(!declarado){
+    showFormError('Debes aceptar la declaración de normas de SST para continuar.');
+    return;
+  }
+
+  let firma = null;
+  if(ingresoUI.perfilExistente && ingresoUI.modoFirma === 'usarExistente'){
+    firma = ingresoUI.perfilExistente.firma;
+  } else if(currentSigPad && !currentSigPad.isEmpty()){
+    firma = currentSigPad.toDataURL();
+  }
+  if(!firma){
+    showFormError('Falta la firma. Firma en el recuadro antes de confirmar.');
+    return;
+  }
+
+  const now = new Date();
+  const visita = {
+    id: `${now.getTime()}-${ingresoUI.numDoc}`,
+    numDoc: ingresoUI.numDoc,
+    tipoDoc: ingresoUI.tipoDoc,
+    nombre, empresa, motivo, area, telefono, placa,
+    sangre, eps, arl, emergenciaNombre, emergenciaCelular, emergenciaParentesco,
+    traeEquipo, equipoDetalle: traeEquipo ? equipoDetalle : '',
+    fechaIngreso: now.toISOString(),
+    fechaSalida: null,
+    firma,
+    declaracion: true
+  };
+  DB.visitas.push(visita);
+  DB.perfiles[ingresoUI.numDoc] = {
+    nombre, empresa, tipoDoc: ingresoUI.tipoDoc, firma,
+    sangre, eps, arl, emergenciaNombre, emergenciaCelular, emergenciaParentesco
+  };
+
+  const ok = await saveDB();
+  if(!ok) return;
+
+  showStamp('INGRESO REGISTRADO', `${esc(nombre).slice(0,30)} · ${fmtTime(now)}`);
+  ingresoUI = { step:'buscar', numDoc:'', tipoDoc:'CC', perfilExistente:null, modoFirma:'nueva' };
+  setTimeout(renderView, 350);
+}
+
+/* ============================ SALIDA ============================ */
+function activosList(filtro){
+  const f = (filtro||'').toLowerCase();
+  return DB.visitas
+    .filter(v => v.fechaSalida === null)
+    .filter(v => !f || v.nombre.toLowerCase().includes(f) || v.numDoc.includes(f) || v.empresa.toLowerCase().includes(f))
+    .sort((a,b)=> new Date(b.fechaIngreso) - new Date(a.fechaIngreso));
+}
+function renderSalidaShell(){
+  return `
+    <div class="filtro-bar">
+      <input id="salidaFiltroInput" placeholder="Buscar por nombre, documento o empresa…">
+    </div>
+    <div id="salidaListaWrap"></div>
+  `;
+}
+function renderSalidaListaHTML(filtro){
+  const activos = activosList(filtro);
+  if(activos.length === 0){
+    return `<div class="empty-state"><strong>No hay visitantes dentro de las instalaciones</strong>Cuando alguien registre su ingreso, aparecerá aquí para registrar su salida.</div>`;
+  }
+  return `<div class="lista-activos">` + activos.map(v => `
+    <div class="visitante-card">
+      <div class="info">
+        <strong>${esc(v.nombre)}</strong>
+        <span>${esc(v.empresa)} · Doc. ${esc(v.numDoc)} · Ingresó ${fmtTime(new Date(v.fechaIngreso))}</span>
+        <span class="extra-info">🩸 ${esc(v.sangre)||'Sangre: —'} · 🚑 ${esc(v.emergenciaNombre)||'Sin contacto registrado'}${v.emergenciaCelular?(' ('+esc(v.emergenciaCelular)+')'):''}${v.traeEquipo?' · 💻 Trae equipo de cómputo':''}</span>
+      </div>
+      <button class="btn btn-ghost" data-action="registrarSalida" data-id="${v.id}">Registrar salida</button>
+    </div>
+  `).join('') + `</div>`;
+}
+function setupSalidaFilter(){
+  const input = document.getElementById('salidaFiltroInput');
+  const wrap = document.getElementById('salidaListaWrap');
+  wrap.innerHTML = renderSalidaListaHTML('');
+  input.addEventListener('input', ()=>{ wrap.innerHTML = renderSalidaListaHTML(input.value); });
+}
+async function registrarSalida(id){
+  const visita = DB.visitas.find(v => v.id === id);
+  if(!visita) return;
+  visita.fechaSalida = new Date().toISOString();
+  const ok = await saveDB();
+  if(!ok) return;
+  showStamp('SALIDA REGISTRADA', `${esc(visita.nombre).slice(0,30)} · ${fmtTime(new Date(visita.fechaSalida))}`);
+  setTimeout(()=>{
+    const input = document.getElementById('salidaFiltroInput');
+    const wrap = document.getElementById('salidaListaWrap');
+    if(wrap) wrap.innerHTML = renderSalidaListaHTML(input ? input.value : '');
+  }, 350);
+}
+
+/* ============================ HISTORIAL ============================ */
+function historialFiltrado(textoF, fechaF){
+  const t = (textoF||'').toLowerCase();
+  return DB.visitas
+    .filter(v => !t || v.nombre.toLowerCase().includes(t) || v.numDoc.includes(t) || v.empresa.toLowerCase().includes(t))
+    .filter(v => !fechaF || v.fechaIngreso.slice(0,10) === fechaF)
+    .sort((a,b)=> new Date(b.fechaIngreso) - new Date(a.fechaIngreso));
+}
+function renderHistorialShell(){
+  return `
+    <div class="historial-head">
+      <div class="historial-filtros">
+        <input id="histTextoInput" placeholder="Buscar por nombre, documento o empresa…">
+        <input id="histFechaInput" type="date">
+      </div>
+      <div class="historial-acciones">
+        <button class="btn btn-ghost small" data-action="exportarCSV">Exportar Excel</button>
+        <button class="btn btn-danger" data-action="borrarTodo" style="font-size:.74rem;padding:8px 12px;">Borrar todo</button>
+      </div>
+    </div>
+    <div class="table-scroll">
+      <table class="hist-table">
+        <thead>
+          <tr>
+            <th>Estado</th><th>Fecha</th><th>Nombre</th><th>Documento</th><th>Empresa</th>
+            <th>Motivo</th><th>Área / persona</th><th>Ingreso</th><th>Salida</th><th>Firma</th><th>Detalle</th>
+          </tr>
+        </thead>
+        <tbody id="historialTbody"></tbody>
+      </table>
+    </div>
+    <div class="historial-footer">
+      <span class="count-note" id="historialCount"></span>
+    </div>
+  `;
+}
+function renderHistorialRowsHTML(lista){
+  if(lista.length === 0){
+    return `<tr><td colspan="11" style="text-align:center;color:var(--steel);padding:30px;">No hay registros que coincidan con el filtro.</td></tr>`;
+  }
+  return lista.map(v => `
+    <tr>
+      <td>${v.fechaSalida ? '<span class="badge fuera">Salió</span>' : '<span class="badge dentro">En sitio</span>'}</td>
+      <td class="mono">${fmtDate(new Date(v.fechaIngreso))}</td>
+      <td>${esc(v.nombre)}</td>
+      <td class="mono">${esc(v.numDoc)}</td>
+      <td>${esc(v.empresa)}</td>
+      <td>${esc(v.motivo)}</td>
+      <td>${esc(v.area)}</td>
+      <td class="mono">${fmtTime(new Date(v.fechaIngreso))}</td>
+      <td class="mono">${v.fechaSalida ? fmtTime(new Date(v.fechaSalida)) : '—'}</td>
+      <td>${v.firma ? `<img class="firma-thumb" src="${v.firma}" alt="Firma">` : '—'}</td>
+      <td><button class="btn btn-ghost small" data-action="verDetalleVisita" data-id="${v.id}">Ver</button></td>
+    </tr>
+  `).join('');
+}
+function showDetalleVisita(id){
+  const v = DB.visitas.find(x => x.id === id);
+  if(!v) return;
+  const overlay = document.createElement('div');
+  overlay.className = 'detalle-overlay';
+  const fila = (label, val) => `<div class="detalle-row"><span>${esc(label)}</span><span>${esc(val) || '—'}</span></div>`;
+  overlay.innerHTML = `
+    <div class="detalle-box">
+      <h3>${esc(v.nombre)}</h3>
+      <p class="detalle-sub">${esc(v.tipoDoc)} ${esc(v.numDoc)} · ${esc(v.empresa)}</p>
+      ${fila('Motivo de visita', v.motivo)}
+      ${fila('Área / persona', v.area)}
+      ${fila('Tipo de sangre', v.sangre)}
+      ${fila('EPS', v.eps)}
+      ${fila('ARL', v.arl)}
+      ${fila('Contacto de emergencia', v.emergenciaNombre)}
+      ${fila('Celular de emergencia', v.emergenciaCelular)}
+      ${fila('Parentesco', v.emergenciaParentesco)}
+      ${fila('Teléfono del visitante', v.telefono)}
+      ${fila('Placa de vehículo', v.placa)}
+      ${fila('Equipo de cómputo', v.traeEquipo ? (v.equipoDetalle || 'Sí, sin detalle') : 'No')}
+      ${fila('Ingreso', fmtDateTime(new Date(v.fechaIngreso)))}
+      ${fila('Salida', v.fechaSalida ? fmtDateTime(new Date(v.fechaSalida)) : 'Aún en instalaciones')}
+      ${v.firma ? `<div class="detalle-firma"><p class="firma-label">Firma</p><img src="${v.firma}" alt="Firma"></div>` : ''}
+      <button class="btn btn-ghost detalle-close" id="detalleCloseBtn">Cerrar</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.querySelector('#detalleCloseBtn').addEventListener('click', ()=> overlay.remove());
+  overlay.addEventListener('click', (e)=>{ if(e.target === overlay) overlay.remove(); });
+}
+function setupHistorialFilters(){
+  const textoInput = document.getElementById('histTextoInput');
+  const fechaInput = document.getElementById('histFechaInput');
+  function refresh(){
+    const lista = historialFiltrado(textoInput.value, fechaInput.value);
+    document.getElementById('historialTbody').innerHTML = renderHistorialRowsHTML(lista);
+    document.getElementById('historialCount').textContent = `${lista.length} registro${lista.length===1?'':'s'}`;
+  }
+  textoInput.addEventListener('input', refresh);
+  fechaInput.addEventListener('input', refresh);
+  refresh();
+}
+/* ============================ EXPORTACIÓN A EXCEL ============================ */
+async function exportarExcel(headers, rows, nombreHoja, nombreArchivo){
+  showToast('Generando archivo Excel…', 'success');
+  try{
+    await cargarLibreriaExcel();
+  }catch(e){
+    showToast('No se pudo cargar el generador de Excel. Verifica tu conexión e intenta de nuevo.');
+    return;
+  }
+  try{
+    const XLSX = window.XLSX;
+
+    // Construir datos: encabezado + filas
+    const datos = [headers, ...rows];
+    const ws = XLSX.utils.aoa_to_sheet(datos);
+
+    // Anchos automáticos por columna (máx 50 caracteres)
+    ws['!cols'] = headers.map((h, ci) => {
+      const maxData = rows.reduce((max, row) => {
+        const val = row[ci] != null ? String(row[ci]) : '';
+        return Math.max(max, val.length);
+      }, 0);
+      return { wch: Math.min(50, Math.max(h.length + 2, maxData + 2)) };
+    });
+
+    // Congelar fila de encabezado
+    ws['!freeze'] = { xSplit: 0, ySplit: 1 };
+
+    // Autofilter
+    ws['!autofilter'] = { ref: ws['!ref'] };
+
+    const wb = XLSX.utils.book_new();
+    const nombreHojaLimpio = nombreHoja.replace(/[:\\\/\?\*\[\]]/g, '-').slice(0, 31);
+    XLSX.utils.book_append_sheet(wb, ws, nombreHojaLimpio);
+
+    // Hoja de información
+    const wsInfo = XLSX.utils.aoa_to_sheet([
+      ['Campo', 'Valor'],
+      ['Empresa', DB.config.empresaNombre || 'Sistema Control de Visitantes SST'],
+      ['Fecha de generación', fmtDateTime(new Date())],
+      ['Total de registros', rows.length],
+    ]);
+    wsInfo['!cols'] = [{ wch: 25 }, { wch: 40 }];
+    XLSX.utils.book_append_sheet(wb, wsInfo, 'Información');
+
+    // Generar el archivo y descargarlo
+    const wbout = XLSX.write(wb, { bookType:'xlsx', type:'array' });
+    const blob = new Blob([wbout], { type:'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = nombreArchivo;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast(`Excel descargado: ${rows.length} registro${rows.length===1?'':'s'}.`, 'success');
+  }catch(err){
+    console.error('Error generando Excel:', err);
+    showToast('Error al generar el Excel: ' + (err.message || err));
+  }
+}
+
+async function exportarCSV(){
+  const textoInput = document.getElementById('histTextoInput');
+  const fechaInput = document.getElementById('histFechaInput');
+  const lista = historialFiltrado(textoInput?.value, fechaInput?.value);
+  const headers = ['Estado','Fecha ingreso','Hora ingreso','Hora salida','Nombre','Tipo documento','Documento','Empresa','Motivo','Área o persona visitada','Teléfono','Placa','Tipo de sangre','EPS','ARL','Contacto emergencia','Celular emergencia','Parentesco','Trae equipo de cómputo','Detalle equipo'];
+  const rows = lista.map(v => [
+    v.fechaSalida ? 'Salió' : 'En sitio',
+    fmtDate(new Date(v.fechaIngreso)),
+    fmtTime(new Date(v.fechaIngreso)),
+    v.fechaSalida ? fmtTime(new Date(v.fechaSalida)) : '',
+    v.nombre, v.tipoDoc, v.numDoc, v.empresa, v.motivo, v.area, v.telefono||'', v.placa||'',
+    v.sangre||'', v.eps||'', v.arl||'', v.emergenciaNombre||'', v.emergenciaCelular||'', v.emergenciaParentesco||'',
+    v.traeEquipo ? 'Sí' : 'No', v.equipoDetalle||''
+  ]);
+  await exportarExcel(headers, rows, `Visitantes ${fmtDate(new Date())}`, `control-visitantes-${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+async function borrarTodo(){
+  const c1 = await showConfirm('Esto eliminará TODOS los registros de visitantes guardados (perfiles e historial). ¿Deseas continuar?');
+  if(!c1) return;
+  const c2 = await showConfirm('Confirma de nuevo: esta acción no se puede deshacer. ¿Borrar todo el historial?');
+  if(!c2) return;
+  DB = { perfiles:{}, visitas:[], config: DB.config };
+  const ok = await saveDB();
+  if(ok){ renderView(); showToast('Historial borrado.', 'success'); }
+}
+
+/* ============================ CONFIGURACIÓN: EPS Y ARL ============================ */
+function renderChipList(list, removeAction){
+  if(list.length === 0) return `<p class="config-empty">No hay entidades agregadas todavía.</p>`;
+  return `<div class="chip-list">` + list.map(name => `
+    <div class="chip-row">
+      <span>${esc(name)}</span>
+      <button data-action="${removeAction}" data-name="${esc(name)}" title="Eliminar">×</button>
+    </div>
+  `).join('') + `</div>`;
+}
+function renderConfiguracion(){
+  return `
+    <section class="panel wide">
+      <p class="step-eyebrow">Configuración</p>
+      <h2>Entidades EPS y ARL</h2>
+      <p style="color:var(--steel);font-size:.85rem;margin-top:-10px;margin-bottom:22px;">
+        Estas listas alimentan los menús desplegables del formulario de ingreso. Agrega o elimina entidades cuando cambien — en Colombia las EPS se reorganizan con frecuencia.
+      </p>
+      <div class="config-grid">
+        <div class="config-col">
+          <h3>EPS</h3>
+          ${renderChipList(DB.config.epsList, 'quitarEps')}
+          <div class="add-row">
+            <input id="nuevaEpsInput" placeholder="Nombre de la nueva EPS">
+            <button class="btn btn-ghost small" data-action="agregarEps">Agregar</button>
+          </div>
+        </div>
+        <div class="config-col">
+          <h3>ARL</h3>
+          ${renderChipList(DB.config.arlList, 'quitarArl')}
+          <div class="add-row">
+            <input id="nuevaArlInput" placeholder="Nombre de la nueva ARL">
+            <button class="btn btn-ghost small" data-action="agregarArl">Agregar</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel wide" style="margin-top:20px;">
+      <p class="step-eyebrow">Configuración</p>
+      <h2>Lista de personal (para Salidas)</h2>
+      <p style="color:var(--steel);font-size:.85rem;margin-top:-10px;margin-bottom:22px;">
+        Carga aquí el listado de empleados para poder buscarlos por nombre o cédula al registrar una salida. Sube un archivo de <strong>Excel (.xlsx/.xls)</strong>, o un .csv/.txt, o pega el contenido directamente. La primera columna debe ser el <strong>nombre completo</strong>, la segunda la <strong>cédula</strong>, la tercera el <strong>área</strong> (opcional) y la cuarta el <strong>tipo de documento</strong> (opcional: CC/CE/PA/TI/PPT). Si tu archivo tiene fila de encabezados, no hay problema, se detecta y se ignora automáticamente.
+      </p>
+      <div class="nomina-upload-grid">
+        <div>
+          <label class="firma-label" for="nominaTextarea" style="margin-bottom:8px;display:block;">Pega o edita la lista aquí</label>
+          <textarea id="nominaTextarea" placeholder="Juan Pérez Gómez, 1020304050, Compras, CC&#10;María López Ruiz, 1098765432, Recursos Humanos"></textarea>
+          <div class="btn-row" style="margin-top:10px;flex-wrap:wrap;">
+            <label class="btn btn-ghost small" style="cursor:pointer;">
+              Subir archivo .csv, .txt o Excel
+              <input id="nominaFileInput" type="file" accept=".csv,.txt,.xlsx,.xls" style="display:none;">
+            </label>
+            <button class="btn btn-primary" style="width:auto;padding:9px 16px;font-size:.8rem;" data-action="cargarListaPersonal">Cargar a la lista</button>
+          </div>
+        </div>
+        <div>
+          <div class="nomina-stats">
+            <span class="firma-label" style="margin:0;">Personal cargado (${(DB.config.listaPersonal||[]).length})</span>
+            ${(DB.config.listaPersonal||[]).length > 0 ? `<button class="btn btn-danger" style="padding:6px 12px;font-size:.72rem;" data-action="vaciarListaPersonal">Vaciar lista</button>` : ''}
+          </div>
+          <div class="nomina-table-wrap">
+            <table class="hist-table">
+              <thead><tr><th>Nombre</th><th>Documento</th><th>Área</th><th></th></tr></thead>
+              <tbody>
+                ${(DB.config.listaPersonal||[]).length === 0
+                  ? `<tr><td colspan="4" style="text-align:center;color:var(--steel);padding:20px;">Aún no has cargado personal.</td></tr>`
+                  : DB.config.listaPersonal.map(p => `
+                    <tr>
+                      <td>${esc(p.nombre)}</td>
+                      <td class="mono">${esc(p.numDoc)}</td>
+                      <td>${esc(p.cargo)||'—'}</td>
+                      <td><button class="btn btn-ghost small" data-action="quitarDeNomina" data-numdoc="${esc(p.numDoc)}" style="padding:4px 8px;font-size:.7rem;">Quitar</button></td>
+                    </tr>`).join('')
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>`;
+}
+async function agregarEps(){
+  const input = document.getElementById('nuevaEpsInput');
+  const val = input.value.trim();
+  if(!val) return;
+  if(DB.config.epsList.some(e => e.toLowerCase() === val.toLowerCase())){
+    showToast('Esa EPS ya está en la lista.');
+    return;
+  }
+  DB.config.epsList.push(val);
+  DB.config.epsList.sort((a,b)=>a.localeCompare(b));
+  const ok = await saveDB();
+  if(ok) renderView();
+}
+async function quitarEps(name){
+  const c = await showConfirm(`¿Eliminar "${name}" de la lista de EPS?`);
+  if(!c) return;
+  DB.config.epsList = DB.config.epsList.filter(e => e !== name);
+  const ok = await saveDB();
+  if(ok) renderView();
+}
+async function agregarArl(){
+  const input = document.getElementById('nuevaArlInput');
+  const val = input.value.trim();
+  if(!val) return;
+  if(DB.config.arlList.some(e => e.toLowerCase() === val.toLowerCase())){
+    showToast('Esa ARL ya está en la lista.');
+    return;
+  }
+  DB.config.arlList.push(val);
+  DB.config.arlList.sort((a,b)=>a.localeCompare(b));
+  const ok = await saveDB();
+  if(ok) renderView();
+}
+async function quitarArl(name){
+  const c = await showConfirm(`¿Eliminar "${name}" de la lista de ARL?`);
+  if(!c) return;
+  DB.config.arlList = DB.config.arlList.filter(e => e !== name);
+  const ok = await saveDB();
+  if(ok) renderView();
+}
+
+/* ============================ LISTA DE PERSONAL (CARGA MASIVA) ============================ */
+let sheetJsCargando = null;
+function cargarLibreriaExcel(){
+  if(window.XLSX) return Promise.resolve();
+  if(sheetJsCargando) return sheetJsCargando;
+  sheetJsCargando = new Promise((resolve, reject)=>{
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    script.onload = () => resolve();
+    script.onerror = () => { sheetJsCargando = null; reject(new Error('No se pudo cargar el lector de Excel')); };
+    document.head.appendChild(script);
+  });
+  return sheetJsCargando;
+}
+async function handleNominaFile(file){
+  const ext = (file.name.split('.').pop() || '').toLowerCase();
+  const ta = document.getElementById('nominaTextarea');
+
+  if(ext === 'xlsx' || ext === 'xls'){
+    showToast('Leyendo archivo de Excel…', 'success');
+    try{
+      await cargarLibreriaExcel();
+    }catch(e){
+      showToast('No se pudo cargar el lector de Excel. Verifica tu conexión a internet e intenta de nuevo.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev)=>{
+      try{
+        const datos = new Uint8Array(ev.target.result);
+        const libro = window.XLSX.read(datos, { type:'array' });
+        const hoja = libro.Sheets[libro.SheetNames[0]];
+        const filas = window.XLSX.utils.sheet_to_json(hoja, { header:1, raw:false, defval:'' });
+        const texto = filas
+          .map(fila => fila.map(c => String(c==null?'':c).trim()).join(','))
+          .filter(linea => linea.replace(/,/g,'').trim() !== '')
+          .join('\n');
+        if(ta) ta.value = texto;
+        showToast('Archivo de Excel leído correctamente. Revisa el texto y pulsa "Cargar a la lista".', 'success');
+      }catch(err){
+        console.error('Error leyendo Excel', err);
+        showToast('No se pudo leer el archivo. Verifica que sea un Excel (.xlsx/.xls) válido.');
+      }
+    };
+    reader.onerror = () => showToast('No se pudo leer el archivo seleccionado.');
+    reader.readAsArrayBuffer(file);
+  } else {
+    const reader = new FileReader();
+    reader.onload = (ev)=>{ if(ta) ta.value = ev.target.result; };
+    reader.onerror = () => showToast('No se pudo leer el archivo seleccionado.');
+    reader.readAsText(file, 'UTF-8');
+  }
+}
+function esColumnaDeDocumento(valor){
+  // Considera "documento" si, al quitar espacios y puntos, queda solo dígitos
+  // y tiene una longitud razonable de cédula/documento (4 a 15 caracteres).
+  const limpio = (valor||'').replace(/[\s.]/g,'');
+  return /^[0-9]{4,15}$/.test(limpio);
+}
+function esFilaEncabezado(valor){
+  return /^(nombre|nombres|cedula|c[eé]dula|documento|numdoc|n[uú]mero\s*de\s*documento|identificaci[oó]n)$/i.test((valor||'').trim());
+}
+function parseListaPersonalTexto(texto){
+  const lineas = texto.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+  const out = [];
+  for(const linea of lineas){
+    const cols = linea.split(/[,;\t]/).map(c=>c.trim().replace(/^"|"$/g,''));
+    if(cols.length < 2) continue;
+
+    const col0 = cols[0] || '';
+    const col1 = cols[1] || '';
+    if(esFilaEncabezado(col0) || esFilaEncabezado(col1)) continue; // fila de encabezado, en cualquier orden
+
+    // Detecta automáticamente cuál de las dos primeras columnas es el documento
+    // (texto puramente numérico) y cuál es el nombre, sin asumir un orden fijo.
+    const col0EsDoc = esColumnaDeDocumento(col0);
+    const col1EsDoc = esColumnaDeDocumento(col1);
+    let nombre, numDoc;
+    if(col1EsDoc && !col0EsDoc){
+      nombre = col0; numDoc = col1;
+    } else if(col0EsDoc && !col1EsDoc){
+      nombre = col1; numDoc = col0;
+    } else {
+      // Ambas o ninguna parecen documento: se asume el orden estándar Nombre, Documento
+      nombre = col0; numDoc = col1;
+    }
+    numDoc = numDoc.replace(/[\s.]/g,'');
+    const cargo = cols[2] || '';
+    const tipoDocRaw = (cols[3]||'CC').toUpperCase().trim();
+    if(!nombre || !numDoc) continue;
+    const tipoDocValido = ['CC','CE','PA','TI','PPT'].includes(tipoDocRaw) ? tipoDocRaw : 'CC';
+    out.push({ nombre, numDoc, cargo, tipoDoc: tipoDocValido });
+  }
+  return out;
+}
+async function cargarListaPersonal(){
+  const ta = document.getElementById('nominaTextarea');
+  const texto = ta ? ta.value : '';
+  const nuevos = parseListaPersonalTexto(texto);
+  if(nuevos.length === 0){
+    showToast('No se reconoció ningún registro válido. Usa el formato: Nombre, Cédula, Área (opcional)');
+    return;
+  }
+  const mapa = new Map((DB.config.listaPersonal||[]).map(p => [p.numDoc, p]));
+  nuevos.forEach(p => mapa.set(p.numDoc, p));
+  DB.config.listaPersonal = Array.from(mapa.values()).sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  const ok = await saveDB();
+  if(ok){
+    if(ta) ta.value = '';
+    const fileInput = document.getElementById('nominaFileInput');
+    if(fileInput) fileInput.value = '';
+    showToast(`Se cargaron ${nuevos.length} registro(s) a la lista de personal.`, 'success');
+    renderView();
+  }
+}
+async function quitarDeNomina(numDoc){
+  const c = await showConfirm('¿Eliminar esta persona de la lista de personal cargada?');
+  if(!c) return;
+  DB.config.listaPersonal = (DB.config.listaPersonal||[]).filter(p => p.numDoc !== numDoc);
+  const ok = await saveDB();
+  if(ok) renderView();
+}
+async function vaciarListaPersonal(){
+  const c = await showConfirm('¿Vaciar toda la lista de personal cargada? Esto no afecta el historial de salidas ya registradas.');
+  if(!c) return;
+  DB.config.listaPersonal = [];
+  const ok = await saveDB();
+  if(ok){ renderView(); showToast('Lista de personal vaciada.', 'success'); }
+}
+
+/* ============================ SALIDA DE PERSONAL (formulario) ============================ */
+function renderSalidaPersonal(){
+  if(personalUI.step === 'buscar'){
+    const hayNomina = DB.config.listaPersonal && DB.config.listaPersonal.length > 0;
+    return `
+      <section class="panel">
+        <p class="step-eyebrow">Paso 1 · Identificación</p>
+        <h2>¿Quién sale de la empresa?</h2>
+        <div id="formError" class="form-error"></div>
+
+        ${hayNomina ? `
+          <div class="field">
+            <label for="buscarNominaInput">Buscar por nombre o cédula</label>
+            <input id="buscarNominaInput" placeholder="Escribe para buscar en la lista de personal…" autocomplete="off">
+            <div id="nominaSuggestions" class="nomina-suggestions"></div>
+          </div>
+          <div class="divider-or"><span>o ingresa el documento manualmente</span></div>
+        ` : ''}
+
+        <div class="field-row">
+          <div class="field">
+            <label for="tipoDocSelectP">Tipo de documento</label>
+            <select id="tipoDocSelectP">
+              <option value="CC" ${personalUI.tipoDoc==='CC'?'selected':''}>Cédula de ciudadanía</option>
+              <option value="CE" ${personalUI.tipoDoc==='CE'?'selected':''}>Cédula de extranjería</option>
+              <option value="PA" ${personalUI.tipoDoc==='PA'?'selected':''}>Pasaporte</option>
+              <option value="TI" ${personalUI.tipoDoc==='TI'?'selected':''}>Tarjeta de identidad</option>
+              <option value="PPT" ${personalUI.tipoDoc==='PPT'?'selected':''}>PPT (Permiso por Protección Temporal)</option>
+            </select>
+          </div>
+          <div class="field grow">
+            <label for="numDocInputP">Número de documento</label>
+            <input id="numDocInputP" inputmode="numeric" placeholder="Ej: 1020304050" value="${esc(personalUI.numDoc)}">
+          </div>
+        </div>
+        <button class="btn btn-primary" data-action="buscarPersonal">Continuar →</button>
+      </section>`;
+  }
+
+  const p = personalUI.perfilExistente;
+  const usandoFirmaExistente = p && personalUI.modoFirma === 'usarExistente';
+
+  return `
+    <section class="panel">
+      <p class="step-eyebrow">Paso 2 · Datos de la salida</p>
+      <h2>${p ? 'Confirma tus datos' : 'Registra tus datos'}</h2>
+      ${p && p.firma
+        ? `<div class="banner">Hola de nuevo, ${esc(p.nombre)} — verifica los datos y confirma para registrar tu salida.</div>`
+        : p
+          ? `<div class="banner">Encontramos a ${esc(p.nombre)} en la lista de personal — verifica los datos y firma para registrar tu primera salida.</div>`
+          : `<div class="banner banner-nuevo">⚠ Esta persona no está registrada todavía. Al confirmar la salida se creará un nuevo registro en la lista de personal con los datos que ingreses a continuación.</div>`
+      }
+      <div id="formError" class="form-error"></div>
+
+      <div class="field">
+        <label for="nombreInputP">Nombre completo</label>
+        <input id="nombreInputP" value="${esc(p?.nombre||'')}" placeholder="Nombre y apellidos">
+      </div>
+
+      <div class="field">
+        <label for="cargoInputP">Área a la que pertenece <span class="hint">(opcional)</span></label>
+        <input id="cargoInputP" value="${esc(p?.cargo||'')}" placeholder="Ej: Compras, Recursos Humanos">
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="motivoSelectP">Motivo de la salida</label>
+          <select id="motivoSelectP">
+            ${MOTIVOS_PERSONAL.map(m=>`<option value="${m}">${m}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field" id="motivoOtroWrapP" style="display:none">
+          <label for="motivoOtroInputP">Especifica el motivo</label>
+          <input id="motivoOtroInputP" placeholder="Detalle">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="destinoInputP">Destino / lugar a donde se dirige</label>
+        <input id="destinoInputP" placeholder="Ej: Oficinas del cliente XYZ, Centro de la ciudad">
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="horaRegresoEstInputP">Hora estimada de regreso <span class="hint">(opcional)</span></label>
+          <input id="horaRegresoEstInputP" type="time">
+        </div>
+        <div class="field">
+          <label for="observacionesInputP">Observaciones <span class="hint">(opcional)</span></label>
+          <input id="observacionesInputP" placeholder="Ej: Sale en vehículo de la empresa">
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h3>Autorización</h3>
+        <div class="field-row">
+          <div class="field grow">
+            <label for="autorizaInputP">Nombre de quien autoriza la salida</label>
+            <input id="autorizaInputP" placeholder="Escribe el nombre de quien autoriza…" autocomplete="off">
+            <div id="autorizaSuggestions" class="nomina-suggestions"></div>
+          </div>
+          <div class="field">
+            <label for="autorizaAreaInputP">Área de quien autoriza <span class="hint">(automático si está en la lista)</span></label>
+            <input id="autorizaAreaInputP" placeholder="Se completa solo, o escríbela">
+          </div>
+        </div>
+      </div>
+
+      <div class="meta-row">
+        <span>Fecha y hora de salida</span>
+        <strong id="horaIngresoLive">${fmtDateTime(new Date())}</strong>
+      </div>
+
+      <div class="firma-box">
+        <p class="firma-label">Firma</p>
+        ${usandoFirmaExistente ? `
+          <div class="firma-existente">
+            <img src="${p.firma}" alt="Firma registrada de ${esc(p.nombre)}">
+            <button class="btn btn-ghost small" data-action="firmarDeNuevoPersonal">Firmar de nuevo</button>
+          </div>
+        ` : `
+          <canvas id="sigCanvas" class="sig-canvas"></canvas>
+          <div class="btn-row">
+            <button class="btn btn-ghost small" data-action="limpiarFirma">Limpiar</button>
+          </div>
+        `}
+      </div>
+
+      <div class="btn-row" style="margin-bottom:14px;">
+        <button class="btn btn-ghost" data-action="volverBuscarPersonal">← Cambiar documento</button>
+      </div>
+      <button class="btn btn-primary" data-action="confirmarSalidaPersonal">Registrar salida</button>
+    </section>`;
+}
+
+function resolverPerfilPersonal(numDoc, tipoDocFallback){
+  const nomina = (DB.config.listaPersonal||[]).find(p => p.numDoc === numDoc);
+  const perfilFirma = DB.perfilesPersonal[numDoc] || null;
+  if(nomina){
+    // La lista de personal cargada es la fuente oficial de nombre/área/tipo de
+    // documento; la firma (si existe) se reutiliza desde registros anteriores.
+    return {
+      perfil: { nombre: nomina.nombre, cargo: nomina.cargo, tipoDoc: nomina.tipoDoc || tipoDocFallback, firma: perfilFirma ? perfilFirma.firma : null },
+      modoFirma: (perfilFirma && perfilFirma.firma) ? 'usarExistente' : 'nueva'
+    };
+  }
+  if(perfilFirma){
+    return { perfil: perfilFirma, modoFirma: 'usarExistente' };
+  }
+  return { perfil: null, modoFirma: 'nueva' };
+}
+
+function buscarPersonal(){
+  const tipoDoc = document.getElementById('tipoDocSelectP').value;
+  const numDoc = document.getElementById('numDocInputP').value.trim();
+  if(!numDoc){
+    showFormError('Ingresa el número de documento para continuar.');
+    return;
+  }
+  personalUI.numDoc = numDoc;
+  const { perfil, modoFirma } = resolverPerfilPersonal(numDoc, tipoDoc);
+  personalUI.tipoDoc = perfil?.tipoDoc || tipoDoc;
+  personalUI.perfilExistente = perfil;
+  personalUI.modoFirma = modoFirma;
+  personalUI.step = 'formulario';
+  renderView();
+}
+
+function buscarEnNomina(query){
+  const q = (query||'').trim().toLowerCase();
+  if(!q) return [];
+  const lista = DB.config.listaPersonal || [];
+  return lista
+    .filter(p => p.nombre.toLowerCase().includes(q) || p.numDoc.includes(q))
+    .slice(0, 8);
+}
+function renderNominaSuggestions(query){
+  const box = document.getElementById('nominaSuggestions');
+  if(!box) return;
+  const matches = buscarEnNomina(query);
+  if(!query.trim()){
+    box.classList.remove('show');
+    box.innerHTML = '';
+    return;
+  }
+  box.classList.add('show');
+  if(matches.length === 0){
+    box.innerHTML = `<div class="nomina-empty-msg">Sin coincidencias en la lista cargada. Puedes ingresar el documento manualmente abajo.</div>`;
+    return;
+  }
+  box.innerHTML = matches.map(p => `
+    <div class="nomina-item" data-action="seleccionarNomina" data-numdoc="${esc(p.numDoc)}" data-tipodoc="${esc(p.tipoDoc||'CC')}">
+      <span>${esc(p.nombre)}${p.cargo?(' · '+esc(p.cargo)):''}</span>
+      <span class="nm-doc">${esc(p.numDoc)}</span>
+    </div>
+  `).join('');
+}
+function seleccionarDeNomina(numDoc, tipoDoc){
+  personalUI.numDoc = numDoc;
+  const { perfil, modoFirma } = resolverPerfilPersonal(numDoc, tipoDoc || 'CC');
+  personalUI.tipoDoc = perfil?.tipoDoc || tipoDoc || 'CC';
+  personalUI.perfilExistente = perfil;
+  personalUI.modoFirma = modoFirma;
+  personalUI.step = 'formulario';
+  renderView();
+}
+
+/* ---------- Autocompletado del campo "Autoriza" ---------- */
+function renderAutorizaSuggestions(query){
+  const box = document.getElementById('autorizaSuggestions');
+  if(!box) return;
+  const q = (query||'').trim();
+  if(!q){
+    box.classList.remove('show');
+    box.innerHTML = '';
+    return;
+  }
+  const matches = (DB.config.listaPersonal||[])
+    .filter(p => p.nombre.toLowerCase().includes(q.toLowerCase()))
+    .slice(0, 8);
+  box.classList.add('show');
+  if(matches.length === 0){
+    box.innerHTML = `<div class="nomina-empty-msg">Sin coincidencias en la lista de personal. Puedes escribir el nombre manualmente.</div>`;
+    return;
+  }
+  box.innerHTML = matches.map(p => `
+    <div class="nomina-item" data-action="seleccionarAutoriza" data-nombre="${esc(p.nombre)}" data-area="${esc(p.cargo)}">
+      <span>${esc(p.nombre)}</span>
+      <span class="nm-doc">${esc(p.cargo)||'—'}</span>
+    </div>
+  `).join('');
+}
+function seleccionarAutoriza(nombre, area){
+  const inputNombre = document.getElementById('autorizaInputP');
+  const inputArea = document.getElementById('autorizaAreaInputP');
+  if(inputNombre) inputNombre.value = nombre;
+  if(inputArea) inputArea.value = area || '';
+  const box = document.getElementById('autorizaSuggestions');
+  if(box) box.classList.remove('show');
+}
+function autocompletarAreaAutorizaSiCoincideExacto(nombreTexto){
+  const inputArea = document.getElementById('autorizaAreaInputP');
+  if(!inputArea) return;
+  const match = (DB.config.listaPersonal||[]).find(p => p.nombre.toLowerCase() === (nombreTexto||'').trim().toLowerCase());
+  if(match) inputArea.value = match.cargo || '';
+}
+
+async function confirmarSalidaPersonal(){
+  const nombre = document.getElementById('nombreInputP').value.trim();
+  const cargo = document.getElementById('cargoInputP').value.trim();
+  const motivoSel = document.getElementById('motivoSelectP').value;
+  const motivoOtro = document.getElementById('motivoOtroInputP')?.value.trim() || '';
+  const motivo = motivoSel === 'Otro' ? (motivoOtro || 'Otro') : motivoSel;
+  const destino = document.getElementById('destinoInputP').value.trim();
+  const horaRegresoEst = document.getElementById('horaRegresoEstInputP').value;
+  const observaciones = document.getElementById('observacionesInputP').value.trim();
+  const autorizaNombre = document.getElementById('autorizaInputP').value.trim();
+  const autorizaArea = document.getElementById('autorizaAreaInputP').value.trim();
+
+  if(!nombre || !destino){
+    showFormError('Completa el nombre y el destino de la salida.');
+    return;
+  }
+  if(esColumnaDeDocumento(nombre)){
+    showFormError('El nombre completo no puede ser solo un número. Verifica que no hayas escrito la cédula en el campo de nombre.');
+    return;
+  }
+  if(!autorizaNombre){
+    showFormError('Indica el nombre de quien autoriza la salida.');
+    return;
+  }
+  if(esColumnaDeDocumento(autorizaNombre)){
+    showFormError('El nombre de quien autoriza no puede ser solo un número.');
+    return;
+  }
+  if(motivoSel === 'Otro' && !motivoOtro){
+    showFormError('Especifica el motivo de la salida.');
+    return;
+  }
+
+  let firma = null;
+  if(personalUI.perfilExistente && personalUI.modoFirma === 'usarExistente'){
+    firma = personalUI.perfilExistente.firma;
+  } else if(currentSigPad && !currentSigPad.isEmpty()){
+    firma = currentSigPad.toDataURL();
+  }
+  if(!firma){
+    showFormError('Falta la firma. Firma en el recuadro antes de confirmar.');
+    return;
+  }
+
+  const now = new Date();
+  const salida = {
+    id: `${now.getTime()}-${personalUI.numDoc}`,
+    numDoc: personalUI.numDoc,
+    tipoDoc: personalUI.tipoDoc,
+    nombre, cargo, motivo, destino, horaRegresoEst, observaciones,
+    autorizaNombre, autorizaArea,
+    fechaSalida: now.toISOString(),
+    fechaRegreso: null,
+    estado: 'pendiente',
+    firma
+  };
+  DB.salidasPersonal.push(salida);
+  DB.perfilesPersonal[personalUI.numDoc] = { nombre, cargo, tipoDoc: personalUI.tipoDoc, firma };
+
+  // Si la persona no estaba en la lista de personal cargada, recepción la acaba de
+  // dar de alta: se agrega automáticamente para que quede disponible en el buscador.
+  // Si ya existía, se actualizan sus datos por si fueron corregidos en este registro.
+  DB.config.listaPersonal = DB.config.listaPersonal || [];
+  const idxNomina = DB.config.listaPersonal.findIndex(p => p.numDoc === personalUI.numDoc);
+  let esPersonaNueva = false;
+  if(idxNomina === -1){
+    DB.config.listaPersonal.push({ nombre, numDoc: personalUI.numDoc, cargo, tipoDoc: personalUI.tipoDoc });
+    DB.config.listaPersonal.sort((a,b)=>a.nombre.localeCompare(b.nombre));
+    esPersonaNueva = true;
+  } else {
+    DB.config.listaPersonal[idxNomina] = { nombre, numDoc: personalUI.numDoc, cargo, tipoDoc: personalUI.tipoDoc };
+  }
+
+  const ok = await saveDB();
+  if(!ok) return;
+
+  showStamp('SALIDA REGISTRADA', `${esc(nombre).slice(0,30)} · ${fmtTime(now)}`);
+  personalUI = { step:'buscar', numDoc:'', tipoDoc:'CC', perfilExistente:null, modoFirma:'nueva' };
+  setTimeout(()=>{
+    renderView();
+    if(esPersonaNueva){
+      showToast(`${nombre} se agregó a la lista de personal para futuras búsquedas.`, 'success');
+    }
+  }, 350);
+}
+
+/* ============================ REGRESO DE PERSONAL ============================ */
+function fueraList(filtro){
+  const f = (filtro||'').toLowerCase();
+  return DB.salidasPersonal
+    .filter(s => s.estado === 'pendiente')
+    .filter(s => !f || s.nombre.toLowerCase().includes(f) || s.numDoc.includes(f) || s.destino.toLowerCase().includes(f))
+    .sort((a,b)=> new Date(b.fechaSalida) - new Date(a.fechaSalida));
+}
+function renderRegresoPersonalShell(){
+  return `
+    <div class="filtro-bar">
+      <input id="regresoFiltroInput" placeholder="Buscar por nombre, documento o destino…">
+    </div>
+    <div id="regresoListaWrap"></div>
+  `;
+}
+function renderRegresoListaHTML(filtro){
+  const fuera = fueraList(filtro);
+  if(fuera.length === 0){
+    return `<div class="empty-state"><strong>No hay personal pendiente por regresar</strong>Cuando alguien registre su salida, aparecerá aquí para registrar su regreso.</div>`;
+  }
+  const hoyStr = new Date().toISOString().slice(0,10);
+  return `<div class="lista-activos">` + fuera.map(s => {
+    const esDeHoy = s.fechaSalida.slice(0,10) === hoyStr;
+    return `
+    <div class="visitante-card">
+      <div class="info">
+        <strong>${esc(s.nombre)}</strong>
+        <span>${esc(s.motivo)} · ${esc(s.destino)} · Salió ${fmtTime(new Date(s.fechaSalida))}${s.horaRegresoEst?(' · Regreso estimado '+esc(s.horaRegresoEst)):''}${!esDeHoy?' · ⚠ Salida de un día anterior':''}</span>
+      </div>
+      <button class="btn btn-ghost" data-action="registrarRegresoPersonal" data-id="${s.id}">Registrar regreso</button>
+    </div>`;
+  }).join('') + `</div>`;
+}
+function setupRegresoPersonalFilter(){
+  const input = document.getElementById('regresoFiltroInput');
+  const wrap = document.getElementById('regresoListaWrap');
+  wrap.innerHTML = renderRegresoListaHTML('');
+  input.addEventListener('input', ()=>{ wrap.innerHTML = renderRegresoListaHTML(input.value); });
+}
+async function registrarRegresoPersonal(id){
+  const salida = DB.salidasPersonal.find(s => s.id === id);
+  if(!salida) return;
+  salida.fechaRegreso = new Date().toISOString();
+  salida.estado = 'regresado';
+  const ok = await saveDB();
+  if(!ok) return;
+  showStamp('REGRESO REGISTRADO', `${esc(salida.nombre).slice(0,30)} · ${fmtTime(new Date(salida.fechaRegreso))}`);
+  setTimeout(()=>{
+    const input = document.getElementById('regresoFiltroInput');
+    const wrap = document.getElementById('regresoListaWrap');
+    if(wrap) wrap.innerHTML = renderRegresoListaHTML(input ? input.value : '');
+  }, 350);
+}
+
+/* ============================ CIERRE AUTOMÁTICO DE PENDIENTES VENCIDOS ============================ */
+async function cerrarPendientesVencidos(){
+  const hoyStr = new Date().toISOString().slice(0,10);
+  let huboCambios = false;
+  (DB.salidasPersonal||[]).forEach(s => {
+    if(s.estado === 'pendiente' && s.tipo !== 'entrada_externa' && s.fechaSalida.slice(0,10) !== hoyStr){
+      s.estado = 'no_regreso';
+      s.fechaCierreAutomatico = new Date().toISOString();
+      huboCambios = true;
+    }
+  });
+  if(huboCambios){
+    await saveDB();
+  }
+  return huboCambios;
+}
+
+/* ============================ HISTORIAL DE PERSONAL ============================ */
+function historialPersonalFiltrado(textoF, fechaF){
+  const t = (textoF||'').toLowerCase();
+  return DB.salidasPersonal
+    .filter(s => !t || s.nombre.toLowerCase().includes(t) || s.numDoc.includes(t) || s.destino.toLowerCase().includes(t))
+    .filter(s => !fechaF || s.fechaSalida.slice(0,10) === fechaF)
+    .sort((a,b)=> new Date(b.fechaSalida) - new Date(a.fechaSalida));
+}
+function renderHistorialPersonalShell(){
+  return `
+    <div class="historial-head">
+      <div class="historial-filtros">
+        <input id="histTextoInputP" placeholder="Buscar por nombre, documento o destino…">
+        <input id="histFechaInputP" type="date">
+      </div>
+      <div class="historial-acciones">
+        <button class="btn btn-ghost small" data-action="exportarCSVPersonal">Exportar Excel</button>
+        <button class="btn btn-danger" data-action="borrarTodoPersonal" style="font-size:.74rem;padding:8px 12px;">Borrar todo</button>
+      </div>
+    </div>
+    <div class="table-scroll">
+      <table class="hist-table">
+        <thead>
+          <tr>
+            <th>Estado</th><th>Fecha</th><th>Nombre</th><th>Documento</th><th>Área</th>
+            <th>Motivo</th><th>Destino</th><th>Autorizó</th><th>Salida</th><th>Regreso</th><th>Firma</th><th>Detalle</th>
+          </tr>
+        </thead>
+        <tbody id="historialPersonalTbody"></tbody>
+      </table>
+    </div>
+    <div class="historial-footer">
+      <span class="count-note" id="historialPersonalCount"></span>
+    </div>
+  `;
+}
+function badgeEstadoPersonal(s){
+  if(s.estado === 'no_regreso')     return '<span class="badge noregreso">No regresó</span>';
+  if(s.estado === 'regresado')      return '<span class="badge fuera">Regresó</span>';
+  if(s.estado === 'entrada_externa')return '<span class="badge entrada">Entrada directa</span>';
+  return '<span class="badge dentro">Pendiente</span>';
+}
+function etiquetaEstadoPersonal(s){
+  if(s.estado === 'no_regreso')     return 'No regresó';
+  if(s.estado === 'regresado')      return 'Regresó';
+  if(s.estado === 'entrada_externa')return 'Entrada directa';
+  return 'Pendiente';
+}
+function renderHistorialPersonalRowsHTML(lista){
+  if(lista.length === 0){
+    return `<tr><td colspan="12" style="text-align:center;color:var(--steel);padding:30px;">No hay registros que coincidan con el filtro.</td></tr>`;
+  }
+  return lista.map(s => `
+    <tr>
+      <td>${badgeEstadoPersonal(s)}</td>
+      <td class="mono">${fmtDate(new Date(s.fechaSalida))}</td>
+      <td>${esc(s.nombre)}</td>
+      <td class="mono">${esc(s.numDoc)}</td>
+      <td>${esc(s.cargo)}</td>
+      <td>${esc(s.motivo)}</td>
+      <td>${esc(s.destino)}</td>
+      <td>${esc(s.autorizaNombre)||'—'}${s.autorizaArea?(' · '+esc(s.autorizaArea)):''}</td>
+      <td class="mono">${fmtTime(new Date(s.fechaSalida))}</td>
+      <td class="mono">${s.fechaRegreso ? fmtTime(new Date(s.fechaRegreso)) : '—'}</td>
+      <td>${s.firma ? `<img class="firma-thumb" src="${s.firma}" alt="Firma">` : '—'}</td>
+      <td><button class="btn btn-ghost small" data-action="verDetalleSalidaPersonal" data-id="${s.id}">Ver</button></td>
+    </tr>
+  `).join('');
+}
+function setupHistorialPersonalFilters(){
+  const textoInput = document.getElementById('histTextoInputP');
+  const fechaInput = document.getElementById('histFechaInputP');
+  function refresh(){
+    const lista = historialPersonalFiltrado(textoInput.value, fechaInput.value);
+    document.getElementById('historialPersonalTbody').innerHTML = renderHistorialPersonalRowsHTML(lista);
+    document.getElementById('historialPersonalCount').textContent = `${lista.length} registro${lista.length===1?'':'s'}`;
+  }
+  textoInput.addEventListener('input', refresh);
+  fechaInput.addEventListener('input', refresh);
+  refresh();
+}
+function showDetalleSalidaPersonal(id){
+  const s = DB.salidasPersonal.find(x => x.id === id);
+  if(!s) return;
+  const overlay = document.createElement('div');
+  overlay.className = 'detalle-overlay';
+  const fila = (label, val) => `<div class="detalle-row"><span>${esc(label)}</span><span>${esc(val) || '—'}</span></div>`;
+  overlay.innerHTML = `
+    <div class="detalle-box">
+      <h3>${esc(s.nombre)}</h3>
+      <p class="detalle-sub">${esc(s.tipoDoc)} ${esc(s.numDoc)} ${s.cargo?('· '+esc(s.cargo)):''}</p>
+      ${fila('Estado', etiquetaEstadoPersonal(s))}
+      ${s.tipo === 'entrada_externa'
+        ? fila('Venía de', s.destino)
+        : fila('Destino', s.destino)
+      }
+      ${fila('Motivo', s.motivo)}
+      ${fila('Autorizó', s.autorizaNombre)}
+      ${fila('Área de quien autoriza', s.autorizaArea)}
+      ${fila('Hora estimada de regreso', s.horaRegresoEst)}
+      ${fila('Observaciones', s.observaciones)}
+      ${fila('Salida', fmtDateTime(new Date(s.fechaSalida)))}
+      ${fila('Regreso', s.fechaRegreso ? fmtDateTime(new Date(s.fechaRegreso)) : (s.estado==='no_regreso' ? 'No regresó el mismo día' : 'Aún no ha regresado'))}
+      ${s.estado === 'no_regreso' ? fila('Cierre automático del reporte', s.fechaCierreAutomatico ? fmtDateTime(new Date(s.fechaCierreAutomatico)) : '') : ''}
+      ${s.firma ? `<div class="detalle-firma"><p class="firma-label">Firma</p><img src="${s.firma}" alt="Firma"></div>` : ''}
+      <button class="btn btn-ghost detalle-close" id="detalleCloseBtnP">Cerrar</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.querySelector('#detalleCloseBtnP').addEventListener('click', ()=> overlay.remove());
+  overlay.addEventListener('click', (e)=>{ if(e.target === overlay) overlay.remove(); });
+}
+async function exportarCSVPersonal(){
+  const textoInput = document.getElementById('histTextoInputP');
+  const fechaInput = document.getElementById('histFechaInputP');
+  const lista = historialPersonalFiltrado(textoInput?.value, fechaInput?.value);
+  const headers = ['Estado','Fecha','Hora salida','Hora regreso / llegada','Nombre','Tipo documento','Documento','Área','Motivo','Lugar','Autoriza - Nombre','Autoriza - Área','Hora estimada regreso','Observaciones'];
+  const rows = lista.map(s => [
+    etiquetaEstadoPersonal(s),
+    fmtDate(new Date(s.fechaSalida)),
+    s.tipo === 'entrada_externa' ? '' : fmtTime(new Date(s.fechaSalida)),
+    s.fechaRegreso ? fmtTime(new Date(s.fechaRegreso)) : '',
+    s.nombre, s.tipoDoc, s.numDoc, s.cargo||'', s.motivo, s.destino,
+    s.autorizaNombre||'', s.autorizaArea||'', s.horaRegresoEst||'', s.observaciones||''
+  ]);
+  await exportarExcel(headers, rows, `Personal ${fmtDate(new Date())}`, `salidas-personal-${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+/* ============================ ENTRADA DIRECTA (llega desde afuera) ============================ */
+function renderEntradaExterna(){
+  if(entradaUI.step === 'buscar'){
+    const hayNomina = DB.config.listaPersonal && DB.config.listaPersonal.length > 0;
+    return `
+      <section class="panel">
+        <p class="step-eyebrow">Entrada directa · llega desde el exterior</p>
+        <h2>¿Quién llega a la empresa?</h2>
+        <div class="banner" style="background:#6B3FA01a;border-color:#6B3FA0;color:#6B3FA0;">
+          Usa esta opción cuando iniciaste la jornada fuera de la empresa (reunión, visita, vueltas) y estás llegando ahora. Se registrará tu hora de llegada y el lugar del que vienes.
+        </div>
+        <div id="formError" class="form-error"></div>
+        ${hayNomina ? `
+          <div class="field">
+            <label for="buscarNominaInputE">Buscar por nombre o cédula</label>
+            <input id="buscarNominaInputE" placeholder="Escribe para buscar en la lista de personal…" autocomplete="off">
+            <div id="nominaSuggestionsE" class="nomina-suggestions"></div>
+          </div>
+          <div class="divider-or"><span>o ingresa el documento manualmente</span></div>
+        ` : ''}
+        <div class="field-row">
+          <div class="field">
+            <label for="tipoDocSelectE">Tipo de documento</label>
+            <select id="tipoDocSelectE">
+              <option value="CC" ${entradaUI.tipoDoc==='CC'?'selected':''}>Cédula de ciudadanía</option>
+              <option value="CE" ${entradaUI.tipoDoc==='CE'?'selected':''}>Cédula de extranjería</option>
+              <option value="PA" ${entradaUI.tipoDoc==='PA'?'selected':''}>Pasaporte</option>
+              <option value="TI" ${entradaUI.tipoDoc==='TI'?'selected':''}>Tarjeta de identidad</option>
+              <option value="PPT" ${entradaUI.tipoDoc==='PPT'?'selected':''}>PPT (Permiso por Protección Temporal)</option>
+            </select>
+          </div>
+          <div class="field grow">
+            <label for="numDocInputE">Número de documento</label>
+            <input id="numDocInputE" inputmode="numeric" placeholder="Ej: 1020304050" value="${esc(entradaUI.numDoc)}">
+          </div>
+        </div>
+        <button class="btn btn-primary" data-action="buscarEntrada">Continuar →</button>
+      </section>`;
+  }
+
+  const p = entradaUI.perfilExistente;
+  const usandoFirmaExistente = p && entradaUI.modoFirma === 'usarExistente';
+  return `
+    <section class="panel">
+      <p class="step-eyebrow">Entrada directa · confirma tu llegada</p>
+      <h2>${p ? 'Confirma tus datos' : 'Registra tus datos'}</h2>
+      ${p && p.firma
+        ? `<div class="banner" style="background:#6B3FA01a;border-color:#6B3FA0;color:#6B3FA0;">Hola de nuevo, ${esc(p.nombre)} — confirma los datos y firma para registrar tu llegada.</div>`
+        : p
+          ? `<div class="banner" style="background:#6B3FA01a;border-color:#6B3FA0;color:#6B3FA0;">Encontramos a ${esc(p.nombre)} en la lista de personal — verifica los datos y firma para registrar tu llegada.</div>`
+          : `<div class="banner banner-nuevo">⚠ Esta persona no está registrada todavía. Al confirmar se creará un nuevo registro en la lista de personal.</div>`
+      }
+      <div id="formError" class="form-error"></div>
+
+      <div class="field">
+        <label for="nombreInputE">Nombre completo</label>
+        <input id="nombreInputE" value="${esc(p?.nombre||'')}" placeholder="Nombre y apellidos">
+      </div>
+      <div class="field">
+        <label for="cargoInputE">Área a la que pertenece <span class="hint">(opcional)</span></label>
+        <input id="cargoInputE" value="${esc(p?.cargo||'')}" placeholder="Ej: Compras, Recursos Humanos">
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="motivoSelectE">Venía de</label>
+          <select id="motivoSelectE">
+            ${MOTIVOS_PERSONAL.map(m=>`<option value="${m}">${m}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field" id="motivoOtroWrapE" style="display:none">
+          <label for="motivoOtroInputE">Especifica</label>
+          <input id="motivoOtroInputE" placeholder="Detalle">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="origenInputE">Lugar de origen <span class="hint">(dónde estuvo)</span></label>
+        <input id="origenInputE" placeholder="Ej: Oficinas del cliente XYZ, Casa">
+      </div>
+
+      <div class="field">
+        <label for="observacionesInputE">Observaciones <span class="hint">(opcional)</span></label>
+        <input id="observacionesInputE" placeholder="Ej: Viene de reunión con proveedor">
+      </div>
+
+      <div class="meta-row">
+        <span>Fecha y hora de llegada</span>
+        <strong id="horaIngresoLive">${fmtDateTime(new Date())}</strong>
+      </div>
+
+      <div class="firma-box">
+        <p class="firma-label">Firma</p>
+        ${usandoFirmaExistente ? `
+          <div class="firma-existente">
+            <img src="${p.firma}" alt="Firma registrada de ${esc(p.nombre)}">
+            <button class="btn btn-ghost small" data-action="firmarDeNuevoEntrada">Firmar de nuevo</button>
+          </div>
+        ` : `
+          <canvas id="sigCanvas" class="sig-canvas"></canvas>
+          <div class="btn-row">
+            <button class="btn btn-ghost small" data-action="limpiarFirma">Limpiar</button>
+          </div>
+        `}
+      </div>
+
+      <div class="btn-row" style="margin-bottom:14px;">
+        <button class="btn btn-ghost" data-action="volverBuscarEntrada">← Cambiar documento</button>
+      </div>
+      <button class="btn btn-primary" data-action="confirmarEntradaExterna">Registrar llegada</button>
+    </section>`;
+}
+
+function buscarEntrada(){
+  const tipoDoc = document.getElementById('tipoDocSelectE').value;
+  const numDoc  = document.getElementById('numDocInputE').value.trim();
+  if(!numDoc){ showFormError('Ingresa el número de documento para continuar.'); return; }
+  entradaUI.numDoc  = numDoc;
+  const { perfil, modoFirma } = resolverPerfilPersonal(numDoc, tipoDoc);
+  entradaUI.tipoDoc = perfil?.tipoDoc || tipoDoc;
+  entradaUI.perfilExistente = perfil;
+  entradaUI.modoFirma = modoFirma;
+  entradaUI.step = 'formulario';
+  renderView();
+}
+function seleccionarDeNominaEntrada(numDoc, tipoDoc){
+  entradaUI.numDoc = numDoc;
+  const { perfil, modoFirma } = resolverPerfilPersonal(numDoc, tipoDoc || 'CC');
+  entradaUI.tipoDoc = perfil?.tipoDoc || tipoDoc || 'CC';
+  entradaUI.perfilExistente = perfil;
+  entradaUI.modoFirma = modoFirma;
+  entradaUI.step = 'formulario';
+  renderView();
+}
+function renderNominaSuggestionsEntrada(query){
+  const box = document.getElementById('nominaSuggestionsE');
+  if(!box) return;
+  const q = (query||'').trim();
+  if(!q){ box.classList.remove('show'); box.innerHTML=''; return; }
+  const matches = (DB.config.listaPersonal||[])
+    .filter(p => p.nombre.toLowerCase().includes(q.toLowerCase()) || p.numDoc.includes(q))
+    .slice(0,8);
+  box.classList.add('show');
+  if(matches.length === 0){
+    box.innerHTML = `<div class="nomina-empty-msg">Sin coincidencias. Puedes ingresar el documento manualmente.</div>`;
+    return;
+  }
+  box.innerHTML = matches.map(p => `
+    <div class="nomina-item" data-action="seleccionarNominaEntrada" data-numdoc="${esc(p.numDoc)}" data-tipodoc="${esc(p.tipoDoc||'CC')}">
+      <span>${esc(p.nombre)}${p.cargo?' · '+esc(p.cargo):''}</span>
+      <span class="nm-doc">${esc(p.numDoc)}</span>
+    </div>`).join('');
+}
+
+async function confirmarEntradaExterna(){
+  const nombre       = document.getElementById('nombreInputE').value.trim();
+  const cargo        = document.getElementById('cargoInputE').value.trim();
+  const motivoSel    = document.getElementById('motivoSelectE').value;
+  const motivoOtro   = document.getElementById('motivoOtroInputE')?.value.trim() || '';
+  const motivo       = motivoSel === 'Otro' ? (motivoOtro||'Otro') : motivoSel;
+  const origen       = document.getElementById('origenInputE').value.trim();
+  const observaciones= document.getElementById('observacionesInputE').value.trim();
+
+  if(!nombre || !origen){ showFormError('Completa el nombre y el lugar de origen.'); return; }
+  if(esColumnaDeDocumento(nombre)){ showFormError('El nombre no puede ser solo un número.'); return; }
+  if(motivoSel === 'Otro' && !motivoOtro){ showFormError('Especifica el motivo.'); return; }
+
+  let firma = null;
+  if(entradaUI.perfilExistente && entradaUI.modoFirma === 'usarExistente'){
+    firma = entradaUI.perfilExistente.firma;
+  } else if(currentSigPad && !currentSigPad.isEmpty()){
+    firma = currentSigPad.toDataURL();
+  }
+  if(!firma){ showFormError('Falta la firma. Firma en el recuadro antes de confirmar.'); return; }
+
+  const now = new Date();
+  const registro = {
+    id: `${now.getTime()}-${entradaUI.numDoc}`,
+    tipo: 'entrada_externa',
+    numDoc: entradaUI.numDoc,
+    tipoDoc: entradaUI.tipoDoc,
+    nombre, cargo, motivo,
+    destino: origen,           // reutilizamos el campo "destino" para el lugar de origen
+    observaciones,
+    autorizaNombre: '', autorizaArea: '', horaRegresoEst: '',
+    fechaSalida: now.toISOString(),   // hora de llegada (reutilizamos fechaSalida como referencia)
+    fechaRegreso: now.toISOString(),  // ya está en la empresa al registrar
+    estado: 'entrada_externa',
+    firma
+  };
+  DB.salidasPersonal.push(registro);
+
+  // Actualizar perfil y nómina
+  DB.perfilesPersonal[entradaUI.numDoc] = { nombre, cargo, tipoDoc: entradaUI.tipoDoc, firma };
+  DB.config.listaPersonal = DB.config.listaPersonal || [];
+  const idx = DB.config.listaPersonal.findIndex(p => p.numDoc === entradaUI.numDoc);
+  if(idx === -1){
+    DB.config.listaPersonal.push({ nombre, numDoc: entradaUI.numDoc, cargo, tipoDoc: entradaUI.tipoDoc });
+    DB.config.listaPersonal.sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  } else {
+    DB.config.listaPersonal[idx] = { nombre, numDoc: entradaUI.numDoc, cargo, tipoDoc: entradaUI.tipoDoc };
+  }
+
+  const ok = await saveDB();
+  if(!ok) return;
+  showStamp('LLEGADA REGISTRADA', `${esc(nombre).slice(0,30)} · ${fmtTime(now)}`);
+  entradaUI = { step:'buscar', numDoc:'', tipoDoc:'CC', perfilExistente:null, modoFirma:'nueva' };
+  setTimeout(renderView, 350);
+}
+
+async function borrarTodoPersonal(){
+  const c1 = await showConfirm('Esto eliminará TODOS los registros de salidas de personal (perfiles e historial). ¿Deseas continuar?');
+  if(!c1) return;
+  const c2 = await showConfirm('Confirma de nuevo: esta acción no se puede deshacer. ¿Borrar todo el historial de personal?');
+  if(!c2) return;
+  DB.perfilesPersonal = {};
+  DB.salidasPersonal = [];
+  const ok = await saveDB();
+  if(ok){ renderView(); showToast('Historial de personal borrado.', 'success'); }
+}
+
+/* ============================ EVENTOS GLOBALES ============================ */
+document.getElementById('app').addEventListener('click', (e)=>{
+  const btn = e.target.closest('[data-action]');
+  if(!btn) return;
+  const action = btn.dataset.action;
+  if(action === 'cambiarModulo'){
+    activeModule = btn.dataset.modulo;
+    activeTab = activeModule === 'visitantes' ? 'ingreso' : 'salidaPersonal';
+    renderView();
+    if(activeModule === 'personal'){
+      cerrarPendientesVencidos().then(cambios => { if(cambios) renderView(); });
+    }
+  } else if(action === 'cambiarTab'){
+    activeTab = btn.dataset.tab;
+    renderView();
+    if(activeTab === 'regresoPersonal' || activeTab === 'historialPersonal'){
+      cerrarPendientesVencidos().then(cambios => { if(cambios) renderView(); });
+    }
+  } else if(action === 'buscarVisitante'){
+    buscarVisitante();
+  } else if(action === 'volverBuscar'){
+    ingresoUI.step = 'buscar';
+    renderView();
+  } else if(action === 'firmarDeNuevo'){
+    ingresoUI.modoFirma = 'nueva';
+    renderView();
+  } else if(action === 'limpiarFirma'){
+    currentSigPad?.clear();
+  } else if(action === 'confirmarIngreso'){
+    confirmarIngreso();
+  } else if(action === 'registrarSalida'){
+    registrarSalida(btn.dataset.id);
+  } else if(action === 'verDetalleVisita'){
+    showDetalleVisita(btn.dataset.id);
+  } else if(action === 'exportarCSV'){
+    exportarCSV();
+  } else if(action === 'borrarTodo'){
+    borrarTodo();
+  } else if(action === 'buscarPersonal'){
+    buscarPersonal();
+  } else if(action === 'volverBuscarPersonal'){
+    personalUI.step = 'buscar';
+    renderView();
+  } else if(action === 'firmarDeNuevoPersonal'){
+    personalUI.modoFirma = 'nueva';
+    renderView();
+  } else if(action === 'confirmarSalidaPersonal'){
+    confirmarSalidaPersonal();
+  } else if(action === 'registrarRegresoPersonal'){
+    registrarRegresoPersonal(btn.dataset.id);
+  } else if(action === 'verDetalleSalidaPersonal'){
+    showDetalleSalidaPersonal(btn.dataset.id);
+  } else if(action === 'exportarCSVPersonal'){
+    exportarCSVPersonal();
+  } else if(action === 'borrarTodoPersonal'){
+    borrarTodoPersonal();
+  } else if(action === 'agregarEps'){
+    agregarEps();
+  } else if(action === 'quitarEps'){
+    quitarEps(btn.dataset.name);
+  } else if(action === 'agregarArl'){
+    agregarArl();
+  } else if(action === 'quitarArl'){
+    quitarArl(btn.dataset.name);
+  } else if(action === 'seleccionarNomina'){
+    seleccionarDeNomina(btn.dataset.numdoc, btn.dataset.tipodoc);
+  } else if(action === 'seleccionarNominaEntrada'){
+    seleccionarDeNominaEntrada(btn.dataset.numdoc, btn.dataset.tipodoc);
+  } else if(action === 'seleccionarAutoriza'){
+    seleccionarAutoriza(btn.dataset.nombre, btn.dataset.area);
+  } else if(action === 'buscarEntrada'){
+    buscarEntrada();
+  } else if(action === 'volverBuscarEntrada'){
+    entradaUI.step = 'buscar'; renderView();
+  } else if(action === 'firmarDeNuevoEntrada'){
+    entradaUI.modoFirma = 'nueva'; renderView();
+  } else if(action === 'confirmarEntradaExterna'){
+    confirmarEntradaExterna();
+  } else if(action === 'cargarListaPersonal'){
+    cargarListaPersonal();
+  } else if(action === 'vaciarListaPersonal'){
+    vaciarListaPersonal();
+  } else if(action === 'quitarDeNomina'){
+    quitarDeNomina(btn.dataset.numdoc);
+  }
+});
+document.getElementById('app').addEventListener('input', (e)=>{
+  if(e.target.id === 'buscarNominaInput'){
+    renderNominaSuggestions(e.target.value);
+  } else if(e.target.id === 'buscarNominaInputE'){
+    renderNominaSuggestionsEntrada(e.target.value);
+  } else if(e.target.id === 'autorizaInputP'){
+    renderAutorizaSuggestions(e.target.value);
+    autocompletarAreaAutorizaSiCoincideExacto(e.target.value);
+  }
+});
+document.getElementById('app').addEventListener('focusout', (e)=>{
+  if(e.target.id === 'buscarNominaInput'){
+    setTimeout(()=>{ const b=document.getElementById('nominaSuggestions'); if(b) b.classList.remove('show'); }, 180);
+  } else if(e.target.id === 'buscarNominaInputE'){
+    setTimeout(()=>{ const b=document.getElementById('nominaSuggestionsE'); if(b) b.classList.remove('show'); }, 180);
+  } else if(e.target.id === 'autorizaInputP'){
+    setTimeout(()=>{ const b=document.getElementById('autorizaSuggestions'); if(b) b.classList.remove('show'); }, 180);
+  }
+});
+document.getElementById('app').addEventListener('change', (e)=>{
+  if(e.target.id === 'nominaFileInput'){
+    const file = e.target.files[0];
+    if(!file) return;
+    handleNominaFile(file);
+  }
+});
+document.getElementById('app').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter' && e.target.id === 'numDocInput'){
+    e.preventDefault();
+    buscarVisitante();
+  } else if(e.key === 'Enter' && e.target.id === 'numDocInputP'){
+    e.preventDefault();
+    buscarPersonal();
+  } else if(e.key === 'Enter' && e.target.id === 'numDocInputE'){
+    e.preventDefault();
+    buscarEntrada();
+  }
+});
+document.getElementById('app').addEventListener('change', (e)=>{
+  if(e.target.id === 'motivoSelect'){
+    const wrap = document.getElementById('motivoOtroWrap');
+    if(wrap) wrap.style.display = e.target.value === 'Otro' ? 'block' : 'none';
+  } else if(e.target.id === 'motivoSelectP'){
+    const wrap = document.getElementById('motivoOtroWrapP');
+    if(wrap) wrap.style.display = e.target.value === 'Otro' ? 'block' : 'none';
+  } else if(e.target.id === 'motivoSelectE'){
+    const wrap = document.getElementById('motivoOtroWrapE');
+    if(wrap) wrap.style.display = e.target.value === 'Otro' ? 'block' : 'none';
+  } else if(e.target.dataset && e.target.dataset.otrowrap){
+    const wrap = document.getElementById(e.target.dataset.otrowrap);
+    if(wrap) wrap.style.display = e.target.value === OTRO_VAL ? 'block' : 'none';
+  } else if(e.target.id === 'traeEquipoCheckbox'){
+    const wrap = document.getElementById('equipoDetalleWrap');
+    if(wrap) wrap.style.display = e.target.checked ? 'block' : 'none';
+  }
+});
+document.getElementById('empresaNombreInput').addEventListener('focusout', async (e)=>{
+  DB.config.empresaNombre = e.target.value.trim();
+  await saveDB();
+});
+
+/* ============================ INICIO ============================ */
+async function init(){
+  tickClock();
+  await loadDB();
+  document.getElementById('empresaNombreInput').value = DB.config.empresaNombre || '';
+  const badge = document.getElementById('storageModeBadge');
+  if(badge){
+    badge.style.display = 'inline-block';
+    if(storageMode === 'cloud'){
+      badge.className = 'storage-badge cloud';
+      badge.textContent = '☁ Datos compartidos (nube)';
+    } else {
+      badge.className = 'storage-badge local';
+      badge.textContent = '💾 Datos solo en este dispositivo';
+    }
+  }
+  const huboCierres = await cerrarPendientesVencidos();
+  renderView();
+  if(huboCierres){
+    showToast('Se cerraron automáticamente salidas pendientes de días anteriores como "No regresó".', 'error');
+  }
+  // Revisa periódicamente (cada 5 min) mientras la app sigue abierta, y refresca
+  // la vista de Regreso/Historial si hubo cambios. Nota: este cierre automático
+  // solo se ejecuta mientras alguien tiene la app abierta; no corre en segundo
+  // plano si nadie la tiene abierta ese día.
+  setInterval(async ()=>{
+    const cambios = await cerrarPendientesVencidos();
+    if(cambios && (activeTab === 'regresoPersonal' || activeTab === 'historialPersonal')){
+      renderView();
+    }
+  }, 5 * 60 * 1000);
+}
+init();
+</script>
+</body>
+</html>

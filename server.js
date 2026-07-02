@@ -754,6 +754,10 @@ app.get('/incentivos', (req, res) =>
   res.sendFile(path.join(__dirname, 'incentivos.html'))
 );
 
+app.get('/visitantes', (req, res) =>
+  res.sendFile(path.join(__dirname, 'control-visitantes-sst.html'))
+);
+
 // Logo corporativo (usado en el header del módulo de incentivos)
 app.get('/logo.png', (req, res) => {
   // El archivo real se llama "logo.png.jpeg"; probamos varios nombres.
