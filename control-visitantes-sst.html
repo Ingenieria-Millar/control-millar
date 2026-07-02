@@ -3,31 +3,31 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Control de Visitantes · SST</title>
+<title>Control de Visitantes SST — MES | Millar</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Nunito:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --ink:#1C2333;
-    --paper:#F7F4EC;
-    --paper-2:#EFEADC;
-    --steel:#3D5A73;
-    --steel-soft:#3D5A731a;
-    --safety:#E8A23D;
-    --safety-dark:#C9821F;
-    --line:#D9D2BF;
-    --confirm:#4F7858;
-    --confirm-soft:#4F78581a;
-    --alert:#B8443A;
-    --alert-soft:#B8443A14;
-    --radius:7px;
+    --ink:#0f172a;
+    --paper:#f1f5f9;
+    --paper-2:#f8fafc;
+    --steel:#64748b;
+    --steel-soft:#64748b1a;
+    --safety:#2563eb;
+    --safety-dark:#1e3a8a;
+    --line:#e2e8f0;
+    --confirm:#16a34a;
+    --confirm-soft:#16a34a1a;
+    --alert:#ef4444;
+    --alert-soft:#ef44441a;
+    --radius:9px;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   body{
     background:var(--paper);
     color:var(--ink);
-    font-family:'Inter',sans-serif;
+    font-family:'Nunito',sans-serif;
     min-height:100vh;
     -webkit-tap-highlight-color:transparent;
   }
@@ -35,52 +35,51 @@
 
   /* ---------- HEADER ---------- */
   .topbar{
-    padding:22px clamp(16px,4vw,40px) 14px;
-    border-bottom:3px solid var(--ink);
+    padding:0 clamp(16px,4vw,40px);
+    height:64px;
+    background:#fff;
+    border-bottom:1px solid var(--line);
     display:flex;
     justify-content:space-between;
-    align-items:flex-end;
+    align-items:center;
     gap:16px;
-    flex-wrap:wrap;
+    position:relative;
   }
-  .topbar .left{display:flex;flex-direction:column;gap:4px;}
+  .topbar::before{
+    content:'';position:absolute;top:0;left:0;right:0;height:4px;
+    background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);
+  }
+  .topbar .left{display:flex;align-items:center;gap:14px;}
+  .topbar-logo{height:40px;width:auto;display:block;}
+  .topbar-brand{display:flex;flex-direction:column;gap:1px;}
   .eyebrow{
     font-family:'Barlow Condensed',sans-serif;
     font-weight:700;
     text-transform:uppercase;
     letter-spacing:.12em;
-    font-size:.72rem;
+    font-size:.68rem;
     color:var(--steel);
   }
   .brand-title{
     font-family:'Barlow Condensed',sans-serif;
-    font-weight:700;
-    font-size:clamp(1.5rem,4vw,2rem);
+    font-weight:800;
+    font-size:1.25rem;
     line-height:1;
-    letter-spacing:.01em;
+    letter-spacing:.5px;
+    color:var(--ink);
   }
-  #empresaNombreInput{
-    font-family:'Inter',sans-serif;
-    font-size:.85rem;
-    color:var(--steel);
-    border:none;
-    background:transparent;
-    padding:2px 0;
-    border-bottom:1px dashed transparent;
-    width:240px;
-  }
-  #empresaNombreInput::placeholder{color:#3D5A7399;}
-  #empresaNombreInput:focus{outline:none;border-bottom:1px dashed var(--steel);}
+  .topbar-right{display:flex;align-items:center;gap:14px;}
   .clock-wrap{text-align:right;}
   #clockDisplay{
     font-family:'IBM Plex Mono',monospace;
-    font-size:.8rem;
+    font-size:.78rem;
     color:var(--ink);
     font-weight:500;
+    display:block;
   }
   .clock-label{
     font-family:'Barlow Condensed',sans-serif;
-    font-size:.68rem;
+    font-size:.64rem;
     letter-spacing:.1em;
     text-transform:uppercase;
     color:var(--steel);
@@ -91,8 +90,17 @@
     padding:2px 8px;border-radius:10px;letter-spacing:.03em;
     font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;
   }
-  .storage-badge.local{background:#E8A23D26;color:var(--safety-dark);}
+  .storage-badge.local{background:#2563eb26;color:var(--safety-dark);}
   .storage-badge.cloud{background:var(--confirm-soft);color:var(--confirm);}
+  .btn-volver{
+    display:inline-flex;align-items:center;gap:5px;
+    padding:7px 14px;border-radius:8px;border:1.5px solid var(--line);
+    background:#fff;color:var(--safety-dark);
+    font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;
+    letter-spacing:1px;text-transform:uppercase;text-decoration:none;
+    transition:all .2s;white-space:nowrap;
+  }
+  .btn-volver:hover{background:var(--paper);border-color:#94a3b8;}
 
   /* ---------- MODULE BAR ---------- */
   .module-bar{
@@ -104,7 +112,7 @@
     background:transparent;color:#ffffffb0;cursor:pointer;transition:all .15s;
   }
   .module-pill:hover{border-color:#ffffff66;color:#fff;}
-  .module-pill.active{background:var(--safety);border-color:var(--safety);color:var(--ink);}
+  .module-pill.active{background:var(--safety);border-color:var(--safety);color:#fff;}
 
   /* ---------- TABS ---------- */
   .tabs{
@@ -174,8 +182,8 @@
     font-weight:500;
   }
   .banner.banner-nuevo{
-    background:#E8A23D1f;
-    border-color:var(--safety-dark);
+    background:#2563eb1f;
+    border-color:var(--safety);
     color:var(--safety-dark);
   }
   .field-row{display:flex;gap:14px;}
@@ -195,9 +203,9 @@
     padding:12px 13px;
     border:1.5px solid var(--line);
     border-radius:var(--radius);
-    font-family:'Inter',sans-serif;
+    font-family:'Nunito',sans-serif;
     font-size:1rem;
-    background:#fdfcf9;
+    background:#fff;
     color:var(--ink);
   }
   input:focus, select:focus{outline:none;border-color:var(--steel);background:#fff;}
@@ -231,7 +239,7 @@
     touch-action:none;cursor:crosshair;
   }
   .firma-existente{
-    border:1.5px solid var(--line);border-radius:var(--radius);padding:12px;background:#fdfcf9;
+    border:1.5px solid var(--line);border-radius:var(--radius);padding:12px;background:#fff;
     display:flex;flex-direction:column;align-items:flex-start;gap:8px;
   }
   .firma-existente img{height:90px;max-width:100%;object-fit:contain;background:#fff;border:1px solid var(--line);border-radius:4px;padding:4px;}
@@ -247,8 +255,8 @@
     cursor:pointer;transition:transform .08s, background .15s;
   }
   .btn:active{transform:scale(0.97);}
-  .btn-primary{background:var(--safety);color:var(--ink);width:100%;padding:15px 22px;font-size:.95rem;}
-  .btn-primary:hover{background:var(--safety-dark);}
+  .btn-primary{background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;width:100%;padding:15px 22px;font-size:.95rem;box-shadow:0 4px 14px rgba(37,99,235,.3);}
+  .btn-primary:hover{background:linear-gradient(135deg,#1e3a8a,#1d4ed8);}
   .btn-ghost{background:transparent;border-color:var(--line);color:var(--steel);}
   .btn-ghost:hover{border-color:var(--steel);color:var(--ink);}
   .btn-ghost.small{padding:8px 14px;font-size:.78rem;}
@@ -292,7 +300,7 @@
   .badge.dentro{background:var(--confirm-soft);color:var(--confirm);}
   .badge.fuera{background:var(--steel-soft);color:var(--steel);}
   .badge.noregreso{background:var(--alert-soft);color:var(--alert);}
-  .badge.entrada{background:#6B3FA01a;color:#6B3FA0;}
+  .badge.entrada{background:#2563eb1a;color:#2563eb;}
 
   /* ---------- BÚSQUEDA EN NÓMINA ---------- */
   .nomina-suggestions{
@@ -318,7 +326,7 @@
   .nomina-upload-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;}
   .nomina-upload-grid textarea{
     width:100%;min-height:120px;padding:12px 13px;border:1.5px solid var(--line);border-radius:var(--radius);
-    font-family:'IBM Plex Mono',monospace;font-size:.8rem;background:#fdfcf9;resize:vertical;
+    font-family:'IBM Plex Mono',monospace;font-size:.8rem;background:#fff;resize:vertical;
   }
   .nomina-upload-grid textarea:focus{outline:none;border-color:var(--steel);background:#fff;}
   .nomina-stats{display:flex;justify-content:space-between;align-items:center;margin:14px 0 10px;}
@@ -339,7 +347,7 @@
   .stamp-ring{
     width:230px;height:230px;border-radius:50%;border:6px solid var(--confirm);
     display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
-    background:#fdfcf9;color:var(--confirm);
+    background:#fff;color:var(--confirm);
     transform:scale(1.45) rotate(-12deg);opacity:0;
   }
   .stamp-overlay.show .stamp-ring{animation:stampPress .45s cubic-bezier(.2,1.5,.4,1) forwards;}
@@ -428,14 +436,19 @@
   <div id="app">
     <header class="topbar">
       <div class="left">
-        <span class="eyebrow">Control de acceso · SST</span>
-        <span class="brand-title">Control de Visitantes</span>
-        <input id="empresaNombreInput" placeholder="Nombre de tu empresa (aparece aquí)" autocomplete="off">
+        <img src="/logo.png" alt="Millar" class="topbar-logo">
+        <div class="topbar-brand">
+          <span class="eyebrow">MES · Control de acceso · SST</span>
+          <span class="brand-title">Control de Visitantes</span>
+        </div>
       </div>
-      <div class="clock-wrap">
-        <span class="clock-label">Hoy</span>
-        <span id="clockDisplay">—</span>
-        <span id="storageModeBadge" class="storage-badge" style="display:none;"></span>
+      <div class="topbar-right">
+        <div class="clock-wrap">
+          <span class="clock-label">Hoy</span>
+          <span id="clockDisplay">—</span>
+          <span id="storageModeBadge" class="storage-badge" style="display:none;"></span>
+        </div>
+        <a href="/" class="btn-volver">← MES</a>
       </div>
     </header>
 
@@ -672,7 +685,7 @@ function attachSignaturePad(){
     canvas.width = rect.width*ratio;
     canvas.height = rect.height*ratio;
     ctx.scale(ratio, ratio);
-    ctx.lineWidth = 2.4; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle = '#1C2333';
+    ctx.lineWidth = 2.4; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle = '#0f172a';
   }
   resize();
   let drawing=false, last=null, hasDrawn=false;
@@ -2035,7 +2048,7 @@ function renderEntradaExterna(){
       <section class="panel">
         <p class="step-eyebrow">Entrada directa · llega desde el exterior</p>
         <h2>¿Quién llega a la empresa?</h2>
-        <div class="banner" style="background:#6B3FA01a;border-color:#6B3FA0;color:#6B3FA0;">
+        <div class="banner" style="background:#2563eb1a;border-color:#2563eb;color:#2563eb;">
           Usa esta opción cuando iniciaste la jornada fuera de la empresa (reunión, visita, vueltas) y estás llegando ahora. Se registrará tu hora de llegada y el lugar del que vienes.
         </div>
         <div id="formError" class="form-error"></div>
@@ -2074,9 +2087,9 @@ function renderEntradaExterna(){
       <p class="step-eyebrow">Entrada directa · confirma tu llegada</p>
       <h2>${p ? 'Confirma tus datos' : 'Registra tus datos'}</h2>
       ${p && p.firma
-        ? `<div class="banner" style="background:#6B3FA01a;border-color:#6B3FA0;color:#6B3FA0;">Hola de nuevo, ${esc(p.nombre)} — confirma los datos y firma para registrar tu llegada.</div>`
+        ? `<div class="banner" style="background:#2563eb1a;border-color:#2563eb;color:#2563eb;">Hola de nuevo, ${esc(p.nombre)} — confirma los datos y firma para registrar tu llegada.</div>`
         : p
-          ? `<div class="banner" style="background:#6B3FA01a;border-color:#6B3FA0;color:#6B3FA0;">Encontramos a ${esc(p.nombre)} en la lista de personal — verifica los datos y firma para registrar tu llegada.</div>`
+          ? `<div class="banner" style="background:#2563eb1a;border-color:#2563eb;color:#2563eb;">Encontramos a ${esc(p.nombre)} en la lista de personal — verifica los datos y firma para registrar tu llegada.</div>`
           : `<div class="banner banner-nuevo">⚠ Esta persona no está registrada todavía. Al confirmar se creará un nuevo registro en la lista de personal.</div>`
       }
       <div id="formError" class="form-error"></div>
