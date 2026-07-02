@@ -49,8 +49,13 @@
     content:'';position:absolute;bottom:0;left:0;right:0;height:4px;
     background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);
   }
-  .topbar .left{display:flex;align-items:center;gap:14px;}
-  .topbar-logo{height:40px;width:auto;display:block;}
+  .topbar .left{display:flex;align-items:center;gap:12px;}
+  .topbar-icon{
+    width:38px;height:38px;border-radius:50%;background:#fff;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;overflow:hidden;
+    box-shadow:0 0 0 2px #e2e8f0,0 2px 8px rgba(0,0,0,.08);
+  }
+  .topbar-icon img{width:100%;height:100%;object-fit:contain;padding:3px;}
   .topbar-brand{display:flex;flex-direction:column;gap:1px;}
   .eyebrow{
     font-family:'Barlow Condensed',sans-serif;
@@ -276,11 +281,35 @@
   .historial-head{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;margin-bottom:16px;flex-wrap:wrap;}
   .historial-filtros{display:flex;gap:8px;flex-wrap:wrap;flex:1;align-items:center;}
   .historial-acciones{display:flex;gap:8px;}
-  .fecha-rango-wrap{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
-  .fecha-rango-lbl{font-family:'Barlow Condensed',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--steel);white-space:nowrap;}
-  .fecha-rango-wrap input[type="date"]{width:150px;flex:none;font-size:.82rem;padding:7px 10px;}
-  .btn-limpiar-fecha{background:#fff;border:1.5px solid var(--line);color:var(--steel);border-radius:6px;padding:6px 10px;font-size:.8rem;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-weight:600;}
-  .btn-limpiar-fecha:hover{border-color:var(--steel);color:var(--ink);}
+  .hist-date-wrap{position:relative;}
+  .hist-date-btn{
+    font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.82rem;
+    letter-spacing:.05em;text-transform:uppercase;
+    padding:7px 14px;border-radius:8px;border:1.5px solid var(--line);
+    background:#fff;color:var(--ink);cursor:pointer;
+    display:flex;align-items:center;gap:6px;white-space:nowrap;transition:all .15s;
+  }
+  .hist-date-btn:hover{border-color:var(--safety);color:var(--safety-dark);}
+  .hist-date-btn.active{border-color:var(--safety);background:#eff6ff;color:var(--safety-dark);}
+  .hist-date-panel{
+    position:absolute;top:calc(100% + 6px);left:0;z-index:200;
+    background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;
+    padding:14px;box-shadow:0 4px 20px rgba(0,0,0,.14);min-width:200px;
+    flex-direction:column;gap:10px;
+  }
+  .hist-dp-row{display:flex;flex-direction:column;gap:3px;}
+  .hist-dp-lbl{font-size:.66rem;font-weight:700;color:var(--steel);letter-spacing:.1em;text-transform:uppercase;font-family:'Barlow Condensed',sans-serif;}
+  .hist-dp-row input[type="date"]{font-size:.85rem;padding:7px 10px;width:100%;}
+  .hist-dp-btns{display:flex;gap:6px;margin-top:2px;}
+  .btn-dp-apply{flex:1;padding:8px;background:var(--safety);color:#fff;border:none;border-radius:7px;font-size:.78rem;font-weight:700;cursor:pointer;font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.04em;}
+  .btn-dp-apply:hover{background:var(--safety-dark);}
+  .btn-dp-clear{flex:1;padding:8px;background:#fff;border:1.5px solid var(--line);border-radius:7px;font-size:.78rem;font-weight:700;cursor:pointer;color:var(--steel);font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.04em;}
+  .btn-dp-clear:hover{border-color:var(--steel);color:var(--ink);}
+  th.sortable{cursor:pointer;user-select:none;}
+  th.sortable:hover{color:var(--ink);}
+  .sort-ic{font-size:.65rem;opacity:.35;margin-left:2px;}
+  th.sortable.s-asc .sort-ic{opacity:1;color:var(--safety-dark);}
+  th.sortable.s-desc .sort-ic{opacity:1;color:var(--safety-dark);}
   table.hist-table thead tr.hist-filter-row th{padding:4px 6px;border-bottom:1px solid var(--line);}
   table.hist-table thead tr.hist-filter-row th input{
     width:100%;padding:5px 7px;font-size:.75rem;border:1px solid var(--line);
@@ -444,7 +473,7 @@
   <div id="app">
     <header class="topbar">
       <div class="left">
-        <img src="/logo.png" alt="Millar" class="topbar-logo">
+        <div class="topbar-icon"><img src="/logo.png" alt="Millar"></div>
         <div class="topbar-brand">
           <span class="eyebrow">MES · Control de acceso · SST</span>
           <span class="brand-title">CONTROL DE <span class="brand-accent">VISITANTES</span></span>
@@ -777,7 +806,6 @@ function renderIngreso(){
   if(ingresoUI.step === 'buscar'){
     return `
       <section class="panel" style="max-width:800px;">
-        <p class="step-eyebrow">Paso 1 · Identificación</p>
         <h2>¿Quién visita hoy?</h2>
         <div id="formError" class="form-error"></div>
         <div class="field-row">
@@ -801,7 +829,6 @@ function renderIngreso(){
 
   return `
     <section class="panel">
-      <p class="step-eyebrow">Paso 2 · Datos de la visita</p>
       <h2>${p ? 'Confirma tus datos' : 'Registra tus datos'}</h2>
       ${p ? `<div class="banner">Bienvenido(a) de nuevo, ${esc(p.nombre)} — verifica los datos y confirma para registrar el ingreso de hoy.</div>` : ''}
       <div id="formError" class="form-error"></div>
@@ -1032,14 +1059,11 @@ function activosList(filtro){
 }
 function renderSalidaShell(){
   return `
-    <div class="filtro-bar">
-      <input id="salidaFiltroInput" placeholder="Buscar por nombre, documento o empresa…">
-    </div>
     <div id="salidaListaWrap"></div>
   `;
 }
-function renderSalidaListaHTML(filtro){
-  const activos = activosList(filtro);
+function renderSalidaListaHTML(){
+  const activos = activosList('');
   if(activos.length === 0){
     return `<div class="empty-state"><strong>No hay visitantes dentro de las instalaciones</strong>Cuando alguien registre su ingreso, aparecerá aquí para registrar su salida.</div>`;
   }
@@ -1050,15 +1074,12 @@ function renderSalidaListaHTML(filtro){
         <span>${esc(v.empresa)} · Doc. ${esc(v.numDoc)} · Ingresó ${fmtTime(new Date(v.fechaIngreso))}</span>
         <span class="extra-info">🩸 ${esc(v.sangre)||'Sangre: —'} · 🚑 ${esc(v.emergenciaNombre)||'Sin contacto registrado'}${v.emergenciaCelular?(' ('+esc(v.emergenciaCelular)+')'):''}${v.traeEquipo?' · 💻 Trae equipo de cómputo':''}</span>
       </div>
-      <button class="btn btn-ghost" data-action="registrarSalida" data-id="${v.id}">Registrar salida</button>
+      <button class="btn btn-danger" data-action="registrarSalida" data-id="${v.id}" style="white-space:nowrap;">Registrar salida</button>
     </div>
   `).join('') + `</div>`;
 }
 function setupSalidaFilter(){
-  const input = document.getElementById('salidaFiltroInput');
-  const wrap = document.getElementById('salidaListaWrap');
-  wrap.innerHTML = renderSalidaListaHTML('');
-  input.addEventListener('input', ()=>{ wrap.innerHTML = renderSalidaListaHTML(input.value); });
+  document.getElementById('salidaListaWrap').innerHTML = renderSalidaListaHTML();
 }
 async function registrarSalida(id){
   const visita = DB.visitas.find(v => v.id === id);
@@ -1068,9 +1089,8 @@ async function registrarSalida(id){
   if(!ok) return;
   showStamp('SALIDA REGISTRADA', `${esc(visita.nombre).slice(0,30)} · ${fmtTime(new Date(visita.fechaSalida))}`);
   setTimeout(()=>{
-    const input = document.getElementById('salidaFiltroInput');
     const wrap = document.getElementById('salidaListaWrap');
-    if(wrap) wrap.innerHTML = renderSalidaListaHTML(input ? input.value : '');
+    if(wrap) wrap.innerHTML = renderSalidaListaHTML();
   }, 350);
 }
 
@@ -1097,12 +1117,16 @@ function renderHistorialShell(){
   return `
     <div class="historial-head">
       <div class="historial-filtros">
-        <div class="fecha-rango-wrap">
-          <span class="fecha-rango-lbl">Desde</span>
-          <input id="histFechaDesde" type="date">
-          <span class="fecha-rango-lbl">Hasta</span>
-          <input id="histFechaHasta" type="date">
-          <button class="btn-limpiar-fecha" id="histFechaLimpiar">✕ Limpiar</button>
+        <div class="hist-date-wrap">
+          <button class="hist-date-btn" id="histDateBtn">📅 <span id="histDateLabel">Hoy</span></button>
+          <div class="hist-date-panel" id="histDatePanel" style="display:none;flex-direction:column;">
+            <div class="hist-dp-row"><label class="hist-dp-lbl">Desde</label><input type="date" id="histFechaDesde"></div>
+            <div class="hist-dp-row"><label class="hist-dp-lbl">Hasta</label><input type="date" id="histFechaHasta"></div>
+            <div class="hist-dp-btns">
+              <button class="btn-dp-apply" id="histFiltrarFecha">Filtrar</button>
+              <button class="btn-dp-clear" id="histLimpiarFecha">Limpiar</button>
+            </div>
+          </div>
         </div>
       </div>
       <div class="historial-acciones">
@@ -1110,11 +1134,17 @@ function renderHistorialShell(){
       </div>
     </div>
     <div class="table-scroll">
-      <table class="hist-table">
+      <table class="hist-table" id="histTable">
         <thead>
           <tr>
-            <th>Estado</th><th>Fecha</th><th>Nombre</th><th>Documento</th><th>Empresa</th>
-            <th>Motivo</th><th>Área / persona</th><th>Ingreso</th><th>Salida</th><th>Firma</th><th>Acciones</th>
+            <th class="sortable" data-hsort="estado">Estado <span class="sort-ic">↕</span></th>
+            <th class="sortable" data-hsort="fecha">Fecha <span class="sort-ic">↕</span></th>
+            <th class="sortable" data-hsort="nombre">Nombre <span class="sort-ic">↕</span></th>
+            <th class="sortable" data-hsort="numDoc">Documento <span class="sort-ic">↕</span></th>
+            <th class="sortable" data-hsort="empresa">Empresa <span class="sort-ic">↕</span></th>
+            <th class="sortable" data-hsort="motivo">Motivo <span class="sort-ic">↕</span></th>
+            <th class="sortable" data-hsort="area">Área / persona <span class="sort-ic">↕</span></th>
+            <th>Ingreso</th><th>Salida</th><th>Firma</th><th>Acciones</th>
           </tr>
           <tr class="hist-filter-row">
             <th><input class="hist-col-filter" data-col="estado" placeholder="Filtrar…"></th>
@@ -1190,33 +1220,75 @@ function showDetalleVisita(id){
   overlay.addEventListener('click', (e)=>{ if(e.target === overlay) overlay.remove(); });
 }
 function setupHistorialFilters(){
-  function getF(){
-    const desde = (document.getElementById('histFechaDesde')||{}).value||'';
-    const hasta = (document.getElementById('histFechaHasta')||{}).value||'';
-    const cols = {};
-    document.querySelectorAll('.hist-col-filter').forEach(inp=>{
-      const v=inp.value.trim().toLowerCase(); if(v) cols[inp.dataset.col]=v;
+  const hoy = new Date().toISOString().slice(0,10);
+  let desde = hoy, hasta = hoy;
+  let sortCol = null, sortDir = 1;
+
+  const btn   = document.getElementById('histDateBtn');
+  const panel = document.getElementById('histDatePanel');
+  const label = document.getElementById('histDateLabel');
+  const inpD  = document.getElementById('histFechaDesde');
+  const inpH  = document.getElementById('histFechaHasta');
+  inpD.value = hoy; inpH.value = hoy;
+
+  function fmtLabel(d){ return new Intl.DateTimeFormat('es-CO',{day:'2-digit',month:'short'}).format(new Date(d+'T12:00:00')); }
+  function updateLabel(){
+    label.textContent = (desde===hoy&&hasta===hoy) ? 'Hoy'
+      : desde===hasta ? fmtLabel(desde)
+      : fmtLabel(desde)+' – '+fmtLabel(hasta);
+    btn.classList.toggle('active', desde!==hoy||hasta!==hoy);
+  }
+  function getColFilters(){
+    const c={};
+    document.querySelectorAll('.hist-col-filter').forEach(i=>{const v=i.value.trim().toLowerCase();if(v)c[i.dataset.col]=v;});
+    return c;
+  }
+  function applySort(lista){
+    if(!sortCol) return lista;
+    return [...lista].sort((a,b)=>{
+      if(sortCol==='fecha') return sortDir*(new Date(a.fechaIngreso)-new Date(b.fechaIngreso));
+      let va='',vb='';
+      if(sortCol==='estado'){va=a.fechaSalida?'salio':'en sitio';vb=b.fechaSalida?'salio':'en sitio';}
+      else{va=(a[sortCol]||'').toLowerCase();vb=(b[sortCol]||'').toLowerCase();}
+      return sortDir*(va<vb?-1:va>vb?1:0);
     });
-    return {desde, hasta, cols};
   }
   function refresh(){
-    const {desde, hasta, cols}=getF();
-    const lista=historialFiltrado(desde, hasta, cols);
+    const lista=applySort(historialFiltrado(desde,hasta,getColFilters()));
     document.getElementById('historialTbody').innerHTML=renderHistorialRowsHTML(lista);
     document.getElementById('historialCount').textContent=`${lista.length} registro${lista.length===1?'':'s'}`;
+    document.querySelectorAll('#histTable th.sortable').forEach(th=>{
+      th.classList.remove('s-asc','s-desc');
+      const ic=th.querySelector('.sort-ic');
+      if(th.dataset.hsort===sortCol){th.classList.add(sortDir===1?'s-asc':'s-desc');if(ic)ic.textContent=sortDir===1?'↑':'↓';}
+      else{if(ic)ic.textContent='↕';}
+    });
   }
-  const view = document.getElementById('view');
-  view.addEventListener('input', e=>{
-    if(e.target.id==='histFechaDesde'||e.target.id==='histFechaHasta'||e.target.classList.contains('hist-col-filter')) refresh();
+  let panelOpen=false;
+  btn.addEventListener('click',e=>{e.stopPropagation();panelOpen=!panelOpen;panel.style.display=panelOpen?'flex':'none';});
+  document.getElementById('histFiltrarFecha').addEventListener('click',()=>{
+    desde=inpD.value||hoy;hasta=inpH.value||hoy;
+    panelOpen=false;panel.style.display='none';updateLabel();refresh();
   });
-  view.addEventListener('click', e=>{
-    if(e.target.id==='histFechaLimpiar'){
-      const d=document.getElementById('histFechaDesde'); if(d) d.value='';
-      const h=document.getElementById('histFechaHasta'); if(h) h.value='';
+  document.getElementById('histLimpiarFecha').addEventListener('click',()=>{
+    desde=hasta=hoy;inpD.value=hoy;inpH.value=hoy;
+    panelOpen=false;panel.style.display='none';updateLabel();refresh();
+  });
+  document.addEventListener('click',function cp(e){
+    if(!document.getElementById('histDatePanel')){document.removeEventListener('click',cp);return;}
+    if(!e.target.closest('#histDateBtn')&&!e.target.closest('#histDatePanel')){panelOpen=false;panel.style.display='none';}
+  });
+  document.getElementById('view').addEventListener('input',e=>{
+    if(e.target.classList.contains('hist-col-filter')) refresh();
+  });
+  document.querySelectorAll('#histTable th.sortable').forEach(th=>{
+    th.addEventListener('click',()=>{
+      const c=th.dataset.hsort;
+      if(sortCol===c){sortDir*=-1;}else{sortCol=c;sortDir=1;}
       refresh();
-    }
+    });
   });
-  refresh();
+  updateLabel(); refresh();
 }
 /* ============================ EXPORTACIÓN A EXCEL ============================ */
 async function exportarExcel(headers, rows, nombreHoja, nombreArchivo){
@@ -1444,49 +1516,7 @@ function renderConfiguracion(){
       </div>
     </section>
 
-    <section class="panel wide" style="margin-top:20px;">
-      <p class="step-eyebrow">Configuración</p>
-      <h2>Lista de personal (para Salidas)</h2>
-      <p style="color:var(--steel);font-size:.85rem;margin-top:-10px;margin-bottom:22px;">
-        Carga aquí el listado de empleados para poder buscarlos por nombre o cédula al registrar una salida. Sube un archivo de <strong>Excel (.xlsx/.xls)</strong>, o un .csv/.txt, o pega el contenido directamente. La primera columna debe ser el <strong>nombre completo</strong>, la segunda la <strong>cédula</strong>, la tercera el <strong>área</strong> (opcional) y la cuarta el <strong>tipo de documento</strong> (opcional: CC/CE/PA/TI/PPT). Si tu archivo tiene fila de encabezados, no hay problema, se detecta y se ignora automáticamente.
-      </p>
-      <div class="nomina-upload-grid">
-        <div>
-          <label class="firma-label" for="nominaTextarea" style="margin-bottom:8px;display:block;">Pega o edita la lista aquí</label>
-          <textarea id="nominaTextarea" placeholder="Juan Pérez Gómez, 1020304050, Compras, CC&#10;María López Ruiz, 1098765432, Recursos Humanos"></textarea>
-          <div class="btn-row" style="margin-top:10px;flex-wrap:wrap;">
-            <label class="btn btn-ghost small" style="cursor:pointer;">
-              Subir archivo .csv, .txt o Excel
-              <input id="nominaFileInput" type="file" accept=".csv,.txt,.xlsx,.xls" style="display:none;">
-            </label>
-            <button class="btn btn-primary" style="width:auto;padding:9px 16px;font-size:.8rem;" data-action="cargarListaPersonal">Cargar a la lista</button>
-          </div>
-        </div>
-        <div>
-          <div class="nomina-stats">
-            <span class="firma-label" style="margin:0;">Personal cargado (${(DB.config.listaPersonal||[]).length})</span>
-            ${(DB.config.listaPersonal||[]).length > 0 ? `<button class="btn btn-danger" style="padding:6px 12px;font-size:.72rem;" data-action="vaciarListaPersonal">Vaciar lista</button>` : ''}
-          </div>
-          <div class="nomina-table-wrap">
-            <table class="hist-table">
-              <thead><tr><th>Nombre</th><th>Documento</th><th>Área</th><th></th></tr></thead>
-              <tbody>
-                ${(DB.config.listaPersonal||[]).length === 0
-                  ? `<tr><td colspan="4" style="text-align:center;color:var(--steel);padding:20px;">Aún no has cargado personal.</td></tr>`
-                  : DB.config.listaPersonal.map(p => `
-                    <tr>
-                      <td>${esc(p.nombre)}</td>
-                      <td class="mono">${esc(p.numDoc)}</td>
-                      <td>${esc(p.cargo)||'—'}</td>
-                      <td><button class="btn btn-ghost small" data-action="quitarDeNomina" data-numdoc="${esc(p.numDoc)}" style="padding:4px 8px;font-size:.7rem;">Quitar</button></td>
-                    </tr>`).join('')
-                }
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </section>`;
+    `;
 }
 async function agregarEps(){
   const input = document.getElementById('nuevaEpsInput');
@@ -1729,7 +1759,6 @@ function renderSalidaPersonal(){
     const hayNomina = (DB.config.listaPersonal && DB.config.listaPersonal.length > 0) || mesEmpleados.length > 0;
     return `
       <section class="panel" style="max-width:800px;">
-        <p class="step-eyebrow">Paso 1 · Identificación del empleado</p>
         <h2>Registro de salida</h2>
         <div id="formError" class="form-error"></div>
 
@@ -1737,20 +1766,6 @@ function renderSalidaPersonal(){
           <label for="numDocInputP">Cédula del empleado</label>
           <input id="numDocInputP" inputmode="numeric" placeholder="" value="${esc(personalUI.numDoc)}" autocomplete="off" style="font-size:1.1rem;">
           <div id="nominaSuggestions" class="nomina-suggestions"></div>
-        </div>
-
-        ${hayNomina ? `<div class="divider-or"><span>o busca por nombre</span></div>
-        <div class="field">
-          <label for="buscarNominaInput">Buscar por nombre</label>
-          <input id="buscarNominaInput" placeholder="" autocomplete="off">
-          <div id="nominaSuggestions2" class="nomina-suggestions"></div>
-        </div>` : ''}
-
-        <div class="field">
-          <label for="tipoDocSelectP">Tipo de documento</label>
-          <select id="tipoDocSelectP">
-            ${(DB.config.tiposDocumento||TIPOS_DOC_DEFAULT).map(t=>{const v=t.split(' — ')[0];return`<option value="${v}" ${personalUI.tipoDoc===v?'selected':''}>${t}</option>`}).join('')}
-          </select>
         </div>
         <button class="btn btn-primary" data-action="buscarPersonal">Continuar →</button>
       </section>`;
@@ -1761,7 +1776,6 @@ function renderSalidaPersonal(){
 
   return `
     <section class="panel">
-      <p class="step-eyebrow">Paso 2 · Datos de la salida</p>
       <h2>${p ? 'Confirma tus datos' : 'Registra tus datos'}</h2>
       ${p && p.firma
         ? `<div class="banner">Hola de nuevo, ${esc(p.nombre)} — verifica los datos y confirma para registrar tu salida.</div>`
@@ -1875,15 +1889,14 @@ function resolverPerfilPersonal(numDoc, tipoDocFallback){
 }
 
 function buscarPersonal(){
-  const tipoDoc = document.getElementById('tipoDocSelectP').value;
   const numDoc = document.getElementById('numDocInputP').value.trim();
   if(!numDoc){
     showFormError('Ingresa el número de documento para continuar.');
     return;
   }
   personalUI.numDoc = numDoc;
-  const { perfil, modoFirma } = resolverPerfilPersonal(numDoc, tipoDoc);
-  personalUI.tipoDoc = perfil?.tipoDoc || tipoDoc;
+  const { perfil, modoFirma } = resolverPerfilPersonal(numDoc, 'CC');
+  personalUI.tipoDoc = perfil?.tipoDoc || 'CC';
   personalUI.perfilExistente = perfil;
   personalUI.modoFirma = modoFirma;
   personalUI.step = 'formulario';
@@ -2172,12 +2185,16 @@ function renderHistorialPersonalShell(){
   return `
     <div class="historial-head">
       <div class="historial-filtros">
-        <div class="fecha-rango-wrap">
-          <span class="fecha-rango-lbl">Desde</span>
-          <input id="histFechaDesdeP" type="date">
-          <span class="fecha-rango-lbl">Hasta</span>
-          <input id="histFechaHastaP" type="date">
-          <button class="btn-limpiar-fecha" id="histFechaLimpiarP">✕ Limpiar</button>
+        <div class="hist-date-wrap">
+          <button class="hist-date-btn" id="histDateBtnP">📅 <span id="histDateLabelP">Hoy</span></button>
+          <div class="hist-date-panel" id="histDatePanelP" style="display:none;flex-direction:column;">
+            <div class="hist-dp-row"><label class="hist-dp-lbl">Desde</label><input type="date" id="histFechaDesdeP"></div>
+            <div class="hist-dp-row"><label class="hist-dp-lbl">Hasta</label><input type="date" id="histFechaHastaP"></div>
+            <div class="hist-dp-btns">
+              <button class="btn-dp-apply" id="histFiltrarFechaP">Filtrar</button>
+              <button class="btn-dp-clear" id="histLimpiarFechaP">Limpiar</button>
+            </div>
+          </div>
         </div>
       </div>
       <div class="historial-acciones">
@@ -2185,11 +2202,17 @@ function renderHistorialPersonalShell(){
       </div>
     </div>
     <div class="table-scroll">
-      <table class="hist-table">
+      <table class="hist-table" id="histPersonalTable">
         <thead>
           <tr>
-            <th>Estado</th><th>Fecha</th><th>Nombre</th><th>Documento</th><th>Área</th>
-            <th>Motivo</th><th>Destino</th><th>Autorizó</th><th>Salida</th><th>Regreso</th><th>Firma</th><th>Acciones</th>
+            <th class="sortable" data-hsort="estado">Estado <span class="sort-ic">↕</span></th>
+            <th class="sortable" data-hsort="fecha">Fecha <span class="sort-ic">↕</span></th>
+            <th class="sortable" data-hsort="nombre">Nombre <span class="sort-ic">↕</span></th>
+            <th class="sortable" data-hsort="numDoc">Documento <span class="sort-ic">↕</span></th>
+            <th class="sortable" data-hsort="cargo">Área <span class="sort-ic">↕</span></th>
+            <th class="sortable" data-hsort="motivo">Motivo <span class="sort-ic">↕</span></th>
+            <th class="sortable" data-hsort="destino">Destino <span class="sort-ic">↕</span></th>
+            <th>Autorizó</th><th>Salida</th><th>Regreso</th><th>Firma</th><th>Acciones</th>
           </tr>
           <tr class="hist-filter-row">
             <th><input class="hist-col-filter-p" data-col="estado" placeholder="Filtrar…"></th>
@@ -2247,33 +2270,75 @@ function renderHistorialPersonalRowsHTML(lista){
   `).join('');
 }
 function setupHistorialPersonalFilters(){
-  function getF(){
-    const desde=(document.getElementById('histFechaDesdeP')||{}).value||'';
-    const hasta=(document.getElementById('histFechaHastaP')||{}).value||'';
-    const cols={};
-    document.querySelectorAll('.hist-col-filter-p').forEach(inp=>{
-      const v=inp.value.trim().toLowerCase(); if(v) cols[inp.dataset.col]=v;
+  const hoy = new Date().toISOString().slice(0,10);
+  let desde = hoy, hasta = hoy;
+  let sortCol = null, sortDir = 1;
+
+  const btn   = document.getElementById('histDateBtnP');
+  const panel = document.getElementById('histDatePanelP');
+  const label = document.getElementById('histDateLabelP');
+  const inpD  = document.getElementById('histFechaDesdeP');
+  const inpH  = document.getElementById('histFechaHastaP');
+  inpD.value = hoy; inpH.value = hoy;
+
+  function fmtLabel(d){ return new Intl.DateTimeFormat('es-CO',{day:'2-digit',month:'short'}).format(new Date(d+'T12:00:00')); }
+  function updateLabel(){
+    label.textContent = (desde===hoy&&hasta===hoy) ? 'Hoy'
+      : desde===hasta ? fmtLabel(desde)
+      : fmtLabel(desde)+' – '+fmtLabel(hasta);
+    btn.classList.toggle('active', desde!==hoy||hasta!==hoy);
+  }
+  function getColFilters(){
+    const c={};
+    document.querySelectorAll('.hist-col-filter-p').forEach(i=>{const v=i.value.trim().toLowerCase();if(v)c[i.dataset.col]=v;});
+    return c;
+  }
+  function applySort(lista){
+    if(!sortCol) return lista;
+    return [...lista].sort((a,b)=>{
+      if(sortCol==='fecha') return sortDir*(new Date(a.fechaSalida)-new Date(b.fechaSalida));
+      let va='',vb='';
+      if(sortCol==='estado'){va=etiquetaEstadoPersonal(a).toLowerCase();vb=etiquetaEstadoPersonal(b).toLowerCase();}
+      else{va=(a[sortCol]||'').toLowerCase();vb=(b[sortCol]||'').toLowerCase();}
+      return sortDir*(va<vb?-1:va>vb?1:0);
     });
-    return {desde,hasta,cols};
   }
   function refresh(){
-    const {desde,hasta,cols}=getF();
-    const lista=historialPersonalFiltrado(desde,hasta,cols);
+    const lista=applySort(historialPersonalFiltrado(desde,hasta,getColFilters()));
     document.getElementById('historialPersonalTbody').innerHTML=renderHistorialPersonalRowsHTML(lista);
     document.getElementById('historialPersonalCount').textContent=`${lista.length} registro${lista.length===1?'':'s'}`;
+    document.querySelectorAll('#histPersonalTable th.sortable').forEach(th=>{
+      th.classList.remove('s-asc','s-desc');
+      const ic=th.querySelector('.sort-ic');
+      if(th.dataset.hsort===sortCol){th.classList.add(sortDir===1?'s-asc':'s-desc');if(ic)ic.textContent=sortDir===1?'↑':'↓';}
+      else{if(ic)ic.textContent='↕';}
+    });
   }
-  const view=document.getElementById('view');
-  view.addEventListener('input', e=>{
-    if(e.target.id==='histFechaDesdeP'||e.target.id==='histFechaHastaP'||e.target.classList.contains('hist-col-filter-p')) refresh();
+  let panelOpen=false;
+  btn.addEventListener('click',e=>{e.stopPropagation();panelOpen=!panelOpen;panel.style.display=panelOpen?'flex':'none';});
+  document.getElementById('histFiltrarFechaP').addEventListener('click',()=>{
+    desde=inpD.value||hoy;hasta=inpH.value||hoy;
+    panelOpen=false;panel.style.display='none';updateLabel();refresh();
   });
-  view.addEventListener('click', e=>{
-    if(e.target.id==='histFechaLimpiarP'){
-      const d=document.getElementById('histFechaDesdeP'); if(d) d.value='';
-      const h=document.getElementById('histFechaHastaP'); if(h) h.value='';
+  document.getElementById('histLimpiarFechaP').addEventListener('click',()=>{
+    desde=hasta=hoy;inpD.value=hoy;inpH.value=hoy;
+    panelOpen=false;panel.style.display='none';updateLabel();refresh();
+  });
+  document.addEventListener('click',function cp(e){
+    if(!document.getElementById('histDatePanelP')){document.removeEventListener('click',cp);return;}
+    if(!e.target.closest('#histDateBtnP')&&!e.target.closest('#histDatePanelP')){panelOpen=false;panel.style.display='none';}
+  });
+  document.getElementById('view').addEventListener('input',e=>{
+    if(e.target.classList.contains('hist-col-filter-p')) refresh();
+  });
+  document.querySelectorAll('#histPersonalTable th.sortable').forEach(th=>{
+    th.addEventListener('click',()=>{
+      const c=th.dataset.hsort;
+      if(sortCol===c){sortDir*=-1;}else{sortCol=c;sortDir=1;}
       refresh();
-    }
+    });
   });
-  refresh();
+  updateLabel(); refresh();
 }
 function showDetalleSalidaPersonal(id){
   const s = DB.salidasPersonal.find(x => x.id === id);
@@ -2326,7 +2391,6 @@ function renderEntradaExterna(){
     const hayNomina = DB.config.listaPersonal && DB.config.listaPersonal.length > 0;
     return `
       <section class="panel">
-        <p class="step-eyebrow">Entrada directa · llega desde el exterior</p>
         <h2>¿Quién llega a la empresa?</h2>
         <div class="banner" style="background:#2563eb1a;border-color:#2563eb;color:#2563eb;">
           Usa esta opción cuando iniciaste la jornada fuera de la empresa (reunión, visita, vueltas) y estás llegando ahora. Se registrará tu hora de llegada y el lugar del que vienes.
@@ -2364,7 +2428,6 @@ function renderEntradaExterna(){
   const usandoFirmaExistente = p && entradaUI.modoFirma === 'usarExistente';
   return `
     <section class="panel">
-      <p class="step-eyebrow">Entrada directa · confirma tu llegada</p>
       <h2>${p ? 'Confirma tus datos' : 'Registra tus datos'}</h2>
       ${p && p.firma
         ? `<div class="banner" style="background:#2563eb1a;border-color:#2563eb;color:#2563eb;">Hola de nuevo, ${esc(p.nombre)} — confirma los datos y firma para registrar tu llegada.</div>`
