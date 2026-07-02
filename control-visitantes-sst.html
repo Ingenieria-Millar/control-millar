@@ -69,26 +69,16 @@
     text-transform:uppercase;
     color:var(--ink);
   }
-  .topbar-right{display:flex;align-items:center;gap:14px;}
-  .clock-wrap{text-align:right;}
-  #clockDisplay{
+  .brand-title .brand-accent{color:#2563eb;}
+  .topbar-fecha{
     font-family:'IBM Plex Mono',monospace;
-    font-size:.78rem;
-    color:var(--ink);
-    font-weight:500;
-    display:block;
+    font-size:.68rem;color:var(--steel);font-weight:500;
+    display:block;margin-top:3px;
   }
-  .clock-label{
-    font-family:'Barlow Condensed',sans-serif;
-    font-size:.64rem;
-    letter-spacing:.1em;
-    text-transform:uppercase;
-    color:var(--steel);
-    display:block;
-  }
+  .topbar-right{display:flex;align-items:center;gap:10px;flex-shrink:0;}
   .storage-badge{
-    display:inline-block;margin-top:4px;font-size:.64rem;font-weight:600;
-    padding:2px 8px;border-radius:10px;letter-spacing:.03em;
+    display:inline-block;font-size:.64rem;font-weight:600;
+    padding:3px 9px;border-radius:10px;letter-spacing:.03em;
     font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;
   }
   .storage-badge.local{background:#2563eb26;color:var(--safety-dark);}
@@ -105,14 +95,14 @@
 
   /* ---------- MODULE BAR ---------- */
   .module-bar{
-    display:flex;gap:8px;padding:10px clamp(16px,4vw,40px);background:#1e3a8a;
+    display:flex;gap:8px;padding:10px clamp(16px,4vw,40px);background:transparent;
   }
   .module-pill{
     font-family:'Barlow Condensed',sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.04em;
-    font-size:.82rem;padding:9px 16px;border-radius:30px;border:1.5px solid #ffffff33;
-    background:transparent;color:#ffffffb0;cursor:pointer;transition:all .15s;
+    font-size:.82rem;padding:9px 18px;border-radius:30px;border:1.5px solid var(--line);
+    background:#fff;color:var(--steel);cursor:pointer;transition:all .15s;
   }
-  .module-pill:hover{border-color:#ffffff66;color:#fff;}
+  .module-pill:hover{border-color:var(--safety);color:var(--safety-dark);}
   .module-pill.active{background:var(--safety);border-color:var(--safety);color:#fff;}
 
   /* ---------- TABS ---------- */
@@ -267,9 +257,9 @@
   .btn-danger:hover{background:var(--alert-soft);}
 
   /* ---------- SALIDA ---------- */
-  .filtro-bar{display:flex;gap:10px;margin-bottom:18px;max-width:620px;margin-inline:auto;}
+  .filtro-bar{display:flex;gap:10px;margin-bottom:18px;}
   .filtro-bar input{flex:1;}
-  .lista-activos{display:flex;flex-direction:column;gap:10px;max-width:620px;margin:0 auto;}
+  .lista-activos{display:flex;flex-direction:column;gap:10px;}
   .visitante-card{
     background:#fff;border:1px solid var(--line);border-radius:var(--radius);
     padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;
@@ -284,9 +274,25 @@
 
   /* ---------- HISTORIAL ---------- */
   .historial-head{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;margin-bottom:16px;flex-wrap:wrap;}
-  .historial-filtros{display:flex;gap:10px;flex-wrap:wrap;flex:1;}
-  .historial-filtros input{min-width:160px;flex:1;}
+  .historial-filtros{display:flex;gap:8px;flex-wrap:wrap;flex:1;align-items:center;}
   .historial-acciones{display:flex;gap:8px;}
+  .fecha-rango-wrap{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .fecha-rango-lbl{font-family:'Barlow Condensed',sans-serif;font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--steel);white-space:nowrap;}
+  .fecha-rango-wrap input[type="date"]{width:150px;flex:none;font-size:.82rem;padding:7px 10px;}
+  .btn-limpiar-fecha{background:#fff;border:1.5px solid var(--line);color:var(--steel);border-radius:6px;padding:6px 10px;font-size:.8rem;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-weight:600;}
+  .btn-limpiar-fecha:hover{border-color:var(--steel);color:var(--ink);}
+  table.hist-table thead tr.hist-filter-row th{padding:4px 6px;border-bottom:1px solid var(--line);}
+  table.hist-table thead tr.hist-filter-row th input{
+    width:100%;padding:5px 7px;font-size:.75rem;border:1px solid var(--line);
+    border-radius:5px;font-family:'Nunito',sans-serif;background:var(--paper-2);
+  }
+  table.hist-table thead tr.hist-filter-row th input:focus{border-color:var(--safety);outline:none;background:#fff;}
+  .accion-btns{display:flex;gap:4px;}
+  .btn-accion{background:#fff;border:1.5px solid var(--line);border-radius:5px;padding:3px 7px;font-size:.72rem;cursor:pointer;transition:all .12s;}
+  .btn-accion.edit{color:var(--safety-dark);}
+  .btn-accion.edit:hover{border-color:var(--safety);background:#eff6ff;}
+  .btn-accion.del{color:var(--alert);}
+  .btn-accion.del:hover{border-color:var(--alert);background:var(--alert-soft);}
   table.hist-table{width:100%;border-collapse:collapse;font-size:.83rem;background:#fff;}
   table.hist-table th{
     font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;letter-spacing:.05em;
@@ -441,15 +447,12 @@
         <img src="/logo.png" alt="Millar" class="topbar-logo">
         <div class="topbar-brand">
           <span class="eyebrow">MES · Control de acceso · SST</span>
-          <span class="brand-title">Control de Visitantes</span>
+          <span class="brand-title">CONTROL DE <span class="brand-accent">VISITANTES</span></span>
+          <span class="topbar-fecha" id="clockDisplay">—</span>
         </div>
       </div>
       <div class="topbar-right">
-        <div class="clock-wrap">
-          <span class="clock-label">Hoy</span>
-          <span id="clockDisplay">—</span>
-          <span id="storageModeBadge" class="storage-badge" style="display:none;"></span>
-        </div>
+        <span id="storageModeBadge" class="storage-badge" style="display:none;"></span>
         <a href="/" class="btn-volver">← MES</a>
       </div>
     </header>
@@ -482,6 +485,7 @@ let activeTab = 'ingreso';
 let ingresoUI = { step:'buscar', numDoc:'', tipoDoc:'CC', perfilExistente:null, modoFirma:'nueva' };
 let personalUI = { step:'buscar', numDoc:'', tipoDoc:'CC', perfilExistente:null, modoFirma:'nueva' };
 let entradaUI  = { step:'buscar', numDoc:'', tipoDoc:'CC', perfilExistente:null, modoFirma:'nueva' };
+let mesEmpleados = [];
 let currentSigPad = null;
 const STORAGE_KEY = 'visitantes-db';
 
@@ -638,7 +642,7 @@ async function saveDB(){
 function tickClock(){
   const now = new Date();
   const clockEl = document.getElementById('clockDisplay');
-  if(clockEl) clockEl.textContent = new Intl.DateTimeFormat('es-CO',{dateStyle:'full',timeStyle:'medium'}).format(now);
+  if(clockEl) clockEl.textContent = new Intl.DateTimeFormat('es-CO',{weekday:'short',day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(now);
   const liveEl = document.getElementById('horaIngresoLive');
   if(liveEl) liveEl.textContent = fmtDateTime(now);
 }
@@ -772,7 +776,7 @@ function renderView(){
 function renderIngreso(){
   if(ingresoUI.step === 'buscar'){
     return `
-      <section class="panel">
+      <section class="panel" style="max-width:800px;">
         <p class="step-eyebrow">Paso 1 · Identificación</p>
         <h2>¿Quién visita hoy?</h2>
         <div id="formError" class="form-error"></div>
@@ -1071,23 +1075,38 @@ async function registrarSalida(id){
 }
 
 /* ============================ HISTORIAL ============================ */
-function historialFiltrado(textoF, fechaF){
-  const t = (textoF||'').toLowerCase();
+function historialFiltrado(desde, hasta, cols){
   return DB.visitas
-    .filter(v => !t || v.nombre.toLowerCase().includes(t) || v.numDoc.includes(t) || v.empresa.toLowerCase().includes(t))
-    .filter(v => !fechaF || v.fechaIngreso.slice(0,10) === fechaF)
+    .filter(v => {
+      if(desde){ const d=new Date(desde); if(new Date(v.fechaIngreso)<d) return false; }
+      if(hasta){ const h=new Date(hasta); h.setHours(23,59,59,999); if(new Date(v.fechaIngreso)>h) return false; }
+      if(cols){
+        const est = v.fechaSalida ? 'salio' : 'en sitio';
+        if(cols.estado && !est.includes(cols.estado)) return false;
+        if(cols.nombre && !(v.nombre||'').toLowerCase().includes(cols.nombre)) return false;
+        if(cols.numDoc && !(v.numDoc||'').includes(cols.numDoc)) return false;
+        if(cols.empresa && !(v.empresa||'').toLowerCase().includes(cols.empresa)) return false;
+        if(cols.motivo && !(v.motivo||'').toLowerCase().includes(cols.motivo)) return false;
+        if(cols.area && !(v.area||'').toLowerCase().includes(cols.area)) return false;
+      }
+      return true;
+    })
     .sort((a,b)=> new Date(b.fechaIngreso) - new Date(a.fechaIngreso));
 }
 function renderHistorialShell(){
   return `
     <div class="historial-head">
       <div class="historial-filtros">
-        <input id="histTextoInput" placeholder="Buscar por nombre, documento o empresa…">
-        <input id="histFechaInput" type="date">
+        <div class="fecha-rango-wrap">
+          <span class="fecha-rango-lbl">Desde</span>
+          <input id="histFechaDesde" type="date">
+          <span class="fecha-rango-lbl">Hasta</span>
+          <input id="histFechaHasta" type="date">
+          <button class="btn-limpiar-fecha" id="histFechaLimpiar">✕ Limpiar</button>
+        </div>
       </div>
       <div class="historial-acciones">
         <button class="btn btn-ghost small" data-action="exportarCSV">Exportar Excel</button>
-        <button class="btn btn-danger" data-action="borrarTodo" style="font-size:.74rem;padding:8px 12px;">Borrar todo</button>
       </div>
     </div>
     <div class="table-scroll">
@@ -1095,7 +1114,17 @@ function renderHistorialShell(){
         <thead>
           <tr>
             <th>Estado</th><th>Fecha</th><th>Nombre</th><th>Documento</th><th>Empresa</th>
-            <th>Motivo</th><th>Área / persona</th><th>Ingreso</th><th>Salida</th><th>Firma</th><th>Detalle</th>
+            <th>Motivo</th><th>Área / persona</th><th>Ingreso</th><th>Salida</th><th>Firma</th><th>Acciones</th>
+          </tr>
+          <tr class="hist-filter-row">
+            <th><input class="hist-col-filter" data-col="estado" placeholder="Filtrar…"></th>
+            <th></th>
+            <th><input class="hist-col-filter" data-col="nombre" placeholder="Filtrar…"></th>
+            <th><input class="hist-col-filter" data-col="numDoc" placeholder="Filtrar…"></th>
+            <th><input class="hist-col-filter" data-col="empresa" placeholder="Filtrar…"></th>
+            <th><input class="hist-col-filter" data-col="motivo" placeholder="Filtrar…"></th>
+            <th><input class="hist-col-filter" data-col="area" placeholder="Filtrar…"></th>
+            <th></th><th></th><th></th><th></th>
           </tr>
         </thead>
         <tbody id="historialTbody"></tbody>
@@ -1122,7 +1151,11 @@ function renderHistorialRowsHTML(lista){
       <td class="mono">${fmtTime(new Date(v.fechaIngreso))}</td>
       <td class="mono">${v.fechaSalida ? fmtTime(new Date(v.fechaSalida)) : '—'}</td>
       <td>${v.firma ? `<img class="firma-thumb" src="${v.firma}" alt="Firma">` : '—'}</td>
-      <td><button class="btn btn-ghost small" data-action="verDetalleVisita" data-id="${v.id}">Ver</button></td>
+      <td><div class="accion-btns">
+        <button class="btn-accion edit" data-action="verDetalleVisita" data-id="${v.id}" title="Ver detalle">👁</button>
+        <button class="btn-accion edit" data-action="editarVisita" data-id="${v.id}" title="Editar">✏</button>
+        <button class="btn-accion del" data-action="eliminarVisita" data-id="${v.id}" title="Eliminar">🗑</button>
+      </div></td>
     </tr>
   `).join('');
 }
@@ -1157,15 +1190,32 @@ function showDetalleVisita(id){
   overlay.addEventListener('click', (e)=>{ if(e.target === overlay) overlay.remove(); });
 }
 function setupHistorialFilters(){
-  const textoInput = document.getElementById('histTextoInput');
-  const fechaInput = document.getElementById('histFechaInput');
-  function refresh(){
-    const lista = historialFiltrado(textoInput.value, fechaInput.value);
-    document.getElementById('historialTbody').innerHTML = renderHistorialRowsHTML(lista);
-    document.getElementById('historialCount').textContent = `${lista.length} registro${lista.length===1?'':'s'}`;
+  function getF(){
+    const desde = (document.getElementById('histFechaDesde')||{}).value||'';
+    const hasta = (document.getElementById('histFechaHasta')||{}).value||'';
+    const cols = {};
+    document.querySelectorAll('.hist-col-filter').forEach(inp=>{
+      const v=inp.value.trim().toLowerCase(); if(v) cols[inp.dataset.col]=v;
+    });
+    return {desde, hasta, cols};
   }
-  textoInput.addEventListener('input', refresh);
-  fechaInput.addEventListener('input', refresh);
+  function refresh(){
+    const {desde, hasta, cols}=getF();
+    const lista=historialFiltrado(desde, hasta, cols);
+    document.getElementById('historialTbody').innerHTML=renderHistorialRowsHTML(lista);
+    document.getElementById('historialCount').textContent=`${lista.length} registro${lista.length===1?'':'s'}`;
+  }
+  const view = document.getElementById('view');
+  view.addEventListener('input', e=>{
+    if(e.target.id==='histFechaDesde'||e.target.id==='histFechaHasta'||e.target.classList.contains('hist-col-filter')) refresh();
+  });
+  view.addEventListener('click', e=>{
+    if(e.target.id==='histFechaLimpiar'){
+      const d=document.getElementById('histFechaDesde'); if(d) d.value='';
+      const h=document.getElementById('histFechaHasta'); if(h) h.value='';
+      refresh();
+    }
+  });
   refresh();
 }
 /* ============================ EXPORTACIÓN A EXCEL ============================ */
@@ -1257,13 +1307,74 @@ async function borrarTodo(){
   if(ok){ renderView(); showToast('Historial borrado.', 'success'); }
 }
 
+async function editarVisita(id){
+  const v = DB.visitas.find(x=>x.id===id);
+  if(!v) return;
+  const nuevoNombre = await showPrompt('Nombre del visitante:', v.nombre||'');
+  if(nuevoNombre===null) return;
+  if(nuevoNombre) v.nombre=nuevoNombre.toUpperCase();
+  const nuevaEmpresa = await showPrompt('Empresa:', v.empresa||'');
+  if(nuevaEmpresa===null) return;
+  if(nuevaEmpresa) v.empresa=nuevaEmpresa.toUpperCase();
+  const ok = await saveDB();
+  if(ok){ renderView(); showToast('Registro actualizado.','success'); }
+}
+async function eliminarVisita(id){
+  const c = await showConfirm('¿Eliminar este registro de visitante?');
+  if(!c) return;
+  DB.visitas = DB.visitas.filter(x=>x.id!==id);
+  const ok = await saveDB();
+  if(ok){ renderView(); showToast('Registro eliminado.','success'); }
+}
+async function eliminarSalidaPersonal(id){
+  const c = await showConfirm('¿Eliminar este registro de salida?');
+  if(!c) return;
+  DB.salidasPersonal = (DB.salidasPersonal||[]).filter(x=>x.id!==id);
+  const ok = await saveDB();
+  if(ok){ renderView(); showToast('Registro eliminado.','success'); }
+}
+function showPrompt(msg, defaultVal=''){
+  return new Promise(resolve=>{
+    const overlay=document.createElement('div');
+    overlay.className='confirm-overlay';
+    overlay.innerHTML=`
+      <div class="confirm-box">
+        <p style="margin-bottom:10px;">${esc(msg)}</p>
+        <input id="_promptInput" value="${esc(defaultVal)}" style="margin-bottom:14px;width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:var(--radius);font-family:Nunito,sans-serif;font-size:1rem;">
+        <div class="confirm-actions">
+          <button class="btn btn-ghost" id="_promptCancel">Cancelar</button>
+          <button class="btn btn-primary" style="width:auto;" id="_promptOk">Guardar</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    const inp=overlay.querySelector('#_promptInput');
+    inp.focus(); inp.select();
+    overlay.querySelector('#_promptCancel').onclick=()=>{overlay.remove();resolve(null);};
+    overlay.querySelector('#_promptOk').onclick=()=>{const v=inp.value.trim();overlay.remove();resolve(v);};
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter'){const v=inp.value.trim();overlay.remove();resolve(v);}});
+  });
+}
+async function editarChipItem(listKey, oldVal){
+  const newVal = await showPrompt('Editar:', oldVal);
+  if(newVal===null||newVal===oldVal||!newVal) return;
+  const arr=DB.config[listKey]||[];
+  const idx=arr.indexOf(oldVal);
+  if(idx>-1) arr[idx]=newVal;
+  DB.config[listKey]=arr;
+  const ok=await saveDB();
+  if(ok) renderView();
+}
+
 /* ============================ CONFIGURACIÓN: EPS Y ARL ============================ */
-function renderChipList(list, removeAction){
-  if(list.length === 0) return `<p class="config-empty">No hay entidades agregadas todavía.</p>`;
+function renderChipList(list, removeAction, listKey){
+  if(!list||list.length===0) return `<p class="config-empty">No hay elementos todavía.</p>`;
   return `<div class="chip-list">` + list.map(name => `
     <div class="chip-row">
       <span>${esc(name)}</span>
-      <button data-action="${removeAction}" data-name="${esc(name)}" title="Eliminar">×</button>
+      <div style="display:flex;gap:4px;flex-shrink:0;">
+        ${listKey?`<button data-action="editarChip" data-listkey="${listKey}" data-name="${esc(name)}" title="Editar" style="background:#fff;border:1px solid var(--line);border-radius:4px;color:var(--safety-dark);font-size:.78rem;padding:2px 7px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-weight:700;">✏</button>`:''}
+        <button data-action="${removeAction}" data-name="${esc(name)}" title="Eliminar">×</button>
+      </div>
     </div>
   `).join('') + `</div>`;
 }
@@ -1275,7 +1386,7 @@ function renderConfiguracion(){
       <div class="config-grid">
         <div class="config-col">
           <h3>Tipos de documento</h3>
-          ${renderChipList(DB.config.tiposDocumento||[], 'quitarTipoDoc')}
+          ${renderChipList(DB.config.tiposDocumento||[], 'quitarTipoDoc', 'tiposDocumento')}
           <div class="add-row">
             <input id="nuevoTipoDocInput" placeholder="Ej: NIT — Número de identificación tributaria">
             <button class="btn btn-ghost small" data-action="agregarTipoDoc">Agregar</button>
@@ -1283,7 +1394,7 @@ function renderConfiguracion(){
         </div>
         <div class="config-col">
           <h3>Motivos de visita</h3>
-          ${renderChipList(DB.config.motivosVisita||[], 'quitarMotivoVisita')}
+          ${renderChipList(DB.config.motivosVisita||[], 'quitarMotivoVisita', 'motivosVisita')}
           <div class="add-row">
             <input id="nuevoMotivoVisitaInput" placeholder="Ej: Visita comercial">
             <button class="btn btn-ghost small" data-action="agregarMotivoVisita">Agregar</button>
@@ -1298,7 +1409,7 @@ function renderConfiguracion(){
       <div class="config-grid">
         <div class="config-col">
           <h3>Tipos de sangre</h3>
-          ${renderChipList(DB.config.tiposSangre||[], 'quitarTipoSangre')}
+          ${renderChipList(DB.config.tiposSangre||[], 'quitarTipoSangre', 'tiposSangre')}
           <div class="add-row">
             <input id="nuevoTipoSangreInput" placeholder="Ej: AB-">
             <button class="btn btn-ghost small" data-action="agregarTipoSangre">Agregar</button>
@@ -1306,7 +1417,7 @@ function renderConfiguracion(){
         </div>
         <div class="config-col">
           <h3>Parentescos</h3>
-          ${renderChipList(DB.config.parentescos||[], 'quitarParentesco')}
+          ${renderChipList(DB.config.parentescos||[], 'quitarParentesco', 'parentescos')}
           <div class="add-row">
             <input id="nuevoParentescoInput" placeholder="Ej: Cuñado/a">
             <button class="btn btn-ghost small" data-action="agregarParentesco">Agregar</button>
@@ -1316,7 +1427,7 @@ function renderConfiguracion(){
       <div class="config-grid" style="margin-top:20px;">
         <div class="config-col">
           <h3>EPS</h3>
-          ${renderChipList(DB.config.epsList, 'quitarEps')}
+          ${renderChipList(DB.config.epsList, 'quitarEps', 'epsList')}
           <div class="add-row">
             <input id="nuevaEpsInput" placeholder="Nombre de la nueva EPS">
             <button class="btn btn-ghost small" data-action="agregarEps">Agregar</button>
@@ -1324,7 +1435,7 @@ function renderConfiguracion(){
         </div>
         <div class="config-col">
           <h3>ARL</h3>
-          ${renderChipList(DB.config.arlList, 'quitarArl')}
+          ${renderChipList(DB.config.arlList, 'quitarArl', 'arlList')}
           <div class="add-row">
             <input id="nuevaArlInput" placeholder="Nombre de la nueva ARL">
             <button class="btn btn-ghost small" data-action="agregarArl">Agregar</button>
@@ -1615,9 +1726,9 @@ async function vaciarListaPersonal(){
 /* ============================ SALIDA DE PERSONAL (formulario) ============================ */
 function renderSalidaPersonal(){
   if(personalUI.step === 'buscar'){
-    const hayNomina = DB.config.listaPersonal && DB.config.listaPersonal.length > 0;
+    const hayNomina = (DB.config.listaPersonal && DB.config.listaPersonal.length > 0) || mesEmpleados.length > 0;
     return `
-      <section class="panel">
+      <section class="panel" style="max-width:800px;">
         <p class="step-eyebrow">Paso 1 · Identificación del empleado</p>
         <h2>Registro de salida</h2>
         <div id="formError" class="form-error"></div>
@@ -1625,7 +1736,7 @@ function renderSalidaPersonal(){
         <div class="field">
           <label for="numDocInputP">Cédula del empleado</label>
           <input id="numDocInputP" inputmode="numeric" placeholder="" value="${esc(personalUI.numDoc)}" autocomplete="off" style="font-size:1.1rem;">
-          ${hayNomina ? `<div id="nominaSuggestions" class="nomina-suggestions"></div>` : ''}
+          <div id="nominaSuggestions" class="nomina-suggestions"></div>
         </div>
 
         ${hayNomina ? `<div class="divider-or"><span>o busca por nombre</span></div>
@@ -1633,7 +1744,7 @@ function renderSalidaPersonal(){
           <label for="buscarNominaInput">Buscar por nombre</label>
           <input id="buscarNominaInput" placeholder="" autocomplete="off">
           <div id="nominaSuggestions2" class="nomina-suggestions"></div>
-        </div>` : `<p style="font-size:.82rem;color:var(--steel);margin:0 0 14px;">Carga la lista de personal en la pestaña <strong>Configuración</strong> para autocompletar desde la cédula.</p>`}
+        </div>` : ''}
 
         <div class="field">
           <label for="tipoDocSelectP">Tipo de documento</label>
@@ -1745,10 +1856,15 @@ function resolverPerfilPersonal(numDoc, tipoDocFallback){
   const nomina = (DB.config.listaPersonal||[]).find(p => p.numDoc === numDoc);
   const perfilFirma = DB.perfilesPersonal[numDoc] || null;
   if(nomina){
-    // La lista de personal cargada es la fuente oficial de nombre/área/tipo de
-    // documento; la firma (si existe) se reutiliza desde registros anteriores.
     return {
       perfil: { nombre: nomina.nombre, cargo: nomina.cargo, tipoDoc: nomina.tipoDoc || tipoDocFallback, firma: perfilFirma ? perfilFirma.firma : null },
+      modoFirma: (perfilFirma && perfilFirma.firma) ? 'usarExistente' : 'nueva'
+    };
+  }
+  const mesEmp = mesEmpleados.find(e => (e.cedula||'') === numDoc);
+  if(mesEmp){
+    return {
+      perfil: { nombre: mesEmp.name||'', cargo: mesEmp.cargo||'', tipoDoc: tipoDocFallback, firma: perfilFirma ? perfilFirma.firma : null },
       modoFirma: (perfilFirma && perfilFirma.firma) ? 'usarExistente' : 'nueva'
     };
   }
@@ -1777,11 +1893,34 @@ function buscarPersonal(){
 function buscarEnNomina(query){
   const q = (query||'').trim().toLowerCase();
   if(!q) return [];
-  const lista = DB.config.listaPersonal || [];
-  return lista
+  const local = (DB.config.listaPersonal||[])
     .filter(p => p.nombre.toLowerCase().includes(q) || p.numDoc.includes(q))
-    .slice(0, 8);
+    .map(p => ({ nombre: p.nombre, numDoc: p.numDoc, tipoDoc: p.tipoDoc||'CC' }));
+  const enMES = mesEmpleados
+    .filter(e => (e.name||'').toLowerCase().includes(q) || (e.cedula||'').includes(q))
+    .map(e => ({ nombre: e.name||'', numDoc: e.cedula||'', tipoDoc: 'CC' }));
+  const vistos = new Set(local.map(p=>p.numDoc));
+  return [...local, ...enMES.filter(e=>!vistos.has(e.numDoc))].slice(0, 8);
 }
+
+function renderMesEmpleadoSuggestions(query){
+  const box = document.getElementById('nominaSuggestions');
+  if(!box) return;
+  const q = (query||'').trim();
+  if(!q){ box.classList.remove('show'); box.innerHTML=''; return; }
+  const matches = mesEmpleados
+    .filter(e => (e.cedula||'').startsWith(q))
+    .slice(0, 8);
+  if(!matches.length){ box.classList.remove('show'); box.innerHTML=''; return; }
+  box.innerHTML = matches.map(e => `
+    <div class="nm-item" data-action="seleccionarMesEmp" data-cedula="${esc(e.cedula||e.id||'')}" data-tipodoc="CC">
+      <span class="nm-name">${esc(e.name||'')}</span>
+      <span class="nm-doc">${esc(e.cedula||'')}</span>
+    </div>
+  `).join('');
+  box.classList.add('show');
+}
+
 function renderNominaSuggestions(query){
   const box = document.getElementById('nominaSuggestions');
   if(!box) return;
@@ -2012,23 +2151,37 @@ async function cerrarPendientesVencidos(){
 }
 
 /* ============================ HISTORIAL DE PERSONAL ============================ */
-function historialPersonalFiltrado(textoF, fechaF){
-  const t = (textoF||'').toLowerCase();
+function historialPersonalFiltrado(desde, hasta, cols){
   return DB.salidasPersonal
-    .filter(s => !t || s.nombre.toLowerCase().includes(t) || s.numDoc.includes(t) || s.destino.toLowerCase().includes(t))
-    .filter(s => !fechaF || s.fechaSalida.slice(0,10) === fechaF)
+    .filter(s => {
+      if(desde){ const d=new Date(desde); if(new Date(s.fechaSalida)<d) return false; }
+      if(hasta){ const h=new Date(hasta); h.setHours(23,59,59,999); if(new Date(s.fechaSalida)>h) return false; }
+      if(cols){
+        if(cols.estado && !etiquetaEstadoPersonal(s).toLowerCase().includes(cols.estado)) return false;
+        if(cols.nombre && !(s.nombre||'').toLowerCase().includes(cols.nombre)) return false;
+        if(cols.numDoc && !(s.numDoc||'').includes(cols.numDoc)) return false;
+        if(cols.cargo && !(s.cargo||'').toLowerCase().includes(cols.cargo)) return false;
+        if(cols.motivo && !(s.motivo||'').toLowerCase().includes(cols.motivo)) return false;
+        if(cols.destino && !(s.destino||'').toLowerCase().includes(cols.destino)) return false;
+      }
+      return true;
+    })
     .sort((a,b)=> new Date(b.fechaSalida) - new Date(a.fechaSalida));
 }
 function renderHistorialPersonalShell(){
   return `
     <div class="historial-head">
       <div class="historial-filtros">
-        <input id="histTextoInputP" placeholder="Buscar por nombre, documento o destino…">
-        <input id="histFechaInputP" type="date">
+        <div class="fecha-rango-wrap">
+          <span class="fecha-rango-lbl">Desde</span>
+          <input id="histFechaDesdeP" type="date">
+          <span class="fecha-rango-lbl">Hasta</span>
+          <input id="histFechaHastaP" type="date">
+          <button class="btn-limpiar-fecha" id="histFechaLimpiarP">✕ Limpiar</button>
+        </div>
       </div>
       <div class="historial-acciones">
         <button class="btn btn-ghost small" data-action="exportarCSVPersonal">Exportar Excel</button>
-        <button class="btn btn-danger" data-action="borrarTodoPersonal" style="font-size:.74rem;padding:8px 12px;">Borrar todo</button>
       </div>
     </div>
     <div class="table-scroll">
@@ -2036,7 +2189,17 @@ function renderHistorialPersonalShell(){
         <thead>
           <tr>
             <th>Estado</th><th>Fecha</th><th>Nombre</th><th>Documento</th><th>Área</th>
-            <th>Motivo</th><th>Destino</th><th>Autorizó</th><th>Salida</th><th>Regreso</th><th>Firma</th><th>Detalle</th>
+            <th>Motivo</th><th>Destino</th><th>Autorizó</th><th>Salida</th><th>Regreso</th><th>Firma</th><th>Acciones</th>
+          </tr>
+          <tr class="hist-filter-row">
+            <th><input class="hist-col-filter-p" data-col="estado" placeholder="Filtrar…"></th>
+            <th></th>
+            <th><input class="hist-col-filter-p" data-col="nombre" placeholder="Filtrar…"></th>
+            <th><input class="hist-col-filter-p" data-col="numDoc" placeholder="Filtrar…"></th>
+            <th><input class="hist-col-filter-p" data-col="cargo" placeholder="Filtrar…"></th>
+            <th><input class="hist-col-filter-p" data-col="motivo" placeholder="Filtrar…"></th>
+            <th><input class="hist-col-filter-p" data-col="destino" placeholder="Filtrar…"></th>
+            <th></th><th></th><th></th><th></th><th></th>
           </tr>
         </thead>
         <tbody id="historialPersonalTbody"></tbody>
@@ -2076,20 +2239,40 @@ function renderHistorialPersonalRowsHTML(lista){
       <td class="mono">${fmtTime(new Date(s.fechaSalida))}</td>
       <td class="mono">${s.fechaRegreso ? fmtTime(new Date(s.fechaRegreso)) : '—'}</td>
       <td>${s.firma ? `<img class="firma-thumb" src="${s.firma}" alt="Firma">` : '—'}</td>
-      <td><button class="btn btn-ghost small" data-action="verDetalleSalidaPersonal" data-id="${s.id}">Ver</button></td>
+      <td><div class="accion-btns">
+        <button class="btn-accion edit" data-action="verDetalleSalidaPersonal" data-id="${s.id}" title="Ver detalle">👁</button>
+        <button class="btn-accion del" data-action="eliminarSalidaPersonal" data-id="${s.id}" title="Eliminar">🗑</button>
+      </div></td>
     </tr>
   `).join('');
 }
 function setupHistorialPersonalFilters(){
-  const textoInput = document.getElementById('histTextoInputP');
-  const fechaInput = document.getElementById('histFechaInputP');
-  function refresh(){
-    const lista = historialPersonalFiltrado(textoInput.value, fechaInput.value);
-    document.getElementById('historialPersonalTbody').innerHTML = renderHistorialPersonalRowsHTML(lista);
-    document.getElementById('historialPersonalCount').textContent = `${lista.length} registro${lista.length===1?'':'s'}`;
+  function getF(){
+    const desde=(document.getElementById('histFechaDesdeP')||{}).value||'';
+    const hasta=(document.getElementById('histFechaHastaP')||{}).value||'';
+    const cols={};
+    document.querySelectorAll('.hist-col-filter-p').forEach(inp=>{
+      const v=inp.value.trim().toLowerCase(); if(v) cols[inp.dataset.col]=v;
+    });
+    return {desde,hasta,cols};
   }
-  textoInput.addEventListener('input', refresh);
-  fechaInput.addEventListener('input', refresh);
+  function refresh(){
+    const {desde,hasta,cols}=getF();
+    const lista=historialPersonalFiltrado(desde,hasta,cols);
+    document.getElementById('historialPersonalTbody').innerHTML=renderHistorialPersonalRowsHTML(lista);
+    document.getElementById('historialPersonalCount').textContent=`${lista.length} registro${lista.length===1?'':'s'}`;
+  }
+  const view=document.getElementById('view');
+  view.addEventListener('input', e=>{
+    if(e.target.id==='histFechaDesdeP'||e.target.id==='histFechaHastaP'||e.target.classList.contains('hist-col-filter-p')) refresh();
+  });
+  view.addEventListener('click', e=>{
+    if(e.target.id==='histFechaLimpiarP'){
+      const d=document.getElementById('histFechaDesdeP'); if(d) d.value='';
+      const h=document.getElementById('histFechaHastaP'); if(h) h.value='';
+      refresh();
+    }
+  });
   refresh();
 }
 function showDetalleSalidaPersonal(id){
@@ -2414,6 +2597,30 @@ document.getElementById('app').addEventListener('click', (e)=>{
     exportarCSVPersonal();
   } else if(action === 'borrarTodoPersonal'){
     borrarTodoPersonal();
+  } else if(action === 'editarVisita'){
+    editarVisita(btn.dataset.id);
+  } else if(action === 'eliminarVisita'){
+    eliminarVisita(btn.dataset.id);
+  } else if(action === 'eliminarSalidaPersonal'){
+    eliminarSalidaPersonal(btn.dataset.id);
+  } else if(action === 'editarChip'){
+    editarChipItem(btn.dataset.listkey, btn.dataset.name);
+  } else if(action === 'agregarTipoDoc'){
+    agregarTipoDoc();
+  } else if(action === 'quitarTipoDoc'){
+    quitarTipoDoc(btn.dataset.name);
+  } else if(action === 'agregarMotivoVisita'){
+    agregarMotivoVisita();
+  } else if(action === 'quitarMotivoVisita'){
+    quitarMotivoVisita(btn.dataset.name);
+  } else if(action === 'agregarTipoSangre'){
+    agregarTipoSangre();
+  } else if(action === 'quitarTipoSangre'){
+    quitarTipoSangre(btn.dataset.name);
+  } else if(action === 'agregarParentesco'){
+    agregarParentesco();
+  } else if(action === 'quitarParentesco'){
+    quitarParentesco(btn.dataset.name);
   } else if(action === 'agregarEps'){
     agregarEps();
   } else if(action === 'quitarEps'){
@@ -2422,6 +2629,12 @@ document.getElementById('app').addEventListener('click', (e)=>{
     agregarArl();
   } else if(action === 'quitarArl'){
     quitarArl(btn.dataset.name);
+  } else if(action === 'seleccionarMesEmp'){
+    const inp = document.getElementById('numDocInputP');
+    if(inp){ inp.value = btn.dataset.cedula; }
+    const box = document.getElementById('nominaSuggestions');
+    if(box){ box.classList.remove('show'); }
+    buscarPersonal();
   } else if(action === 'seleccionarNomina'){
     seleccionarDeNomina(btn.dataset.numdoc, btn.dataset.tipodoc);
   } else if(action === 'seleccionarNominaEntrada'){
@@ -2445,7 +2658,9 @@ document.getElementById('app').addEventListener('click', (e)=>{
   }
 });
 document.getElementById('app').addEventListener('input', (e)=>{
-  if(e.target.id === 'buscarNominaInput'){
+  if(e.target.id === 'numDocInputP'){
+    renderMesEmpleadoSuggestions(e.target.value);
+  } else if(e.target.id === 'buscarNominaInput'){
     renderNominaSuggestions(e.target.value);
   } else if(e.target.id === 'buscarNominaInputE'){
     renderNominaSuggestionsEntrada(e.target.value);
@@ -2455,7 +2670,9 @@ document.getElementById('app').addEventListener('input', (e)=>{
   }
 });
 document.getElementById('app').addEventListener('focusout', (e)=>{
-  if(e.target.id === 'buscarNominaInput'){
+  if(e.target.id === 'numDocInputP'){
+    setTimeout(()=>{ const b=document.getElementById('nominaSuggestions'); if(b) b.classList.remove('show'); }, 180);
+  } else if(e.target.id === 'buscarNominaInput'){
     setTimeout(()=>{ const b=document.getElementById('nominaSuggestions'); if(b) b.classList.remove('show'); }, 180);
   } else if(e.target.id === 'buscarNominaInputE'){
     setTimeout(()=>{ const b=document.getElementById('nominaSuggestionsE'); if(b) b.classList.remove('show'); }, 180);
@@ -2507,6 +2724,7 @@ async function init(){
   tickClock();
   renderView();
   await loadDB();
+  try{ const r=await fetch('/api/empleados'); if(r.ok) mesEmpleados=await r.json(); }catch(_){}
   const badge = document.getElementById('storageModeBadge');
   if(badge){
     badge.style.display = 'inline-block';
