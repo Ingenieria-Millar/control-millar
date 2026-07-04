@@ -180,7 +180,26 @@ function agregarDefectoRow(listId){
   row.appendChild(inpMetro); row.appendChild(sel); row.appendChild(inp); row.appendChild(btn);
   list.appendChild(row);
 }
-function agregarDefectoRowActiva(){ agregarDefectoRow('activa-defectos-list'); }
+function agregarDefectoRowActiva(){
+  const list=document.getElementById('activa-defectos-list');
+  if(!list) return;
+  const row=document.createElement('div');
+  row.style.cssText='display:grid;grid-template-columns:2fr 1fr 1fr 30px;gap:6px;margin-bottom:8px;align-items:center;';
+  const sel=document.createElement('select');
+  sel.style.cssText='padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;background:#fff;width:100%;';
+  sel.innerHTML='<option value="">— Tipo defecto —</option>'+getDefectoOptions();
+  const inpMetro=document.createElement('input');
+  inpMetro.type='number'; inpMetro.min='0'; inpMetro.placeholder='Metro';
+  inpMetro.style.cssText='padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;width:100%;text-align:center;';
+  const inpCant=document.createElement('input');
+  inpCant.type='number'; inpCant.min='1'; inpCant.placeholder='Cant.';
+  inpCant.style.cssText='padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;width:100%;text-align:center;';
+  const btn=document.createElement('button'); btn.textContent='✕';
+  btn.style.cssText='width:28px;height:28px;border-radius:6px;border:1.5px solid #fca5a5;background:#fef2f2;color:#dc2626;cursor:pointer;font-size:13px;';
+  btn.onclick=()=>row.remove();
+  row.appendChild(sel); row.appendChild(inpMetro); row.appendChild(inpCant); row.appendChild(btn);
+  list.appendChild(row);
+}
 
 // ── MILLAR NAV — navegación global ──────────────────────────────
 (function(){
@@ -985,16 +1004,18 @@ input[type=number]{-moz-appearance:textfield;}
 <!-- Modal Revisión Activa -->
 <div class="modal-overlay" id="modal-revision-activa">
   <div class="modal-box wide">
-    <div class="modal-header">
-      <div class="modal-title">🧵 REVISIÓN EN CURSO</div>
-      <div style="font-size:12px;color:#64748b;margin-top:4px;" id="activa-ref-label"></div>
+    <div class="modal-header" style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
+      <div>
+        <div class="modal-title">🧵 REVISIÓN EN CURSO</div>
+        <div style="font-size:12px;color:#64748b;margin-top:4px;" id="activa-ref-label"></div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div id="activa-cronometro" style="font-family:'IBM Plex Mono',monospace;font-size:1.9rem;font-weight:700;color:#1e3a8a;letter-spacing:2px;">00:00:00</div>
+        <div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;margin-top:2px;">Tiempo transcurrido</div>
+      </div>
     </div>
     <div class="modal-body">
-      <div style="text-align:center;padding:16px 0 12px;">
-        <div id="activa-cronometro" style="font-family:'IBM Plex Mono',monospace;font-size:2.8rem;font-weight:700;color:#1e3a8a;letter-spacing:3px;">00:00:00</div>
-        <div style="font-size:11px;color:#94a3b8;margin-top:6px;text-transform:uppercase;letter-spacing:1px;">Tiempo transcurrido</div>
-      </div>
-      <div class="form-field" style="margin-top:8px;">
+      <div class="form-field">
         <label class="field-label">Defectos encontrados</label>
         <div style="display:grid;grid-template-columns:2fr 1fr 1fr 30px;gap:6px;padding:6px 0;margin-bottom:4px;">
           <span style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;">Tipo Defecto</span>
