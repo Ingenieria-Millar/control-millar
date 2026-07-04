@@ -1420,6 +1420,7 @@ async function cargarDatos(){
     if(res.ok){
       const d=await res.json();
       _registros=d.registros||[];
+      migrarTurnos();
       _cfgDefectos=d.defectos||[];
       // Normalizar referencias: strings viejos → objetos nuevos
       const raw=d.referencias||{};
@@ -1945,10 +1946,23 @@ function closeRegistroModal(){
   if(btn)btn.onclick=guardarRegistro;
   document.querySelector('#modal-registro .modal-title').textContent='➕ NUEVO REGISTRO';
 }
+function horaA24(hora){
+  // Acepta "14:30" o "2:30 PM" o "2:30 AM"
+  if(!hora) return 0;
+  const ampm=hora.match(/(\d+):(\d+)\s*(AM|PM)/i);
+  if(ampm){
+    let h=parseInt(ampm[1]),m=parseInt(ampm[2]);
+    const ap=ampm[3].toUpperCase();
+    if(ap==='PM'&&h!==12)h+=12;
+    if(ap==='AM'&&h===12)h=0;
+    return h*60+m;
+  }
+  const parts=hora.split(':').map(Number);
+  return (parts[0]||0)*60+(parts[1]||0);
+}
 function detectarTurno(hora, fecha){
   if(!hora||!fecha) return {turno:'dia', fechaTurno:fecha||fechaHoy()};
-  const parts=(hora||'00:00').split(':').map(Number);
-  const mins=parts[0]*60+(parts[1]||0);
+  const mins=horaA24(hora);
   if(mins>=17*60+45){
     return {turno:'noche', fechaTurno:fecha};
   } else if(mins<=5*60+14){
@@ -1958,6 +1972,17 @@ function detectarTurno(hora, fecha){
   } else {
     return {turno:'dia', fechaTurno:fecha};
   }
+}
+function migrarTurnos(){
+  let cambios=0;
+  _registros.forEach(r=>{
+    if(!r.turno&&r.hora_inicio&&r.fecha){
+      const {turno,fechaTurno}=detectarTurno(r.hora_inicio,r.fecha);
+      r.turno=turno;r.fechaTurno=fechaTurno;cambios++;
+    }
+  });
+  if(cambios>0){guardarEnServidor();console.log('[RT] Migración turnos:',cambios,'registros actualizados');}
+  return cambios;
 }
 function guardarRegistro(){
   const fecha=document.getElementById('f-fecha').value;
