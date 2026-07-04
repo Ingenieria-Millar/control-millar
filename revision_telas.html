@@ -2099,6 +2099,26 @@ function guardarEdicion(id){
 }
 
 // ── Modal Revisión Activa ──────────────────────────────────────────
+function agregarDefectoRowActiva(){
+  const list=document.getElementById('activa-defectos-list');
+  if(!list) return;
+  const row=document.createElement('div');
+  row.style.cssText='display:grid;grid-template-columns:2fr 1fr 1fr 30px;gap:6px;margin-bottom:8px;align-items:center;';
+  const sel=document.createElement('select');
+  sel.style.cssText='padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;background:#fff;width:100%;';
+  sel.innerHTML='<option value="">— Tipo defecto —</option>'+getDefectoOptions();
+  const inpMetro=document.createElement('input');
+  inpMetro.type='number'; inpMetro.min='0'; inpMetro.placeholder='Metro';
+  inpMetro.style.cssText='padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;width:100%;text-align:center;';
+  const inpCant=document.createElement('input');
+  inpCant.type='number'; inpCant.min='1'; inpCant.placeholder='Cant.';
+  inpCant.style.cssText='padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;width:100%;text-align:center;';
+  const btn=document.createElement('button'); btn.textContent='✕';
+  btn.style.cssText='width:28px;height:28px;border-radius:6px;border:1.5px solid #fca5a5;background:#fef2f2;color:#dc2626;cursor:pointer;font-size:13px;';
+  btn.onclick=()=>row.remove();
+  row.appendChild(sel); row.appendChild(inpMetro); row.appendChild(inpCant); row.appendChild(btn);
+  list.appendChild(row);
+}
 function openRevisionActiva(id){
   _revisionActivaId=id;
   const r=_registros.find(x=>x.id===id);if(!r)return;
