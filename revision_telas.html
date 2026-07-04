@@ -1796,10 +1796,10 @@ function poblarRollosDD(factura,proveedor){
   const bloqueados=lista.filter(r=>typeof r==='object'&&r.lote&&r.lote.toString()===factura&&usados.has(r.lote+'|'+proveedor+'|'+r.rollo));
   const dd=document.getElementById('f-rollo-dd');
   if(!disponibles.length&&!bloqueados.length){dd.innerHTML='<div class="searchable-empty">Sin rollos para este lote</div>';dd.classList.add('open');return;}
-  let html=disponibles.map(r=>'<div class="searchable-option" onmousedown="seleccionarRollo(\''+r.rollo+'\')">Rollo '+r.rollo+'</div>').join('');
+  let html=disponibles.map(r=>'<div class="searchable-option" onmousedown="seleccionarRollo(\''+r.rollo+'\')">'+'Rollo '+r.rollo+(r.peso?' <span style="color:#64748b;font-size:11px;margin-left:6px;">'+r.peso+' kg</span>':'')+'</div>').join('');
   if(bloqueados.length){
     html+='<div style="padding:6px 12px;font-size:10px;font-weight:700;color:#94a3b8;letter-spacing:.5px;text-transform:uppercase;border-top:1px solid #f1f5f9;margin-top:4px;">Ya registrados</div>';
-    html+=bloqueados.map(r=>'<div style="padding:8px 12px;font-size:13px;color:#cbd5e1;cursor:not-allowed;display:flex;align-items:center;gap:6px;">🔒 Rollo '+r.rollo+'</div>').join('');
+    html+=bloqueados.map(r=>'<div style="padding:8px 12px;font-size:13px;color:#cbd5e1;cursor:not-allowed;display:flex;align-items:center;gap:6px;">🔒 Rollo '+r.rollo+(r.peso?' <span style="font-size:11px;margin-left:4px;">'+r.peso+' kg</span>':'')+'</div>').join('');
   }
   if(!disponibles.length) html='<div class="searchable-empty">Todos los rollos ya están registrados</div>'+html.replace(html.split('</div>')[0]+'</div>','');
   dd.innerHTML=html;
