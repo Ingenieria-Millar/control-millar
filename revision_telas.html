@@ -162,8 +162,8 @@ function plantillaProvTerceros(){
   XLSX.writeFile(wb,'plantilla_proveedores_terceros.xlsx');
 }
 // agregarDefectoRow
-function agregarDefectoRow(){
-  const list=document.getElementById('fin-defectos-list');
+function agregarDefectoRow(listId){
+  const list=document.getElementById(listId||'fin-defectos-list');
   const row=document.createElement('div'); row.className='defecto-row';
   const inpMetro=document.createElement('input');
   inpMetro.type='number'; inpMetro.min='0'; inpMetro.placeholder='Metro';
@@ -180,6 +180,7 @@ function agregarDefectoRow(){
   row.appendChild(inpMetro); row.appendChild(sel); row.appendChild(inp); row.appendChild(btn);
   list.appendChild(row);
 }
+function agregarDefectoRowActiva(){ agregarDefectoRow('activa-defectos-list'); }
 
 // ── MILLAR NAV — navegación global ──────────────────────────────
 (function(){
@@ -981,6 +982,36 @@ input[type=number]{-moz-appearance:textfield;}
   </div>
 </div>
 
+<!-- Modal Revisión Activa -->
+<div class="modal-overlay" id="modal-revision-activa">
+  <div class="modal-box wide">
+    <div class="modal-header">
+      <div class="modal-title">🧵 REVISIÓN EN CURSO</div>
+      <div style="font-size:12px;color:#64748b;margin-top:4px;" id="activa-ref-label"></div>
+    </div>
+    <div class="modal-body">
+      <div style="text-align:center;padding:16px 0 12px;">
+        <div id="activa-cronometro" style="font-family:'IBM Plex Mono',monospace;font-size:2.8rem;font-weight:700;color:#1e3a8a;letter-spacing:3px;">00:00:00</div>
+        <div style="font-size:11px;color:#94a3b8;margin-top:6px;text-transform:uppercase;letter-spacing:1px;">Tiempo transcurrido</div>
+      </div>
+      <div class="form-field" style="margin-top:8px;">
+        <label class="field-label">Defectos encontrados</label>
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr 30px;gap:6px;padding:6px 0;margin-bottom:4px;">
+          <span style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;">Tipo Defecto</span>
+          <span style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;">Metro</span>
+          <span style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;">Cantidad</span>
+          <span></span>
+        </div>
+        <div id="activa-defectos-list"></div>
+        <button class="btn btn-outline" style="margin-top:6px;width:100%;justify-content:center;" onclick="agregarDefectoRowActiva()">+ Agregar defecto</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" style="width:100%;justify-content:center;font-size:15px;" onclick="finalizarDesdeRevision()">🏁 Finalizar revisión</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Confirmar con contraseña -->
 <div id="modal-confirm-rt" onclick="if(event.target===this)closeConfirmRT()">
   <div style="background:#fff;border-radius:16px;padding:24px;width:100%;max-width:380px;
@@ -1273,6 +1304,7 @@ let _registros=[], _filtrados=[], _sortCol='fecha', _sortDir=-1;
 let _pendingIds=new Set(); // ids creados localmente aún no confirmados por el servidor; no se descartan hasta que el servidor los tenga o se borren
 let _historial=[];
 let _confirmCB=null, _finalizandoId=null;
+let _revisionActivaId=null, _revisionActivaTimer=null, _revisionActivaStart=null;
 let _cfgDefectos=[], _cfgReferencias={}, _cfgColores=[], _cfgProveedores=[], _cfgProveedoresTerceros=[], _cfgTareas=[];
 let ws=null, wsReady=false, wsTimer=null;
 let _filtroDesde='', _filtroHasta='';
@@ -1907,8 +1939,8 @@ function guardarRegistro(){
   };
   _registros.push(registro);_pendingIds.add(registro.id);registrarHistorial('CREADO',registro,'Rollo '+registro.rollo+' — '+registro.lote);
   aplicarFiltros();closeRegistroModal();
-  showToast('✅ Registro creado — Hora inicio: '+registro.hora_inicio);
-  guardarEnServidor(); // async background — _registros ya tiene el dato local
+  guardarEnServidor();
+  openRevisionActiva(registro.id);
 }
 
 // ── Editar registro ────────────────────────────────────────────────
@@ -2045,6 +2077,46 @@ function guardarEdicion(id){
   showToast('✅ Registro actualizado');
 }
 
+// ── Modal Revisión Activa ──────────────────────────────────────────
+function openRevisionActiva(id){
+  _revisionActivaId=id;
+  const r=_registros.find(x=>x.id===id);if(!r)return;
+  document.getElementById('activa-ref-label').textContent=(r.referencia||'')+' — Rollo '+(r.rollo||'')+' — '+(r.revisador||'');
+  document.getElementById('activa-defectos-list').innerHTML='';
+  _revisionActivaStart=Date.now();
+  clearInterval(_revisionActivaTimer);
+  _revisionActivaTimer=setInterval(()=>{
+    const secs=Math.floor((Date.now()-_revisionActivaStart)/1000);
+    const h=String(Math.floor(secs/3600)).padStart(2,'0');
+    const m=String(Math.floor((secs%3600)/60)).padStart(2,'0');
+    const s=String(secs%60).padStart(2,'0');
+    const el=document.getElementById('activa-cronometro');
+    if(el) el.textContent=h+':'+m+':'+s;
+    else clearInterval(_revisionActivaTimer);
+  },1000);
+  document.getElementById('modal-revision-activa').classList.add('open');
+}
+function closeRevisionActiva(){
+  clearInterval(_revisionActivaTimer);_revisionActivaTimer=null;
+  document.getElementById('modal-revision-activa').classList.remove('open');
+  _revisionActivaId=null;
+}
+function finalizarDesdeRevision(){
+  const id=_revisionActivaId;
+  const defectos=[];let defErr=false;
+  document.querySelectorAll('#activa-defectos-list > div').forEach(row=>{
+    const sel=row.querySelector('select');const inputs=row.querySelectorAll('input');
+    const tipo=sel?sel.value:'';const metro=inputs[0]?inputs[0].value:'';const cant=inputs[1]?inputs[1].value:'';
+    if((tipo&&!cant)||(cant&&!tipo)){defErr=true;return;}
+    if(tipo&&cant)defectos.push({tipo,metro,cantidad:parseInt(cant)});
+  });
+  if(defErr){showToast('Completa tipo y cantidad en cada defecto','error');return;}
+  const idx=_registros.findIndex(x=>x.id===id);
+  if(idx>=0)_registros[idx].defectos=defectos;
+  closeRevisionActiva();
+  openFinalizar(id);
+}
+
 // ── Modal Finalizar ────────────────────────────────────────────────
 function openFinalizar(id){
   _finalizandoId=id;const r=_registros.find(x=>x.id===id);if(!r)return;
@@ -2058,12 +2130,11 @@ function openFinalizar(id){
   document.getElementById('btn-aprobado').className='toggle-btn';
   document.getElementById('btn-rechazado').className='toggle-btn';
   document.getElementById('fin-defectos-list').innerHTML='';
-  // Mostrar/ocultar campos según tipo
-  const camposTela=['fin-metros','fin-ancho','fin-peso','fin-defectos-list','fin-defectos-wrap','fin-resultado-wrap'];
-  ['fin-metros-wrap','fin-ancho-peso-wrap','fin-defectos-wrap','fin-resultado-wrap'].forEach(wid=>{
+  ['fin-metros-wrap','fin-ancho-peso-wrap','fin-resultado-wrap'].forEach(wid=>{
     const el=document.getElementById(wid);if(el)el.style.display=esMultitarea?'none':'';
   });
-  if(!esMultitarea) agregarDefectoRow();
+  const defWrap=document.getElementById('fin-defectos-wrap');
+  if(defWrap) defWrap.style.display='none';
   document.getElementById('modal-finalizar').classList.add('open');
 }
 
@@ -2122,16 +2193,7 @@ function guardarFinalizar(){
   if(!esMultitarea&&!metros){errEl.textContent='Ingresa los metros revisados';return;}
   if(!esMultitarea&&!ancho){errEl.textContent='Ingresa el ancho útil';return;}
   if(!esMultitarea&&!resultado){errEl.textContent='Selecciona Aprobado o Rechazado';return;}
-  let defErr=false;const defectos=[];
-  if(!esMultitarea){
-    document.querySelectorAll('#fin-defectos-list > div').forEach(row=>{
-      const sel=row.querySelector('select');const inputs=row.querySelectorAll('input');
-      const tipo=sel?sel.value:'';const metro=inputs[0]?inputs[0].value:'';const cant=inputs[1]?inputs[1].value:'';
-      if((tipo&&!cant)||(cant&&!tipo))defErr=true;
-      if(tipo&&cant)defectos.push({tipo,metro,cantidad:parseInt(cant)});
-    });
-    if(defErr){errEl.textContent='Completa tipo y cantidad en cada defecto';return;}
-  }
+  const defectos=esMultitarea?[]:(r.defectos||[]);
   const horaFin=horaActual();
   const idx=_registros.findIndex(x=>x.id===_finalizandoId);
   if(idx>=0){const reg=_registros[idx];_registros[idx]={...reg,metros:esMultitarea?'':metros,ancho,peso,defectos,resultado,observaciones:obs,hora_fin:horaFin,tiempo:calcTiempo(reg.hora_inicio,horaFin),finalizado:true};}
