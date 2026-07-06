@@ -189,6 +189,13 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
     <div class="card-title">⚙️ Administración <span class="admin-badge">Admin</span></div>
     <div class="card-sub">Importa el Excel (columnas <strong>MES, CONTRATO, NOMBRE, VALOR</strong>), edita registros directamente en la tabla y exporta con los cambios.</div>
 
+    <!-- Disponibilidad por mes -->
+    <div style="background:#f8fafc;border:1.5px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:18px;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:4px;">📅 Disponibilidad de Incentivos por Mes</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Toca el mes para cambiar su estado. Se aplica para <strong>todos</strong> los empleados.</div>
+      <div id="dispGrid" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+    </div>
+
     <div class="admin-toolbar">
       <label class="btn-app primary" for="fileXls">📤 Importar<input type="file" id="fileXls" accept=".xlsx,.xls" hidden></label>
       <button class="btn-app" id="btnExport">📥 Exportar</button>
@@ -286,10 +293,9 @@ async function buscar(){
   const nombre = (registrosContrato.find(r=>r.nombre) || {}).nombre || '';
   document.getElementById('mesPerson').textContent = nombre ? nombre : '—';
 
-  // Todos los meses con información quedan seleccionados automáticamente
   const grid = document.getElementById('mesGrid');
   grid.innerHTML = registrosContrato.map((r,i)=>
-    `<label class="mes-chk sel"><input type="checkbox" data-i="${i}" checked>` +
+    `<label class="mes-chk"><input type="checkbox" data-i="${i}">` +
     `<span class="mc-name">${esc(r.mes)}</span></label>`
   ).join('');
   grid.querySelectorAll('input[type=checkbox]').forEach(cb=>{
@@ -298,18 +304,32 @@ async function buscar(){
       recalcular();
     });
   });
-  document.getElementById('btnToggleAll').textContent = 'Quitar todos';
+  document.getElementById('btnToggleAll').textContent = 'Seleccionar todos';
   document.getElementById('mesWrap').style.display = 'block';
   recalcular();
 }
+
+// ─── Disponibilidad global de incentivos ───────────────────────────
+let disponibilidad = {};
+(async function cargarDisponibilidad(){
+  try{
+    const res = await fetch('/api/incentivos-disponibilidad');
+    const json = await res.json();
+    disponibilidad = json.data || {};
+  }catch(e){ disponibilidad = {}; }
+})();
 
 function recalcular(){
   const checks = [...document.querySelectorAll('#mesGrid input[type=checkbox]')];
   const sel = checks.filter(c=>c.checked).map(c=>registrosContrato[parseInt(c.dataset.i)]);
   if(!sel.length){ document.getElementById('resultBox').style.display = 'none'; return; }
-  document.getElementById('resBody').innerHTML = sel.map(r=>
-    `<tr><td>${esc(r.mes)}</td><td class="r">${COP.format(r.valor||0)}</td></tr>`
-  ).join('');
+  document.getElementById('resBody').innerHTML = sel.map(r=>{
+    const disp = disponibilidad[r.mes];
+    const badge = disp
+      ? '<span style="font-size:10px;font-weight:700;color:#16a34a;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:2px 7px;margin-left:6px;">✅ Disponible para retirar</span>'
+      : '<span style="font-size:10px;font-weight:700;color:#dc2626;background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:2px 7px;margin-left:6px;">🔒 Aún no disponible</span>';
+    return `<tr><td>${esc(r.mes)}${badge}</td><td class="r">${COP.format(r.valor||0)}</td></tr>`;
+  }).join('');
   const total = sel.reduce((s,r)=>s+(Number(r.valor)||0),0);
   document.getElementById('totalVal').textContent = COP.format(total);
   document.getElementById('totalSub').textContent = sel.length + (sel.length===1?' mes':' meses');
@@ -388,13 +408,49 @@ function pick(row, keys){
   return '';
 }
 
+function renderDispAdmin(){
+  const meses = [...new Set(adminData.map(r=>r.mes).filter(Boolean))].sort();
+  const el = document.getElementById('dispGrid');
+  if(!meses.length){
+    el.innerHTML = '<span style="color:#94a3b8;font-size:13px;">No hay meses cargados aún.</span>';
+    return;
+  }
+  el.innerHTML = meses.map(mes=>{
+    const disp = !!disponibilidad[mes];
+    const borderColor = disp ? '#16a34a' : '#dc2626';
+    const bg = disp ? '#f0fdf4' : '#fef2f2';
+    const color = disp ? '#16a34a' : '#dc2626';
+    const icon = disp ? '✅' : '🔒';
+    const label = disp ? 'DISPONIBLE PARA RETIRAR' : 'AÚN NO DISPONIBLE';
+    return `<button onclick="toggleDisp('${mes.replace(/'/g,"\\'")}')" style="padding:10px 16px;border-radius:10px;border:2px solid ${borderColor};background:${bg};color:${color};font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:.5px;cursor:pointer;transition:all .2s;text-align:left;line-height:1.4;">${icon} ${esc(mes)}<br><span style="font-size:10px;opacity:.85;">${label}</span></button>`;
+  }).join('');
+}
+
+async function toggleDisp(mes){
+  disponibilidad[mes] = !disponibilidad[mes];
+  try{
+    await fetch('/api/incentivos-disponibilidad', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(disponibilidad)
+    });
+    toast(disponibilidad[mes] ? `✅ ${mes}: Disponible para retirar` : `🔒 ${mes}: Aún no disponible`);
+  }catch(e){ toast('Error al guardar'); }
+  renderDispAdmin();
+}
+
 async function cargarTodo(){
   try{
-    const res = await fetch('/api/incentivos');
-    adminData = await res.json();
+    const [r1, r2] = await Promise.all([
+      fetch('/api/incentivos'),
+      fetch('/api/incentivos-disponibilidad')
+    ]);
+    adminData = await r1.json();
     if(!Array.isArray(adminData)) adminData = [];
+    const dispJson = await r2.json();
+    disponibilidad = dispJson.data || {};
   }catch(e){ adminData = []; toast('No se pudo cargar la lista.'); }
   editingId = null;
+  renderDispAdmin();
   aplicarBusqueda(true);
 }
 

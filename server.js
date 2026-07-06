@@ -99,9 +99,11 @@ const FILES = {
   produccion:     path.join(DATA_DIR, 'produccion.json'),
   revision_telas: path.join(DATA_DIR, 'revision_telas.json'),
   incentivos:     path.join(DATA_DIR, 'incentivos.json'),
+  incentivos_disp: path.join(DATA_DIR, 'incentivos_disponibilidad.json'),
   users:          path.join(DATA_DIR, 'users.json'),
   multitareas:    path.join(DATA_DIR, 'multitareas.json'),
   tareas:         path.join(DATA_DIR, 'tareas.json'),
+  visitantes:     path.join(DATA_DIR, 'visitantes.json'),
 };
 
 // ══════════════════════════════════════════════════════════════════
@@ -758,6 +760,20 @@ app.get('/visitantes', (req, res) =>
   res.sendFile(path.join(__dirname, 'control-visitantes-sst.html'))
 );
 
+app.get('/api/visitantes/db', (req, res) => {
+  const data = readJSON(FILES.visitantes, null);
+  res.json({ ok: true, data });
+});
+
+app.post('/api/visitantes/db', (req, res) => {
+  try {
+    writeJSON(FILES.visitantes, req.body);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 // Logo corporativo (usado en el header del módulo de incentivos)
 app.get('/logo.png', (req, res) => {
   // El archivo real se llama "logo.png.jpeg"; probamos varios nombres.
@@ -1032,6 +1048,18 @@ app.delete('/api/incentivos', (req, res) => {
     saveDB('incentivos', filtrado);
     res.json({ ok: true, eliminados: data.length - filtrado.length });
   } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Disponibilidad de incentivos por mes (global para todos)
+app.get('/api/incentivos-disponibilidad', (req, res) => {
+  const data = readJSON(FILES.incentivos_disp, {});
+  res.json({ ok: true, data: data && !Array.isArray(data) ? data : {} });
+});
+app.post('/api/incentivos-disponibilidad', (req, res) => {
+  try {
+    writeJSON(FILES.incentivos_disp, req.body);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
 const CI_PATH = path.join(__dirname, 'Tablero_CI.html');
