@@ -1695,8 +1695,9 @@ function aplicarFiltros(){
     const _hoyF=fechaHoy();
     const _desde=_filtroDesde||_hoyF;
     const _hasta=_filtroHasta||_hoyF;
-    if(r.fecha<_desde)return false;
-    if(r.fecha>_hasta)return false;
+    const _fechaFiltro=r.fechaTurno||r.fecha||'';
+    if(_fechaFiltro<_desde)return false;
+    if(_fechaFiltro>_hasta)return false;
     if(_rtCurrentUser&&!_rtIsAdmin&&r.revisador!==_rtCurrentUser)return false;
     if(_filtroResultado==='aprobado'&&r.resultado!=='aprobado')return false;
     if(_filtroResultado==='rechazado'&&r.resultado!=='rechazado')return false;
@@ -2562,13 +2563,16 @@ function renderDashboard(){
     const regsNoche=rNoche.filter(r=>(r.revisador||'—')===rev&&r.finalizado);
     const md =rDia.filter(r=>(r.revisador||'—')===rev).reduce((s,r)=>s+parseFloat(r.metros||0),0);
     const mn =rNoche.filter(r=>(r.revisador||'—')===rev).reduce((s,r)=>s+parseFloat(r.metros||0),0);
+    // rollos revisados (excluye multitarea)
+    const rollosDia  =rDia.filter(r=>(r.revisador||'—')===rev&&r.tipo!=='multitarea').length;
+    const rollosNoche=rNoche.filter(r=>(r.revisador||'—')===rev&&r.tipo!=='multitarea').length;
     // minutos totales reportados (tela + multitarea)
     const minRepDia  =regsDia.reduce((s,r)=>s+parseMins(r.tiempo),0);
     const minRepNoche=regsNoche.reduce((s,r)=>s+parseMins(r.tiempo),0);
     // minutos solo revisión de tela
     const minTelaDia  =regsDia.filter(r=>r.tipo!=='multitarea').reduce((s,r)=>s+parseMins(r.tiempo),0);
     const minTelaNoche=regsNoche.filter(r=>r.tipo!=='multitarea').reduce((s,r)=>s+parseMins(r.tiempo),0);
-    return {rev,md,mn,total:md+mn,minRepDia,minRepNoche,minTelaDia,minTelaNoche};
+    return {rev,md,mn,total:md+mn,rollosDia,rollosNoche,minRepDia,minRepNoche,minTelaDia,minTelaNoche};
   }).filter(x=>x.total>0||x.minRepDia>0||x.minRepNoche>0).sort((a,b)=>(b.minRepDia+b.minRepNoche)-(a.minRepDia+a.minRepNoche));
 
   function fmtMin(m){return m>=60?Math.floor(m/60)+'h '+(m%60)+'min':m+'min';}
@@ -2589,20 +2593,24 @@ function renderDashboard(){
     ?'<table style="width:100%;border-collapse:collapse;">'
       +'<thead><tr>'
       +'<th style="'+TH2+'text-align:left;" rowspan="2">Revisador</th>'
-      +'<th style="'+TH2+'text-align:center;" colspan="3">☀️ Turno Día (630 min)</th>'
-      +'<th style="'+TH2+'text-align:center;" colspan="3">🌙 Turno Noche (690 min)</th>'
+      +'<th style="'+TH2+'text-align:center;" colspan="4">☀️ Turno Día (630 min)</th>'
+      +'<th style="'+TH2+'text-align:center;" colspan="4">🌙 Turno Noche (690 min)</th>'
       +'</tr><tr>'
+      +'<th style="'+TH2+'text-align:center;">Rollos</th>'
       +'<th style="'+TH2+'text-align:right;">Metros</th>'
       +'<th style="'+TH2+'text-align:center;">Eficiencia</th>'
       +'<th style="'+TH2+'text-align:center;">% Productivo</th>'
+      +'<th style="'+TH2+'text-align:center;">Rollos</th>'
       +'<th style="'+TH2+'text-align:right;">Metros</th>'
       +'<th style="'+TH2+'text-align:center;">Eficiencia</th>'
       +'<th style="'+TH2+'text-align:center;">% Productivo</th>'
       +'</tr></thead><tbody>'
       +revTurnoRows.map(x=>'<tr>'
         +'<td style="'+TD2+'font-weight:600;">'+x.rev+'</td>'
+        +'<td style="'+TD2R+'color:#0f172a;">'+(x.rollosDia||'—')+'</td>'
         +'<td style="'+TD2R+'color:#7c3aed;">'+x.md.toFixed(1)+'m</td>'
         +cellEfic(x.minRepDia,x.minTelaDia,x.minRepDia?MIN_DIA:0)
+        +'<td style="'+TD2R+'color:#0f172a;">'+(x.rollosNoche||'—')+'</td>'
         +'<td style="'+TD2R+'color:#7c3aed;">'+x.mn.toFixed(1)+'m</td>'
         +cellEfic(x.minRepNoche,x.minTelaNoche,x.minRepNoche?MIN_NOCHE:0)
         +'</tr>').join('')
