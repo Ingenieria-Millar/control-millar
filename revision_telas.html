@@ -750,6 +750,16 @@ input[type=number]{-moz-appearance:textfield;}
   </div>
 </div>
 
+<!-- Overlay timer multitarea -->
+<div id="mt-timer-overlay" style="display:none;position:fixed;inset:0;z-index:2000;background:#0f172a;flex-direction:column;align-items:center;justify-content:center;">
+  <div style="text-align:center;padding:24px;">
+    <div style="font-size:11px;letter-spacing:2px;color:#475569;text-transform:uppercase;margin-bottom:8px;font-family:'Barlow Condensed',sans-serif;">Multitarea en curso</div>
+    <div id="mt-timer-tarea" style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:#f1f5f9;margin-bottom:32px;letter-spacing:1px;max-width:460px;line-height:1.2;">—</div>
+    <div id="mt-timer-display" style="font-family:'IBM Plex Mono',monospace;font-size:clamp(48px,10vw,80px);font-weight:700;color:#2563eb;margin-bottom:48px;letter-spacing:4px;">00:00:00</div>
+    <button onclick="finalizarMultitareaTimer()" style="padding:14px 40px;border-radius:12px;border:none;background:#2563eb;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;cursor:pointer;letter-spacing:1px;">🏁 FINALIZAR</button>
+  </div>
+</div>
+
 <!-- Modal Multitarea -->
 <div class="modal-overlay" id="modal-multitarea" style="display:none;align-items:center;justify-content:center;">
   <div style="background:#fff;border-radius:16px;padding:28px;width:420px;box-shadow:0 20px 60px rgba(0,0,0,.2);">
@@ -1225,9 +1235,9 @@ input[type=number]{-moz-appearance:textfield;}
     <div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);"></div>
     <div style="display:flex;align-items:center;gap:12px;">
       <div class="hd-logo"><img id="dash-logo" src="" style="width:100%;height:100%;object-fit:contain;padding:3px;"></div>
-      <div>
-        <div class="hd-title">📈 <span>Dashboard</span></div>
-        <p style="font-size:11px;color:#64748b;font-weight:600;margin-top:1px;">Revisión de Telas — Estadísticas</p>
+      <div class="hd-title-wrap">
+        <h1 style="font-family:'Barlow Condensed',sans-serif;font-size:clamp(16px,2.5vw,22px);font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0f172a;line-height:1.1;margin:0;">DASHBOARD <span style="color:#2563eb;">REVISIÓN TELAS</span></h1>
+        <p style="font-size:11px;color:#94a3b8;font-weight:600;margin-top:0;font-family:'IBM Plex Mono',monospace;letter-spacing:.5px;" id="dash-clock"></p>
       </div>
     </div>
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -1239,8 +1249,8 @@ input[type=number]{-moz-appearance:textfield;}
           <div style="margin-bottom:10px;"><label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;margin-bottom:4px;">Desde</label><input type="date" id="dash-filtro-desde" style="width:100%;padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;" oninput="renderDashboard();actualizarLabelDashFecha();"></div>
           <div style="margin-bottom:14px;"><label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;margin-bottom:4px;">Hasta</label><input type="date" id="dash-filtro-hasta" style="width:100%;padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;" oninput="renderDashboard();actualizarLabelDashFecha();"></div>
           <div style="display:flex;gap:8px;">
-            <button onclick="dashHoy()" style="flex:1;padding:8px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Hoy</button>
-            <button onclick="dashLimpiarFecha()" style="flex:1;padding:8px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Todo</button>
+            <button onclick="aplicarFiltroDash()" style="flex:1;padding:8px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Filtrar</button>
+            <button onclick="dashLimpiarFecha()" style="flex:1;padding:8px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Limpiar</button>
           </div>
         </div>
       </div>
@@ -1629,8 +1639,10 @@ function getRevisadores(){return _revisadores;}
 // ── Fecha header ──────────────────────────────────────────────────
 document.getElementById('rt-date').textContent=new Date().toLocaleDateString('es-CO',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 (function tickClock(){
-  const el=document.getElementById('rt-clock');
-  if(el){const n=new Date();el.textContent=n.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
+  const n=new Date();
+  const t=n.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const el=document.getElementById('rt-clock');if(el)el.textContent=t;
+  const dc=document.getElementById('dash-clock');if(dc)dc.textContent=t;
   setTimeout(tickClock,1000);
 })();
 
@@ -2474,6 +2486,10 @@ function dashLimpiarFecha(){
   document.getElementById('dash-fecha-panel').style.display='none';
   actualizarLabelDashFecha();renderDashboard();
 }
+function aplicarFiltroDash(){
+  document.getElementById('dash-fecha-panel').style.display='none';
+  actualizarLabelDashFecha();renderDashboard();
+}
 function abrirDashboard(){
   // Inicializar con hoy si no hay valor
   const hoy=fechaHoy();
@@ -2592,15 +2608,15 @@ function renderDashboard(){
     {n:'Defectos',v:totalDef,c:'#c2410c'},
     {n:'Horas Lab.',v:horasLab,c:'#0891b2'}
   ].map(s=>'<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px 18px;min-width:100px;flex:1;"><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:26px;font-weight:800;color:'+s.c+';">'+s.v+'</div><div style="font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#94a3b8;">'+s.n+'</div></div>').join('');
-  // 1. Tareas por revisador (todas)
+  // 1. Tareas por revisador — barras horizontales azul
   const porRev={};regs.forEach(r=>{porRev[r.revisador||'—']=(porRev[r.revisador||'—']||0)+1;});
   document.getElementById('dash-por-revisador').innerHTML=barChart(Object.entries(porRev).sort((a,b)=>b[1]-a[1]).map(([l,v])=>({label:l,val:v})),()=>'#2563eb');
-  // 2. Rollos por revisador (solo tela)
+  // 2. Rollos por revisador — barras verticales azul
   const porRevRollos={};telasRegs.forEach(r=>{porRevRollos[r.revisador||'—']=(porRevRollos[r.revisador||'—']||0)+1;});
-  document.getElementById('dash-rollos-rev').innerHTML=barChart(Object.entries(porRevRollos).sort((a,b)=>b[1]-a[1]).map(([l,v])=>({label:l,val:v})),()=>'#0891b2');
-  // 3. Metros por revisador
+  document.getElementById('dash-rollos-rev').innerHTML=vBarChart(Object.entries(porRevRollos).sort((a,b)=>b[1]-a[1]).map(([l,v])=>({label:l,val:v})),'#2563eb');
+  // 3. Metros por revisador — ranking numerado
   const mp={};telasRegs.forEach(r=>{mp[r.revisador||'—']=(mp[r.revisador||'—']||0)+parseFloat(r.metros||0);});
-  document.getElementById('dash-metros').innerHTML=barChart(Object.entries(mp).sort((a,b)=>b[1]-a[1]).map(([l,v])=>({label:l,val:v,unit:'m'})),()=>'#7c3aed');
+  document.getElementById('dash-metros').innerHTML=rankList(Object.entries(mp).sort((a,b)=>b[1]-a[1]).map(([l,v])=>({label:l,val:v,display:v.toFixed(1)+'m'})));
   // 4. Eficiencia y productividad por revisador
   const TH3='padding:7px 10px;font-family:\'Barlow Condensed\',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;background:#f8fafc;border-bottom:2px solid #e2e8f0;';
   const TD3='padding:7px 10px;font-size:13px;color:#0f172a;border-bottom:1px solid #f1f5f9;font-weight:600;';
@@ -2626,19 +2642,18 @@ function renderDashboard(){
       }).join('')
       +'</tbody></table>'
     :'<div style="color:#94a3b8;font-size:12px;padding:10px;">Sin datos</div>';
-  // 5. Resultados
-  const pctA=fin.length?Math.round(aprobados/fin.length*100):0,pctR=fin.length?Math.round(rechazados/fin.length*100):0;
-  document.getElementById('dash-resultados').innerHTML='<div style="display:flex;gap:12px;margin-bottom:16px;"><div style="flex:1;background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:14px;text-align:center;"><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:32px;font-weight:800;color:#15803d;">'+pctA+'%</div><div style="font-size:11px;font-weight:700;color:#15803d;text-transform:uppercase;">Aprobados</div></div><div style="flex:1;background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;padding:14px;text-align:center;"><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:32px;font-weight:800;color:#dc2626;">'+pctR+'%</div><div style="font-size:11px;font-weight:700;color:#dc2626;text-transform:uppercase;">Rechazados</div></div></div>'+barChart([{label:'Aprobados',val:aprobados},{label:'Rechazados',val:rechazados},{label:'En revisión',val:enRev}],d=>d.label==='Aprobados'?'#15803d':d.label==='Rechazados'?'#dc2626':'#f59e0b');
-  // 6. Defectos
+  // 5. Resultados — dona
+  document.getElementById('dash-resultados').innerHTML=donutChart(aprobados,rechazados,enRev);
+  // 6. Defectos — barras verticales azul
   const dm={};fin.forEach(r=>(r.defectos||[]).forEach(d=>{dm[d.tipo]=(dm[d.tipo]||0)+parseInt(d.cantidad||0);}));
-  document.getElementById('dash-defectos').innerHTML=Object.keys(dm).length?barChart(Object.entries(dm).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([l,v])=>({label:l,val:v})),()=>'#c2410c'):'<div style="color:#94a3b8;font-size:12px;padding:10px;">Sin defectos</div>';
-  // Tiempo promedio por revisador (solo telas)
+  document.getElementById('dash-defectos').innerHTML=Object.keys(dm).length?vBarChart(Object.entries(dm).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([l,v])=>({label:l,val:v})),'#2563eb'):'<div style="color:#94a3b8;font-size:12px;padding:10px;">Sin defectos</div>';
+  // 7. Tiempo promedio por revisador — ranking
   const tm={},cm={};fin.filter(r=>r.tipo!=='multitarea').forEach(r=>{if(!r.tiempo)return;const mins=parseMins(r.tiempo);if(mins){tm[r.revisador||'—']=(tm[r.revisador||'—']||0)+mins;cm[r.revisador||'—']=(cm[r.revisador||'—']||0)+1;}});
   const promedios=Object.entries(tm).map(([rev,total])=>{const avg=Math.round(total/(cm[rev]||1));return{label:rev,val:avg,display:avg>=60?Math.floor(avg/60)+'h '+avg%60+'min':avg+'min'};}).sort((a,b)=>b.val-a.val);
-  document.getElementById('dash-tiempos').innerHTML=promedios.length?promedios.map(d=>'<div style="margin-bottom:10px;"><div style="display:flex;justify-content:space-between;margin-bottom:3px;"><span style="font-size:12px;font-weight:600;color:#334155;">'+d.label+'</span><span style="font-size:14px;font-weight:800;color:#0f172a;">'+d.display+'</span></div><div style="background:#f1f5f9;border-radius:6px;height:10px;overflow:hidden;"><div style="width:'+Math.round(d.val/Math.max(...promedios.map(x=>x.val))*100)+'%;height:100%;background:#0891b2;border-radius:6px;"></div></div></div>').join(''):'<div style="color:#94a3b8;font-size:12px;padding:10px;">Sin datos</div>';
-  // Horas laboradas por revisador (todas las actividades)
+  document.getElementById('dash-tiempos').innerHTML=promedios.length?rankList(promedios):'<div style="color:#94a3b8;font-size:12px;padding:10px;">Sin datos</div>';
+  // 8. Horas laboradas — barras horizontales azul
   const hl={};fin.forEach(r=>{const mins=parseMins(r.tiempo);if(mins)hl[r.revisador||'—']=(hl[r.revisador||'—']||0)+mins;});
-  document.getElementById('dash-horas-laboradas').innerHTML=Object.keys(hl).length?barChart(Object.entries(hl).sort((a,b)=>b[1]-a[1]).map(([l,v])=>{const d=v>=60?Math.floor(v/60)+'h '+(v%60)+'min':v+'min';return{label:l,val:v,display:d};}),()=>'#0891b2',true):'<div style="color:#94a3b8;font-size:12px;padding:10px;">Sin datos</div>';
+  document.getElementById('dash-horas-laboradas').innerHTML=Object.keys(hl).length?barChart(Object.entries(hl).sort((a,b)=>b[1]-a[1]).map(([l,v])=>{const d=v>=60?Math.floor(v/60)+'h '+(v%60)+'min':v+'min';return{label:l,val:v,display:d};}),()=>'#2563eb',true):'<div style="color:#94a3b8;font-size:12px;padding:10px;">Sin datos</div>';
   // 9. Tiempo por actividad por revisador
   const actPorRev={};
   fin.forEach(r=>{
@@ -2650,7 +2665,7 @@ function renderDashboard(){
     actPorRev[rev][actKey]=(actPorRev[rev][actKey]||0)+mins;
   });
   const revOrdenados=Object.keys(actPorRev).sort();
-  const colores=['#2563eb','#7c3aed','#0891b2','#15803d','#d97706','#dc2626','#64748b'];
+  const colores=['#2563eb','#2563eb','#2563eb','#2563eb','#2563eb','#2563eb','#2563eb'];
   const allActKeys=[...new Set(fin.map(r=>r.tipo==='multitarea'?('⚡ '+(r.tarea||'Tarea')):'🧵 Rev. Tela'))].sort();
   document.getElementById('dash-actividades-por-rev').innerHTML=revOrdenados.length?
     revOrdenados.map(rev=>{
@@ -2660,6 +2675,77 @@ function renderDashboard(){
         +barChart(data,d=>d.color,true)+'</div>';
     }).join('')
     :'<div style="color:#94a3b8;font-size:12px;padding:10px;">Sin datos</div>';
+}
+
+function vBarChart(data,color){
+  if(!data.length)return '<div style="color:#94a3b8;font-size:12px;padding:10px;">Sin datos</div>';
+  const max=Math.max(...data.map(d=>d.val));
+  const H=90;
+  return '<div style="display:flex;align-items:flex-end;gap:6px;height:'+(H+32)+'px;padding:0 2px;">'
+    +data.map(d=>{
+      const h=max>0?Math.round(d.val/max*H):0;
+      const lbl=(d.label||'').split(' ')[0].slice(0,8);
+      return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;min-width:24px;">'
+        +'<span style="font-size:9px;font-weight:600;color:var(--dp,#0f172a);">'+d.val+'</span>'
+        +'<div style="width:100%;background:'+(color||'#2563eb')+';border-radius:4px 4px 0 0;height:'+Math.max(h,3)+'px;"></div>'
+        +'<span style="font-size:8px;color:#94a3b8;text-align:center;white-space:nowrap;overflow:hidden;max-width:100%;">'+lbl+'</span>'
+        +'</div>';
+    }).join('')+'</div>';
+}
+function rankList(data,unit){
+  if(!data.length)return '<div style="color:#94a3b8;font-size:12px;padding:10px;">Sin datos</div>';
+  return data.map((d,i)=>'<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f1f5f9;">'
+    +'<span style="font-size:11px;font-weight:700;color:#94a3b8;min-width:16px;">'+(i+1)+'</span>'
+    +'<span style="font-size:12px;font-weight:600;color:#334155;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(d.label||'—')+'</span>'
+    +'<span style="font-family:\'Barlow Condensed\',sans-serif;font-size:14px;font-weight:800;color:#0f172a;">'+(d.display||d.val)+(unit&&!d.display?unit:'')+'</span>'
+    +'</div>').join('');
+}
+function donutChart(aprobados,rechazados,enRev){
+  const total=aprobados+rechazados+enRev||1;
+  const C=188.5;
+  const pA=aprobados/total*C, pR=rechazados/total*C, pE=enRev/total*C;
+  const pctA=Math.round(aprobados/total*100),pctR=Math.round(rechazados/total*100);
+  return '<div style="display:flex;align-items:center;gap:16px;">'
+    +'<svg width="90" height="90" viewBox="0 0 80 80" style="flex-shrink:0;">'
+    +'<circle cx="40" cy="40" r="30" fill="none" stroke="#f1f5f9" stroke-width="13"/>'
+    +'<circle cx="40" cy="40" r="30" fill="none" stroke="#15803d" stroke-width="13" stroke-dasharray="'+pA+' '+C+'" stroke-dashoffset="'+(C/4)+'" transform="rotate(-90 40 40)"/>'
+    +'<circle cx="40" cy="40" r="30" fill="none" stroke="#dc2626" stroke-width="13" stroke-dasharray="'+pR+' '+C+'" stroke-dashoffset="'+((C/4)-pA)+'" transform="rotate(-90 40 40)"/>'
+    +'<circle cx="40" cy="40" r="30" fill="none" stroke="#f59e0b" stroke-width="13" stroke-dasharray="'+pE+' '+C+'" stroke-dashoffset="'+((C/4)-pA-pR)+'" transform="rotate(-90 40 40)"/>'
+    +'<text x="40" y="37" text-anchor="middle" font-size="11" font-weight="700" fill="#0f172a">'+(aprobados+rechazados+enRev)+'</text>'
+    +'<text x="40" y="49" text-anchor="middle" font-size="8" fill="#94a3b8">total</text>'
+    +'</svg>'
+    +'<div>'
+    +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:7px;"><div style="width:8px;height:8px;border-radius:50%;background:#15803d;flex-shrink:0;"></div><span style="font-size:11px;color:#334155;flex:1;">Aprobados</span><span style="font-size:13px;font-weight:700;color:#15803d;">'+aprobados+' <span style="font-size:10px;color:#94a3b8;">('+pctA+'%)</span></span></div>'
+    +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:7px;"><div style="width:8px;height:8px;border-radius:50%;background:#dc2626;flex-shrink:0;"></div><span style="font-size:11px;color:#334155;flex:1;">Rechazados</span><span style="font-size:13px;font-weight:700;color:#dc2626;">'+rechazados+' <span style="font-size:10px;color:#94a3b8;">('+pctR+'%)</span></span></div>'
+    +'<div style="display:flex;align-items:center;gap:6px;"><div style="width:8px;height:8px;border-radius:50%;background:#f59e0b;flex-shrink:0;"></div><span style="font-size:11px;color:#334155;flex:1;">En revisión</span><span style="font-size:13px;font-weight:700;color:#f59e0b;">'+enRev+'</span></div>'
+    +'</div></div>';
+}
+
+// ── Timer Multitarea ─────────────────────────────────────────────────
+let _mtTimerInterval=null,_mtTimerStart=null,_mtCurrentId=null;
+function abrirMtTimer(id,tarea){
+  _mtCurrentId=id;_mtTimerStart=Date.now();
+  document.getElementById('mt-timer-tarea').textContent=tarea;
+  document.getElementById('mt-timer-display').textContent='00:00:00';
+  document.getElementById('mt-timer-overlay').style.display='flex';
+  _mtTimerInterval=setInterval(()=>{
+    const e=Date.now()-_mtTimerStart;
+    const h=Math.floor(e/3600000),m=Math.floor((e%3600000)/60000),s=Math.floor((e%60000)/1000);
+    document.getElementById('mt-timer-display').textContent=
+      String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+  },1000);
+}
+function finalizarMultitareaTimer(){
+  clearInterval(_mtTimerInterval);_mtTimerInterval=null;
+  document.getElementById('mt-timer-overlay').style.display='none';
+  const idx=_registros.findIndex(r=>r.id===_mtCurrentId);
+  if(idx>=0){
+    const horaFin=horaActual();
+    _registros[idx]={..._registros[idx],hora_fin:horaFin,tiempo:calcTiempo(_registros[idx].hora_inicio,horaFin),resultado:'Completado',finalizado:true};
+  }
+  _mtCurrentId=null;_mtTimerStart=null;
+  aplicarFiltros();guardarEnServidor();
+  showToast('✅ Tarea completada');
 }
 
 function barChart(data,colorFn,showDisplay){
@@ -2871,9 +2957,9 @@ function iniciarMultitarea(){
   _pendingIds.add(reg.id);
   registrarHistorial('CREADO',reg,'Multitarea: '+tarea);
   closeMultitareaModal();
-  aplicarFiltros();
-  showToast('▶ Multitarea iniciada: '+tarea);
   guardarEnServidor();
+  aplicarFiltros();
+  abrirMtTimer(reg.id,tarea);
 }
 
 // ── Config Tareas ───────────────────────────────────────────────────
