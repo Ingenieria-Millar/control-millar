@@ -948,9 +948,10 @@ input[type=number]{-moz-appearance:textfield;}
 <!-- Modal Finalizar Revisión -->
 <div class="modal-overlay" id="modal-finalizar">
   <div class="modal-box wide">
-    <div class="modal-header">
+    <div class="modal-header" style="position:relative;">
       <div class="modal-title">🏁 FINALIZAR REVISIÓN</div>
       <div style="font-size:12px;color:#64748b;margin-top:4px;" id="fin-ref-label"></div>
+      <button onclick="closeFinalizar()" style="position:absolute;top:0;right:0;background:none;border:none;font-size:20px;color:#94a3b8;cursor:pointer;line-height:1;padding:4px 6px;" title="Volver a revisión">✕</button>
     </div>
     <div class="modal-body">
       <!-- Metros -->
@@ -1002,7 +1003,6 @@ input[type=number]{-moz-appearance:textfield;}
       <div id="fin-error" style="color:#dc2626;font-size:12px;min-height:14px;"></div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeFinalizar()">Cancelar</button>
       <button class="btn btn-primary" onclick="guardarFinalizar()">✅ Finalizar</button>
     </div>
   </div>
@@ -1643,6 +1643,24 @@ function rtEntrarApp(){
   // Guardar sesión para persistir al refrescar
   sessionStorage.setItem('rt_session', JSON.stringify({user:_rtCurrentUser, isAdmin:_rtIsAdmin}));
   aplicarFiltros();
+  // Recuperar revisión activa si la tablet/navegador se cerró
+  try{
+    const saved=JSON.parse(localStorage.getItem('rt_revision_activa')||'null');
+    if(saved&&saved.id){
+      const r=_registros.find(x=>x.id===saved.id&&!x.finalizado);
+      if(r) openRevisionActiva(saved.id, saved.start);
+      else localStorage.removeItem('rt_revision_activa');
+    }
+  }catch(e){}
+  // Recuperar multitarea activa si la tablet/navegador se cerró
+  try{
+    const mt=JSON.parse(localStorage.getItem('rt_mt_activa')||'null');
+    if(mt&&mt.id){
+      const r=_registros.find(x=>x.id===mt.id&&!x.finalizado);
+      if(r) abrirMtTimer(mt.id, mt.tarea||r.tarea||'Multitarea', mt.start);
+      else localStorage.removeItem('rt_mt_activa');
+    }
+  }catch(e){}
 }
 
 function rtCerrarSesion(){
@@ -1798,7 +1816,7 @@ function renderTabla(){
       :(r.finalizado
         ?(r.resultado==='aprobado'?'<span class="td-badge badge-ok">✅ Aprobado</span>':'<span class="td-badge badge-rech">❌ Rechazado</span>')
         :'<span class="td-badge badge-pend">🔄 En revisión</span>');
-    const accionFin=r.finalizado?'':`<button class="btn-finalizar" onclick="openFinalizar('${r.id}')">🏁 FINALIZAR</button>`;
+    const accionFin=(!r.finalizado&&_rtIsAdmin)?`<button class="btn-finalizar" onclick="openFinalizar('${r.id}')">🏁 FINALIZAR</button>`:'';
     const totalDef=(!esMultitarea&&r.defectos)?(r.defectos.reduce((s,d)=>s+parseInt(d.cantidad||0),0)):0;
     const refCell=esMultitarea
       ?`<span style="font-weight:700;color:#6d28d9;">${r.tarea||'—'}</span>`
@@ -2069,6 +2087,7 @@ function migrarTurnos(){
   return cambios;
 }
 function guardarRegistro(){
+  if(_revisionActivaId){showToast('Ya tienes un rollo en revisión. Finalízalo primero.','error');return;}
   const fecha=document.getElementById('f-fecha').value;
   const revisador=_rtIsAdmin?document.getElementById('f-revisador').value:_rtCurrentUser;
   const factura=document.getElementById('f-factura-val').value||document.getElementById('f-factura-input').value.trim();
@@ -2256,12 +2275,13 @@ function agregarDefectoRowActiva(){
   row.appendChild(sel); row.appendChild(inpMetro); row.appendChild(inpCant); row.appendChild(btn);
   list.appendChild(row);
 }
-function openRevisionActiva(id){
+function openRevisionActiva(id, startEpoch){
   _revisionActivaId=id;
   const r=_registros.find(x=>x.id===id);if(!r)return;
   document.getElementById('activa-ref-label').textContent=(r.referencia||'')+' — Rollo '+(r.rollo||'')+' — '+(r.revisador||'');
   document.getElementById('activa-defectos-list').innerHTML='';
-  _revisionActivaStart=Date.now();
+  _revisionActivaStart=startEpoch||Date.now();
+  localStorage.setItem('rt_revision_activa',JSON.stringify({id,start:_revisionActivaStart}));
   clearInterval(_revisionActivaTimer);
   _revisionActivaTimer=setInterval(()=>{
     const secs=Math.floor((Date.now()-_revisionActivaStart)/1000);
@@ -2278,6 +2298,7 @@ function closeRevisionActiva(){
   clearInterval(_revisionActivaTimer);_revisionActivaTimer=null;
   document.getElementById('modal-revision-activa').classList.remove('open');
   _revisionActivaId=null;
+  localStorage.removeItem('rt_revision_activa');
 }
 function finalizarDesdeRevision(){
   const id=_revisionActivaId;
@@ -2375,6 +2396,7 @@ function guardarFinalizar(){
   const horaFin=horaActual();
   const idx=_registros.findIndex(x=>x.id===_finalizandoId);
   if(idx>=0){const reg=_registros[idx];_registros[idx]={...reg,metros:esMultitarea?'':metros,ancho,peso,defectos,resultado,observaciones:obs,hora_fin:horaFin,tiempo:calcTiempo(reg.hora_inicio,horaFin),finalizado:true};}
+  localStorage.removeItem('rt_revision_activa');
   guardarEnServidor();aplicarFiltros();closeFinalizar();
   showToast('✅ '+(esMultitarea?'Tarea completada':'Revisión finalizada')+' — Hora fin: '+horaFin);
 }
@@ -2800,8 +2822,9 @@ function donutChart(aprobados,rechazados,enRev){
 
 // ── Timer Multitarea ─────────────────────────────────────────────────
 let _mtTimerInterval=null,_mtTimerStart=null,_mtCurrentId=null;
-function abrirMtTimer(id,tarea){
-  _mtCurrentId=id;_mtTimerStart=Date.now();
+function abrirMtTimer(id,tarea,startEpoch){
+  _mtCurrentId=id;_mtTimerStart=startEpoch||Date.now();
+  localStorage.setItem('rt_mt_activa',JSON.stringify({id,tarea,start:_mtTimerStart}));
   document.getElementById('mt-timer-tarea').textContent=tarea;
   document.getElementById('mt-timer-display').textContent='00:00:00';
   document.getElementById('mt-timer-overlay').style.display='flex';
@@ -2814,6 +2837,7 @@ function abrirMtTimer(id,tarea){
 }
 function finalizarMultitareaTimer(){
   clearInterval(_mtTimerInterval);_mtTimerInterval=null;
+  localStorage.removeItem('rt_mt_activa');
   document.getElementById('mt-timer-overlay').style.display='none';
   const idx=_registros.findIndex(r=>r.id===_mtCurrentId);
   if(idx>=0){
@@ -3106,6 +3130,7 @@ function closeMultitareaModal(){
   document.getElementById('modal-multitarea').style.display='none';
 }
 function iniciarMultitarea(){
+  if(_mtCurrentId){showToast('Ya tienes una multitarea en curso. Finalízala primero.','error');closeMultitareaModal();return;}
   let tarea=document.getElementById('mt-tarea').value;
   const errEl=document.getElementById('mt-error');
   if(!tarea){errEl.textContent='Selecciona una tarea';return;}

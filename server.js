@@ -2104,7 +2104,8 @@ wss.on('connection', (ws, req) => {
     iaState:       iaState,
     iaRecords:     iaRecords,
     modulesConfig: modulesConfig,
-    multiImps:     JSON.parse(JSON.stringify(multiImps))
+    multiImps:     JSON.parse(JSON.stringify(multiImps)),
+    ciCumplido:    ciRequests.filter(r => r.status === 'cumplido')
   }));
 
   ws.on('message', (raw) => {

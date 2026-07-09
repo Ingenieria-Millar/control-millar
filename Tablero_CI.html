@@ -1456,15 +1456,21 @@ function buildCard(req, solicitudNum){
       <tr><td>Observación</td>${obsCell}</tr>
     </table>
     <div class="ci-card-footer">
-      ${!isDone ? `
+      ${isDone ? `
+        <button class="ci-action-btn del" style="flex:1;" onclick="abrirDel('${req._id}')">Eliminar registro</button>
+      ` : isCump ? `
+        <button class="ci-action-btn cumplir" style="flex:1;background:#16a34a;" onclick="forzarEntregado('${req._id}')">
+          ✅ Confirmar Entrega
+        </button>
+        <button class="ci-action-btn cumplir" style="background:#d97706;" onclick="marcarCumplido('${req._id}')" title="Re-enviar notificación a módulo">🔔</button>
+        <button class="ci-action-btn del" onclick="abrirDel('${req._id}')">🗑</button>
+      ` : `
         <button class="ci-action-btn cumplir" style="flex:1;" onclick="marcarCumplido('${req._id}')"
           ${cumplirDisabled ? `disabled title="${cumplirTitle}"` : ''}>
           Marcar Cumplido
         </button>
         <button class="ci-action-btn" style="background:#e8e8ff;color:#4f46e5;padding:8px 12px;" onclick="abrirEditar('${req._id}')">✏️</button>
         <button class="ci-action-btn del" onclick="abrirDel('${req._id}')">🗑</button>
-      ` : `
-        <button class="ci-action-btn del" style="flex:1;" onclick="abrirDel('${req._id}')">Eliminar registro</button>
       `}
     </div>
   `;
@@ -1556,6 +1562,22 @@ function actualizarBtnModulo(){
     btn.style.borderColor = '';
     btn.style.color = '';
   }
+}
+
+// ── Forzar entregado (cuando módulo ya aceptó pero CI no recibió el done) ──
+function forzarEntregado(id){
+  const req = ciRequests.find(r => r._id === id);
+  if(!req) return;
+  const updated = Object.assign({}, req, {
+    status:     'done',
+    resolvedAt: new Date().toLocaleTimeString('es-CO'),
+    waitTime:   req.alertStart ? (Date.now() - req.alertStart) : 0
+  });
+  const idx = ciRequests.findIndex(r => r._id === id);
+  if(idx > -1) ciRequests[idx] = updated;
+  wsSend({ type: 'ci_update_request', request: updated });
+  renderCards();
+  showToast('✅ Marcado como entregado — ' + (req.module || ''));
 }
 
 // ── Marcar cumplido ──

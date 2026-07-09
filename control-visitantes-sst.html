@@ -516,7 +516,6 @@ let personalUI = { step:'buscar', numDoc:'', tipoDoc:'CC', perfilExistente:null,
 let entradaUI  = { step:'buscar', numDoc:'', tipoDoc:'CC', perfilExistente:null, modoFirma:'nueva' };
 let mesEmpleados = [];
 let currentSigPad = null;
-const STORAGE_KEY = 'visitantes-db';
 
 const TABS_VISITANTES = [
   { key:'ingreso', label:'Ingreso' },
@@ -586,36 +585,15 @@ function resolveEntityValue(selectId, otroId){
 }
 
 /* ============================ PERSISTENCIA ============================ */
-/* ---------- Capa de almacenamiento: usa window.storage (dentro de Claude)
-   y cae automáticamente a localStorage cuando se ejecuta como archivo
-   descargado o fuera del entorno de Claude.ai ---------- */
-let storageMode = null; // 'cloud' | 'local'
-
-async function probarStorageCloud(){
-  try{
-    if(!window.storage || typeof window.storage.get !== 'function') return false;
-    await window.storage.get(STORAGE_KEY, true);
-    return true;
-  }catch(e){
-    // Si el error es "no encontrado" (clave nueva), igual significa que el backend SÍ responde
-    const msg = (e && e.message ? e.message : String(e)).toLowerCase();
-    if(msg.includes('not found') || msg.includes('no encontrado') || msg.includes('404')) return true;
-    return false;
-  }
-}
+let storageMode = 'cloud'; // siempre servidor
 
 async function loadDB(){
-  const cloudOk = await probarStorageCloud();
-  storageMode = cloudOk ? 'cloud' : 'local';
-
   let raw = null;
   try{
-    if(storageMode === 'cloud'){
-      const res = await window.storage.get(STORAGE_KEY, true);
-      raw = res.value;
-    } else {
-      raw = localStorage.getItem(STORAGE_KEY);
-    }
+    const res = await fetch('/api/visitantes/db');
+    if(!res.ok) throw new Error('http '+res.status);
+    const json = await res.json();
+    raw = json.data ? JSON.stringify(json.data) : null;
     if(raw == null) throw new Error('sin datos previos');
     DB = JSON.parse(raw);
     if(!DB.config) DB.config = {};
@@ -639,30 +617,19 @@ async function loadDB(){
 }
 
 async function saveDB(){
-  // Si el modo todavía no se determinó (llamada muy temprana), decide ahora.
-  if(storageMode === null){
-    storageMode = (await probarStorageCloud()) ? 'cloud' : 'local';
-  }
   try{
-    if(storageMode === 'cloud'){
-      const result = await window.storage.set(STORAGE_KEY, JSON.stringify(DB), true);
-      if(!result) throw new Error('sin resultado');
-    } else {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(DB));
-    }
+    const res = await fetch('/api/visitantes/db', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(DB)
+    });
+    if(!res.ok) throw new Error('http '+res.status);
+    const json = await res.json();
+    if(!json.ok) throw new Error('servidor rechazó');
     return true;
   }catch(e){
-    console.error('Error guardando registro en modo', storageMode, e);
-    // Si falla la nube a mitad de uso, intenta una sola vez con localStorage como respaldo
-    if(storageMode === 'cloud'){
-      try{
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(DB));
-        storageMode = 'local';
-        showToast('Se perdió la conexión con el almacenamiento en la nube. Continuando en modo local en este dispositivo.', 'error');
-        return true;
-      }catch(e2){ /* sigue al mensaje de error genérico abajo */ }
-    }
-    showToast('No se pudo guardar el registro. Verifica tu conexión e intenta de nuevo.');
+    console.error('Error guardando visitantes en servidor:', e);
+    showToast('No se pudo guardar. Verifica la conexión con el servidor.');
     return false;
   }
 }
@@ -2791,13 +2758,8 @@ async function init(){
   const badge = document.getElementById('storageModeBadge');
   if(badge){
     badge.style.display = 'inline-block';
-    if(storageMode === 'cloud'){
-      badge.className = 'storage-badge cloud';
-      badge.textContent = '☁ Datos compartidos (nube)';
-    } else {
-      badge.className = 'storage-badge local';
-      badge.textContent = '💾 Datos solo en este dispositivo';
-    }
+    badge.className = 'storage-badge cloud';
+    badge.textContent = '☁ Datos en servidor';
   }
   const huboCierres = await cerrarPendientesVencidos();
   renderView();

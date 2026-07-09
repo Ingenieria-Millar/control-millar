@@ -463,6 +463,10 @@ function connectWS(){
     clearTimeout(reconnectTimer);
     setConnStatus(true);
     ws.send(JSON.stringify({ type: 'subscribe', topics: ['modulos', 'ci'] }));
+    // Flush mensajes que no pudieron enviarse mientras estaba desconectado
+    while (_wsQueue.length > 0 && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(_wsQueue.shift()));
+    }
   };
 
   ws.onmessage = (e) => {
@@ -478,6 +482,16 @@ function connectWS(){
         // Restaurar multiImps desde el servidor
         if (msg.multiImps) Object.assign(_multiImp, msg.multiImps);
         renderBig();
+        // Recuperar notificaciones cumplido pendientes (tablet estaba offline cuando CI marcó)
+        if (msg.ciCumplido && selectedMod) {
+          if (!window._ciRequests) window._ciRequests = [];
+          msg.ciCumplido.forEach(r => {
+            const idx = window._ciRequests.findIndex(x => x._id === r._id);
+            if (idx > -1) window._ciRequests[idx] = r; else window._ciRequests.unshift(r);
+          });
+          const pendiente = msg.ciCumplido.find(r => r.module === selectedMod && !window._ciPendingConfirm[r._id]);
+          if (pendiente) showCiCumplidoModal(pendiente);
+        }
         return;
       }
 
@@ -613,8 +627,13 @@ function connectWS(){
   ws.onerror = () => ws.close();
 }
 
+let _wsQueue = [];
 function wsSend(payload){
-  if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(payload));
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify(payload));
+  } else {
+    _wsQueue.push(payload);
+  }
 }
 
 connectWS();

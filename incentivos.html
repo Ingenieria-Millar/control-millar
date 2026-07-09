@@ -90,8 +90,10 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
 .admin-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px;}
 .admin-toolbar .spacer{flex:1;}
 .admin-search{display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
-.admin-search input{flex:1;min-width:200px;padding:10px 14px;border:1.5px solid var(--border);border-radius:9px;font-family:'Nunito',sans-serif;font-size:14px;outline:none;}
+.admin-search input{flex:1;min-width:150px;padding:10px 14px;border:1.5px solid var(--border);border-radius:9px;font-family:'Nunito',sans-serif;font-size:14px;outline:none;}
 .admin-search input:focus{border-color:var(--blue);}
+.admin-search select{padding:10px 14px;border:1.5px solid var(--border);border-radius:9px;font-family:'Nunito',sans-serif;font-size:14px;outline:none;background:#fff;cursor:pointer;min-width:130px;}
+.admin-search select:focus{border-color:var(--blue);}
 .admin-search .count{font-size:12px;color:var(--muted);font-weight:700;}
 
 .tbl-scroll{max-height:520px;overflow:auto;border:1.5px solid var(--border);border-radius:12px;}
@@ -144,7 +146,7 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
   </div>
   <div class="hd-right">
     <button class="hd-gear" id="btnGear" title="Administración">⚙️</button>
-    <a class="hd-back-btn" href="/">← Volver</a>
+    <a class="hd-back-btn" href="/" id="btnVolver" onclick="handleVolver(event)">← Volver</a>
   </div>
 </header>
 
@@ -205,7 +207,9 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
     </div>
 
     <div class="admin-search">
-      <input id="admSearch" type="text" placeholder="Buscar por mes, contrato o nombre…">
+      <select id="admFiltroMes"><option value="">Todos los meses</option></select>
+      <input id="admFiltroContrato" type="text" placeholder="Contrato…" style="min-width:100px;flex:0 0 120px;">
+      <input id="admFiltroNombre" type="text" placeholder="Nombre…">
       <span class="count" id="admCount">0 registros</span>
     </div>
 
@@ -451,16 +455,36 @@ async function cargarTodo(){
   }catch(e){ adminData = []; toast('No se pudo cargar la lista.'); }
   editingId = null;
   renderDispAdmin();
+  poblarMesSelect();
   aplicarBusqueda(true);
 }
 
+function poblarMesSelect(){
+  const meses = [...new Set(adminData.map(r=>r.mes).filter(Boolean))].sort();
+  const sel = document.getElementById('admFiltroMes');
+  const current = sel.value;
+  sel.innerHTML = '<option value="">Todos los meses</option>' +
+    meses.map(m=>`<option value="${esc(m)}">${esc(m)}</option>`).join('');
+  if(current) sel.value = current;
+}
+
+function handleVolver(e){
+  if(adminUnlocked && document.getElementById('adminCard').style.display !== 'none'){
+    e.preventDefault();
+    mostrarConsulta();
+  }
+}
+
 function aplicarBusqueda(reset){
-  const q = document.getElementById('admSearch').value.trim().toLowerCase();
-  filtered = !q ? adminData.slice() : adminData.filter(r =>
-    (r.mes||'').toLowerCase().includes(q) ||
-    (r.contrato||'').toLowerCase().includes(q) ||
-    (r.nombre||'').toLowerCase().includes(q)
-  );
+  const mes      = document.getElementById('admFiltroMes').value.toLowerCase();
+  const contrato = document.getElementById('admFiltroContrato').value.trim().toLowerCase();
+  const nombre   = document.getElementById('admFiltroNombre').value.trim().toLowerCase();
+  filtered = adminData.filter(r=>{
+    if(mes      && !(r.mes||'').toLowerCase().includes(mes))      return false;
+    if(contrato && !(r.contrato||'').toLowerCase().includes(contrato)) return false;
+    if(nombre   && !(r.nombre||'').toLowerCase().includes(nombre)) return false;
+    return true;
+  });
   filtered.sort((a,b)=>{
     const m = (a.mes||'').localeCompare(b.mes||'');
     return m !== 0 ? m : (a.contrato||'').localeCompare(b.contrato||'', undefined, {numeric:true});
@@ -555,7 +579,9 @@ document.getElementById('admBody').addEventListener('keydown', e => {
   }
 });
 
-document.getElementById('admSearch').addEventListener('input', ()=>aplicarBusqueda(true));
+document.getElementById('admFiltroMes').addEventListener('change', ()=>aplicarBusqueda(true));
+document.getElementById('admFiltroContrato').addEventListener('input', ()=>aplicarBusqueda(true));
+document.getElementById('admFiltroNombre').addEventListener('input', ()=>aplicarBusqueda(true));
 document.getElementById('pgPrev').addEventListener('click', ()=>{ if(page>1){ page--; renderTabla(); } });
 document.getElementById('pgNext').addEventListener('click', ()=>{
   const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));

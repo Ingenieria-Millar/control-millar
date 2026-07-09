@@ -157,34 +157,13 @@ tbody tr:hover td{background:var(--bg)}
 </head>
 <body>
 
-<!-- LOGIN -->
-<div id="login-screen" class="login-wrap">
-  <div class="login-box">
-    <div class="login-logo">
-      <div class="login-icon"><i class="ti ti-id-badge-2"></i></div>
-      <div class="login-title">Control de Permisos</div>
-      <div class="login-sub">Ingresa con tu usuario y contraseña</div>
-    </div>
-    <div class="login-form">
-      <div class="lerror" id="lerror"><i class="ti ti-alert-circle"></i><span id="lerror-msg">Usuario o contraseña incorrectos.</span></div>
-      <div class="fg"><label>Usuario</label><input type="text" id="login-user" placeholder="Tu usuario" autocomplete="off"></div>
-      <div class="fg"><label>Contraseña</label><input type="password" id="login-pass" placeholder="••••••••"></div>
-      <button class="btn primary full" style="margin-top:8px" id="btn-login"><i class="ti ti-login"></i> Ingresar</button>
-    </div>
-    <div style="margin-top:16px;padding:12px;background:var(--surface2);border-radius:var(--radius);font-size:12px;color:var(--text2)">
-      <span style="color:var(--text3)">¿Problemas para ingresar?</span>
-      <button onclick="resetearUsuarios()" style="margin-left:6px;background:var(--amber);color:#fff;border:none;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer;font-weight:600">🔑 Restablecer accesos</button>
-    </div>
-  </div>
-</div>
-
 <!-- APP -->
-<div id="app-screen" style="display:none">
+<div id="app-screen">
 <div class="app-wrap">
   <aside class="sidebar">
     <div class="sidebar-logo">
-      <div class="logo-mark">Sistema RRHH</div>
-      <div class="logo-name">Control de<br>Permisos</div>
+      <div class="logo-mark" style="color:#2563eb;letter-spacing:.12em;">CONFECCIONES MILLAR</div>
+      <div class="logo-name">📋 Control de<br>Permisos</div>
     </div>
     <div class="user-pill">
       <div class="avatar" id="sb-avatar">A</div>
@@ -192,7 +171,7 @@ tbody tr:hover td{background:var(--bg)}
     </div>
     <nav class="sidebar-nav" id="sidebar-nav"></nav>
     <div class="sidebar-footer">
-      <button class="btn-logout" id="btn-logout"><i class="ti ti-logout"></i> Cerrar sesión</button>
+      <button class="btn-logout" id="btn-logout" onclick="window.location.href='/'"><i class="ti ti-arrow-left"></i> Volver al Menú</button>
     </div>
   </aside>
 
@@ -923,28 +902,8 @@ function resetearUsuarios(){
   alert('Listo. Ingresa con:\nUsuario: admin\nContrasena: admin123');
 }
 
-function doLogin(){
-  var u=document.getElementById('login-user').value.trim();
-  var p=document.getElementById('login-pass').value;
-  var found=DB.usuarios.find(function(x){return x.user===u&&x.pass===p;});
-  if(!found){
-    var el=document.getElementById('lerror');
-    document.getElementById('lerror-msg').textContent='Usuario o contraseña incorrectos.';
-    el.classList.add('show');setTimeout(function(){el.classList.remove('show');},3000);return;
-  }
-  currentUser=found;
-  document.getElementById('login-screen').style.display='none';
-  document.getElementById('app-screen').style.display='';
-  setupSidebar();
-  if(currentUser.rol==='recepcion')showTab('recepcion');
-  else showTab('dashboard');
-}
-function doLogout(){
-  currentUser=null;
-  document.getElementById('app-screen').style.display='none';
-  document.getElementById('login-screen').style.display='flex';
-  document.getElementById('login-user').value='';document.getElementById('login-pass').value='';
-}
+function doLogin(){ /* deshabilitado — sesión viene de Millar */ }
+function doLogout(){ window.location.href='/'; }
 
 var NAV_CONFIG={
   admin:[
@@ -2022,8 +1981,6 @@ function cerrarModal(id){var el=document.getElementById(id);if(el)el.classList.r
 window.addEventListener('click',function(e){if(e.target.classList.contains('modal-overlay'))e.target.classList.remove('show');});
 
 // EVENT LISTENERS
-document.getElementById('btn-login').addEventListener('click',doLogin);
-document.getElementById('login-pass').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
 document.getElementById('btn-logout').addEventListener('click',doLogout);
 document.getElementById('btn-nuevo-dash').addEventListener('click',function(){showTab('nuevo');});
 document.getElementById('btn-submit-form').addEventListener('click',submitForm);
@@ -2097,6 +2054,18 @@ if(!DB.usuarios.length||!DB.usuarios.find(function(u){return u.user==='admin';})
   DB.usuarios=[{id:1,nombre:'Administrador',user:'admin',pass:'admin123',rol:'admin',area:''},{id:2,nombre:'Recepción Principal',user:'recepcion',pass:'recep123',rol:'recepcion',area:''}];
   localStorage.setItem('usuarios_v1',JSON.stringify(DB.usuarios));
 }
+// Auto-login desde sesión Millar
+(function(){
+  try{
+    var s=JSON.parse(localStorage.getItem('cm_session')||'{}');
+    var nombre=s.user||'Programador';
+    currentUser={id:0,nombre:nombre,user:nombre.toLowerCase().replace(/\s/g,'_'),pass:'',rol:'admin',area:''};
+  }catch(e){
+    currentUser={id:0,nombre:'Programador',user:'programador',pass:'',rol:'admin',area:''};
+  }
+  setupSidebar();
+  showTab('dashboard');
+})();
 </script>
 </body>
 </html>
