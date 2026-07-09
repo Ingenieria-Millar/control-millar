@@ -104,6 +104,7 @@ const FILES = {
   multitareas:    path.join(DATA_DIR, 'multitareas.json'),
   tareas:         path.join(DATA_DIR, 'tareas.json'),
   visitantes:     path.join(DATA_DIR, 'visitantes.json'),
+  turnos_asignados: path.join(DATA_DIR, 'turnos_asignados.json'),
 };
 
 // ══════════════════════════════════════════════════════════════════
@@ -758,6 +759,10 @@ app.get('/incentivos', (req, res) =>
 
 app.get('/visitantes', (req, res) =>
   res.sendFile(path.join(__dirname, 'control-visitantes-sst.html'))
+);
+
+app.get('/permisos', (req, res) =>
+  res.sendFile(path.join(__dirname, 'control_permisos.html'))
 );
 
 app.get('/api/visitantes/db', (req, res) => {
@@ -1799,6 +1804,41 @@ app.get('/api/turnos',  (req, res) => res.json(readJSON(FILES.turnos, [])));
 app.post('/api/turnos', (req, res) => {
   try { writeJSON(FILES.turnos, req.body); res.json({ success: true }); }
   catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Turnos Asignados — asignación manual de turno por revisador y rango de fechas
+app.get('/api/turnos-asignados', (req, res) => {
+  res.json(readJSON(FILES.turnos_asignados, []));
+});
+app.post('/api/turnos-asignados', (req, res) => {
+  try {
+    const { revisador, turno, desde, hasta } = req.body || {};
+    if (!revisador || !turno || !desde || !hasta)
+      return res.status(400).json({ error: 'Faltan campos: revisador, turno, desde, hasta' });
+    const data = readJSON(FILES.turnos_asignados, []);
+    const nueva = {
+      id: uuidv4(),
+      revisador, turno, desde, hasta,
+      fechaAsignado: new Date().toISOString().split('T')[0]
+    };
+    data.push(nueva);
+    writeJSON(FILES.turnos_asignados, data);
+    res.json({ ok: true, asignacion: nueva });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+app.put('/api/turnos-asignados/:id', (req, res) => {
+  try {
+    const data = readJSON(FILES.turnos_asignados, []);
+    const idx = data.findIndex(a => a.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'No encontrado' });
+    const { revisador, turno, desde, hasta } = req.body || {};
+    if (revisador !== undefined) data[idx].revisador = revisador;
+    if (turno !== undefined) data[idx].turno = turno;
+    if (desde !== undefined) data[idx].desde = desde;
+    if (hasta !== undefined) data[idx].hasta = hasta;
+    writeJSON(FILES.turnos_asignados, data);
+    res.json({ ok: true, asignacion: data[idx] });
+  } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 // Historial

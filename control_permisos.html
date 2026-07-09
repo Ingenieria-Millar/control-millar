@@ -1,0 +1,2102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control de Permisos Laborales</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#F7F6F3;--surface:#FFF;--surface2:#F0EEE9;--text:#1A1917;--text2:#6B6860;--text3:#A09D98;--blue:#1A5CDB;--blue-light:#EBF0FD;--blue-dark:#1244AA;--green:#1A7A4A;--green-light:#E8F5EE;--amber:#B85C00;--amber-light:#FDF0E3;--red:#C0291A;--red-light:#FDECEB;--purple:#5A2DB8;--purple-light:#F0EBFD;--pink:#A0266B;--pink-light:#FCEEF6;--teal:#0F6E56;--teal-light:#E3F4EF;--border:#E4E2DC;--border2:#D0CEC8;--radius:8px;--radius-lg:12px;--shadow:0 1px 3px rgba(0,0,0,.06);--shadow-md:0 4px 12px rgba(0,0,0,.08);--shadow-lg:0 8px 24px rgba(0,0,0,.12)}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;min-height:100vh}
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0F1B3D 0%,#1A3A7A 60%,#1244AA 100%)}
+.login-box{background:var(--surface);border-radius:20px;padding:40px 36px;width:100%;max-width:420px;box-shadow:var(--shadow-lg)}
+.login-logo{text-align:center;margin-bottom:28px}
+.login-icon{width:56px;height:56px;background:var(--blue-light);border-radius:14px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px}
+.login-icon i{font-size:28px;color:var(--blue)}
+.login-title{font-size:20px;font-weight:700}.login-sub{font-size:13px;color:var(--text2);margin-top:4px}
+.login-form .fg{margin-bottom:14px}
+.login-form label{font-size:12px;font-weight:500;color:var(--text2);display:block;margin-bottom:5px}
+.login-form input{width:100%;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text);outline:none;transition:border .15s}
+.login-form input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,92,219,.1)}
+.lerror{background:var(--red-light);color:var(--red);padding:10px 12px;border-radius:var(--radius);font-size:13px;margin-bottom:14px;display:none;align-items:center;gap:8px}
+.lerror.show{display:flex}
+.app-wrap{display:flex;min-height:100vh}
+.sidebar{width:235px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:10}
+.sidebar-logo{padding:16px 18px 12px;border-bottom:1px solid var(--border)}
+.logo-mark{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.1em;text-transform:uppercase;font-family:'DM Mono',monospace}
+.logo-name{font-size:15px;font-weight:700;color:var(--text);line-height:1.2;margin-top:2px}
+.user-pill{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--surface2);border-radius:var(--radius);margin:10px;font-size:12px}
+.avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.uname{font-weight:600;color:var(--text);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.urole{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em}
+.sidebar-nav{padding:8px 10px;flex:1;overflow-y:auto}
+.nav-label{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.08em;text-transform:uppercase;padding:8px 10px 3px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:var(--radius);cursor:pointer;color:var(--text2);font-size:13px;font-weight:500;transition:all .15s;margin-bottom:1px;border:none;background:none;width:100%;text-align:left}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.active{background:var(--blue-light);color:var(--blue);font-weight:600}
+.nav-item i{font-size:16px;flex-shrink:0}
+.nav-badge{margin-left:auto;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;font-family:'DM Mono',monospace;color:#fff}
+.sidebar-footer{padding:10px;border-top:1px solid var(--border)}
+.btn-logout{display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;border:1px solid var(--border2);border-radius:var(--radius);background:transparent;cursor:pointer;font-size:13px;color:var(--text2);font-family:'DM Sans',sans-serif;transition:all .15s}
+.btn-logout:hover{background:var(--red-light);color:var(--red);border-color:var(--red)}
+.main{margin-left:235px;flex:1;padding:24px 28px;min-height:100vh}
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;gap:12px;flex-wrap:wrap}
+.page-title{font-size:20px;font-weight:700}.page-sub{font-size:13px;color:var(--text2);margin-top:2px}
+.section{display:none}.section.active{display:block}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--radius);border:1px solid var(--border2);background:var(--surface);cursor:pointer;font-size:13px;font-weight:500;color:var(--text);font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap}
+.btn:hover{background:var(--surface2)}.btn:active{transform:scale(.98)}
+.btn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}.btn.primary:hover{background:var(--blue-dark)}
+.btn.success{background:var(--green);color:#fff;border-color:var(--green)}.btn.success:hover{background:#145f39}
+.btn.danger{background:var(--red);color:#fff;border-color:var(--red)}.btn.danger:hover{background:#a02215}
+.btn.amber{background:var(--amber);color:#fff;border-color:var(--amber)}
+.btn.ghost{border-color:transparent;background:transparent}.btn.ghost:hover{background:var(--surface2);border-color:var(--border)}
+.btn.sm{font-size:12px;padding:5px 10px}.btn.full{width:100%;justify-content:center;padding:11px}
+.btn-row{display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border)}
+.metrics-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.metric-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;box-shadow:var(--shadow)}
+.metric-label{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.metric-value{font-size:26px;font-weight:700;line-height:1;font-family:'DM Mono',monospace}
+.mv-blue{color:var(--blue)}.mv-green{color:var(--green)}.mv-amber{color:var(--amber)}.mv-red{color:var(--red)}.mv-purple{color:var(--purple)}
+.metric-sub{font-size:11px;color:var(--text3);margin-top:4px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;box-shadow:var(--shadow);margin-bottom:14px}
+.card-title{font-size:14px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.card-title i{font-size:18px;color:var(--text3)}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.form-row.full{grid-template-columns:1fr}.form-row.three{grid-template-columns:1fr 1fr 1fr}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-label{font-size:12px;font-weight:500;color:var(--text2)}.form-label span{color:var(--red)}
+input[type=time]{font-family:monospace;letter-spacing:.03em}
+input[type=text],input[type=date],input[type=time],input[type=password],input[type=number],select,textarea{width:100%;padding:9px 11px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--surface);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border .15s,box-shadow .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,92,219,.1)}
+input[readonly]{background:var(--surface2);color:var(--text2)}
+textarea{resize:vertical;min-height:60px;line-height:1.5}
+select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+input::placeholder,textarea::placeholder{color:var(--text3)}
+.badge{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-eps{background:var(--blue-light);color:var(--blue)}.badge-personal{background:var(--purple-light);color:var(--purple)}
+.badge-dia{background:var(--amber-light);color:var(--amber)}.badge-calamidad{background:var(--pink-light);color:var(--pink)}
+.badge-votacion{background:var(--teal-light);color:var(--teal)}
+.badge-incapacidad{background:var(--teal-light);color:var(--teal)}
+.badge-pending{background:var(--amber-light);color:var(--amber)}.badge-approved{background:var(--green-light);color:var(--green)}
+.badge-rejected{background:var(--red-light);color:var(--red)}.badge-recepcion{background:var(--teal-light);color:var(--teal)}
+.badge-urgente{background:#FFF0F0;color:var(--red)}.badge-admin-cargo{background:#F0EBFD;color:var(--purple)}
+.role-admin{background:#1A1917;color:#fff}.role-lider{background:var(--blue-light);color:var(--blue)}
+.role-recepcion{background:var(--teal-light);color:var(--teal)}.role-readonly{background:var(--surface2);color:var(--text2)}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead tr{border-bottom:1px solid var(--border)}
+th{text-align:left;padding:9px 11px;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
+td{padding:10px 11px;border-bottom:1px solid var(--border);vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:var(--bg)}
+.td-name{font-weight:500}.td-sub{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:1px}
+.search-row{display:flex;gap:8px;margin-bottom:14px;align-items:center;flex-wrap:wrap}
+.search-wrap{position:relative;flex:1;min-width:160px}
+.search-wrap i{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:16px;pointer-events:none}
+.search-wrap input{padding-left:32px}
+.bar-wrap{margin-bottom:9px}
+.bar-label{display:flex;justify-content:space-between;font-size:12px;color:var(--text2);margin-bottom:3px}
+.bar-label span:last-child{font-weight:600;font-family:'DM Mono',monospace}
+.bar-bg{background:var(--surface2);border-radius:4px;height:8px;overflow:hidden}
+.bar-fill{height:8px;border-radius:4px;transition:width .5s}
+.alert{padding:10px 14px;border-radius:var(--radius);font-size:13px;margin-bottom:14px;display:flex;align-items:flex-start;gap:9px}
+.alert i{font-size:16px;flex-shrink:0;margin-top:1px}
+.alert.info{background:var(--blue-light);color:var(--blue-dark);border-left:3px solid var(--blue)}
+.alert.success{background:var(--green-light);color:#145f39;border-left:3px solid var(--green)}
+.alert.warning{background:var(--amber-light);color:var(--amber);border-left:3px solid var(--amber)}
+.alert.danger{background:var(--red-light);color:var(--red);border-left:3px solid var(--red)}
+.recepcion-header{background:linear-gradient(135deg,#0F1B3D,#1A3A7A);color:#fff;border-radius:var(--radius-lg);padding:18px 22px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between}
+.rec-clock{font-family:'DM Mono',monospace;font-size:26px;font-weight:700;letter-spacing:.05em}
+.rec-date{font-size:12px;opacity:.7;margin-top:2px}
+.salida-card{background:var(--surface);border:2px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:10px;display:flex;align-items:flex-start;gap:12px;box-shadow:var(--shadow)}
+.salida-card.pendiente-rec{border-color:var(--amber);background:#FFFDF7}
+.salida-card.aprobado-rec{border-color:var(--green);background:#F5FFF9}
+.salida-card.no-regreso{border-color:var(--red);background:#FFF5F5}
+.salida-avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;flex-shrink:0;margin-top:2px}
+.salida-info{flex:1;min-width:0}
+.salida-name{font-size:14px;font-weight:600}
+.salida-meta{font-size:12px;color:var(--text2);margin-top:2px}
+.salida-tipo{font-size:12px;margin-top:4px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.salida-actions{display:flex;flex-direction:column;gap:5px;align-items:flex-end;flex-shrink:0}
+.huella-tag{font-size:11px;color:var(--green);font-family:'DM Mono',monospace;background:var(--green-light);padding:3px 8px;border-radius:4px;margin-top:4px;display:inline-flex;align-items:center;gap:4px}
+.tiempo-tag{font-size:11px;font-family:'DM Mono',monospace;padding:3px 8px;border-radius:4px;margin-top:3px;display:inline-flex;align-items:center;gap:4px}
+.tiempo-ok{background:var(--green-light);color:var(--green)}
+.tiempo-warn{background:var(--amber-light);color:var(--amber)}
+.tiempo-red{background:var(--red-light);color:var(--red)}
+.tiempo-admin{background:var(--purple-light);color:var(--purple)}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;display:none;align-items:center;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal{background:var(--surface);border-radius:var(--radius-lg);padding:26px;width:100%;max-width:480px;box-shadow:var(--shadow-lg);position:relative;max-height:90vh;overflow-y:auto}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.modal-close{position:absolute;top:14px;right:14px;background:none;border:none;cursor:pointer;color:var(--text3);font-size:20px;line-height:1}
+.modal-close:hover{color:var(--text)}
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.filter-row select{width:auto;min-width:130px;flex:1}
+.empty{text-align:center;padding:2.5rem 1rem;color:var(--text3)}
+.empty i{font-size:38px;display:block;margin-bottom:8px}.empty p{font-size:13px}
+.report-banner{background:linear-gradient(135deg,var(--blue),#2B7DFF);color:#fff;border-radius:var(--radius-lg);padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:14px}
+.report-banner i{font-size:28px;opacity:.8}
+.report-banner .rtitle{font-size:15px;font-weight:600}.report-banner .rsub{font-size:12px;opacity:.8;margin-top:2px}
+.ac-dropdown{display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);box-shadow:var(--shadow-md);max-height:200px;overflow-y:auto;z-index:50;margin-top:2px}
+.ac-item{padding:9px 12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-size:13px;border-bottom:.5px solid var(--border)}
+.ac-item:last-child{border-bottom:none}.ac-item:hover{background:var(--surface2)}
+.alert-banner{background:linear-gradient(135deg,#7A0C0C,var(--red));color:#fff;border-radius:var(--radius-lg);padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:12px;cursor:pointer}
+.alert-banner i{font-size:24px;flex-shrink:0}
+.firma-tag{font-size:11px;color:var(--green);font-family:'DM Mono',monospace;background:var(--green-light);padding:3px 8px;border-radius:4px;display:inline-flex;align-items:center;gap:4px}
+.firma-thumb{max-width:70px;max-height:28px;border:1px solid var(--border);border-radius:4px;background:#fff;cursor:pointer;vertical-align:middle}
+.turno-badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px;font-family:'DM Mono',monospace}
+.turno-op{background:#E8F5EE;color:var(--green)}
+.turno-adm{background:var(--purple-light);color:var(--purple)}
+@media print{.sidebar,.btn,.search-row,.filter-row,.btn-row,.page-header button,.salida-actions{display:none!important}.main{margin-left:0;padding:16px}body{background:#fff}.card{box-shadow:none}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen" class="login-wrap">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-icon"><i class="ti ti-id-badge-2"></i></div>
+      <div class="login-title">Control de Permisos</div>
+      <div class="login-sub">Ingresa con tu usuario y contraseña</div>
+    </div>
+    <div class="login-form">
+      <div class="lerror" id="lerror"><i class="ti ti-alert-circle"></i><span id="lerror-msg">Usuario o contraseña incorrectos.</span></div>
+      <div class="fg"><label>Usuario</label><input type="text" id="login-user" placeholder="Tu usuario" autocomplete="off"></div>
+      <div class="fg"><label>Contraseña</label><input type="password" id="login-pass" placeholder="••••••••"></div>
+      <button class="btn primary full" style="margin-top:8px" id="btn-login"><i class="ti ti-login"></i> Ingresar</button>
+    </div>
+    <div style="margin-top:16px;padding:12px;background:var(--surface2);border-radius:var(--radius);font-size:12px;color:var(--text2)">
+      <span style="color:var(--text3)">¿Problemas para ingresar?</span>
+      <button onclick="resetearUsuarios()" style="margin-left:6px;background:var(--amber);color:#fff;border:none;border-radius:4px;padding:4px 10px;font-size:12px;cursor:pointer;font-weight:600">🔑 Restablecer accesos</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-screen" style="display:none">
+<div class="app-wrap">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">Sistema RRHH</div>
+      <div class="logo-name">Control de<br>Permisos</div>
+    </div>
+    <div class="user-pill">
+      <div class="avatar" id="sb-avatar">A</div>
+      <div style="flex:1;min-width:0"><div class="uname" id="sb-uname">—</div><div class="urole" id="sb-urole">—</div></div>
+    </div>
+    <nav class="sidebar-nav" id="sidebar-nav"></nav>
+    <div class="sidebar-footer">
+      <button class="btn-logout" id="btn-logout"><i class="ti ti-logout"></i> Cerrar sesión</button>
+    </div>
+  </aside>
+
+  <main class="main" id="main-content">
+
+    <!-- DASHBOARD -->
+    <div id="tab-dashboard" class="section">
+      <div class="page-header">
+        <div><div class="page-title">Panel general</div><div class="page-sub">Resumen de actividad</div></div>
+        <button class="btn primary" id="btn-nuevo-dash" style="display:none"><i class="ti ti-plus"></i> Nueva solicitud</button>
+      </div>
+      <div id="alertas-dashboard"></div>
+      <div class="metrics-grid">
+        <div class="metric-card"><div class="metric-label">Total solicitudes</div><div class="metric-value mv-blue" id="m-total">0</div><div class="metric-sub">registradas</div></div>
+        <div class="metric-card"><div class="metric-label">En recepción</div><div class="metric-value mv-amber" id="m-pending">0</div><div class="metric-sub">esperando salida hoy</div></div>
+        <div class="metric-card"><div class="metric-label">Horas descontadas hoy</div><div class="metric-value mv-red" id="m-horas">0:00</div><div class="metric-sub">tiempo a descontar</div></div>
+        <div class="metric-card"><div class="metric-label">En recepción</div><div class="metric-value mv-purple" id="m-recepcion">0</div><div class="metric-sub">pendientes salida</div></div>
+      </div>
+      <div class="two-col">
+        <div class="card"><div class="card-title"><i class="ti ti-chart-donut"></i> Por tipo</div><div id="chart-tipo"><div class="empty" style="padding:1rem"><p>Sin datos</p></div></div></div>
+        <div class="card"><div class="card-title"><i class="ti ti-clock"></i> Últimas solicitudes</div><div id="recent-list"><div class="empty" style="padding:1rem"><p>Sin datos</p></div></div></div>
+      </div>
+      <div class="card"><div class="card-title"><i class="ti ti-building"></i> Por área / módulo</div><div id="chart-area"><div class="empty" style="padding:1rem"><p>Sin datos</p></div></div></div>
+    </div>
+
+    <!-- RECEPCIÓN -->
+    <div id="tab-recepcion" class="section">
+      <div class="recepcion-header">
+        <div><div style="font-size:11px;opacity:.6;margin-bottom:3px;letter-spacing:.08em">CONTROL DE SALIDAS</div>
+          <div class="rec-clock" id="rec-clock">00:00:00</div><div class="rec-date" id="rec-date"></div></div>
+        <div style="text-align:right"><div style="font-size:11px;opacity:.6">Permisos hoy</div>
+          <div style="font-size:30px;font-weight:700;font-family:'DM Mono',monospace" id="rec-count-hoy">0</div></div>
+      </div>
+      <div class="search-row">
+        <div class="search-wrap"><i class="ti ti-search"></i><input type="text" id="rec-search" placeholder="Buscar por nombre..."></div>
+        <input type="date" id="rec-fecha-filter" style="width:auto;min-width:150px">
+        <select id="rec-filter" style="width:auto;min-width:180px">
+          <option value="pendiente_rec">Esperando salida</option>
+          <option value="Autorizado_recepcion">Autorizados hoy</option>
+          <option value="">Todos hoy</option>
+        </select>
+      </div>
+      <div id="pendientes-cierre-wrap" style="margin-bottom:16px"></div>
+      <div id="lista-recepcion"></div>
+    </div>
+
+    <!-- NUEVA SOLICITUD -->
+    <div id="tab-nuevo" class="section">
+      <div class="page-header"><div><div class="page-title">Nueva solicitud</div><div class="page-sub">Complete los campos requeridos</div></div></div>
+      <div class="card">
+        <div class="card-title"><i class="ti ti-user"></i> Datos del empleado</div>
+        <div class="alert info" id="alert-no-emp" style="display:none"><i class="ti ti-alert-circle"></i><span>No hay empleados cargados. Ve a <strong>Empleados</strong> e importa tu Excel.</span></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Empleado <span>*</span></label>
+            <div style="position:relative">
+              <input type="text" id="f-nombre" placeholder="Escribe nombre o cédula..." autocomplete="off">
+              <div class="ac-dropdown" id="emp-dropdown"></div>
+            </div>
+          </div>
+          <div class="form-group"><label class="form-label">Cédula / Documento <span>*</span></label><input type="text" id="f-cedula" placeholder="Se completa automático o digítala"></div>
+        </div>
+        <div class="form-row three">
+          <div class="form-group"><label class="form-label">Área / Módulo <span>*</span></label><select id="f-area"><option value="">Seleccionar...</option></select></div>
+          <div class="form-group"><label class="form-label">Horario del empleado</label>
+            <select id="f-horario-id"><option value="">Seleccionar horario...</option></select>
+          </div>
+          <div class="form-group"><label class="form-label">Registrado por</label><input type="text" id="f-lider-display" readonly></div>
+        </div>
+        <!-- FIX: indicador de solo lectura del cargo del empleado. Ya no es editable desde aquí:
+             viene fijo de la base de Empleados. Solo el Administrador puede cambiarlo editando al empleado. -->
+        <div class="form-row full" id="f-cargo-info-wrap" style="display:none;margin-top:-4px">
+          <div id="f-cargo-info"></div>
+        </div>
+        <!-- Campo oculto que guarda el valor real, ya no se selecciona manualmente -->
+        <input type="hidden" id="f-es-admin" value="no">
+        <!-- f-turno oculto: ya no se usa para descuento, se mantiene solo por compatibilidad interna -->
+        <select id="f-turno" style="display:none">
+          <option value="operativo_semana">Operativo Lun-Vie (06:00-14:30)</option>
+          <option value="operativo_sabado">Operativo Sábado (06:00-11:00)</option>
+          <option value="administrativo">Administrativo</option>
+          <option value="otro">Otro turno</option>
+        </select>
+      </div>
+      <div class="card">
+        <div class="card-title"><i class="ti ti-file-description"></i> Detalle del permiso</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Tipo <span>*</span></label>
+            <select id="f-tipo">
+              <option value="">Seleccionar...</option>
+              <option value="eps">🏥 Cita EPS / Médica</option>
+              <option value="personal">⏱ Permiso personal (horas)</option>
+              <option value="dia">📅 Permiso día completo</option>
+              <option value="calamidad">🆘 Calamidad doméstica</option>
+              <option value="votacion">🗳️ Votación (3.75h remuneradas)</option>
+              <option value="votacion_dia">🗳️ Votación día completo (jurado / doble periodo)</option>
+            </select>
+          </div>
+          <div class="form-group"><label class="form-label">Fecha de creación <span>*</span></label>
+            <input type="date" id="f-fecha-creacion">
+            <span style="font-size:11px;color:var(--text3)">Máximo 5 días antes de hoy</span>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Fecha real del permiso <span>*</span></label><input type="date" id="f-fecha"></div>
+          <div class="form-group" id="row-horas-wrap">
+            <label class="form-label">Hora de salida</label><input type="time" id="f-hora-inicio" step="1">
+          </div>
+        </div>
+        <div class="form-row full">
+          <div class="form-group"><label class="form-label">Observaciones</label><textarea id="f-obs" placeholder="Observaciones adicionales (opcional)..." style="min-height:50px"></textarea></div>
+        </div>
+        <div class="form-row full" style="display:none">
+          <div class="form-group"><select id="f-soporte" style="display:none"><option value="no">No aplica</option></select></div>
+          <div class="form-group"><select id="f-prioridad" style="display:none"><option value="normal">Normal</option></select></div>
+        </div>
+        <div id="form-msg"></div>
+        <div id="form-alerta-acumulacion"></div>
+        <div class="btn-row">
+          <button class="btn ghost" id="btn-clear-form"><i class="ti ti-x"></i> Limpiar</button>
+          <button class="btn primary" id="btn-submit-form"><i class="ti ti-send"></i> Enviar solicitud</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- LISTADO -->
+    <div id="tab-listado" class="section">
+      <div class="page-header"><div><div class="page-title">Todas las solicitudes</div><div class="page-sub">Historial con trazabilidad y tiempos</div></div></div>
+      <div class="card">
+        <div class="search-row">
+          <div class="search-wrap"><i class="ti ti-search"></i><input type="text" id="search-input" placeholder="Nombre, cédula, área..."></div>
+          <select id="filter-tipo" style="width:auto;min-width:130px">
+            <option value="">Todos los tipos</option><option value="eps">EPS</option><option value="personal">Personal</option><option value="dia">Día completo</option><option value="calamidad">Calamidad</option>
+          </select>
+          <select id="filter-estado" style="width:auto;min-width:150px">
+            <option value="">Todos los estados</option><option value="Aprobado">Pendiente en recepción</option><option value="Autorizado_recepcion">Autorizado recepción</option><option value="Rechazado">Rechazado</option>
+          </select>
+        </div>
+        <div class="table-wrap" id="tabla-permisos"></div>
+      </div>
+    </div>
+
+    <!-- APROBACIONES (oculto) -->
+    <div id="tab-aprobacion" class="section" style="display:none"></div>
+
+    <!-- EMPLEADOS -->
+    <div id="tab-empleados" class="section">
+      <div class="page-header">
+        <div><div class="page-title">Base de empleados</div><div class="page-sub">Importa tu Excel con nombre y cédula</div></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn primary" id="btn-nuevo-empleado"><i class="ti ti-user-plus"></i> Nuevo empleado</button>
+          <button class="btn" id="btn-import-excel"><i class="ti ti-upload"></i> Importar Excel</button>
+          <button class="btn danger sm" id="btn-limpiar-emp" style="display:none"><i class="ti ti-trash"></i> Limpiar</button>
+        </div>
+        <input type="file" id="excel-input" accept=".xlsx,.xls,.csv" style="display:none">
+      </div>
+      <div class="card" style="font-size:13px;color:var(--text2)">
+        <div class="card-title"><i class="ti ti-info-circle"></i> ¿Cómo importar?</div>
+        El archivo debe tener columnas <code style="background:var(--surface2);padding:2px 6px;border-radius:4px;font-family:'DM Mono',monospace">Nombre</code> y <code style="background:var(--surface2);padding:2px 6px;border-radius:4px;font-family:'DM Mono',monospace">Cedula</code>.
+        <br><br>Recomendado agregar también:
+        <br>• <code style="background:var(--surface2);padding:2px 6px;border-radius:4px;font-family:'DM Mono',monospace">Horario</code> — debe coincidir EXACTO con el nombre de un horario ya creado en la pestaña Horarios.
+        <br>• <code style="background:var(--surface2);padding:2px 6px;border-radius:4px;font-family:'DM Mono',monospace">Area</code> — si el área no existe todavía en el sistema, se crea automáticamente al importar.
+        <br>• <code style="background:var(--surface2);padding:2px 6px;border-radius:4px;font-family:'DM Mono',monospace">Administrativo</code> con valor <strong>Si</strong> o <strong>No</strong>. Los empleados administrativos nunca tienen descuento de tiempo y su área/horario quedan bloqueados — solo el Administrador puede editarlos.
+      </div>
+      <div id="emp-status"></div>
+      <div class="card" id="emp-tabla-wrap" style="display:none">
+        <div class="card-title"><i class="ti ti-users"></i> Empleados cargados — <span id="emp-count">0</span></div>
+        <div class="search-row"><div class="search-wrap"><i class="ti ti-search"></i><input type="text" id="emp-search" placeholder="Buscar..."></div></div>
+        <div class="table-wrap" id="emp-tabla"></div>
+      </div>
+    </div>
+
+    <!-- USUARIOS -->
+    <div id="tab-usuarios" class="section">
+      <div class="page-header">
+        <div><div class="page-title">Usuarios y accesos</div></div>
+        <button class="btn primary" id="btn-nuevo-usuario"><i class="ti ti-plus"></i> Nuevo usuario</button>
+      </div>
+      <div class="card"><div class="table-wrap" id="tabla-usuarios"></div></div>
+      <!-- FIX: zona de peligro, solo visible para admin, para reiniciar datos de prueba -->
+      <div class="card" style="border-color:var(--red);background:var(--red-light)">
+        <div class="card-title" style="color:var(--red)"><i class="ti ti-alert-triangle"></i> Zona de peligro</div>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:12px">
+          Borra TODAS las áreas, horarios, empleados y solicitudes/permisos registrados. Los usuarios (admin, recepción, etc.) NO se eliminan. Esta acción no se puede deshacer — úsala solo para limpiar datos de prueba antes de empezar a usar el sistema en producción.
+        </p>
+        <button class="btn danger" id="btn-reset-datos"><i class="ti ti-trash"></i> Reiniciar datos de prueba</button>
+      </div>
+    </div>
+
+    <!-- AREAS -->
+    <div id="tab-areas" class="section">
+      <div class="page-header">
+        <div><div class="page-title">Áreas y módulos</div></div>
+        <button class="btn primary" id="btn-nueva-area"><i class="ti ti-plus"></i> Nueva área / módulo</button>
+      </div>
+      <div class="card"><div class="table-wrap" id="tabla-areas"></div></div>
+    </div>
+
+    <!-- HORARIOS -->
+    <div id="tab-horarios" class="section">
+      <div class="page-header">
+        <div><div class="page-title">Horarios</div><div class="page-sub">Define los horarios de la empresa</div></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn" id="btn-import-horarios"><i class="ti ti-upload"></i> Importar Excel</button>
+          <button class="btn primary" id="btn-nuevo-horario"><i class="ti ti-plus"></i> Nuevo horario</button>
+        </div>
+        <input type="file" id="horarios-excel-input" accept=".xlsx,.xls,.csv" style="display:none">
+      </div>
+      <div class="alert info"><i class="ti ti-info-circle"></i><span>Los horarios se asignan a cada empleado en el Excel de importación (columna <code>Horario</code>) o al registrar el permiso. El archivo de importación debe tener columnas <code>Nombre</code>, <code>Inicio</code> y <code>Fin</code> (formato HH:MM).</span></div>
+      <div id="horarios-import-status"></div>
+      <div class="card"><div class="table-wrap" id="tabla-horarios"></div></div>
+    </div>
+
+    <!-- REPORTES -->
+    <div id="tab-reportes" class="section">
+      <div class="page-header"><div><div class="page-title">Reportes</div><div class="page-sub">Exportación Excel con tiempos y trazabilidad</div></div></div>
+      <div class="card">
+        <div class="card-title"><i class="ti ti-adjustments"></i> Filtros</div>
+        <div class="filter-row">
+          <select id="rep-mes"><option value="">Todos los meses</option><option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option><option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option><option value="07">Julio</option><option value="08">Agosto</option><option value="09">Septiembre</option><option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option></select>
+          <select id="rep-area"><option value="">Todas las áreas</option></select>
+          <select id="rep-tipo"><option value="">Todos los tipos</option><option value="eps">EPS</option><option value="personal">Personal</option><option value="dia">Día completo</option><option value="calamidad">Calamidad</option></select>
+          <select id="rep-estado"><option value="">Todos los estados</option><option value="Pendiente">Pendiente</option><option value="Aprobado">Aprobado</option><option value="Autorizado_recepcion">Autorizado recepción</option><option value="Rechazado">Rechazado</option></select>
+          <button class="btn primary" id="btn-generar-reporte"><i class="ti ti-chart-bar"></i> Generar</button>
+          <button class="btn success" id="btn-exportar-excel"><i class="ti ti-file-spreadsheet"></i> Exportar Excel</button>
+          <button class="btn" onclick="window.print()"><i class="ti ti-printer"></i> Imprimir</button>
+        </div>
+      </div>
+      <div id="reporte-resultado"></div>
+    </div>
+
+  </main>
+</div>
+</div>
+
+<!-- MODAL USUARIO -->
+<div class="modal-overlay" id="modal-usuario">
+  <div class="modal">
+    <button class="modal-close" id="close-modal-usuario"><i class="ti ti-x"></i></button>
+    <div class="modal-title"><i class="ti ti-user-plus"></i> <span id="modal-user-title">Nuevo usuario</span></div>
+    <input type="hidden" id="mu-id">
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Nombre <span>*</span></label><input type="text" id="mu-nombre"></div>
+      <div class="form-group"><label class="form-label">Usuario <span>*</span></label><input type="text" id="mu-user" autocomplete="off"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Contraseña <span>*</span></label><input type="password" id="mu-pass" autocomplete="new-password"></div>
+      <div class="form-group"><label class="form-label">Rol <span>*</span></label>
+        <select id="mu-rol"><option value="lider">Líder / Supervisor</option><option value="recepcion">Recepción</option><option value="readonly">Solo lectura</option><option value="admin">Administrador</option></select>
+      </div>
+    </div>
+    <div class="form-row full"><div class="form-group"><label class="form-label">Área asignada</label><select id="mu-area"><option value="">Sin área específica</option></select></div></div>
+    <div id="mu-msg"></div>
+    <div class="btn-row">
+      <button class="btn ghost" id="cancel-modal-usuario">Cancelar</button>
+      <button class="btn primary" id="save-usuario"><i class="ti ti-check"></i> Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AREA -->
+<div class="modal-overlay" id="modal-area">
+  <div class="modal">
+    <button class="modal-close" id="close-modal-area"><i class="ti ti-x"></i></button>
+    <div class="modal-title"><i class="ti ti-building"></i> <span id="modal-area-title">Nueva área</span></div>
+    <input type="hidden" id="ma-id">
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Nombre <span>*</span></label><input type="text" id="ma-nombre"></div>
+      <div class="form-group"><label class="form-label">Tipo</label>
+        <select id="ma-tipo"><option value="area">Área administrativa</option><option value="modulo">Módulo de confección</option><option value="produccion">Producción</option><option value="otro">Otro</option></select>
+      </div>
+    </div>
+    <div class="form-row full"><div class="form-group"><label class="form-label">Descripción / Supervisor</label><input type="text" id="ma-desc"></div></div>
+    <div id="ma-msg"></div>
+    <div class="btn-row">
+      <button class="btn ghost" id="cancel-modal-area">Cancelar</button>
+      <button class="btn primary" id="save-area"><i class="ti ti-check"></i> Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EMPLEADO -->
+<div class="modal-overlay" id="modal-empleado">
+  <div class="modal">
+    <button class="modal-close" id="close-modal-empleado"><i class="ti ti-x"></i></button>
+    <div class="modal-title"><i class="ti ti-user-plus"></i> <span id="modal-empleado-title">Nuevo empleado</span></div>
+    <input type="hidden" id="me-cedula-original">
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Nombre <span>*</span></label><input type="text" id="me-nombre"></div>
+      <div class="form-group"><label class="form-label">Cédula <span>*</span></label><input type="text" id="me-cedula"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Área</label><select id="me-area"><option value="">Sin área asignada</option></select></div>
+      <div class="form-group"><label class="form-label">Horario</label><select id="me-horario-id"><option value="">Sin horario asignado</option></select></div>
+    </div>
+    <div class="form-row full">
+      <div class="form-group"><label class="form-label">¿Cargo administrativo? <span style="color:var(--text3);font-weight:400">(no descuenta tiempo, área/horario quedan bloqueados en solicitudes)</span></label>
+        <select id="me-es-admin"><option value="no">No — Operativo</option><option value="si">Sí — Administrativo</option></select>
+      </div>
+    </div>
+    <div id="me-msg"></div>
+    <div class="btn-row">
+      <button class="btn ghost" id="cancel-modal-empleado">Cancelar</button>
+      <button class="btn primary" id="save-empleado"><i class="ti ti-check"></i> Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL HORARIO -->
+<div class="modal-overlay" id="modal-horario">
+  <div class="modal" style="max-width:420px">
+    <button class="modal-close" id="close-modal-horario"><i class="ti ti-x"></i></button>
+    <div class="modal-title"><i class="ti ti-clock"></i> <span id="modal-horario-title">Nuevo horario</span></div>
+    <input type="hidden" id="mh-id">
+    <div class="form-row full"><div class="form-group"><label class="form-label">Nombre del horario <span>*</span></label><input type="text" id="mh-nombre" placeholder="Ej: Turno mañana, Medio tiempo, etc."></div></div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Hora inicio <span>*</span></label>
+        <input type="time" id="mh-inicio" step="60" style="font-family:monospace;font-size:14px">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Hora fin <span>*</span></label>
+        <input type="time" id="mh-fin" step="60" style="font-family:monospace;font-size:14px">
+      </div>
+    </div>
+    <div id="mh-preview" style="background:var(--surface2);border-radius:var(--radius);padding:10px;font-size:13px;color:var(--text2);margin-bottom:8px"></div>
+    <div id="mh-msg"></div>
+    <div class="btn-row">
+      <button class="btn ghost" id="cancel-modal-horario">Cancelar</button>
+      <button class="btn primary" id="save-horario"><i class="ti ti-check"></i> Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL FIRMA -->
+<div class="modal-overlay" id="modal-firma">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-title"><i class="ti ti-signature"></i> Firma del empleado</div>
+    <div style="background:var(--surface2);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:12px">
+      <div id="firma-avatar" style="width:40px;height:40px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;flex-shrink:0"></div>
+      <div>
+        <div style="font-weight:600;font-size:15px" id="firma-empleado-nombre"></div>
+        <div style="font-size:12px;color:var(--text2);margin-top:2px" id="firma-info-permiso"></div>
+      </div>
+    </div>
+    <!-- Campos ocultos para compatibilidad JS -->
+    <select id="rec-tipo-cargo" style="display:none"><option value="operativo">Operativo</option><option value="adm_produccion">Adm. Produccion</option><option value="administrativo">Administrativo puro</option></select>
+    <input type="time" id="rec-hora-salida" step="1" style="display:none">
+    <select id="rec-horario-id" style="display:none"><option value="">—</option></select>
+    <select id="rec-incapacidad" style="display:none"><option value="no">No</option><option value="si">Si</option></select>
+    <select id="rec-cambio-tipo" style="display:none"><option value="">Sin cambio</option><option value="personal">personal</option></select>
+    <div id="rec-horario-info" style="display:none"></div>
+    <div style="border:2px solid var(--border2);border-radius:var(--radius);overflow:hidden;background:#fff">
+      <canvas id="firma-canvas" width="420" height="180" style="display:block;width:100%;cursor:crosshair;touch-action:none"></canvas>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+      <span style="font-size:11px;color:var(--text3)">Firme con dedo o mouse en el recuadro</span>
+      <button class="btn ghost sm" id="btn-limpiar-firma"><i class="ti ti-eraser"></i> Limpiar</button>
+    </div>
+    <div id="firma-msg"></div>
+    <div class="btn-row">
+      <button class="btn ghost" id="cancel-firma">Cancelar</button>
+      <button class="btn primary" id="btn-guardar-firma"><i class="ti ti-check"></i> Confirmar firma</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CIERRE / REGRESO -->
+<div class="modal-overlay" id="modal-regreso">
+  <div class="modal" style="max-width:480px">
+    <button class="modal-close" id="close-modal-regreso"><i class="ti ti-x"></i></button>
+    <div class="modal-title"><i class="ti ti-clock-check"></i> Cierre de permiso — Regreso</div>
+    <div style="background:var(--amber-light);border-left:3px solid var(--amber);border-radius:var(--radius);padding:10px 12px;margin-bottom:14px;font-size:13px;color:var(--amber)">
+      <i class="ti ti-alert-circle"></i> <strong id="regreso-nombre"></strong> — pendiente de cierre
+    </div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:14px" id="regreso-detalle-permiso"></div>
+    <div id="regreso-dia-completo-info" style="display:none;background:var(--amber-light);border-left:3px solid var(--amber);border-radius:var(--radius);padding:10px 12px;margin-bottom:14px;font-size:13px;color:var(--amber)">
+      <i class="ti ti-info-circle"></i> <strong>Permiso día completo</strong> — Confirma si trajo soporte o incapacidad para definir si es <strong>PR</strong> o <strong>PNR</strong>.
+    </div>
+    <div class="form-row" id="regreso-sino-wrap">
+      <div class="form-group"><label class="form-label">¿Regresó?</label>
+        <select id="regreso-si-no">
+          <option value="si">Sí regresó</option>
+          <option value="no">No regresó (resto del turno)</option>
+        </select>
+      </div>
+      <div class="form-group" id="regreso-hora-wrap"><label class="form-label">Hora de regreso (HH:MM:SS)</label><input type="time" id="regreso-hora" step="1"></div>
+    </div>
+    <div class="form-row full" id="regreso-soporte-row">
+      <div class="form-group">
+        <label class="form-label" style="font-size:13px;font-weight:600;color:var(--text)">¿Qué presentó el empleado? <span>*</span></label>
+        <select id="regreso-soporte" onchange="calcularTipoPermiso()" style="font-size:14px;padding:10px 12px">
+          <option value="">— Seleccionar —</option>
+          <option value="si">✅ Sí trajo soporte documental → PR</option>
+          <option value="incapacidad">🏥 Presentó incapacidad médica → PR</option>
+          <option value="no">❌ No presentó soporte → PNR</option>
+        </select>
+        <select id="regreso-incapacidad" style="display:none"><option value="no">No</option><option value="si">Sí</option></select>
+      </div>
+    </div>
+    <div id="resultado-tipo-permiso" style="border-radius:var(--radius);padding:12px 16px;margin-bottom:12px;font-size:14px;font-weight:600;display:flex;align-items:center;gap:10px"></div>
+    <div id="regreso-firma-wrap" style="display:none;margin-bottom:14px">
+      <label class="form-label" style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:8px;display:block">
+        <i class="ti ti-signature" style="color:var(--blue)"></i> Firma del empleado <span style="color:var(--red)">*</span>
+        <span style="font-size:11px;font-weight:400;color:var(--text3);margin-left:6px">Obligatoria para cerrar día completo</span>
+      </label>
+      <div style="border:2px solid var(--border2);border-radius:var(--radius);overflow:hidden;background:#fff">
+        <canvas id="regreso-firma-canvas" width="420" height="130" style="display:block;width:100%;cursor:crosshair;touch-action:none"></canvas>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px">
+        <span style="font-size:11px;color:var(--text3)">Firma del empleado al regresar</span>
+        <button class="btn ghost sm" id="btn-limpiar-regreso-firma"><i class="ti ti-eraser"></i> Limpiar</button>
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:12px">
+      <label class="form-label">Observación de cierre</label>
+      <input type="text" id="regreso-obs" placeholder="Ej: Presento incapacidad, llego tarde, etc.">
+    </div>
+    <select id="regreso-cambio-tipo" style="display:none"><option value="">Sin cambio</option><option value="personal">personal</option></select>
+    <div id="regreso-preview" style="background:var(--surface2);border-radius:var(--radius);padding:10px;font-size:13px;margin-bottom:12px;display:none"></div>
+    <div id="regreso-msg"></div>
+    <div class="btn-row">
+      <button class="btn ghost" id="cancel-regreso">Cancelar</button>
+      <button class="btn primary" id="btn-guardar-regreso"><i class="ti ti-check"></i> Cerrar permiso</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL VER FIRMA -->
+<div class="modal-overlay" id="modal-ver-firma">
+  <div class="modal" style="max-width:520px">
+    <button class="modal-close" id="close-ver-firma"><i class="ti ti-x"></i></button>
+    <div class="modal-title"><i class="ti ti-signature"></i> Soporte de firma</div>
+    <div id="ver-firma-info" style="font-size:13px;color:var(--text2);margin-bottom:14px"></div>
+    <div style="border:1px solid var(--border);border-radius:var(--radius);padding:12px;background:#fff;text-align:center">
+      <img id="ver-firma-img" src="" style="max-width:100%;border-radius:4px">
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn primary" id="btn-imprimir-firma"><i class="ti ti-printer"></i> Imprimir soporte</button>
+      <button class="btn ghost" id="close-ver-firma2">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var SK={permisos:'permisos_v4',empleados:'empleados_v1',usuarios:'usuarios_v1',areas:'areas_v1'};
+var DB={
+  permisos:JSON.parse(localStorage.getItem(SK.permisos)||'[]'),
+  empleados:JSON.parse(localStorage.getItem(SK.empleados)||'[]'),
+  usuarios:JSON.parse(localStorage.getItem(SK.usuarios)||'[]'),
+  areas:JSON.parse(localStorage.getItem(SK.areas)||'[]'),
+  horarios:JSON.parse(localStorage.getItem('horarios_v1')||'null')
+};
+var currentUser=null;
+var recConfirmId=null;
+var regresoId=null;
+var clockInterval=null;
+// FIX: flag global para saber si la firma es solo para dia completo
+var firmaModoDiaCompleto=false;
+
+function save(k){localStorage.setItem(SK[k],JSON.stringify(DB[k]));}
+
+function initDefaults(){
+  var adminExists=DB.usuarios.find(function(u){return u.user==='admin';});
+  if(!adminExists){DB.usuarios.push({id:1,nombre:'Administrador',user:'admin',pass:'admin123',rol:'admin',area:''});save('usuarios');}
+  var recExists=DB.usuarios.find(function(u){return u.user==='recepcion';});
+  if(!recExists){DB.usuarios.push({id:2,nombre:'Recepción Principal',user:'recepcion',pass:'recep123',rol:'recepcion',area:''});save('usuarios');}
+  if(!DB.areas.length){
+    DB.areas=[
+      {id:1,nombre:'Administración',tipo:'area',desc:''},{id:2,nombre:'Producción',tipo:'produccion',desc:''},
+      {id:3,nombre:'Ventas',tipo:'area',desc:''},{id:4,nombre:'Logística',tipo:'area',desc:''},
+      {id:5,nombre:'RRHH',tipo:'area',desc:''},{id:6,nombre:'Tecnología',tipo:'area',desc:''},
+      {id:7,nombre:'Contabilidad',tipo:'area',desc:''},
+      {id:8,nombre:'Módulo 1 - Confección',tipo:'modulo',desc:''},{id:9,nombre:'Módulo 2 - Confección',tipo:'modulo',desc:''},
+      {id:10,nombre:'Módulo 3 - Confección',tipo:'modulo',desc:''}
+    ];save('areas');
+  }
+  if(!DB.horarios){
+    DB.horarios=[
+      {id:1,nombre:'Operativo Lun-Vie',inicio:'06:00',fin:'14:30',horasDia:8.5},
+      {id:2,nombre:'Operativo Sábado',inicio:'06:00',fin:'11:00',horasDia:5},
+      {id:3,nombre:'Administrativo',inicio:'07:30',fin:'17:30',horasDia:8},
+      {id:4,nombre:'Medio tiempo mañana',inicio:'06:00',fin:'10:00',horasDia:4},
+      {id:5,nombre:'Medio tiempo tarde',inicio:'10:00',fin:'14:30',horasDia:4.5}
+    ];
+    localStorage.setItem('horarios_v1',JSON.stringify(DB.horarios));
+  }
+}
+
+var tipoLabel={eps:'Cita EPS',personal:'Personal (horas)',dia:'Día completo',calamidad:'Calamidad',votacion:'Votación',votacion_dia:'Votación día completo'};
+var tipoBadge={eps:'badge-eps',personal:'badge-personal',dia:'badge-dia',calamidad:'badge-calamidad',votacion:'badge-votacion',votacion_dia:'badge-votacion'};
+var barColors={eps:'#1A5CDB',personal:'#5A2DB8',dia:'#B85C00',calamidad:'#A0266B',votacion:'#0F6E56',votacion_dia:'#0B5C46'};
+// FIX: duración fija de las 3.75 horas remuneradas de Votación, en segundos
+var HORAS_VOTACION_SEG=3.75*3600;
+// FIX: helper para identificar los tipos de permiso que se comportan como "día completo"
+// (quedan pendientes de cierre hasta que recepción confirme regreso/no regreso al día siguiente)
+// FIX: votacion_dia se cierra directo con firma (como votacion normal), NO pasa por el flujo de regreso
+function esTipoDiaCompleto(tipo){return tipo==='dia';}
+// FIX: helper distinto para el reporte — estos tipos NO tienen hora de salida/regreso real que reportar,
+// porque es jornada completa sin asistencia (a diferencia de esTipoDiaCompleto, que controla el flujo de recepción)
+function esTipoSinHorarioReal(tipo){return tipo==='dia'||tipo==='votacion_dia';}
+var areaColors=['#1A5CDB','#5A2DB8','#1A7A4A','#B85C00','#A0266B','#0F6E56','#C0291A','#7A5A00'];
+var roleLabel={admin:'Administrador',lider:'Líder / Supervisor',recepcion:'Recepción',readonly:'Solo lectura'};
+var roleColors={admin:'#1A1917',lider:'#1A5CDB',recepcion:'#0F6E56',readonly:'#6B6860'};
+var TURNOS={
+  operativo_semana:{label:'Operativo Lun-Vie',inicio:'06:00:00',fin:'14:30:00',horas:8.5},
+  operativo_sabado:{label:'Operativo Sábado',inicio:'06:00:00',fin:'11:00:00',horas:5},
+  administrativo:{label:'Administrativo',inicio:'07:00:00',fin:'17:00:00',horas:10},
+  otro:{label:'Otro turno',inicio:'06:00:00',fin:'14:30:00',horas:8.5}
+};
+
+function getHorarioPermiso(p){
+  if(DB.horarios&&p.horarioId){
+    var h=DB.horarios.find(function(x){return x.id===parseInt(p.horarioId);});
+    if(h)return{label:h.nombre,inicio:h.inicio+':00',fin:h.fin+':00',horas:h.horasDia};
+  }
+  return TURNOS[p.turno]||TURNOS['operativo_semana'];
+}
+
+var CODIGOS_PERMISO={'PR':'01','PNR':'06'};
+function codigoPermiso(tipoPago){return CODIGOS_PERMISO[tipoPago]||'';}
+
+function getExcelRows(p){
+  var tdSeg=calcularTiempoDescuento(p);
+  var tdDecimal=Math.round(tdSeg/36)/100;
+  var horNombre='';
+  if(p.horarioId&&DB.horarios){var hh=DB.horarios.find(function(x){return x.id===p.horarioId;});if(hh)horNombre=hh.nombre+' ('+hh.inicio+'-'+hh.fin+')';}
+  if(!horNombre)horNombre=TURNOS[p.turno]?TURNOS[p.turno].label:(p.turno||'');
+  var cargoLabel=p.tipoCargo==='adm_produccion'?'Adm. Producción':(p.esAdministrativo==='si'?'Adm. Puro':'Operativo');
+  // FIX: tail ya NO incluye Tipo Cargo (estaba duplicado — ya se incluye en baseRow/base como 5ta columna),
+  // lo que desplazaba Incapacidad, Soporte, Estado y todas las columnas siguientes una posición a la derecha
+  var tail=[p.incapacidad==='si'?'Si':'No',p.soporte==='si'?'Si':'No',estadoLabel(p.estado),p.liderRegistra||'',p.autorizadoRecepcion||'',p.horaAutorizRec||'',p.firmoEmpleado||'No',p.observacion||''];
+
+  // EPS con soporte que excede 2h: dividir en fila PR (0-2h) y fila PNR (2h01m en adelante)
+  // FIX: ahora cada fila muestra las horas de reloj REALES de su propio tramo, no la duración total repetida
+  if(p.tipo==='eps'&&p.soporte==='si'&&p.horaInicio&&p.horaRegreso){
+    var durSeg=timeToSec(p.horaRegreso)-timeToSec(p.horaInicio);
+    var dosHoras=2*3600;
+    if(durSeg>dosHoras){
+      var salidaSeg=timeToSec(p.horaInicio);
+      var finPRTeorico=salidaSeg+dosHoras;   // momento exacto en que se cumplen las 2h (puede caer a mitad de un minuto)
+      // FIX: el corte se redondea al MINUTO siguiente completo, no al segundo siguiente.
+      // El PR cubre hasta el final del minuto en que se cumplen las 2h (segundo 59 de ese minuto),
+      // y el PNR arranca justo en el minuto siguiente completo (segundo 00).
+      var minutoFinPR=Math.floor(finPRTeorico/60);     // minuto (en segundos) donde cae el corte de 2h
+      var finPRSeg=minutoFinPR*60+59;                   // fin de ese mismo minuto (ej: 10:00:59)
+      var inicioPNRSeg=(minutoFinPR+1)*60;              // inicio del minuto siguiente completo (ej: 10:01:00)
+      var regresoSeg=timeToSec(p.horaRegreso);
+
+      var prSeg=finPRSeg-salidaSeg+1;
+      var pnrSeg=regresoSeg-inicioPNRSeg;
+      if(pnrSeg<0)pnrSeg=0;
+      var prDec=Math.round(prSeg/36)/100;
+      var pnrDec=Math.round(pnrSeg/36)/100;
+
+      // FIX: si llegamos aquí es porque hay horaRegreso registrada (la persona sí regresó),
+      // así que esta columna debe decir "Si" en ambas filas, no un "No" fijo como antes
+      var baseRowPR=[p.cedula||'',p.nombre,p.area,horNombre,cargoLabel,tipoLabel[p.tipo]||p.tipo,p.fechaCreacion||'',p.fecha,secToHMS(salidaSeg),secToHMS(finPRSeg),'Si'];
+      var baseRowPNR=[p.cedula||'',p.nombre,p.area,horNombre,cargoLabel,tipoLabel[p.tipo]||p.tipo,p.fechaCreacion||'',p.fecha,secToHMS(inicioPNRSeg),secToHMS(regresoSeg),'Si'];
+
+      var rowPR=baseRowPR.concat([secToHMS(prSeg),prDec,'01','PR']).concat(tail);
+      var rowPNR=baseRowPNR.concat([secToHMS(pnrSeg),pnrDec,'06','PNR']).concat(tail);
+      rowPR[rowPR.length-1]='PR: primeras 2h gratis EPS'+(p.observacion?' | '+p.observacion:'');
+      rowPNR[rowPNR.length-1]='PNR: excedente desde 2h 01min EPS'+(p.observacion?' | '+p.observacion:'');
+      return[rowPR,rowPNR];
+    }
+  }
+
+  // FIX: Votación (3.75h) — si regresó DESPUÉS de cumplirse las 3.75h (o no regresó), dividir en
+  // fila PR (las 3.75h exactas, redondeadas al minuto) + fila PNR (el excedente real hasta el límite:
+  // hora de regreso real, o fin de turno si no regresó). Mismo principio que el split de EPS.
+  if(p.tipo==='votacion'&&p.horaInicio){
+    var turnoVot=getHorarioPermiso(p);
+    var finTurnoVot=timeToSec(turnoVot.fin);
+    var salidaVotSeg=timeToSec(p.horaInicio);
+    var finVotTeorico=salidaVotSeg+HORAS_VOTACION_SEG;
+    var noRegresoVot=p.noRegreso==='si';
+    var regresoVotSeg=p.horaRegreso?timeToSec(p.horaRegreso):null;
+    var limiteVot=(noRegresoVot||regresoVotSeg===null)?finTurnoVot:regresoVotSeg;
+    if(finVotTeorico<limiteVot){
+      var minutoFinVot=Math.floor(finVotTeorico/60);
+      var finPRVotSeg=minutoFinVot*60+59;
+      var inicioPNRVotSeg=(minutoFinVot+1)*60;
+      var prVotSeg=finPRVotSeg-salidaVotSeg+1;
+      var pnrVotSeg=limiteVot-inicioPNRVotSeg;
+      if(pnrVotSeg<0)pnrVotSeg=0;
+      var prVotDec=Math.round(prVotSeg/36)/100;
+      var pnrVotDec=Math.round(pnrVotSeg/36)/100;
+
+      var baseRowPRVot=[p.cedula||'',p.nombre,p.area,horNombre,cargoLabel,tipoLabel[p.tipo]||p.tipo,p.fechaCreacion||'',p.fecha,secToHMS(salidaVotSeg),secToHMS(finPRVotSeg),(noRegresoVot||regresoVotSeg===null)?'No':'Si'];
+      var baseRowPNRVot=[p.cedula||'',p.nombre,p.area,horNombre,cargoLabel,tipoLabel[p.tipo]||p.tipo,p.fechaCreacion||'',p.fecha,secToHMS(inicioPNRVotSeg),(noRegresoVot||regresoVotSeg===null)?'NO REGRESO':secToHMS(limiteVot),(noRegresoVot||regresoVotSeg===null)?'No':'Si'];
+
+      var rowPRVot=baseRowPRVot.concat([secToHMS(prVotSeg),prVotDec,'01','PR']).concat(tail);
+      var rowPNRVot=baseRowPNRVot.concat([secToHMS(pnrVotSeg),pnrVotDec,'06','PNR']).concat(tail);
+      rowPRVot[rowPRVot.length-1]='PR: 3.75h votación de ley'+(p.observacion?' | '+p.observacion:'');
+      rowPNRVot[rowPNRVot.length-1]=(noRegresoVot||regresoVotSeg===null?'PNR: resto de jornada, no regresó tras votación':'PNR: excedente, regresó tarde tras votación')+(p.observacion?' | '+p.observacion:'');
+      return[rowPRVot,rowPNRVot];
+    }
+  }
+
+  var base=[p.cedula||'',p.nombre,p.area,horNombre,cargoLabel,tipoLabel[p.tipo]||p.tipo,p.fechaCreacion||'',p.fecha,esTipoSinHorarioReal(p.tipo)?'':(p.horaInicio||''),esTipoSinHorarioReal(p.tipo)?'':(p.noRegreso==='si'?'NO REGRESO':(p.horaRegreso||'')),esTipoSinHorarioReal(p.tipo)?'N/A':(p.noRegreso==='si'?'No':'Si')];
+  var codigo=p.tipoPagoPermiso?codigoPermiso(p.tipoPagoPermiso):'';
+  var row=base.concat([secToHMS(tdSeg),tdDecimal,codigo,p.tipoPagoPermiso||'Pendiente cierre']).concat(tail);
+  return[row];
+}
+
+function estadoBadge(e){
+  if(e==='Pendiente')return 'badge-pending';
+  if(e==='Aprobado')return 'badge-approved';
+  if(e==='Autorizado_recepcion')return 'badge-recepcion';
+  if(e==='Rechazado')return 'badge-rejected';
+  return'';
+}
+function estadoLabel(e){
+  if(e==='Pendiente')return 'En recepción';
+  if(e==='Aprobado')return 'En recepción';
+  if(e==='Autorizado_recepcion')return '✓ Autorizado';
+  if(e==='Rechazado')return 'Rechazado';
+  return e||'—';
+}
+
+function timeToSec(t){if(!t)return 0;var p=t.split(':').map(Number);return(p[0]||0)*3600+(p[1]||0)*60+(p[2]||0);}
+function secToHMS(s){if(s<0)s=0;var h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=Math.floor(s%60);return pad(h)+':'+pad(m)+':'+pad(sec);}
+function secToHM(s){if(s<=0)return'0:00';var h=Math.floor(s/3600),m=Math.floor((s%3600)/60);return h+'h '+pad(m)+'m';}
+function pad(n){return n<10?'0'+n:String(n);}
+function nowHMS(){return new Date().toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});}
+
+function calcularTiempoDescuento(p){
+  var esAdmPuro=(p.esAdministrativo==='si'&&p.tipoCargo!=='adm_produccion')||p.tipoCargo==='adm_puro';
+  if(esAdmPuro)return 0;
+  if(p.incapacidad==='si')return 0;
+  var turno=getHorarioPermiso(p);
+  var jornada=turno.horas*3600;
+  if(p.tipo==='dia'){
+    if(p.soporte==='si')return 0;
+    if(p.tipoPagoPermiso==='PNR')return jornada;
+    return jornada;
+  }
+  if(p.tipo==='calamidad')return 0;
+  // FIX: Votación día completo siempre es remunerada (PR) — nunca descuenta, no pasa por regreso
+  if(p.tipo==='votacion_dia')return 0;
+  if(!p.horaInicio)return 0;
+  var salida=timeToSec(p.horaInicio);
+  var regreso=p.horaRegreso?timeToSec(p.horaRegreso):null;
+  var finTurno=timeToSec(turno.fin);
+  // FIX: Votación (3.75h) — las primeras 3.75h siempre son PR (sin descuento).
+  // El límite hasta donde se cuenta el excedente es la hora de regreso real, o el fin de turno si no regresó.
+  if(p.tipo==='votacion'){
+    var finVotacion=salida+HORAS_VOTACION_SEG;
+    var limiteVot=(p.noRegreso==='si'||regreso===null)?finTurno:regreso;
+    if(finVotacion>=limiteVot)return 0; // regresó (o terminó turno) antes o justo al cumplirse las 3.75h
+    var diffVot=limiteVot-finVotacion;
+    return diffVot>0?diffVot:0;
+  }
+  if(p.noRegreso==='si'||regreso===null){var diff=finTurno-salida;return diff>0?diff:0;}
+  var duracion=regreso-salida;
+  if(duracion<=0)return 0;
+  if(p.tipo==='eps'){
+    var dosHoras=2*3600;
+    var esPR_eps=p.soporte==='si'||p.incapacidad==='si'||p.tipoPagoPermiso==='PR';
+    // FIX: las 2 horas gratis SOLO aplican si presentó soporte/incapacidad. Sin soporte,
+    // todo el tiempo se descuenta como PNR, sin importar si la duración fue menor a 2h.
+    if(!esPR_eps)return duracion;
+    if(duracion<=dosHoras)return 0;
+    return duracion-dosHoras;
+  }
+  if(p.tipo==='personal')return duracion;
+  return duracion;
+}
+
+function formatTiempoDescuento(p){
+  var esAdmPuro=(p.esAdministrativo==='si'&&p.tipoCargo!=='adm_produccion')||p.tipoCargo==='adm_puro';
+  if(esAdmPuro)return{text:'No descuenta (Adm.)',cls:'tiempo-admin'};
+  if(p.incapacidad==='si')return{text:'No descuenta (Incap.)',cls:'tiempo-ok'};
+  // FIX: Votación (3.75h) ahora pasa por el flujo de regreso — mostrar estado según corresponda
+  if(p.tipo==='votacion'&&!p.tipoPagoPermiso&&p.estado==='Autorizado_recepcion'){return{text:'Votación — Pend. cierre',cls:'tiempo-warn'};}
+  if(p.tipo==='votacion'){
+    var sVot=calcularTiempoDescuento(p);
+    if(sVot>0)return{text:'3.75h PR + '+secToHM(sVot)+' PNR',cls:'tiempo-red'};
+    return{text:'Votación — 3.75h PR',cls:'tiempo-ok'};
+  }
+  // FIX: Votación día completo — mientras está pendiente de cierre (recepción aún no confirma
+  // si regresó o no) se muestra como pendiente; una vez cerrado, siempre es PR jornada completa
+  if(p.tipo==='votacion_dia'&&!p.tipoPagoPermiso){var turnoVotDia=getHorarioPermiso(p);return{text:'Pend. cierre (~'+turnoVotDia.horas+'h)',cls:'tiempo-warn'};}
+  if(p.tipo==='votacion_dia')return{text:'Votación día completo — PR',cls:'tiempo-ok'};
+  if(p.tipo==='dia'&&!p.tipoPagoPermiso){var turnoTemp=getHorarioPermiso(p);return{text:'Pend. cierre (~'+turnoTemp.horas+'h)',cls:'tiempo-warn'};}
+  if(p.tipo==='eps'&&p.estado==='Autorizado_recepcion'&&!p.tipoPagoPermiso){return{text:'EPS — Pend. cierre',cls:'tiempo-warn'};}
+  var s=calcularTiempoDescuento(p);
+  // FIX: ya no asumimos "dentro de 2h = gratis" sin verificar soporte. El mensaje ahora se basa
+  // en el cálculo real de 's', que ya contempla que sin soporte no hay 2h gratis.
+  if(p.tipo==='eps'&&p.soporte==='si'&&p.horaInicio&&p.horaRegreso){var dur=timeToSec(p.horaRegreso)-timeToSec(p.horaInicio);if(dur<=2*3600)return{text:'Dentro de 2h gratis EPS',cls:'tiempo-ok'};}
+  if(p.tipoPagoPermiso==='PR'&&s===0)return{text:'PR — Sin descuento',cls:'tiempo-ok'};
+  if(s===0)return{text:'Sin descuento',cls:'tiempo-ok'};
+  if(s>=3600)return{text:secToHM(s)+' a descontar',cls:'tiempo-red'};
+  return{text:secToHM(s)+' a descontar',cls:'tiempo-warn'};
+}
+
+function getAlerts(){
+  var today=new Date();var mes=today.getMonth();var anio=today.getFullYear();
+  var counts={};
+  DB.permisos.forEach(function(p){
+    if(!p.fecha||p.estado==='Rechazado')return;
+    var d=new Date(p.fecha+'T00:00:00');
+    if(d.getMonth()!==mes||d.getFullYear()!==anio)return;
+    var q=d.getDate()<=15?1:2;
+    var key=p.cedula+'_mes';var keyQ=p.cedula+'_q'+q;
+    counts[key]=(counts[key]||{nombre:p.nombre,cedula:p.cedula,count:0});counts[key].count++;
+    counts[keyQ]=(counts[keyQ]||{nombre:p.nombre,cedula:p.cedula,count:0,q:q});counts[keyQ].count++;
+  });
+  var alerts=[];
+  Object.keys(counts).forEach(function(k){
+    var v=counts[k];
+    if(v.count>=3){var tipo=k.indexOf('_mes')>=0?'mes':'quincena '+(v.q===1?'1 (1-15)':'2 (16-fin)');alerts.push({nombre:v.nombre,cedula:v.cedula,count:v.count,tipo:tipo});}
+  });
+  return alerts;
+}
+
+function resetearUsuarios(){
+  if(!confirm('¿Restablecer accesos de admin y recepcion?'))return;
+  var usuarios=JSON.parse(localStorage.getItem('usuarios_v1')||'[]');
+  var adminEx=usuarios.find(function(u){return u.user==='admin';});
+  if(adminEx){adminEx.pass='admin123';adminEx.rol='admin';}
+  else{usuarios.push({id:1,nombre:'Administrador',user:'admin',pass:'admin123',rol:'admin',area:''});}
+  var recEx=usuarios.find(function(u){return u.user==='recepcion';});
+  if(recEx){recEx.pass='recep123';recEx.rol='recepcion';}
+  else{usuarios.push({id:2,nombre:'Recepción Principal',user:'recepcion',pass:'recep123',rol:'recepcion',area:''});}
+  localStorage.setItem('usuarios_v1',JSON.stringify(usuarios));
+  try{DB.usuarios=usuarios;}catch(e){}
+  alert('Listo. Ingresa con:\nUsuario: admin\nContrasena: admin123');
+}
+
+function doLogin(){
+  var u=document.getElementById('login-user').value.trim();
+  var p=document.getElementById('login-pass').value;
+  var found=DB.usuarios.find(function(x){return x.user===u&&x.pass===p;});
+  if(!found){
+    var el=document.getElementById('lerror');
+    document.getElementById('lerror-msg').textContent='Usuario o contraseña incorrectos.';
+    el.classList.add('show');setTimeout(function(){el.classList.remove('show');},3000);return;
+  }
+  currentUser=found;
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app-screen').style.display='';
+  setupSidebar();
+  if(currentUser.rol==='recepcion')showTab('recepcion');
+  else showTab('dashboard');
+}
+function doLogout(){
+  currentUser=null;
+  document.getElementById('app-screen').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('login-user').value='';document.getElementById('login-pass').value='';
+}
+
+var NAV_CONFIG={
+  admin:[
+    {label:'Principal',items:[{tab:'dashboard',icon:'ti-layout-dashboard',text:'Panel general'},{tab:'recepcion',icon:'ti-door-enter',text:'Vista recepción'}]},
+    {label:'Operación',items:[{tab:'nuevo',icon:'ti-file-plus',text:'Nueva solicitud'},{tab:'listado',icon:'ti-list-details',text:'Todas las solicitudes'}]},
+    {label:'Configuración',items:[{tab:'empleados',icon:'ti-users',text:'Empleados'},{tab:'usuarios',icon:'ti-shield-lock',text:'Usuarios y accesos'},{tab:'areas',icon:'ti-building',text:'Áreas y módulos'},{tab:'horarios',icon:'ti-clock',text:'Horarios'},{tab:'reportes',icon:'ti-chart-bar',text:'Reportes'}]}
+  ],
+  lider:[
+    {label:'Principal',items:[{tab:'dashboard',icon:'ti-layout-dashboard',text:'Panel general'}]},
+    {label:'Operación',items:[{tab:'nuevo',icon:'ti-file-plus',text:'Nueva solicitud'},{tab:'listado',icon:'ti-list-details',text:'Historial'}]},
+    {label:'Análisis',items:[{tab:'reportes',icon:'ti-chart-bar',text:'Reportes'}]}
+  ],
+  recepcion:[
+    {label:'Principal',items:[{tab:'recepcion',icon:'ti-door-enter',text:'Control de salidas'},{tab:'dashboard',icon:'ti-layout-dashboard',text:'Panel'}]}
+  ],
+  readonly:[
+    {label:'Consulta',items:[{tab:'dashboard',icon:'ti-layout-dashboard',text:'Panel general'},{tab:'listado',icon:'ti-list-details',text:'Solicitudes'},{tab:'reportes',icon:'ti-chart-bar',text:'Reportes'}]}
+  ]
+};
+
+function setupSidebar(){
+  var rol=currentUser.rol;
+  var initials=currentUser.nombre.split(' ').map(function(w){return w[0];}).join('').slice(0,2).toUpperCase();
+  var av=document.getElementById('sb-avatar');
+  av.textContent=initials;av.style.background=roleColors[rol]||'#1A5CDB';
+  document.getElementById('sb-uname').textContent=currentUser.nombre;
+  document.getElementById('sb-urole').textContent=roleLabel[rol]||rol;
+  var config=NAV_CONFIG[rol]||NAV_CONFIG.readonly;
+  var html='';
+  config.forEach(function(s){
+    html+='<div class="nav-label">'+s.label+'</div>';
+    s.items.forEach(function(item){html+='<button class="nav-item" id="nav-'+item.tab+'" data-tab="'+item.tab+'"><i class="ti '+item.icon+'"></i> '+item.text+'</button>';});
+  });
+  document.getElementById('sidebar-nav').innerHTML=html;
+  document.querySelectorAll('.nav-item').forEach(function(btn){btn.addEventListener('click',function(){showTab(btn.dataset.tab);});});
+  var bnd=document.getElementById('btn-nuevo-dash');
+  if(bnd)bnd.style.display=(rol==='admin'||rol==='lider')?'':'none';
+  populateAreaSelects();populateHorarioSelects();
+}
+
+function showTab(name){
+  document.querySelectorAll('.section').forEach(function(s){s.classList.remove('active');});
+  document.querySelectorAll('.nav-item').forEach(function(b){b.classList.remove('active');});
+  var sec=document.getElementById('tab-'+name);if(sec)sec.classList.add('active');
+  var nb=document.getElementById('nav-'+name);if(nb)nb.classList.add('active');
+  if(name==='dashboard')renderDashboard();
+  if(name==='listado')renderTable();
+  if(name==='recepcion'){renderRecepcion();startClock();}
+  if(name==='empleados')renderEmpTable();
+  if(name==='usuarios')renderUsuarios();
+  if(name==='areas')renderAreas();
+  if(name==='horarios'){renderHorarios();populateHorarioSelects();}
+  if(name==='nuevo'){checkEmpAlert();populateAreaSelects();populateHorarioSelects();setLiderDisplay();setDefaultDates();}
+  if(name==='reportes')populateAreaSelects();
+}
+
+function setLiderDisplay(){var el=document.getElementById('f-lider-display');if(el&&currentUser)el.value=currentUser.nombre;}
+function setDefaultDates(){
+  var today=new Date().toISOString().split('T')[0];
+  var fc=document.getElementById('f-fecha-creacion');var ff=document.getElementById('f-fecha');
+  if(fc&&!fc.value)fc.value=today;if(ff&&!ff.value)ff.value=today;
+  if(fc){fc.max=today;var min=new Date();min.setDate(min.getDate()-5);fc.min=min.toISOString().split('T')[0];}
+}
+
+function populateAreaSelects(){
+  ['f-area','mu-area','rep-area'].forEach(function(id){
+    var sel=document.getElementById(id);if(!sel)return;
+    var cur=sel.value;
+    if(id==='mu-area')sel.innerHTML='<option value="">Sin área específica</option>';
+    else if(id==='rep-area')sel.innerHTML='<option value="">Todas las áreas</option>';
+    else sel.innerHTML='<option value="">Seleccionar...</option>';
+    DB.areas.forEach(function(a){var opt=document.createElement('option');opt.value=a.nombre;opt.textContent=a.nombre+(a.tipo==='modulo'?' 🧵':'');sel.appendChild(opt);});
+    if(cur)sel.value=cur;
+  });
+}
+
+// FIX: populateHorarioSelects ahora está definida correctamente
+function populateHorarioSelects(){
+  ['f-horario-id','rec-horario-id'].forEach(function(id){
+    var sel=document.getElementById(id);if(!sel)return;
+    var cur=sel.value;
+    sel.innerHTML='<option value="">Seleccionar horario...</option>';
+    if(DB.horarios){
+      DB.horarios.forEach(function(h){
+        var opt=document.createElement('option');opt.value=h.id;opt.textContent=h.nombre+' ('+h.inicio+'-'+h.fin+')';sel.appendChild(opt);
+      });
+    }
+    if(cur)sel.value=cur;
+  });
+}
+
+function filtrarEmpleados(){
+  var q=document.getElementById('f-nombre').value.trim().toLowerCase();
+  var dd=document.getElementById('emp-dropdown');
+  // FIX: si el líder empieza a escribir un nombre nuevo, limpiamos la alerta de acumulación
+  // del permiso anterior (que debía persistir tras el envío, pero ya no aplica a esta nueva solicitud)
+  var alertaWrapTyping=document.getElementById('form-alerta-acumulacion');
+  if(alertaWrapTyping&&q.length>0)alertaWrapTyping.innerHTML='';
+  if(!DB.empleados.length){dd.style.display='none';return;}
+  var res=q.length===0?DB.empleados.slice(0,80):DB.empleados.filter(function(e){return e.nombre.toLowerCase().includes(q)||String(e.cedula).includes(q);}).slice(0,80);
+  if(!res.length){dd.style.display='none';return;}
+  dd.innerHTML=res.map(function(e){return'<div class="ac-item" data-nombre="'+e.nombre.replace(/"/g,'&quot;')+'" data-cedula="'+e.cedula+'" data-horarioid="'+(e.horarioId||'')+'" data-area="'+(e.area||'').replace(/"/g,'&quot;')+'" data-admin="'+(e.esAdministrativo||'no')+'"><span style="font-weight:500">'+e.nombre+(e.esAdministrativo==='si'?' <span style="font-size:10px;color:var(--purple)">(Adm.)</span>':'')+'</span><span style="font-family:\'DM Mono\',monospace;font-size:11px;color:var(--text3)">'+e.cedula+'</span></div>';}).join('');
+  dd.querySelectorAll('.ac-item').forEach(function(item){
+    item.addEventListener('click',function(){
+      document.getElementById('f-nombre').value=item.dataset.nombre;
+      document.getElementById('f-cedula').value=item.dataset.cedula;
+      aplicarDatosEmpleadoAFormulario(item.dataset.area,item.dataset.horarioid,item.dataset.admin);
+      dd.style.display='none';
+    });
+  });
+  dd.style.display='block';
+}
+
+// FIX: aplica área/horario/admin al formulario y bloquea área+horario si el empleado es administrativo
+// (regla de negocio: solo el Administrador puede cambiar área/horario de un administrativo,
+// y solo editando al empleado en la base — nunca desde el formulario de Nueva Solicitud)
+function aplicarDatosEmpleadoAFormulario(area,horarioId,esAdmin){
+  var areaSel=document.getElementById('f-area');
+  var horSel=document.getElementById('f-horario-id');
+  var admHidden=document.getElementById('f-es-admin');
+  var infoWrap=document.getElementById('f-cargo-info-wrap');
+  var info=document.getElementById('f-cargo-info');
+  var esAdm=esAdmin==='si';
+
+  if(area&&areaSel)areaSel.value=area;
+  if(horarioId&&horSel)horSel.value=horarioId;
+  if(admHidden)admHidden.value=esAdm?'si':'no';
+
+  if(areaSel)areaSel.disabled=esAdm;
+  if(horSel)horSel.disabled=esAdm;
+
+  if(infoWrap&&info){
+    infoWrap.style.display='block';
+    if(esAdm){
+      info.innerHTML='<div class="alert info" style="margin-bottom:0"><i class="ti ti-lock"></i><span><strong>Cargo administrativo</strong> — Área y horario quedan bloqueados (no descuenta tiempo). Solo el Administrador puede modificar estos datos editando al empleado.</span></div>';
+    }else{
+      info.innerHTML='<div class="alert success" style="margin-bottom:0"><i class="ti ti-briefcase"></i><span>Cargo operativo — puedes ajustar el área u horario si hay una excepción puntual.</span></div>';
+    }
+  }
+}
+
+function checkEmpAlert(){var a=document.getElementById('alert-no-emp');if(a)a.style.display=DB.empleados.length===0?'flex':'none';}
+
+function submitForm(){
+  if(!currentUser||currentUser.rol==='readonly'||currentUser.rol==='recepcion'){showMsg('Sin permisos.','danger');return;}
+  var btn=document.getElementById('btn-submit-form');
+  if(btn&&btn.disabled)return;
+  var nombre=document.getElementById('f-nombre').value.trim();
+  var cedula=document.getElementById('f-cedula').value.trim();
+  if(!nombre){showMsg('Escribe o selecciona un empleado.','warning');return;}
+  if(!cedula){showMsg('Ingresa la cédula del empleado.','warning');return;}
+  var reqs=['f-area','f-tipo','f-fecha','f-fecha-creacion'];
+  for(var i=0;i<reqs.length;i++){if(!document.getElementById(reqs[i]).value.trim()){showMsg('Completa todos los campos obligatorios.','warning');return;}}
+  var fechaCreacion=document.getElementById('f-fecha-creacion').value;
+  var today=new Date().toISOString().split('T')[0];
+  var minDate=new Date();minDate.setDate(minDate.getDate()-5);var minStr=minDate.toISOString().split('T')[0];
+  if(fechaCreacion<minStr||fechaCreacion>today){showMsg('La fecha de creación debe ser entre los últimos 5 días y hoy.','warning');return;}
+  if(btn){btn.disabled=true;btn.innerHTML='<i class="ti ti-loader"></i> Enviando...';btn.style.opacity='.6';}
+  // FIX: f-es-admin es un campo oculto que viene fijo del empleado (Excel o ficha de Empleados).
+  // Ya no es editable desde este formulario — área/horario quedan bloqueados si es administrativo.
+  var admSelEl=document.getElementById('f-es-admin');
+  var empAdmin=admSelEl?admSelEl.value:'no';
+  var areaForm=document.getElementById('f-area').value;
+  var horarioForm=parseInt(document.getElementById('f-horario-id').value)||0;
+  // FIX defensa en profundidad: si la cédula coincide con un empleado administrativo conocido,
+  // se fuerzan SU área y horario reales (ignorando cualquier manipulación del formulario)
+  var empConocido=DB.empleados.find(function(e){return String(e.cedula)===cedula;});
+  if(empConocido&&empConocido.esAdministrativo==='si'){
+    empAdmin='si';
+    if(empConocido.area)areaForm=empConocido.area;
+    if(empConocido.horarioId)horarioForm=empConocido.horarioId;
+  }
+  var p={
+    id:Date.now(),nombre:nombre,cedula:cedula,
+    area:areaForm,
+    turno:document.getElementById('f-turno').value,
+    horarioId:horarioForm,
+    tipoCargo:empAdmin==='si'?'administrativo':'operativo',
+    liderRegistra:currentUser.nombre,liderUser:currentUser.user,
+    tipo:document.getElementById('f-tipo').value,
+    fechaCreacion:fechaCreacion,
+    fecha:document.getElementById('f-fecha').value,
+    horaInicio:document.getElementById('f-tipo').value==='votacion_dia'?'':document.getElementById('f-hora-inicio').value,
+    obs:document.getElementById('f-obs').value.trim(),
+    soporte:'no',prioridad:'normal',
+    estado:'Aprobado',horaSolicitud:nowHMS(),
+    aprobadoPorLider:'',aprobadoPorLiderUser:'',fechaAprobLider:'',
+    autorizadoRecepcion:'',autorizadoRecepcionUser:'',fechaAutorizRec:'',horaAutorizRec:'',
+    horaRegreso:'',noRegreso:'',
+    esAdministrativo:empAdmin==='si'?'si':'no',incapacidad:'no',
+    tiempoDescuentoSeg:0,
+    firmaEmpleado:'',firmoEmpleado:'No',observacion:''
+  };
+  DB.permisos.unshift(p);save('permisos');
+  showMsg('✓ Solicitud enviada. Visible en recepción para autorizar la salida.','success');
+  // FIX: verificar si este empleado acumula 3+ permisos en la quincena o el mes, y avisar al líder de inmediato.
+  // Se muestra en un contenedor separado para que no se borre junto con el mensaje de éxito ni al limpiar el formulario.
+  var alertaWrap=document.getElementById('form-alerta-acumulacion');
+  var alertasEmp=getAlerts().filter(function(a){return String(a.cedula)===String(cedula);});
+  if(alertasEmp.length&&alertaWrap){
+    var msgAlerta=alertasEmp.map(function(a){return a.count+' permisos en el '+a.tipo;}).join(' · ');
+    alertaWrap.innerHTML='<div class="alert-banner" style="margin-top:10px"><i class="ti ti-alert-triangle"></i><div><div style="font-weight:600;font-size:14px">⚠️ Alerta: '+nombre+' ('+cedula+') — '+msgAlerta+'</div><div style="font-size:12px;opacity:.85">Este empleado ha alcanzado o superado 3 permisos. Requiere revisión.</div></div></div>';
+  }
+  setTimeout(clearForm,2500);
+}
+
+function showMsg(msg,type){
+  var el=document.getElementById('form-msg');if(!el)return;
+  el.innerHTML='<div class="alert '+type+'"><i class="ti ti-'+(type==='success'?'circle-check':'alert-circle')+'"></i><span>'+msg+'</span></div>';
+  setTimeout(function(){el.innerHTML='';},4000);
+  if(type!=='success'){var btn=document.getElementById('btn-submit-form');if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-send"></i> Enviar solicitud';btn.style.opacity='';}}
+}
+
+function clearForm(){
+  var btn=document.getElementById('btn-submit-form');
+  if(btn){btn.disabled=false;btn.innerHTML='<i class="ti ti-send"></i> Enviar solicitud';btn.style.opacity='';}
+  ['f-nombre','f-cedula','f-hora-inicio','f-obs'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('f-nombre').removeAttribute('data-empleado-admin');
+  var admSelClear=document.getElementById('f-es-admin');if(admSelClear)admSelClear.value='no';
+  // FIX: rehabilitar área/horario (pudieron quedar bloqueados si el último empleado era administrativo) y ocultar el aviso de cargo
+  var areaSelClear=document.getElementById('f-area');if(areaSelClear)areaSelClear.disabled=false;
+  var horSelClear=document.getElementById('f-horario-id');if(horSelClear)horSelClear.disabled=false;
+  var cargoInfoWrap=document.getElementById('f-cargo-info-wrap');if(cargoInfoWrap)cargoInfoWrap.style.display='none';
+  ['f-area','f-tipo','f-horario-id','f-turno'].forEach(function(id){var el=document.getElementById(id);if(el)el.selectedIndex=0;});
+  var fm=document.getElementById('form-msg');if(fm)fm.innerHTML='';
+  var dd=document.getElementById('emp-dropdown');if(dd)dd.style.display='none';
+  setLiderDisplay();setDefaultDates();
+}
+
+function renderDashboard(){
+  var today=new Date().toISOString().split('T')[0];
+  var all=DB.permisos;
+  var elTotal=document.getElementById('m-total');if(!elTotal)return;
+  elTotal.textContent=all.length;
+  document.getElementById('m-pending').textContent=all.filter(function(p){return p.estado==='Aprobado'&&p.fecha===today;}).length;
+  document.getElementById('m-recepcion').textContent=all.filter(function(p){return p.estado==='Aprobado';}).length;
+  var totalSeg=0;
+  all.filter(function(p){return p.fecha===today&&p.estado==='Autorizado_recepcion';}).forEach(function(p){totalSeg+=calcularTiempoDescuento(p);});
+  document.getElementById('m-horas').textContent=secToHM(totalSeg);
+  var alerts=getAlerts();
+  var aDiv=document.getElementById('alertas-dashboard');
+  if(alerts.length&&(currentUser.rol==='admin'||currentUser.rol==='lider')){
+    aDiv.innerHTML=alerts.map(function(a){return'<div class="alert-banner"><i class="ti ti-alert-triangle"></i><div><div style="font-weight:600;font-size:14px">⚠️ Alerta: '+a.nombre+' ('+a.cedula+') — '+a.count+' permisos en el '+a.tipo+'</div><div style="font-size:12px;opacity:.85">Este empleado ha alcanzado o superado 3 permisos. Requiere revisión.</div></div></div>';}).join('');
+  }else{aDiv.innerHTML='';}
+  var tipos={eps:0,personal:0,dia:0,calamidad:0};var areas={};
+  all.forEach(function(p){if(tipos[p.tipo]!==undefined)tipos[p.tipo]++;areas[p.area]=(areas[p.area]||0)+1;});
+  var maxT=Math.max.apply(null,Object.values(tipos).concat([1]));
+  document.getElementById('chart-tipo').innerHTML=all.length?Object.entries(tipos).map(function(e){return'<div class="bar-wrap"><div class="bar-label"><span>'+tipoLabel[e[0]]+'</span><span>'+e[1]+'</span></div><div class="bar-bg"><div class="bar-fill" style="width:'+Math.round(e[1]/maxT*100)+'%;background:'+barColors[e[0]]+'"></div></div></div>';}).join(''):'<div class="empty" style="padding:1rem"><p>Sin datos</p></div>';
+  var ae=Object.entries(areas).sort(function(a,b){return b[1]-a[1];});var maxA=Math.max.apply(null,ae.map(function(e){return e[1];}).concat([1]));
+  document.getElementById('chart-area').innerHTML=ae.length?ae.map(function(e,i){return'<div class="bar-wrap"><div class="bar-label"><span>'+(e[0]||'Sin área')+'</span><span>'+e[1]+'</span></div><div class="bar-bg"><div class="bar-fill" style="width:'+Math.round(e[1]/maxA*100)+'%;background:'+areaColors[i%areaColors.length]+'"></div></div></div>';}).join(''):'<div class="empty" style="padding:1rem"><p>Sin datos</p></div>';
+  var rec=all.slice(0,6);
+  document.getElementById('recent-list').innerHTML=rec.length?rec.map(function(p){return'<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:.5px solid var(--border)"><div><div style="font-size:13px;font-weight:500">'+p.nombre+'</div><div style="font-size:11px;color:var(--text3)">'+p.area+' · '+p.fecha+'</div></div><span class="badge '+estadoBadge(p.estado)+'">'+estadoLabel(p.estado)+'</span></div>';}).join(''):'<div class="empty" style="padding:1rem"><p>Sin datos</p></div>';
+}
+
+function startClock(){
+  if(clockInterval)clearInterval(clockInterval);
+  function tick(){
+    var now=new Date();
+    var cl=document.getElementById('rec-clock');var dt=document.getElementById('rec-date');
+    if(cl)cl.textContent=now.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+    if(dt)dt.textContent=now.toLocaleDateString('es-CO',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  }
+  tick();clockInterval=setInterval(tick,1000);
+}
+
+// FIX: renderPendientesCierre — variable esDia definida correctamente por ítem
+function renderPendientesCierre(){
+  var pendientes=DB.permisos.filter(function(p){
+    if(p.estado==='Rechazado')return false;
+    var esAdmPuro=(p.esAdministrativo==='si'&&p.tipoCargo!=='adm_produccion')||p.tipoCargo==='adm_puro';
+    if(esTipoDiaCompleto(p.tipo))return(p.estado==='Aprobado'||p.estado==='Autorizado_recepcion')&&!p.tipoPagoPermiso;
+    if(esAdmPuro)return false;
+    if(p.estado==='Autorizado_recepcion'&&!p.tipoPagoPermiso&&p.noRegreso!=='si')return true;
+    return false;
+  });
+  var wrap=document.getElementById('pendientes-cierre-wrap');if(!wrap)return;
+  if(!pendientes.length){wrap.innerHTML='';return;}
+  wrap.innerHTML='<div style="background:linear-gradient(135deg,#7A3B00,var(--amber));color:#fff;border-radius:var(--radius-lg);padding:14px 18px;margin-bottom:12px">'+
+    '<div style="font-weight:600;font-size:14px;margin-bottom:10px"><i class="ti ti-alert-triangle"></i> '+pendientes.length+' novedad(es) pendiente(s) de cierre</div>'+
+    '<div style="display:flex;flex-direction:column;gap:8px">'+
+    pendientes.map(function(p){
+      // esDia: usa el helper que define qué tipos pasan por el flujo de regreso (solo 'dia')
+      var esDia=esTipoDiaCompleto(p.tipo);
+      var diasPend=Math.floor((new Date()-new Date(p.fecha+'T00:00:00'))/(1000*60*60*24));
+      var diasTag=diasPend>0?'<span style="background:rgba(255,255,255,.3);padding:1px 6px;border-radius:10px;font-size:10px;margin-left:6px">+'+diasPend+' día(s)</span>':'<span style="background:rgba(255,255,255,.2);padding:1px 6px;border-radius:10px;font-size:10px;margin-left:6px">Hoy</span>';
+      return'<div style="background:rgba(255,255,255,.15);border-radius:var(--radius);padding:10px 14px;display:flex;align-items:center;gap:12px">'+
+        '<div style="flex:1">'+
+          '<div style="font-weight:600;font-size:13px">'+p.nombre+diasTag+'</div>'+
+          '<div style="font-size:11px;opacity:.85;margin-top:2px">'+p.area+' · '+(tipoLabel[p.tipo]||p.tipo)+' · Fecha: '+p.fecha+(p.horaInicio&&!esDia?' · Salida: '+p.horaInicio:'')+' · Cédula: '+(p.cedula||'—')+'</div>'+
+        '</div>'+
+        (esDia?
+          '<div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">'+
+            (!p.firmaEmpleado?'<button class="btn sm pend-firma-btn" data-id="'+p.id+'" style="background:#fff;color:var(--blue);border:none;white-space:nowrap"><i class="ti ti-signature"></i> Capturar firma</button>':'<span style="font-size:11px;background:rgba(255,255,255,.2);padding:3px 8px;border-radius:4px"><i class="ti ti-check"></i> Firmado</span>')+
+            '<button class="btn sm pend-cierre-btn" data-id="'+p.id+'" style="background:#fff;color:var(--amber);border:none;white-space:nowrap"><i class="ti ti-clock-check"></i> Cerrar novedad</button>'+
+          '</div>':
+          '<button class="btn sm pend-cierre-btn" data-id="'+p.id+'" style="background:#fff;color:var(--amber);border:none;white-space:nowrap;flex-shrink:0"><i class="ti ti-clock-check"></i> Cerrar novedad</button>'
+        )+
+      '</div>';
+    }).join('')+
+    '</div></div>';
+  wrap.querySelectorAll('.pend-cierre-btn').forEach(function(b){b.addEventListener('click',function(){abrirRegreso(parseInt(b.dataset.id));});});
+  wrap.querySelectorAll('.pend-firma-btn').forEach(function(b){b.addEventListener('click',function(){abrirFirmaDiaCompleto(parseInt(b.dataset.id));});});
+}
+
+function renderRecepcion(){
+  var today=new Date().toISOString().split('T')[0];
+  var q=(document.getElementById('rec-search')?document.getElementById('rec-search').value:'').toLowerCase();
+  var fechaFiltro=document.getElementById('rec-fecha-filter')?document.getElementById('rec-fecha-filter').value:'';
+  var filter=document.getElementById('rec-filter')?document.getElementById('rec-filter').value:'pendiente_rec';
+  var targetDate=fechaFiltro||today;
+  var data=DB.permisos.filter(function(p){
+    var dm=p.fecha===targetDate;
+    var sm=!q||p.nombre.toLowerCase().includes(q)||(p.cedula||'').includes(q);
+    if(filter==='pendiente_rec'){
+      if(p.estado==='Rechazado')return false;
+      if(esTipoDiaCompleto(p.tipo))return sm&&(p.estado==='Aprobado'||p.estado==='Autorizado_recepcion')&&!p.tipoPagoPermiso;
+      if(p.estado==='Aprobado')return sm;
+      var esAdmPuro2=(p.esAdministrativo==='si'&&p.tipoCargo!=='adm_produccion')||p.tipoCargo==='adm_puro';
+      if(esAdmPuro2)return false;
+      return sm&&p.estado==='Autorizado_recepcion'&&!p.tipoPagoPermiso&&p.noRegreso!=='si';
+    }
+    if(filter==='Autorizado_recepcion')return dm&&sm&&p.estado==='Autorizado_recepcion';
+    return dm&&sm;
+  });
+  var ch=document.getElementById('rec-count-hoy');if(ch)ch.textContent=DB.permisos.filter(function(p){return p.fecha===today;}).length;
+  var lista=document.getElementById('lista-recepcion');
+  if(!data.length){lista.innerHTML='<div class="empty" style="padding:3rem"><i class="ti ti-check-circle" style="color:var(--green)"></i><p>'+(filter==='pendiente_rec'?'No hay permisos pendientes de autorización':'Sin registros para mostrar')+'</p></div>';renderPendientesCierre();return;}
+  var avColors=['#1A5CDB','#5A2DB8','#1A7A4A','#B85C00','#A0266B','#0F6E56'];
+  lista.innerHTML=data.map(function(p,i){
+    var isAut=p.estado==='Autorizado_recepcion';
+    var initials=p.nombre.split(' ').map(function(w){return w[0];}).join('').slice(0,2).toUpperCase();
+    var td=formatTiempoDescuento(p);
+    var tiempoHtml='<span class="tiempo-tag '+td.cls+'"><i class="ti ti-clock" style="font-size:11px"></i> '+td.text+'</span>';
+    if(p.tipo==='eps'&&p.horaInicio&&p.horaRegreso){
+      var durSeg2=timeToSec(p.horaRegreso)-timeToSec(p.horaInicio);
+      if(durSeg2>2*3600){var pnrSeg2=durSeg2-2*3600;tiempoHtml+=' <span class="tiempo-tag tiempo-ok" style="font-size:10px">PR 2h 00m</span><span class="tiempo-tag tiempo-red" style="font-size:10px">PNR '+secToHM(pnrSeg2)+'</span>';}
+    }
+    var firmaHtml='';
+    if(isAut){firmaHtml=p.firmaEmpleado?'<img class="firma-thumb ver-firma-btn" data-id="'+p.id+'" src="'+p.firmaEmpleado+'" title="Ver firma"> <span class="firma-tag"><i class="ti ti-signature" style="font-size:11px"></i> Firmado</span>':'<span style="font-size:11px;color:var(--text3)">Sin firma</span>';}
+    var noRegresoHtml=p.noRegreso==='si'?'<span class="badge" style="background:var(--red-light);color:var(--red);font-size:10px">⚠ No regresó</span>':'';
+    var adminHtml=p.esAdministrativo==='si'?'<span class="badge badge-admin-cargo" style="font-size:10px">Administrativo</span>':'';
+    return'<div class="salida-card '+(isAut?(p.noRegreso==='si'?'no-regreso':'aprobado-rec'):'pendiente-rec')+'">'+
+      '<div class="salida-avatar" style="background:'+avColors[i%avColors.length]+'">'+initials+'</div>'+
+      '<div class="salida-info">'+
+        '<div class="salida-name">'+p.nombre+' '+adminHtml+' '+noRegresoHtml+'</div>'+
+        '<div class="salida-meta"><i class="ti ti-building" style="font-size:11px"></i> '+p.area+' · <i class="ti ti-id-badge-2" style="font-size:11px"></i> '+(p.cedula||'—')+'</div>'+
+        '<div class="salida-tipo">'+
+          '<span class="badge '+(tipoBadge[p.tipo]||'')+'">'+( tipoLabel[p.tipo]||p.tipo)+'</span>'+
+          (p.tipoPagoPermiso?(' <span class="badge" style="font-size:10px;background:'+(p.tipoPagoPermiso==='PR'?'var(--green-light);color:var(--green)':'var(--red-light);color:var(--red)')+'"><strong>'+p.tipoPagoPermiso+'</strong></span>'):'')+
+          (p.horaInicio?' <span style="font-size:12px;color:var(--text2)">Salida: <strong>'+p.horaInicio+'</strong></span>':'')+
+          (p.horaRegreso?' <span style="font-size:12px;color:var(--green)">Regreso: <strong>'+p.horaRegreso+'</strong></span>':'')+
+          ' '+tiempoHtml+
+        '</div>'+
+        (isAut?'<div class="huella-tag"><i class="ti ti-fingerprint" style="font-size:11px"></i> Autorizado por '+p.autorizadoRecepcion+' · '+p.horaAutorizRec+'</div>':'')+
+        (firmaHtml?'<div style="margin-top:4px">'+firmaHtml+'</div>':'')+
+      '</div>'+
+      '<div class="salida-actions">'+
+        (esTipoDiaCompleto(p.tipo)&&!p.tipoPagoPermiso?
+          '<button class="btn amber sm regreso-btn" data-id="'+p.id+'"><i class="ti ti-clock-check"></i> Cerrar día completo</button>':
+          (!isAut?'<button class="btn success sm rec-auth-btn" data-id="'+p.id+'" data-nombre="'+p.nombre.replace(/"/g,'&quot;')+'"><i class="ti ti-door-exit"></i> Autorizar</button>':'<span class="badge badge-recepcion" style="font-size:11px"><i class="ti ti-check"></i> Autorizado</span>')
+        )+
+        (isAut&&!p.horaRegreso&&p.noRegreso!=='si'&&!p.tipoPagoPermiso?'<button class="btn amber sm regreso-btn" data-id="'+p.id+'" style="margin-top:4px"><i class="ti ti-clock-check"></i> Registrar regreso</button>':'')+
+        (isAut&&p.firmaEmpleado?'<button class="btn ghost sm ver-firma-btn2" data-id="'+p.id+'" style="margin-top:4px"><i class="ti ti-signature"></i> Ver firma</button>':'')+
+        '<button class="btn ghost sm ver-det-rec" data-id="'+p.id+'" style="margin-top:4px"><i class="ti ti-eye"></i> Detalle</button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+  renderPendientesCierre();
+  lista.querySelectorAll('.rec-auth-btn').forEach(function(b){b.addEventListener('click',function(){abrirFirma(parseInt(b.dataset.id),b.dataset.nombre);});});
+  lista.querySelectorAll('.regreso-btn').forEach(function(b){b.addEventListener('click',function(){abrirRegreso(parseInt(b.dataset.id));});});
+  lista.querySelectorAll('.ver-firma-btn,.ver-firma-btn2').forEach(function(b){b.addEventListener('click',function(){verFirma(parseInt(b.dataset.id));});});
+  lista.querySelectorAll('.ver-det-rec').forEach(function(b){b.addEventListener('click',function(){verDetalle(parseInt(b.dataset.id));});});
+}
+
+// FIX: abrirFirma — ahora solo definida UNA vez, limpia correctamente
+function abrirFirma(id, nombre){
+  recConfirmId=id;
+  firmaModoDiaCompleto=false;
+  var p=DB.permisos.find(function(x){return x.id===id;});if(!p)return;
+  var avEl=document.getElementById('firma-avatar');
+  if(avEl){var ini=p.nombre.split(' ').map(function(w){return w[0];}).join('').slice(0,2).toUpperCase();avEl.textContent=ini;}
+  document.getElementById('firma-empleado-nombre').textContent=p.nombre;
+  // FIX: si el empleado es administrativo, lo indicamos claramente y no se pide nada de tipo de cargo
+  var esAdminEmp=p.esAdministrativo==='si';
+  document.getElementById('firma-info-permiso').textContent=(tipoLabel[p.tipo]||p.tipo)+' · '+p.area+' · '+p.fecha+(esAdminEmp?' · Administrativo (sin descuento)':'');
+  var cargoSel=document.getElementById('rec-tipo-cargo');if(cargoSel)cargoSel.value=p.tipoCargo||(esAdminEmp?'administrativo':'operativo');
+  var horaSalidaEl=document.getElementById('rec-hora-salida');if(horaSalidaEl)horaSalidaEl.value=nowHMS().slice(0,8);
+  var recHorSel=document.getElementById('rec-horario-id');if(recHorSel&&p.horarioId)recHorSel.value=p.horarioId;
+  // FIX: mensajes específicos según el tipo de permiso que se está firmando
+  if(esAdminEmp){
+    document.getElementById('firma-msg').innerHTML='<div class="alert info" style="margin-bottom:0"><i class="ti ti-briefcase"></i><span>Empleado administrativo: este permiso no descuenta tiempo. Solo se requiere la firma.</span></div>';
+  }else if(p.tipo==='votacion_dia'){
+    document.getElementById('firma-msg').innerHTML='<div class="alert info" style="margin-bottom:0"><i class="ti ti-circle-check"></i><span>Votación día completo: jornada completa remunerada (PR), de ley. Solo se requiere la firma para nómina.</span></div>';
+  }else if(p.tipo==='votacion'){
+    document.getElementById('firma-msg').innerHTML='<div class="alert info" style="margin-bottom:0"><i class="ti ti-circle-check"></i><span>Votación (3.75h): ese tiempo es remunerado (PR), de ley. Luego de autorizar, queda pendiente confirmar si la persona regresó a trabajar el resto de la jornada.</span></div>';
+  }else{
+    document.getElementById('firma-msg').innerHTML='';
+  }
+  document.getElementById('modal-firma').classList.add('show');
+  setTimeout(function(){limpiarCanvas();initCanvas();},100);
+}
+
+// FIX: abrirFirmaDiaCompleto — definida solo UNA vez (eliminada la duplicada)
+function abrirFirmaDiaCompleto(id){
+  recConfirmId=id;
+  firmaModoDiaCompleto=true;
+  var p=DB.permisos.find(function(x){return x.id===id;});if(!p)return;
+  var avEl=document.getElementById('firma-avatar');
+  if(avEl){var ini=p.nombre.split(' ').map(function(w){return w[0];}).join('').slice(0,2).toUpperCase();avEl.textContent=ini;}
+  document.getElementById('firma-empleado-nombre').textContent=p.nombre;
+  document.getElementById('firma-info-permiso').textContent='Día completo · '+p.area+' · '+p.fecha+' — Firma al regresar';
+  var cargoSel=document.getElementById('rec-tipo-cargo');if(cargoSel)cargoSel.value=p.tipoCargo||(p.esAdministrativo==='si'?'administrativo':'operativo');
+  var horaSalidaEl=document.getElementById('rec-hora-salida');if(horaSalidaEl)horaSalidaEl.value='';
+  document.getElementById('firma-msg').innerHTML='';
+  document.getElementById('modal-firma').classList.add('show');
+  setTimeout(function(){limpiarCanvas();initCanvas();},100);
+}
+
+// FIX: guardarFirma() — IMPLEMENTADA (faltaba completamente)
+function guardarFirma(){
+  var p=DB.permisos.find(function(x){return x.id===recConfirmId;});if(!p)return;
+  // Verificar que la firma no esté vacía
+  if(firmaVacia()){
+    document.getElementById('firma-msg').innerHTML='<div class="alert warning"><i class="ti ti-signature"></i><span>Por favor haz firmar al empleado en el recuadro antes de continuar.</span></div>';
+    return;
+  }
+  var canvas=document.getElementById('firma-canvas');
+  var firmaData=canvas.toDataURL('image/png');
+
+  if(firmaModoDiaCompleto){
+    // Solo guardar firma, no autorizar salida
+    p.firmaEmpleado=firmaData;p.firmoEmpleado='Si';
+    save('permisos');cerrarModal('modal-firma');
+    renderPendientesCierre();renderRecepcion();
+    return;
+  }
+
+  // Flujo normal: autorizar salida + guardar firma
+  var horaSalida=document.getElementById('rec-hora-salida').value||nowHMS();
+  var horarioId=parseInt(document.getElementById('rec-horario-id').value)||p.horarioId||0;
+  // FIX: el carácter administrativo viene del empleado (Excel/solicitud), no se sobrescribe aquí
+  var esAdm=p.esAdministrativo==='si';
+  p.estado='Autorizado_recepcion';
+  p.autorizadoRecepcion=currentUser?currentUser.nombre:'Recepcion';
+  p.autorizadoRecepcionUser=currentUser?currentUser.user:'';
+  p.fechaAutorizRec=new Date().toISOString().split('T')[0];
+  p.horaAutorizRec=nowHMS();
+  // FIX: votacion_dia no tiene hora de salida real (no vino a trabajar en todo el día) — no se guarda
+  if(p.tipo!=='votacion_dia')p.horaInicio=p.horaInicio||horaSalida;
+  if(!p.tipoCargo)p.tipoCargo=esAdm?'administrativo':'operativo';
+  if(horarioId)p.horarioId=horarioId;
+  p.firmaEmpleado=firmaData;p.firmoEmpleado='Si';
+  // Administrativo: cierre automático sin descuento, no pasa por PR/PNR de recepción
+  if(esAdm){p.tipoPagoPermiso='PR';p.soporte='si';}
+  // FIX: solo Votación día completo cierra automático. Votación (3.75h) ahora queda pendiente
+  // de cierre, porque necesitamos saber si la persona regresó a trabajar el resto de la jornada.
+  if(p.tipo==='votacion_dia'){p.tipoPagoPermiso='PR';p.soporte='si';}
+  save('permisos');
+  cerrarModal('modal-firma');
+  renderRecepcion();try{renderDashboard();}catch(e){}
+}
+
+function firmaVacia(){
+  var canvas=document.getElementById('firma-canvas');if(!canvas)return true;
+  var data=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;
+  for(var i=0;i<data.length;i+=4){if(data[i]<250||data[i+1]<250||data[i+2]<250)return false;}
+  return true;
+}
+
+function abrirRegreso(id){
+  regresoId=id;
+  var p=DB.permisos.find(function(x){return x.id===id;});if(!p)return;
+  var esDiaCompleto=esTipoDiaCompleto(p.tipo);
+  document.getElementById('regreso-nombre').textContent=p.nombre;
+  document.getElementById('regreso-detalle-permiso').innerHTML='<strong>'+(tipoLabel[p.tipo]||p.tipo)+'</strong> · '+p.fecha+(esDiaCompleto?' · <span style="color:var(--amber)">Día completo</span>':' · Salida: <strong>'+(p.horaInicio||'—')+'</strong>')+' · Área: '+p.area+(p.tipo==='eps'?' · <span style="color:var(--blue)">2 horas gratis EPS</span>':'');
+  var horaWrapAbrir=document.getElementById('regreso-hora-wrap');var siNoWrap=document.getElementById('regreso-sino-wrap');
+  if(horaWrapAbrir)horaWrapAbrir.style.display=esDiaCompleto?'none':'';
+  if(siNoWrap)siNoWrap.style.display=esDiaCompleto?'none':'';
+  document.getElementById('regreso-hora').value=nowHMS().slice(0,8);
+  document.getElementById('regreso-si-no').value=esDiaCompleto?'no':'si';
+  document.getElementById('regreso-soporte').value='';
+  var incapEl=document.getElementById('regreso-incapacidad');if(incapEl)incapEl.value='no';
+  document.getElementById('regreso-obs').value='';
+  var dcInfo=document.getElementById('regreso-dia-completo-info');
+  if(dcInfo){
+    dcInfo.style.display=esDiaCompleto?'block':'none';
+    dcInfo.innerHTML='<i class="ti ti-info-circle"></i> <strong>Permiso día completo</strong> — Solo confirma si trajo soporte o incapacidad para definir si es <strong>PR</strong> o <strong>PNR</strong>.';
+  }
+  var firmaWrap=document.getElementById('regreso-firma-wrap');if(firmaWrap)firmaWrap.style.display=esDiaCompleto?'block':'none';
+  var soporteRow=document.getElementById('regreso-soporte-row');if(soporteRow)soporteRow.style.display=(p.tipo==='personal'||p.esAdministrativo==='si'||p.tipo==='votacion')?'none':'';
+  var div=document.getElementById('resultado-tipo-permiso');
+  var esAdmin=p.esAdministrativo==='si';
+  var esPersonal=p.tipo==='personal';
+  var esVotacion=p.tipo==='votacion';
+  // FIX: Votación (3.75h) — las 3.75h siempre son PR; si no regresó, el resto del turno se calculará
+  // como PNR automáticamente en calcularTiempoDescuento, sin necesidad de preguntar soporte aquí.
+  if(esVotacion&&div){
+    div.style.cssText='background:var(--green-light);color:var(--green);border-left:3px solid var(--green);border-radius:var(--radius);padding:12px 16px;margin-bottom:12px;font-size:14px;font-weight:600;display:flex;align-items:center;gap:10px';
+    div.innerHTML='<i class="ti ti-circle-check" style="font-size:22px"></i><div><div>PR — Votación (3.75h)</div><div style="font-size:12px;font-weight:400;margin-top:2px">Tiempo de votación remunerado de ley. Si no regresó o regresa después de cumplirse las 3.75h, el excedente se descuenta como PNR.</div></div>';
+    document.getElementById('regreso-soporte').value='si';
+  }else if(esAdmin&&div){
+    div.style.cssText='background:var(--purple-light);color:var(--purple);border-left:3px solid var(--purple);border-radius:var(--radius);padding:12px 16px;margin-bottom:12px;font-size:14px;font-weight:600;display:flex;align-items:center;gap:10px';
+    div.innerHTML='<i class="ti ti-briefcase" style="font-size:22px"></i><div><div>Cargo Administrativo — Sin descuento</div></div>';
+    document.getElementById('regreso-soporte').value='si';
+  }else if(esPersonal&&div){
+    div.style.cssText='background:var(--red-light);color:var(--red);border-left:3px solid var(--red);border-radius:var(--radius);padding:12px 16px;margin-bottom:12px;font-size:14px;font-weight:600;display:flex;align-items:center;gap:10px';
+    div.innerHTML='<i class="ti ti-circle-x" style="font-size:22px"></i><div><div>PNR — Permiso Personal No Remunerado</div></div>';
+    document.getElementById('regreso-soporte').value='no';
+  }else{if(div)div.innerHTML='';setTimeout(calcularTipoPermiso,50);}
+  document.getElementById('regreso-msg').innerHTML='';
+  var prev=document.getElementById('regreso-preview');if(prev)prev.style.display='none';
+  document.getElementById('modal-regreso').classList.add('show');
+  if(esDiaCompleto)setTimeout(function(){limpiarCanvasRegreso();initCanvasRegreso();},100);
+}
+
+function calcularTipoPermiso(){
+  var val=document.getElementById('regreso-soporte').value;
+  var p=DB.permisos.find(function(x){return x.id===regresoId;});
+  var esAdmin=p&&p.esAdministrativo==='si';
+  var incapEl=document.getElementById('regreso-incapacidad');if(incapEl)incapEl.value=(val==='incapacidad')?'si':'no';
+  var soporte=val==='si';var incap=val==='incapacidad';var esPR=soporte||incap||esAdmin;
+  var div=document.getElementById('resultado-tipo-permiso');if(!div)return;
+  if(!val&&!esAdmin){div.innerHTML='';return;}
+  if(esPR){
+    var razon=esAdmin?'Cargo administrativo':incap?'Incapacidad médica':'Soporte presentado';
+    var extra='';
+    if(p&&p.tipo==='eps'&&soporte)extra=' · EPS: 2h gratis, descuenta excedente';
+    if(p&&p.tipo==='eps'&&incap)extra=' · EPS con incapacidad: sin descuento';
+    div.style.cssText='background:var(--green-light);color:var(--green);border-left:3px solid var(--green);border-radius:var(--radius);padding:12px 16px;margin-bottom:12px;font-size:14px;font-weight:600;display:flex;align-items:center;gap:10px';
+    div.innerHTML='<i class="ti ti-circle-check" style="font-size:22px"></i><div><div>PR — Permiso Remunerado</div><div style="font-size:12px;font-weight:400;margin-top:2px">'+razon+extra+'</div></div>';
+  }else if(val==='no'){
+    var extraPNR=p&&p.tipo==='eps'?' · EPS sin soporte: se descuenta TODO el tiempo':'';
+    div.style.cssText='background:var(--red-light);color:var(--red);border-left:3px solid var(--red);border-radius:var(--radius);padding:12px 16px;margin-bottom:12px;font-size:14px;font-weight:600;display:flex;align-items:center;gap:10px';
+    div.innerHTML='<i class="ti ti-circle-x" style="font-size:22px"></i><div><div>PNR — Permiso No Remunerado</div><div style="font-size:12px;font-weight:400;margin-top:2px">Sin soporte'+extraPNR+'</div></div>';
+  }
+  previewRegreso();
+}
+
+function previewRegreso(){
+  var p=DB.permisos.find(function(x){return x.id===regresoId;});if(!p)return;
+  var hora=document.getElementById('regreso-hora').value;
+  var noReg=document.getElementById('regreso-si-no').value==='no';
+  if(p.tipo!=='dia'){var horaWrap=document.getElementById('regreso-hora-wrap');if(horaWrap)horaWrap.style.display=noReg?'none':'';}
+  var val=document.getElementById('regreso-soporte').value;
+  var soporte=val==='si';var incap=val==='incapacidad';var esPR=soporte||incap||p.esAdministrativo==='si';
+  var tempP=Object.assign({},p,{horaRegreso:noReg?'':hora,noRegreso:noReg?'si':'no',soporte:soporte?'si':'no',incapacidad:incap?'si':'no',tipoPagoPermiso:esPR?'PR':(val==='no'?'PNR':p.tipoPagoPermiso)});
+  var td=formatTiempoDescuento(tempP);
+  var prev=document.getElementById('regreso-preview');
+  if(prev){prev.style.display='';prev.innerHTML='<span class="tiempo-tag '+td.cls+'" style="font-size:13px"><i class="ti ti-clock"></i> <strong>'+td.text+'</strong></span>';}
+}
+
+function guardarRegreso(){
+  var p=DB.permisos.find(function(x){return x.id===regresoId;});if(!p)return;
+  var hora=document.getElementById('regreso-hora').value;
+  var noReg=document.getElementById('regreso-si-no').value==='no';
+  if(esTipoDiaCompleto(p.tipo)){
+    if(firmaRegresoVacia()){
+      document.getElementById('regreso-msg').innerHTML='<div class="alert danger"><i class="ti ti-signature"></i><span>La firma del empleado es obligatoria para cerrar un permiso de día completo.</span></div>';
+      return;
+    }
+  }
+  var valSoporte=document.getElementById('regreso-soporte').value;
+  if(!valSoporte&&p.esAdministrativo!=='si'){
+    document.getElementById('regreso-msg').innerHTML='<div class="alert warning"><i class="ti ti-alert-circle"></i><span>Selecciona si el empleado presentó soporte, incapacidad o no presentó nada.</span></div>';
+    return;
+  }
+  var obs=document.getElementById('regreso-obs').value.trim();
+  var esAdminP=p.esAdministrativo==='si';
+  var esVotacionCierre=p.tipo==='votacion';
+  var soporte=valSoporte==='si';var incap=valSoporte==='incapacidad';
+  var esPR=(soporte||incap||esAdminP)&&p.tipo!=='personal';
+  if(esAdminP)esPR=true;
+  p.horaRegreso=noReg?'':hora;p.noRegreso=noReg?'si':'no';if(!p.noRegreso)p.noRegreso='no';
+  p.soporte=soporte?'si':'no';p.incapacidad=incap?'si':'no';
+  // FIX: Votación siempre se marca como PR (las 3.75h son de ley), pero el tiempo descontado real
+  // se calcula con calcularTiempoDescuento — que ya sabe sumar el PNR del resto del turno si no regresó
+  p.tipoPagoPermiso=esPR?'PR':'PNR';
+  if(obs)p.observacion=obs;
+  if(esTipoDiaCompleto(p.tipo)&&!firmaRegresoVacia()){
+    var canvasR=document.getElementById('regreso-firma-canvas');
+    if(canvasR){p.firmaRegreso=canvasR.toDataURL('image/png');p.firmoEmpleado='Si';if(!p.firmaEmpleado)p.firmaEmpleado=p.firmaRegreso;}
+  }
+  p.cierrePorRecepcion=currentUser?currentUser.nombre:'Recepcion';
+  p.fechaCierre=new Date().toISOString().split('T')[0];p.horaCierre=nowHMS();
+  p.tiempoDescuentoSeg=esVotacionCierre?calcularTiempoDescuento(p):(esPR?0:calcularTiempoDescuento(p));
+  save('permisos');cerrarModal('modal-regreso');
+  renderPendientesCierre();renderRecepcion();try{renderDashboard();}catch(e){}
+}
+
+// CANVAS FIRMA SALIDA
+var isDrawing=false,lastX=0,lastY=0;
+function limpiarCanvas(){
+  var canvas=document.getElementById('firma-canvas');if(!canvas)return;
+  var ctx=canvas.getContext('2d');
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.strokeStyle='#E4E2DC';ctx.lineWidth=1;ctx.setLineDash([4,4]);
+  ctx.beginPath();ctx.moveTo(20,canvas.height-24);ctx.lineTo(canvas.width-20,canvas.height-24);ctx.stroke();
+  ctx.setLineDash([]);ctx.fillStyle='#A09D98';ctx.font='11px sans-serif';
+  ctx.fillText('Firme aquí',22,canvas.height-10);
+}
+function initCanvas(){
+  var canvas=document.getElementById('firma-canvas');if(!canvas)return;
+  var ctx=canvas.getContext('2d');
+  ctx.strokeStyle='#1A1917';ctx.lineWidth=2;ctx.lineCap='round';ctx.lineJoin='round';
+  function getPos(e){var rect=canvas.getBoundingClientRect();var sx=canvas.width/rect.width,sy=canvas.height/rect.height;if(e.touches)return{x:(e.touches[0].clientX-rect.left)*sx,y:(e.touches[0].clientY-rect.top)*sy};return{x:(e.clientX-rect.left)*sx,y:(e.clientY-rect.top)*sy};}
+  canvas.onmousedown=function(e){e.preventDefault();isDrawing=true;var pos=getPos(e);lastX=pos.x;lastY=pos.y;};
+  canvas.onmousemove=function(e){e.preventDefault();if(!isDrawing)return;var pos=getPos(e);ctx.beginPath();ctx.moveTo(lastX,lastY);ctx.lineTo(pos.x,pos.y);ctx.stroke();lastX=pos.x;lastY=pos.y;};
+  canvas.onmouseup=canvas.onmouseleave=function(e){e.preventDefault();isDrawing=false;};
+  canvas.ontouchstart=function(e){e.preventDefault();isDrawing=true;var pos=getPos(e);lastX=pos.x;lastY=pos.y;};
+  canvas.ontouchmove=function(e){e.preventDefault();if(!isDrawing)return;var pos=getPos(e);ctx.beginPath();ctx.moveTo(lastX,lastY);ctx.lineTo(pos.x,pos.y);ctx.stroke();lastX=pos.x;lastY=pos.y;};
+  canvas.ontouchend=function(e){e.preventDefault();isDrawing=false;};
+}
+
+// CANVAS FIRMA REGRESO
+var isDrawingR=false,lastXR=0,lastYR=0;
+function limpiarCanvasRegreso(){
+  var canvas=document.getElementById('regreso-firma-canvas');if(!canvas)return;
+  var ctx=canvas.getContext('2d');
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.strokeStyle='#E4E2DC';ctx.lineWidth=1;ctx.setLineDash([4,4]);
+  ctx.beginPath();ctx.moveTo(20,canvas.height-24);ctx.lineTo(canvas.width-20,canvas.height-24);ctx.stroke();
+  ctx.setLineDash([]);ctx.fillStyle='#A09D98';ctx.font='11px sans-serif';ctx.fillText('Firme aquí',22,canvas.height-10);
+}
+function initCanvasRegreso(){
+  var canvas=document.getElementById('regreso-firma-canvas');if(!canvas)return;
+  var ctx=canvas.getContext('2d');
+  ctx.strokeStyle='#1A1917';ctx.lineWidth=2;ctx.lineCap='round';ctx.lineJoin='round';
+  function getPos(e){var rect=canvas.getBoundingClientRect();var sx=canvas.width/rect.width,sy=canvas.height/rect.height;if(e.touches)return{x:(e.touches[0].clientX-rect.left)*sx,y:(e.touches[0].clientY-rect.top)*sy};return{x:(e.clientX-rect.left)*sx,y:(e.clientY-rect.top)*sy};}
+  canvas.onmousedown=function(e){e.preventDefault();isDrawingR=true;var pos=getPos(e);lastXR=pos.x;lastYR=pos.y;};
+  canvas.onmousemove=function(e){e.preventDefault();if(!isDrawingR)return;var pos=getPos(e);ctx.beginPath();ctx.moveTo(lastXR,lastYR);ctx.lineTo(pos.x,pos.y);ctx.stroke();lastXR=pos.x;lastYR=pos.y;};
+  canvas.onmouseup=canvas.onmouseleave=function(e){e.preventDefault();isDrawingR=false;};
+  canvas.ontouchstart=function(e){e.preventDefault();isDrawingR=true;var pos=getPos(e);lastXR=pos.x;lastYR=pos.y;};
+  canvas.ontouchmove=function(e){e.preventDefault();if(!isDrawingR)return;var pos=getPos(e);ctx.beginPath();ctx.moveTo(lastXR,lastYR);ctx.lineTo(pos.x,pos.y);ctx.stroke();lastXR=pos.x;lastYR=pos.y;};
+  canvas.ontouchend=function(e){e.preventDefault();isDrawingR=false;};
+}
+function firmaRegresoVacia(){
+  var canvas=document.getElementById('regreso-firma-canvas');if(!canvas)return true;
+  var data=canvas.getContext('2d').getImageData(0,0,canvas.width,canvas.height).data;
+  for(var i=0;i<data.length;i+=4){if(data[i]<250||data[i+1]<250||data[i+2]<250)return false;}
+  return true;
+}
+
+function verFirma(id){
+  var p=DB.permisos.find(function(x){return x.id===id;});if(!p||!p.firmaEmpleado)return;
+  document.getElementById('ver-firma-img').src=p.firmaEmpleado;
+  var td=formatTiempoDescuento(p);
+  document.getElementById('ver-firma-info').innerHTML='<strong>'+p.nombre+'</strong> · '+(p.cedula||'—')+'<br>'+(tipoLabel[p.tipo]||p.tipo)+' · '+p.fecha+(p.horaInicio?' · Salida: '+p.horaInicio:'')+(p.horaRegreso?' · Regreso: '+p.horaRegreso:'')+'<br>Área: '+p.area+'<br>Autorizó: <strong>'+(p.autorizadoRecepcion||'—')+'</strong> · '+(p.horaAutorizRec||'')+'<br><span class="tiempo-tag '+td.cls+'">'+td.text+'</span>';
+  document.getElementById('modal-ver-firma').classList.add('show');
+}
+
+function imprimirFirma(){
+  var img=document.getElementById('ver-firma-img').src;
+  var info=document.getElementById('ver-firma-info').innerHTML;
+  var w=window.open('','_blank');
+  w.document.write('<html><head><title>Soporte Permiso</title><style>body{font-family:sans-serif;padding:30px}h2{margin-bottom:8px}.info{font-size:14px;line-height:1.8;margin-bottom:20px;padding:12px;background:#f5f5f5;border-radius:8px}.firma-box{border:1px solid #ccc;padding:16px;border-radius:8px;text-align:center}.firma-box img{max-width:400px}hr{border:none;border-top:1px solid #eee;margin:20px 0}.footer{font-size:11px;color:#999;text-align:center}</style></head><body>');
+  w.document.write('<h2>Soporte de Permiso Laboral</h2><hr><div class="info">'+info+'</div>');
+  w.document.write('<div class="firma-box"><p style="font-size:12px;color:#999;margin-bottom:8px">Firma del empleado</p><img src="'+img+'"></div>');
+  w.document.write('<hr><div class="footer">Documento generado · '+new Date().toLocaleString('es-CO')+'</div>');
+  w.document.write('</body></html>');w.document.close();w.print();
+}
+
+function renderTable(){
+  var q=document.getElementById('search-input').value.toLowerCase();
+  var ft=document.getElementById('filter-tipo').value;var fe=document.getElementById('filter-estado').value;
+  var data=DB.permisos.filter(function(p){
+    var ms=!q||p.nombre.toLowerCase().includes(q)||(p.cedula||'').includes(q)||p.area.toLowerCase().includes(q);
+    return ms&&(!ft||p.tipo===ft)&&(!fe||p.estado===fe);
+  });
+  var el=document.getElementById('tabla-permisos');
+  if(!data.length){el.innerHTML='<div class="empty"><i class="ti ti-mood-empty"></i><p>No se encontraron solicitudes</p></div>';return;}
+  el.innerHTML='<table><thead><tr><th>Empleado</th><th>Área</th><th>Tipo</th><th>Fecha</th><th>Salida</th><th>Regreso</th><th>Tiempo</th><th>PR/PNR</th><th>Estado</th><th>Registro</th><th>Firma</th><th></th></tr></thead><tbody>'+
+    data.map(function(p){
+      var td=formatTiempoDescuento(p);
+      return'<tr>'+
+        '<td><div class="td-name">'+p.nombre+'</div><div class="td-sub">'+(p.cedula||'—')+'</div></td>'+
+        '<td style="font-size:12px">'+p.area+'</td>'+
+        '<td><span class="badge '+(tipoBadge[p.tipo]||'')+'">'+( tipoLabel[p.tipo]||p.tipo)+'</span></td>'+
+        '<td style="font-family:monospace;font-size:12px">'+p.fecha+'</td>'+
+        '<td style="font-family:monospace;font-size:12px">'+(esTipoSinHorarioReal(p.tipo)?'—':(p.horaInicio||'—'))+'</td>'+
+        '<td style="font-family:monospace;font-size:12px">'+(esTipoSinHorarioReal(p.tipo)?'—':(p.noRegreso==='si'?'<span style="color:var(--red)">No regresó</span>':(p.horaRegreso||'—')))+'</td>'+
+        '<td><span class="tiempo-tag '+td.cls+'" style="font-size:11px">'+td.text+'</span></td>'+
+        '<td>'+(p.tipoPagoPermiso?'<span class="badge" style="font-size:11px;background:'+(p.tipoPagoPermiso==='PR'?'var(--green-light);color:var(--green)':'var(--red-light);color:var(--red)')+'"><strong>'+p.tipoPagoPermiso+'</strong></span>':'<span style="color:var(--text3);font-size:12px">—</span>')+'</td>'+
+        '<td><span class="badge '+estadoBadge(p.estado)+'">'+estadoLabel(p.estado)+'</span></td>'+
+        '<td style="font-size:12px"><strong>'+(p.liderRegistra||'—')+'</strong><div class="td-sub">'+(p.horaSolicitud||'')+'</div></td>'+
+        '<td>'+(p.firmaEmpleado?'<img class="firma-thumb ver-firma-tbl" data-id="'+p.id+'" src="'+p.firmaEmpleado+'" title="Ver firma">':'<span style="color:var(--text3);font-size:12px">—</span>')+'</td>'+
+        '<td style="white-space:nowrap"><button class="btn ghost sm ver-det" data-id="'+p.id+'"><i class="ti ti-eye"></i></button>'+(currentUser&&currentUser.rol==='admin'?'<button class="btn danger sm del-perm" data-id="'+p.id+'"><i class="ti ti-trash"></i></button>':'')+'</td>'+
+      '</tr>';
+    }).join('')+'</tbody></table>';
+  el.querySelectorAll('.ver-det').forEach(function(b){b.addEventListener('click',function(){verDetalle(parseInt(b.dataset.id));});});
+  el.querySelectorAll('.del-perm').forEach(function(b){b.addEventListener('click',function(){eliminar(parseInt(b.dataset.id));});});
+  el.querySelectorAll('.ver-firma-tbl').forEach(function(b){b.addEventListener('click',function(){verFirma(parseInt(b.dataset.id));});});
+}
+
+function eliminar(id){
+  var p=DB.permisos.find(function(x){return x.id===id;});if(!p)return;
+  if(!confirm('¿Eliminar este permiso?\n\n'+p.nombre+' · '+p.fecha+'\n\nEsta acción no se puede deshacer.'))return;
+  DB.permisos=DB.permisos.filter(function(x){return x.id!==id;});
+  save('permisos');renderTable();try{renderDashboard();}catch(e){}
+}
+
+function verDetalle(id){
+  var p=DB.permisos.find(function(x){return x.id===id;});if(!p)return;
+  var td=formatTiempoDescuento(p);
+  alert('=== DETALLE ===\n'+'Empleado: '+p.nombre+'\nCédula: '+(p.cedula||'—')+'\nÁrea: '+p.area+'\n'+'Tipo: '+(tipoLabel[p.tipo]||p.tipo)+'\nFecha: '+p.fecha+'\n'+(p.tipo!=='dia'?'Salida: '+(p.horaInicio||'—')+'\nRegreso: '+(p.noRegreso==='si'?'NO REGRESÓ':(p.horaRegreso||'—'))+'\n':'')+'Tiempo: '+td.text+'\nPR/PNR: '+(p.tipoPagoPermiso||'Pendiente')+'\n'+'Cargo: '+(p.esAdministrativo==='si'?'Administrativo':'Operativo')+'\n'+'Estado: '+estadoLabel(p.estado)+'\n'+'Registro: '+(p.liderRegistra||'—')+' ('+p.horaSolicitud+')\n'+'Autorizó: '+(p.autorizadoRecepcion||'—')+' '+(p.horaAutorizRec||'')+'\n'+'Firma: '+(p.firmoEmpleado||'No')+'\n'+(p.observacion?'Obs: '+p.observacion:''));
+}
+
+function renderUsuarios(){
+  var el=document.getElementById('tabla-usuarios');if(!el)return;
+  el.innerHTML='<table><thead><tr><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Área</th><th></th></tr></thead><tbody>'+
+    DB.usuarios.map(function(u){return'<tr><td class="td-name">'+u.nombre+'</td><td style="font-family:monospace">'+u.user+'</td><td><span class="badge role-'+u.rol+'">'+(roleLabel[u.rol]||u.rol)+'</span></td><td style="font-size:12px">'+(u.area||'—')+'</td><td><button class="btn ghost sm edit-usr" data-id="'+u.id+'"><i class="ti ti-pencil"></i></button>'+(u.user!=='admin'?'<button class="btn danger sm del-usr" data-id="'+u.id+'"><i class="ti ti-trash"></i></button>':'')+' </td></tr>';}).join('')+'</tbody></table>';
+  el.querySelectorAll('.edit-usr').forEach(function(b){b.addEventListener('click',function(){abrirModalUsuario(parseInt(b.dataset.id));});});
+  el.querySelectorAll('.del-usr').forEach(function(b){b.addEventListener('click',function(){eliminarUsuario(parseInt(b.dataset.id));});});
+}
+
+function abrirModalUsuario(id){
+  document.getElementById('modal-user-title').textContent=id?'Editar usuario':'Nuevo usuario';
+  document.getElementById('mu-id').value=id||'';
+  if(id){var u=DB.usuarios.find(function(x){return x.id===id;});if(u){document.getElementById('mu-nombre').value=u.nombre;document.getElementById('mu-user').value=u.user;document.getElementById('mu-pass').value=u.pass;document.getElementById('mu-rol').value=u.rol;document.getElementById('mu-area').value=u.area||'';}}
+  else{['mu-nombre','mu-user','mu-pass'].forEach(function(i){document.getElementById(i).value='';});document.getElementById('mu-rol').selectedIndex=0;document.getElementById('mu-area').selectedIndex=0;}
+  document.getElementById('mu-msg').innerHTML='';populateAreaSelects();
+  document.getElementById('modal-usuario').classList.add('show');
+}
+
+function guardarUsuario(){
+  var id=parseInt(document.getElementById('mu-id').value)||0;
+  var nombre=document.getElementById('mu-nombre').value.trim();var user=document.getElementById('mu-user').value.trim();var pass=document.getElementById('mu-pass').value;var rol=document.getElementById('mu-rol').value;var area=document.getElementById('mu-area').value;
+  if(!nombre||!user||!pass){document.getElementById('mu-msg').innerHTML='<div class="alert danger"><i class="ti ti-alert-circle"></i><span>Completa todos los campos.</span></div>';return;}
+  if(DB.usuarios.find(function(u){return u.user===user&&u.id!==id;})){document.getElementById('mu-msg').innerHTML='<div class="alert danger"><i class="ti ti-alert-circle"></i><span>Ese usuario ya existe.</span></div>';return;}
+  if(id){var u=DB.usuarios.find(function(x){return x.id===id;});if(u){u.nombre=nombre;u.user=user;u.pass=pass;u.rol=rol;u.area=area;}}
+  else{DB.usuarios.push({id:Date.now(),nombre:nombre,user:user,pass:pass,rol:rol,area:area});}
+  save('usuarios');cerrarModal('modal-usuario');renderUsuarios();
+}
+
+function eliminarUsuario(id){if(!confirm('¿Eliminar este usuario?'))return;DB.usuarios=DB.usuarios.filter(function(u){return u.id!==id;});save('usuarios');renderUsuarios();}
+
+function renderAreas(){
+  var el=document.getElementById('tabla-areas');if(!el)return;
+  var tl={area:'Área',modulo:'Módulo confección',produccion:'Producción',otro:'Otro'};
+  el.innerHTML='<table><thead><tr><th>Nombre</th><th>Tipo</th><th>Descripción</th><th></th></tr></thead><tbody>'+
+    DB.areas.map(function(a){return'<tr><td class="td-name">'+a.nombre+(a.tipo==='modulo'?' 🧵':'')+'</td><td><span class="badge" style="background:var(--surface2);color:var(--text2)">'+(tl[a.tipo]||a.tipo)+'</span></td><td style="font-size:12px;color:var(--text2)">'+(a.desc||'—')+'</td><td><button class="btn ghost sm edit-area" data-id="'+a.id+'"><i class="ti ti-pencil"></i></button><button class="btn danger sm del-area" data-id="'+a.id+'"><i class="ti ti-trash"></i></button></td></tr>';}).join('')+'</tbody></table>';
+  el.querySelectorAll('.edit-area').forEach(function(b){b.addEventListener('click',function(){abrirModalArea(parseInt(b.dataset.id));});});
+  el.querySelectorAll('.del-area').forEach(function(b){b.addEventListener('click',function(){eliminarArea(parseInt(b.dataset.id));});});
+}
+
+function abrirModalArea(id){
+  document.getElementById('modal-area-title').textContent=id?'Editar área':'Nueva área';
+  document.getElementById('ma-id').value=id||'';
+  if(id){var a=DB.areas.find(function(x){return x.id===id;});if(a){document.getElementById('ma-nombre').value=a.nombre;document.getElementById('ma-tipo').value=a.tipo;document.getElementById('ma-desc').value=a.desc||'';}}
+  else{['ma-nombre','ma-desc'].forEach(function(i){document.getElementById(i).value='';});document.getElementById('ma-tipo').selectedIndex=0;}
+  document.getElementById('ma-msg').innerHTML='';document.getElementById('modal-area').classList.add('show');
+}
+
+function guardarArea(){
+  var id=parseInt(document.getElementById('ma-id').value)||0;
+  var nombre=document.getElementById('ma-nombre').value.trim();var tipo=document.getElementById('ma-tipo').value;var desc=document.getElementById('ma-desc').value.trim();
+  if(!nombre){document.getElementById('ma-msg').innerHTML='<div class="alert danger"><i class="ti ti-alert-circle"></i><span>El nombre es obligatorio.</span></div>';return;}
+  if(id){var a=DB.areas.find(function(x){return x.id===id;});if(a){a.nombre=nombre;a.tipo=tipo;a.desc=desc;}}
+  else{DB.areas.push({id:Date.now(),nombre:nombre,tipo:tipo,desc:desc});}
+  save('areas');cerrarModal('modal-area');renderAreas();populateAreaSelects();
+}
+function eliminarArea(id){if(!confirm('¿Eliminar esta área?'))return;DB.areas=DB.areas.filter(function(a){return a.id!==id;});save('areas');renderAreas();populateAreaSelects();}
+
+// HORARIOS
+function renderHorarios(){
+  var el=document.getElementById('tabla-horarios');if(!el)return;
+  if(!DB.horarios||!DB.horarios.length){el.innerHTML='<div class="empty"><i class="ti ti-clock-off"></i><p>No hay horarios. Crea uno.</p></div>';return;}
+  el.innerHTML='<table><thead><tr><th>Nombre</th><th>Hora inicio</th><th>Hora fin</th><th>Horas/día</th><th></th></tr></thead><tbody>'+
+    DB.horarios.map(function(h){return'<tr><td class="td-name">'+h.nombre+'</td><td style="font-family:monospace">'+h.inicio+'</td><td style="font-family:monospace">'+h.fin+'</td><td style="font-family:monospace">'+h.horasDia+'h</td><td><button class="btn ghost sm edit-hor" data-id="'+h.id+'"><i class="ti ti-pencil"></i></button><button class="btn danger sm del-hor" data-id="'+h.id+'"><i class="ti ti-trash"></i></button></td></tr>';}).join('')+'</tbody></table>';
+  el.querySelectorAll('.edit-hor').forEach(function(b){b.addEventListener('click',function(){abrirModalHorario(parseInt(b.dataset.id));});});
+  el.querySelectorAll('.del-hor').forEach(function(b){b.addEventListener('click',function(){eliminarHorario(parseInt(b.dataset.id));});});
+}
+
+function abrirModalHorario(id){
+  document.getElementById('modal-horario-title').textContent=id?'Editar horario':'Nuevo horario';
+  document.getElementById('mh-id').value=id||'';
+  if(id&&DB.horarios){var h=DB.horarios.find(function(x){return x.id===id;});if(h){document.getElementById('mh-nombre').value=h.nombre;document.getElementById('mh-inicio').value=h.inicio;document.getElementById('mh-fin').value=h.fin;}}
+  else{['mh-nombre','mh-inicio','mh-fin'].forEach(function(i){document.getElementById(i).value='';});}
+  document.getElementById('mh-msg').innerHTML='';actualizarPreviewHorario();
+  document.getElementById('modal-horario').classList.add('show');
+}
+
+function actualizarPreviewHorario(){
+  var ini=document.getElementById('mh-inicio').value;var fin=document.getElementById('mh-fin').value;
+  var prev=document.getElementById('mh-preview');if(!prev)return;
+  if(!ini||!fin){prev.innerHTML='Ingresa las horas para ver el resumen.';return;}
+  var s=timeToSec(ini+':00');var e=timeToSec(fin+':00');var diff=e-s;
+  if(diff<=0)diff+=24*3600;
+  var hh=Math.floor(diff/3600);var mm=Math.floor((diff%3600)/60);
+  prev.innerHTML='Duración: <strong>'+hh+'h '+pad(mm)+'m</strong> por día';
+}
+
+// FIX: importar horarios desde Excel, igual que ya existe para empleados
+function importarHorariosExcel(file){
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var wb=XLSX.read(e.target.result,{type:'binary'});
+      var ws=wb.Sheets[wb.SheetNames[0]];
+      var data=XLSX.utils.sheet_to_json(ws,{defval:''});
+      if(!data.length){document.getElementById('horarios-import-status').innerHTML='<div class="alert danger"><i class="ti ti-alert-circle"></i><span>Archivo vacío o sin datos.</span></div>';return;}
+      if(!DB.horarios)DB.horarios=[];
+      var creados=0,actualizados=0,errores=[];
+      data.forEach(function(row,idx){
+        var nombre=(row['Nombre']||row['nombre']||row['NOMBRE']||'').toString().trim();
+        var inicioRaw=(row['Inicio']||row['inicio']||row['INICIO']||row['Hora Inicio']||row['Hora inicio']||'').toString().trim();
+        var finRaw=(row['Fin']||row['fin']||row['FIN']||row['Hora Fin']||row['Hora fin']||'').toString().trim();
+        if(!nombre||!inicioRaw||!finRaw){
+          if(nombre||inicioRaw||finRaw)errores.push('Fila '+(idx+2)+': faltan datos ('+(nombre||'sin nombre')+')');
+          return;
+        }
+        // Normalizar formato de hora: aceptar "6:00", "06:00", "06:00:00", o un objeto Date (Excel a veces convierte horas)
+        function normalizarHora(v){
+          if(v instanceof Date)return pad(v.getHours())+':'+pad(v.getMinutes());
+          var s=String(v).trim();
+          var m=s.match(/^(\d{1,2}):(\d{2})/);
+          if(!m)return null;
+          var h=parseInt(m[1]),mi=parseInt(m[2]);
+          if(h>23||mi>59)return null;
+          return pad(h)+':'+pad(mi);
+        }
+        var inicio=normalizarHora(inicioRaw);
+        var fin=normalizarHora(finRaw);
+        if(!inicio||!fin){errores.push('Fila '+(idx+2)+' ('+nombre+'): formato de hora inválido');return;}
+        var s=timeToSec(inicio+':00');var f=timeToSec(fin+':00');var diff=f-s;if(diff<=0)diff+=24*3600;
+        var horasDia=Math.round(diff/36)/100;
+        var existente=DB.horarios.find(function(h){return h.nombre.toLowerCase()===nombre.toLowerCase();});
+        if(existente){existente.inicio=inicio;existente.fin=fin;existente.horasDia=horasDia;actualizados++;}
+        else{DB.horarios.push({id:Date.now()+Math.floor(Math.random()*1000),nombre:nombre,inicio:inicio,fin:fin,horasDia:horasDia});creados++;}
+      });
+      localStorage.setItem('horarios_v1',JSON.stringify(DB.horarios));
+      var msg='<div class="alert success"><i class="ti ti-circle-check"></i><span>'+creados+' horario(s) creado(s)';
+      if(actualizados>0)msg+=', '+actualizados+' actualizado(s)';
+      msg+='.</span></div>';
+      if(errores.length)msg+='<div class="alert warning"><i class="ti ti-alert-circle"></i><span>'+errores.length+' fila(s) con problemas: '+errores.slice(0,5).join(' · ')+(errores.length>5?'…':'')+'</span></div>';
+      document.getElementById('horarios-import-status').innerHTML=msg;
+      renderHorarios();populateHorarioSelects();
+    }catch(err){document.getElementById('horarios-import-status').innerHTML='<div class="alert danger"><i class="ti ti-alert-circle"></i><span>Error al leer el archivo: '+err.message+'</span></div>';}
+  };
+  reader.readAsBinaryString(file);
+}
+
+function guardarHorario(){
+  var id=parseInt(document.getElementById('mh-id').value)||0;
+  var nombre=document.getElementById('mh-nombre').value.trim();
+  var inicio=document.getElementById('mh-inicio').value;var fin=document.getElementById('mh-fin').value;
+  if(!nombre||!inicio||!fin){document.getElementById('mh-msg').innerHTML='<div class="alert danger"><i class="ti ti-alert-circle"></i><span>Completa todos los campos.</span></div>';return;}
+  var s=timeToSec(inicio+':00');var e=timeToSec(fin+':00');var diff=e-s;if(diff<=0)diff+=24*3600;
+  var horasDia=Math.round(diff/36)/100;
+  if(!DB.horarios)DB.horarios=[];
+  if(id){var h=DB.horarios.find(function(x){return x.id===id;});if(h){h.nombre=nombre;h.inicio=inicio;h.fin=fin;h.horasDia=horasDia;}}
+  else{DB.horarios.push({id:Date.now(),nombre:nombre,inicio:inicio,fin:fin,horasDia:horasDia});}
+  localStorage.setItem('horarios_v1',JSON.stringify(DB.horarios));
+  cerrarModal('modal-horario');renderHorarios();populateHorarioSelects();
+}
+function eliminarHorario(id){
+  if(!confirm('¿Eliminar este horario?'))return;
+  if(DB.horarios)DB.horarios=DB.horarios.filter(function(h){return h.id!==id;});
+  localStorage.setItem('horarios_v1',JSON.stringify(DB.horarios||[]));
+  renderHorarios();populateHorarioSelects();
+}
+
+// EMPLEADOS
+function importarExcel(file){
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var wb=XLSX.read(e.target.result,{type:'binary'});
+      var ws=wb.Sheets[wb.SheetNames[0]];
+      var data=XLSX.utils.sheet_to_json(ws,{defval:''});
+      if(!data.length){document.getElementById('emp-status').innerHTML='<div class="alert danger"><i class="ti ti-alert-circle"></i><span>Archivo vacío o sin datos.</span></div>';return;}
+      var empleados=[];
+      var areasCreadas=0;
+      var horariosNoEncontrados=[];
+      data.forEach(function(row){
+        var nombre=(row['Nombre']||row['nombre']||row['NOMBRE']||'').toString().trim();
+        var cedula=(row['Cedula']||row['cedula']||row['CEDULA']||row['Cédula']||row['cédula']||'').toString().trim();
+        var horarioNombre=(row['Horario']||row['horario']||row['HORARIO']||'').toString().trim();
+        var areaNombre=(row['Area']||row['area']||row['AREA']||row['Área']||row['área']||'').toString().trim();
+        var admVal=(row['Administrativo']||row['administrativo']||row['ADMINISTRATIVO']||'').toString().trim().toLowerCase();
+        var esAdministrativo=(admVal==='si'||admVal==='sí'||admVal==='1'||admVal==='true'||admVal==='x')?'si':'no';
+
+        // FIX: buscar el horario por NOMBRE (no por id, mucho más fácil de llenar en el Excel)
+        var horarioId=0;
+        if(horarioNombre&&DB.horarios){
+          var hMatch=DB.horarios.find(function(h){return h.nombre.toLowerCase()===horarioNombre.toLowerCase();});
+          if(hMatch)horarioId=hMatch.id;
+          else if(horarioNombre)horariosNoEncontrados.push(horarioNombre);
+        }
+
+        // FIX: si el área no existe en el sistema, se crea automáticamente
+        if(areaNombre){
+          var aMatch=DB.areas.find(function(a){return a.nombre.toLowerCase()===areaNombre.toLowerCase();});
+          if(!aMatch){
+            DB.areas.push({id:Date.now()+Math.floor(Math.random()*1000),nombre:areaNombre,tipo:'area',desc:''});
+            areasCreadas++;
+          }
+        }
+
+        if(nombre&&cedula)empleados.push({nombre:nombre,cedula:cedula,horarioId:horarioId,area:areaNombre,esAdministrativo:esAdministrativo});
+      });
+      if(!empleados.length){document.getElementById('emp-status').innerHTML='<div class="alert danger"><i class="ti ti-alert-circle"></i><span>No se encontraron columnas Nombre y Cedula.</span></div>';return;}
+      if(areasCreadas>0)save('areas');
+      DB.empleados=empleados;save('empleados');
+      populateAreaSelects();
+      var msg='<div class="alert success"><i class="ti ti-circle-check"></i><span>'+empleados.length+' empleados importados correctamente.';
+      if(areasCreadas>0)msg+=' Se crearon '+areasCreadas+' área(s) nueva(s).';
+      msg+='</span></div>';
+      if(horariosNoEncontrados.length){
+        var unicos=horariosNoEncontrados.filter(function(v,i,a){return a.indexOf(v)===i;});
+        msg+='<div class="alert warning"><i class="ti ti-alert-circle"></i><span>No se encontró el horario "'+unicos.join('", "')+'" — créalo primero en la pestaña Horarios con el mismo nombre exacto, y vuelve a importar.</span></div>';
+      }
+      document.getElementById('emp-status').innerHTML=msg;
+      renderEmpTable();
+    }catch(err){document.getElementById('emp-status').innerHTML='<div class="alert danger"><i class="ti ti-alert-circle"></i><span>Error al leer el archivo: '+err.message+'</span></div>';}
+  };
+  reader.readAsBinaryString(file);
+}
+
+function renderEmpTable(){
+  var wrap=document.getElementById('emp-tabla-wrap');var limpBtn=document.getElementById('btn-limpiar-emp');
+  if(!DB.empleados.length){if(wrap)wrap.style.display='none';if(limpBtn)limpBtn.style.display='none';return;}
+  if(wrap)wrap.style.display='';if(limpBtn)limpBtn.style.display='';
+  var count=document.getElementById('emp-count');if(count)count.textContent=DB.empleados.length;
+  var q=(document.getElementById('emp-search')?document.getElementById('emp-search').value:'').toLowerCase();
+  var data=DB.empleados.filter(function(e){return!q||e.nombre.toLowerCase().includes(q)||String(e.cedula).includes(q);});
+  var el=document.getElementById('emp-tabla');if(!el)return;
+  el.innerHTML='<table><thead><tr><th>#</th><th>Nombre</th><th>Cédula</th><th>Área</th><th>Horario</th><th>Administrativo</th><th></th></tr></thead><tbody>'+
+    data.slice(0,200).map(function(e,i){
+      var horNom='—';if(e.horarioId&&DB.horarios){var h=DB.horarios.find(function(x){return x.id===e.horarioId;});if(h)horNom=h.nombre;}
+      var admBadge=e.esAdministrativo==='si'?'<span class="badge badge-admin-cargo">Sí</span>':'<span style="color:var(--text3);font-size:12px">No</span>';
+      return'<tr><td style="color:var(--text3);font-family:monospace;font-size:11px">'+(i+1)+'</td><td class="td-name">'+e.nombre+'</td><td style="font-family:monospace;font-size:12px">'+e.cedula+'</td><td style="font-size:12px;color:var(--text2)">'+(e.area||'—')+'</td><td style="font-size:12px;color:var(--text2)">'+horNom+'</td><td>'+admBadge+'</td>'+
+        '<td style="white-space:nowrap"><button class="btn ghost sm edit-emp" data-cedula="'+e.cedula+'"><i class="ti ti-pencil"></i></button><button class="btn danger sm del-emp" data-cedula="'+e.cedula+'"><i class="ti ti-trash"></i></button></td></tr>';
+    }).join('')+'</tbody></table>'+(data.length>200?'<div style="padding:8px 12px;font-size:12px;color:var(--text3)">Mostrando 200 de '+data.length+' empleados</div>':'');
+  el.querySelectorAll('.edit-emp').forEach(function(b){b.addEventListener('click',function(){abrirModalEmpleado(b.dataset.cedula);});});
+  el.querySelectorAll('.del-emp').forEach(function(b){b.addEventListener('click',function(){eliminarEmpleado(b.dataset.cedula);});});
+}
+
+// FIX: reinicio completo de datos de prueba — solo borra DATOS (áreas, horarios, empleados, permisos),
+// nunca usuarios ni nada de código. Doble confirmación porque es irreversible.
+function reiniciarDatosPrueba(){
+  if(!confirm('¿Seguro que quieres borrar TODAS las áreas, horarios, empleados y solicitudes/permisos?\n\nLos usuarios (admin, recepción, etc.) NO se eliminan.\n\nEsta acción no se puede deshacer.'))return;
+  var confirmacion=prompt('Para confirmar, escribe exactamente: BORRAR TODO');
+  if(confirmacion!=='BORRAR TODO'){
+    alert('Texto incorrecto. No se borró nada.');
+    return;
+  }
+  DB.areas=[];save('areas');
+  DB.horarios=[];localStorage.setItem('horarios_v1',JSON.stringify(DB.horarios));
+  DB.empleados=[];save('empleados');
+  DB.permisos=[];save('permisos');
+  alert('Listo. Se borraron áreas, horarios, empleados y solicitudes. Los usuarios se mantienen intactos.');
+  populateAreaSelects();populateHorarioSelects();
+  try{renderUsuarios();renderAreas();renderHorarios();renderEmpTable();renderTable();renderDashboard();}catch(e){}
+}
+
+function limpiarEmpleados(){
+  if(!confirm('¿Eliminar todos los empleados importados?'))return;
+  DB.empleados=[];save('empleados');renderEmpTable();
+  document.getElementById('emp-status').innerHTML='<div class="alert info"><i class="ti ti-info-circle"></i><span>Empleados eliminados.</span></div>';
+}
+
+// FIX: funciones que faltaban por completo — por eso los botones de Editar/Eliminar/Nuevo no hacían nada
+function poblarHorarioEmpleadoSelect(){
+  var sel=document.getElementById('me-horario-id');if(!sel)return;
+  var cur=sel.value;
+  sel.innerHTML='<option value="">Sin horario asignado</option>';
+  if(DB.horarios){
+    DB.horarios.forEach(function(h){
+      var opt=document.createElement('option');opt.value=h.id;opt.textContent=h.nombre+' ('+h.inicio+'-'+h.fin+')';sel.appendChild(opt);
+    });
+  }
+  if(cur)sel.value=cur;
+  // FIX: poblar también el select de área del modal de empleado
+  var selA=document.getElementById('me-area');if(!selA)return;
+  var curA=selA.value;
+  selA.innerHTML='<option value="">Sin área asignada</option>';
+  DB.areas.forEach(function(a){
+    var opt=document.createElement('option');opt.value=a.nombre;opt.textContent=a.nombre+(a.tipo==='modulo'?' 🧵':'');selA.appendChild(opt);
+  });
+  if(curA)selA.value=curA;
+}
+
+function abrirModalEmpleado(cedula){
+  poblarHorarioEmpleadoSelect();
+  var titleEl=document.getElementById('modal-empleado-title');
+  document.getElementById('me-msg').innerHTML='';
+  if(cedula){
+    // Modo edición: buscar el empleado por cédula y precargar sus datos
+    var emp=DB.empleados.find(function(e){return String(e.cedula)===String(cedula);});
+    if(!emp)return;
+    titleEl.textContent='Editar empleado';
+    document.getElementById('me-cedula-original').value=emp.cedula;
+    document.getElementById('me-nombre').value=emp.nombre;
+    document.getElementById('me-cedula').value=emp.cedula;
+    document.getElementById('me-area').value=emp.area||'';
+    document.getElementById('me-horario-id').value=emp.horarioId||'';
+    document.getElementById('me-es-admin').value=emp.esAdministrativo==='si'?'si':'no';
+  }else{
+    // Modo creación: limpiar todo
+    titleEl.textContent='Nuevo empleado';
+    document.getElementById('me-cedula-original').value='';
+    document.getElementById('me-nombre').value='';
+    document.getElementById('me-cedula').value='';
+    document.getElementById('me-area').value='';
+    document.getElementById('me-horario-id').value='';
+    document.getElementById('me-es-admin').value='no';
+  }
+  document.getElementById('modal-empleado').classList.add('show');
+}
+
+function guardarEmpleado(){
+  var cedulaOriginal=document.getElementById('me-cedula-original').value;
+  var nombre=document.getElementById('me-nombre').value.trim();
+  var cedula=document.getElementById('me-cedula').value.trim();
+  var area=document.getElementById('me-area').value;
+  var horarioId=parseInt(document.getElementById('me-horario-id').value)||0;
+  var esAdmin=document.getElementById('me-es-admin').value;
+  if(!nombre||!cedula){
+    document.getElementById('me-msg').innerHTML='<div class="alert danger"><i class="ti ti-alert-circle"></i><span>Nombre y cédula son obligatorios.</span></div>';
+    return;
+  }
+  // Validar que la cédula no esté duplicada (salvo que sea el mismo registro que se está editando)
+  var dup=DB.empleados.find(function(e){return String(e.cedula)===cedula&&String(e.cedula)!==String(cedulaOriginal);});
+  if(dup){
+    document.getElementById('me-msg').innerHTML='<div class="alert danger"><i class="ti ti-alert-circle"></i><span>Ya existe un empleado con esa cédula.</span></div>';
+    return;
+  }
+  if(cedulaOriginal){
+    // Editar existente
+    var emp=DB.empleados.find(function(e){return String(e.cedula)===String(cedulaOriginal);});
+    if(emp){emp.nombre=nombre;emp.cedula=cedula;emp.area=area;emp.horarioId=horarioId;emp.esAdministrativo=esAdmin;}
+  }else{
+    // Crear nuevo
+    DB.empleados.push({nombre:nombre,cedula:cedula,area:area,horarioId:horarioId,esAdministrativo:esAdmin});
+  }
+  save('empleados');
+  cerrarModal('modal-empleado');
+  renderEmpTable();
+}
+
+function eliminarEmpleado(cedula){
+  var emp=DB.empleados.find(function(e){return String(e.cedula)===String(cedula);});
+  if(!emp)return;
+  if(!confirm('¿Eliminar a '+emp.nombre+' ('+emp.cedula+') de la base de empleados?\n\nEsto no afecta los permisos ya registrados.'))return;
+  DB.empleados=DB.empleados.filter(function(e){return String(e.cedula)!==String(cedula);});
+  save('empleados');
+  renderEmpTable();
+}
+
+function generarReporte(){
+  var mes=document.getElementById('rep-mes').value;var area=document.getElementById('rep-area').value;var tipo=document.getElementById('rep-tipo').value;var estado=document.getElementById('rep-estado').value;
+  var data=DB.permisos.filter(function(p){var mM=!mes||(p.fecha&&p.fecha.split('-')[1]===mes);return mM&&(!area||p.area===area)&&(!tipo||p.tipo===tipo)&&(!estado||p.estado===estado);});
+  var el=document.getElementById('reporte-resultado');
+  if(!data.length){el.innerHTML='<div class="card"><div class="empty"><i class="ti ti-search-off"></i><p>Sin datos para los filtros seleccionados.</p></div></div>';return;}
+  var t=data.length;var totalSeg=0;data.forEach(function(p){totalSeg+=calcularTiempoDescuento(p);});
+  var totalPR=data.filter(function(p){return p.tipoPagoPermiso==='PR';}).length;var totalPNR=data.filter(function(p){return p.tipoPagoPermiso==='PNR';}).length;
+  el.innerHTML='<div class="report-banner"><i class="ti ti-report-analytics"></i><div><div class="rtitle">'+t+' registros · Tiempo a descontar: <strong>'+secToHM(totalSeg)+'</strong></div><div class="rsub">PR (01): '+totalPR+' · PNR (06): '+totalPNR+'</div></div></div>';
+}
+
+function exportarExcel(){
+  var mes=document.getElementById('rep-mes').value;var area=document.getElementById('rep-area').value;var tipo=document.getElementById('rep-tipo').value;var estado=document.getElementById('rep-estado').value;
+  var data=DB.permisos.filter(function(p){var mM=!mes||(p.fecha&&p.fecha.split('-')[1]===mes);return mM&&(!area||p.area===area)&&(!tipo||p.tipo===tipo)&&(!estado||p.estado===estado);});
+  if(!data.length){alert('Sin datos para exportar.');return;}
+  var headers=['Cedula','Nombre','Area','Horario','Tipo Cargo','Tipo Permiso','Fecha Creacion','Fecha Permiso','Hora Salida','Hora Regreso','Regreso','Tiempo Descuento','Horas Decimal','Codigo Nomina','PR/PNR','Incapacidad','Soporte','Estado','Registrado Por','Autorizo Recepcion','Hora Autorizacion','Firmo','Observacion'];
+  var rows=[];data.forEach(function(p){var pRows=getExcelRows(p);pRows.forEach(function(r){rows.push(r);});});
+  var wsData=[headers].concat(rows);
+  var ws=XLSX.utils.aoa_to_sheet(wsData);var wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Permisos');
+  var totalSeg=0;data.forEach(function(p){totalSeg+=calcularTiempoDescuento(p);});
+  var tot=new Array(headers.length).fill('');tot[0]='TOTAL';tot[11]=secToHMS(totalSeg);tot[12]=Math.round(totalSeg/36)/100;
+  XLSX.utils.sheet_add_aoa(ws,[tot],{origin:-1});
+  XLSX.writeFile(wb,'permisos_'+new Date().toISOString().split('T')[0]+'.xlsx');
+}
+
+function cerrarModal(id){var el=document.getElementById(id);if(el)el.classList.remove('show');}
+window.addEventListener('click',function(e){if(e.target.classList.contains('modal-overlay'))e.target.classList.remove('show');});
+
+// EVENT LISTENERS
+document.getElementById('btn-login').addEventListener('click',doLogin);
+document.getElementById('login-pass').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
+document.getElementById('btn-logout').addEventListener('click',doLogout);
+document.getElementById('btn-nuevo-dash').addEventListener('click',function(){showTab('nuevo');});
+document.getElementById('btn-submit-form').addEventListener('click',submitForm);
+document.getElementById('btn-clear-form').addEventListener('click',clearForm);
+document.getElementById('f-nombre').addEventListener('input',filtrarEmpleados);
+document.getElementById('f-nombre').addEventListener('focus',filtrarEmpleados);
+// FIX: si el líder escribe/pega la cédula directamente (sin pasar por el dropdown), buscamos
+// coincidencia exacta para aplicar igual el bloqueo de área/horario en caso de ser administrativo
+document.getElementById('f-cedula').addEventListener('blur',function(){
+  var ced=this.value.trim();if(!ced)return;
+  var emp=DB.empleados.find(function(e){return String(e.cedula)===ced;});
+  if(emp){
+    if(!document.getElementById('f-nombre').value.trim())document.getElementById('f-nombre').value=emp.nombre;
+    aplicarDatosEmpleadoAFormulario(emp.area,emp.horarioId,emp.esAdministrativo);
+  }
+});
+document.getElementById('search-input').addEventListener('input',renderTable);
+document.getElementById('filter-tipo').addEventListener('change',renderTable);
+document.getElementById('filter-estado').addEventListener('change',renderTable);
+document.getElementById('rec-search').addEventListener('input',renderRecepcion);
+document.getElementById('rec-fecha-filter').addEventListener('change',renderRecepcion);
+document.getElementById('rec-filter').addEventListener('change',renderRecepcion);
+document.getElementById('emp-search').addEventListener('input',renderEmpTable);
+document.getElementById('btn-import-excel').addEventListener('click',function(){document.getElementById('excel-input').click();});
+document.getElementById('excel-input').addEventListener('change',function(e){if(e.target.files[0])importarExcel(e.target.files[0]);e.target.value='';});
+document.getElementById('btn-import-horarios').addEventListener('click',function(){document.getElementById('horarios-excel-input').click();});
+document.getElementById('horarios-excel-input').addEventListener('change',function(e){if(e.target.files[0])importarHorariosExcel(e.target.files[0]);e.target.value='';});
+document.getElementById('btn-limpiar-emp').addEventListener('click',limpiarEmpleados);
+// FIX: listeners que faltaban para que Nuevo/Editar/Eliminar empleado funcionaran
+document.getElementById('btn-nuevo-empleado').addEventListener('click',function(){abrirModalEmpleado(null);});
+document.getElementById('save-empleado').addEventListener('click',guardarEmpleado);
+document.getElementById('close-modal-empleado').addEventListener('click',function(){cerrarModal('modal-empleado');});
+document.getElementById('cancel-modal-empleado').addEventListener('click',function(){cerrarModal('modal-empleado');});
+document.getElementById('btn-nuevo-usuario').addEventListener('click',function(){abrirModalUsuario(null);});
+document.getElementById('btn-reset-datos').addEventListener('click',reiniciarDatosPrueba);
+document.getElementById('save-usuario').addEventListener('click',guardarUsuario);
+document.getElementById('close-modal-usuario').addEventListener('click',function(){cerrarModal('modal-usuario');});
+document.getElementById('cancel-modal-usuario').addEventListener('click',function(){cerrarModal('modal-usuario');});
+document.getElementById('btn-nueva-area').addEventListener('click',function(){abrirModalArea(null);});
+document.getElementById('save-area').addEventListener('click',guardarArea);
+document.getElementById('close-modal-area').addEventListener('click',function(){cerrarModal('modal-area');});
+document.getElementById('cancel-modal-area').addEventListener('click',function(){cerrarModal('modal-area');});
+document.getElementById('btn-nuevo-horario').addEventListener('click',function(){abrirModalHorario(null);});
+document.getElementById('save-horario').addEventListener('click',guardarHorario);
+document.getElementById('close-modal-horario').addEventListener('click',function(){cerrarModal('modal-horario');});
+document.getElementById('cancel-modal-horario').addEventListener('click',function(){cerrarModal('modal-horario');});
+document.getElementById('mh-inicio').addEventListener('change',actualizarPreviewHorario);
+document.getElementById('mh-fin').addEventListener('change',actualizarPreviewHorario);
+// FIX: btn-guardar-firma ahora llama guardarFirma() via JS (no solo onclick en HTML)
+document.getElementById('btn-guardar-firma').addEventListener('click',guardarFirma);
+document.getElementById('btn-limpiar-firma').addEventListener('click',limpiarCanvas);
+document.getElementById('cancel-firma').addEventListener('click',function(){cerrarModal('modal-firma');});
+document.getElementById('close-modal-regreso').addEventListener('click',function(){cerrarModal('modal-regreso');});
+document.getElementById('cancel-regreso').addEventListener('click',function(){cerrarModal('modal-regreso');});
+document.getElementById('btn-guardar-regreso').addEventListener('click',guardarRegreso);
+document.getElementById('regreso-hora').addEventListener('input',previewRegreso);
+document.getElementById('regreso-si-no').addEventListener('change',previewRegreso);
+document.getElementById('regreso-soporte').addEventListener('change',calcularTipoPermiso);
+document.getElementById('btn-limpiar-regreso-firma').addEventListener('click',limpiarCanvasRegreso);
+document.getElementById('close-ver-firma').addEventListener('click',function(){cerrarModal('modal-ver-firma');});
+document.getElementById('close-ver-firma2').addEventListener('click',function(){cerrarModal('modal-ver-firma');});
+document.getElementById('btn-imprimir-firma').addEventListener('click',imprimirFirma);
+document.getElementById('btn-generar-reporte').addEventListener('click',generarReporte);
+document.getElementById('btn-exportar-excel').addEventListener('click',exportarExcel);
+document.addEventListener('click',function(e){if(!e.target.closest('#f-nombre')&&!e.target.closest('#emp-dropdown')){var d=document.getElementById('emp-dropdown');if(d)d.style.display='none';}});
+
+// INIT
+initDefaults();
+DB.usuarios=JSON.parse(localStorage.getItem('usuarios_v1')||'[]');
+if(!DB.usuarios.length||!DB.usuarios.find(function(u){return u.user==='admin';})){
+  DB.usuarios=[{id:1,nombre:'Administrador',user:'admin',pass:'admin123',rol:'admin',area:''},{id:2,nombre:'Recepción Principal',user:'recepcion',pass:'recep123',rol:'recepcion',area:''}];
+  localStorage.setItem('usuarios_v1',JSON.stringify(DB.usuarios));
+}
+</script>
+</body>
+</html>
