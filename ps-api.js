@@ -44,8 +44,29 @@ function normalizeAnnexName(name) {
 
 const router = Router();
 
+const PS_CONFIG = path.join(DATA_DIR, 'ps_config.json');
+
 // ── HEALTH ───────────────────────────────────────────────────────────────────
 router.get('/health', (_req, res) => res.json({ status: 'ok' }));
+
+// ── AUTH ADMINISTRADOR ────────────────────────────────────────────────────────
+router.post('/auth', (req, res) => {
+  const { pass } = req.body || {};
+  if (!pass) return res.status(400).json({ success: false, message: 'Contraseña requerida.' });
+  const cfg = psRead(PS_CONFIG, { adminPass: 'millar2024' });
+  if (pass !== (cfg.adminPass || 'millar2024'))
+    return res.status(401).json({ success: false, message: 'Contraseña incorrecta.' });
+  res.json({ success: true });
+});
+
+router.put('/config/admin-pass', (req, res) => {
+  const { pass } = req.body || {};
+  if (!pass) return res.status(400).json({ success: false, message: 'Contraseña requerida.' });
+  const cfg = psRead(PS_CONFIG, {});
+  cfg.adminPass = pass;
+  psWrite(PS_CONFIG, cfg);
+  res.json({ success: true });
+});
 
 // ── TRABAJADORES ─────────────────────────────────────────────────────────────
 router.get('/trabajadores', (_req, res) => {
@@ -54,6 +75,12 @@ router.get('/trabajadores', (_req, res) => {
     ...w,
     documentosFirmadosCount: (w.documentosFirmados || []).length,
   })) });
+});
+
+router.get('/trabajadores/cedula/:cedula', (req, res) => {
+  const w = psRead(FILES.workers, []).find(x => String(x.documento) === String(req.params.cedula));
+  if (!w) return res.status(404).json({ success: false, message: 'No encontrado.' });
+  res.json({ success: true, data: w });
 });
 
 router.get('/trabajadores/:id', (req, res) => {
