@@ -1,0 +1,1 @@
+function u(r,c){const o=r.length,n=r.reduce((t,e)=>c[e.id]===e.correctaIdx?t+1:t,0);return o?Math.round(n/o*100):0}function i(r){return r>=80?"aprobado":r>=60?"refuerzo":"reprobado"}export{i as c,u as s};
