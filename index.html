@@ -2211,12 +2211,11 @@ async function submitLogin(){
       USUARIOS[usuario] = { pass:'', perms: srv.perms || extraUser.perms || [], extra:true };
       persistSession(usuario, srv.rol, USUARIOS[usuario].perms, srv.token);
     } else {
-      // Fallback local (servidor sin migrar): comparación como antes
-      if(pass !== extraUser.pass){ rejectLoginPass(inp, err); return; }
-      currentUser = usuario; currentUserRol = '';
-      USUARIOS[usuario] = { pass: extraUser.pass, perms: extraUser.perms||[], extra:true };
-      if(cfg[usuario]&&cfg[usuario].perms) USUARIOS[usuario].perms=cfg[usuario].perms;
-      persistSession(usuario, '', USUARIOS[usuario].perms, null);
+      // Servidor no disponible (rate limit 429, red caída, etc.)
+      inp.classList.add('error');
+      err.textContent = 'Demasiados intentos. Espera un momento e intenta de nuevo.';
+      setTimeout(()=>inp.classList.remove('error'), 400);
+      return;
     }
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('login-pass').value='';
@@ -3735,6 +3734,8 @@ const ALL_PERMS = [
   {key:'revision_telas',         label:'Control de Revisión de Telas'},
   {key:'consulta_incentivos',    label:'Consulta de incentivos'},
   {key:'visitantes_sst',         label:'Control de Visitantes SST'},
+  {key:'control_permisos',       label:'Control de Permisos'},
+  {key:'punto_seguro',           label:'Punto Seguro'},
 ];
 const PERM_LABELS = Object.fromEntries(ALL_PERMS.map(p=>[p.key,p.label]));
 

@@ -457,11 +457,14 @@ function ensureUsersFile() {
     disabled: false
   };
 
-  // Usuarios creados por el Programador (tenían pass en claro)
+  // Usuarios creados por el Programador
   extra.forEach(u => {
     if (!u || !u.nombre || u.nombre === 'Programador') return;
+    // Preferir passHash guardado (persiste reinicios). Fallback: hashear pass en claro.
+    const passHash = u.passHash
+      || bcrypt.hashSync(String(u.pass == null ? '' : u.pass), BCRYPT_ROUNDS);
     users[u.nombre] = {
-      passHash: bcrypt.hashSync(String(u.pass == null ? '' : u.pass), BCRYPT_ROUNDS),
+      passHash,
       perms:    Array.isArray(u.perms) ? u.perms : [],
       rol:      '',
       disabled: !!u.disabled
@@ -502,6 +505,9 @@ function syncUsersFromConfig(appCfg) {
         passHash = (cur && bcrypt.compareSync(String(u.pass), cur.passHash))
           ? cur.passHash
           : bcrypt.hashSync(String(u.pass), BCRYPT_ROUNDS);
+      } else if (u.passHash) {
+        // Hash guardado en app_config (sobrevive reinicios sin contraseña en claro)
+        passHash = u.passHash;
       } else {
         passHash = cur ? cur.passHash : bcrypt.hashSync('', BCRYPT_ROUNDS);
       }
@@ -523,15 +529,18 @@ function syncUsersFromConfig(appCfg) {
   }
 }
 
-// Devuelve una copia de app_config SIN las contraseñas de _usuarios_extra.
-// La verdad de las contraseñas vive en users.json (hasheada). El cliente
-// nunca debe recibir contraseñas en claro.
+// Devuelve una copia de app_config SIN contraseñas (ni cleartext ni hash).
+// El cliente nunca debe recibir credenciales; los hashes viven en app_config
+// en disco y en users.json para login rápido.
 function stripUserPasswords(cfg) {
   if (!cfg || typeof cfg !== 'object') return cfg;
   const out = Object.assign({}, cfg);
   if (Array.isArray(cfg._usuarios_extra)) {
     out._usuarios_extra = cfg._usuarios_extra.map(u => {
-      if (u && typeof u === 'object' && 'pass' in u) { const { pass, ...rest } = u; return rest; }
+      if (u && typeof u === 'object') {
+        const { pass, passHash, ...rest } = u;
+        return rest;
+      }
       return u;
     });
   }
@@ -1627,11 +1636,19 @@ app.post('/api/app-config', (req, res) => {
     // Mantener users.json (login server-side) al día con los usuarios del panel.
     // Se llama ANTES de quitar las contraseñas, porque necesita la nueva pass.
     if (req.body && req.body._usuarios_extra) syncUsersFromConfig(merged);
-    // No persistir contraseñas en claro en disco: la verdad vive en users.json.
+    // No persistir contraseñas en claro. Guardar passHash para sobrevivir reinicios.
     if (Array.isArray(merged._usuarios_extra)) {
       merged._usuarios_extra = merged._usuarios_extra.map(u => {
-        if (u && typeof u === 'object' && 'pass' in u) { const { pass, ...rest } = u; return rest; }
-        return u;
+        if (!u || typeof u !== 'object') return u;
+        const { pass, ...rest } = u;
+        if (pass != null && String(pass) !== '') {
+          // Convertir cleartext → hash para persistencia entre reinicios del servidor
+          const existing = (loadUsers().users[u.nombre] || {}).passHash;
+          rest.passHash = (existing && bcrypt.compareSync(String(pass), existing))
+            ? existing
+            : bcrypt.hashSync(String(pass), BCRYPT_ROUNDS);
+        }
+        return rest;
       });
     }
     writeJSON(FILES.app_config, merged);
@@ -1642,7 +1659,7 @@ app.post('/api/app-config', (req, res) => {
 // ── Auth: login server-side con hash (Paso 1) ─────────────────────
 // POST /api/login { user, pass } → { ok, token, user, perms, rol }
 // Rate-limit: 10 intentos por IP / minuto.
-app.post('/api/login', rateLimit(10, 60 * 1000), (req, res) => {
+app.post('/api/login', rateLimit(20, 60 * 1000), (req, res) => {
   try {
     const { user, pass } = req.body || {};
     if (!user || typeof user !== 'string') {
