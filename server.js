@@ -765,6 +765,22 @@ app.get('/permisos', (req, res) =>
   res.sendFile(path.join(__dirname, 'control_permisos.html'))
 );
 
+// ── PUNTO SEGURO — SG-SST ────────────────────────────────────────────────────
+const psApi = require('./ps-api');
+app.use('/punto-seguro/api', psApi);
+
+const PS_DIST = path.join(__dirname, 'punto-seguro', 'client', 'dist');
+if (fs.existsSync(PS_DIST)) {
+  app.use('/punto-seguro', require('express').static(PS_DIST));
+  app.get('/punto-seguro/*', (_req, res) =>
+    res.sendFile(path.join(PS_DIST, 'index.html'))
+  );
+} else {
+  app.get('/punto-seguro*', (_req, res) =>
+    res.status(503).send('<h2>Punto Seguro aún no construido. Ejecuta: npm run build</h2>')
+  );
+}
+
 app.get('/api/visitantes/db', (req, res) => {
   const data = readJSON(FILES.visitantes, null);
   res.json({ ok: true, data });

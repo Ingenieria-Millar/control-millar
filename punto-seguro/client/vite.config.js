@@ -8,6 +8,7 @@ import { defineConfig } from 'vite';
 export default defineConfig({
   root: '.',
   publicDir: 'public',
+  base: '/punto-seguro/',
   server: {
     port: 5173,
     proxy: {
