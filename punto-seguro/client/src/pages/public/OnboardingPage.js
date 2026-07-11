@@ -44,7 +44,7 @@ export class OnboardingPage {
 
   async render(root) {
     this.root = root;
-    document.title = 'Proceso de Ingreso SST — Punto Seguro';
+    document.title = 'Inducción y Reinducción Integral — Millar';
     this._draw();
 
     try {

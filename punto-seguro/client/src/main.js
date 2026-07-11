@@ -1,36 +1,29 @@
 import './styles/global.css';
-import { getOnboardingWorkerIdFromUrl, getPublicQuizIdFromUrl } from './utils/urlParams.js';
 
-/**
- * Punto de entrada de la aplicación. Réplica de bootstrap() del archivo
- * original: decide entre 3 modos según los parámetros de la URL, sin cambiar
- * el comportamiento observado por el usuario.
- *   - ?ingreso=<workerId>  → proceso público de ingreso (firma + inducción + evaluación)
- *   - ?evaluar=<quizId>    → evaluación pública por enlace
- *   - (sin parámetros)     → panel administrativo (sidebar + rutas internas)
- *
- * Cada modo se importa dinámicamente: quien abre un enlace público de
- * evaluación no necesita descargar el código del panel admin, y viceversa.
- */
 async function bootstrap() {
   const root = document.getElementById('root');
 
-  const onboardingWorkerId = getOnboardingWorkerIdFromUrl();
-  if (onboardingWorkerId) {
-    const { OnboardingPage } = await import('./pages/public/OnboardingPage.js');
-    await new OnboardingPage(onboardingWorkerId).render(root);
+  // ── Login gate ──────────────────────────────────────────────────────────────
+  const { LoginPage } = await import('./pages/LoginPage.js');
+  const auth = await new LoginPage().waitForAuth(root);
+
+  // ── Administrador: panel completo ───────────────────────────────────────────
+  if (auth.role === 'admin') {
+    const { AppRouter } = await import('./router/AppRouter.js');
+    new AppRouter(root).start();
     return;
   }
 
-  const publicQuizId = getPublicQuizIdFromUrl();
-  if (publicQuizId) {
-    const { PublicQuizPage } = await import('./pages/public/PublicQuizPage.js');
-    await new PublicQuizPage(publicQuizId).render(root);
-    return;
+  // ── Público sin registro previo: mostrar formulario ─────────────────────────
+  let trabajador = auth.trabajador;
+  if (auth.role === 'publico' && !trabajador) {
+    const { RegistroPublicoPage } = await import('./pages/RegistroPublicoPage.js');
+    trabajador = await new RegistroPublicoPage(auth.cedula).waitForSubmit(root);
   }
 
-  const { AppRouter } = await import('./router/AppRouter.js');
-  new AppRouter(root).start();
+  // ── Vinculado y Público: proceso de inducción/firma ─────────────────────────
+  const { OnboardingPage } = await import('./pages/public/OnboardingPage.js');
+  await new OnboardingPage(trabajador.id).render(root);
 }
 
 bootstrap();

@@ -28,7 +28,7 @@ export function renderSidebar(activeRoute) {
 
   const millarUrl = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_MILLAR_URL) || null;
   const volverHref = millarUrl || 'javascript:history.back()';
-  return `<div class="brand"><div class="brand-mark"><img src="/logo.png" alt="Millar" style="width:100%;height:100%;object-fit:contain;padding:3px;"></div><div class="brand-text"><div class="name">CONFECCIONES MILLAR</div><div class="sub">SG-SST · Punto Seguro</div></div></div>
+  return `<div class="brand"><div class="brand-mark"><img src="/logo.png" alt="Millar" style="width:100%;height:100%;object-fit:contain;padding:3px;"></div><div class="brand-text"><div class="name">CONFECCIONES MILLAR</div><div class="sub">Inducción y Reinducción Integral</div></div></div>
 ${sections}
 <div class="sidebar-footer">
   <a href="${volverHref}" class="nav-item" style="text-decoration:none;color:inherit;margin-bottom:8px;display:flex;">
