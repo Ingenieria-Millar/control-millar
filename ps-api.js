@@ -308,19 +308,25 @@ router.post('/resultados', (req, res) => {
 });
 
 // ── PLANTILLAS DE ANEXOS ─────────────────────────────────────────────────────
-router.get('/paquete/plantillas', (_req, res) =>
-  res.json({ success: true, data: psRead(FILES.annexTemplates, []) }));
+// No enviar pdfBase64 en el listado (demasiado pesado)
+router.get('/paquete/plantillas', (_req, res) => {
+  const all = psRead(FILES.annexTemplates, []);
+  res.json({ success: true, data: all.map(({ pdfBase64, ...rest }) => rest) });
+});
 
+// Sirve desde disco si existe; si no, desde base64 guardado en JSON
 router.get('/paquete/plantillas/:id/archivo', (req, res) => {
   const tpl = psRead(FILES.annexTemplates, []).find(x => x.id === req.params.id);
   if (!tpl) return res.status(404).json({ success: false, message: 'Plantilla no encontrada.' });
-  const file = path.join(UPLOADS_DIR, 'templates', `${tpl.id}.pdf`);
-  if (!fs.existsSync(file)) return res.status(404).json({ success: false, message: 'Archivo no encontrado.' });
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `inline; filename="${tpl.nombre}"`);
-  res.sendFile(file);
+  const diskFile = path.join(UPLOADS_DIR, 'templates', `${tpl.id}.pdf`);
+  if (fs.existsSync(diskFile)) return res.sendFile(diskFile);
+  if (tpl.pdfBase64) return res.send(Buffer.from(tpl.pdfBase64, 'base64'));
+  return res.status(404).json({ success: false, message: 'Archivo no encontrado en disco ni en base de datos.' });
 });
 
+// Guarda pdfBase64 en el JSON además del disco (persiste en reinicios/redeployos)
 router.post('/paquete/plantillas', (req, res) => {
   const templates = psRead(FILES.annexTemplates, []);
   const { nombre, pdfBase64 } = req.body;
@@ -329,11 +335,12 @@ router.post('/paquete/plantillas', (req, res) => {
     return res.status(409).json({ success: false, message: `Ya existe una plantilla equivalente ("${nombre}").` });
   const buf = Buffer.from(pdfBase64, 'base64');
   const id = genId('tpl');
-  fs.writeFileSync(path.join(UPLOADS_DIR, 'templates', `${id}.pdf`), buf);
-  const tpl = { id, nombre, fileKey, sizeKb: Math.round(buf.length/1024), subidoEn: new Date().toISOString() };
+  try { fs.writeFileSync(path.join(UPLOADS_DIR, 'templates', `${id}.pdf`), buf); } catch {}
+  const tpl = { id, nombre, fileKey, pdfBase64, sizeKb: Math.round(buf.length/1024), subidoEn: new Date().toISOString() };
   templates.push(tpl);
   psWrite(FILES.annexTemplates, templates);
-  res.status(201).json({ success: true, data: tpl });
+  const { pdfBase64: _, ...publicTpl } = tpl;
+  res.status(201).json({ success: true, data: publicTpl });
 });
 
 router.delete('/paquete/plantillas/:id', (req, res) => {

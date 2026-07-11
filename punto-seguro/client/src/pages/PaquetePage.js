@@ -139,8 +139,15 @@ ${!this.quizzes.length ? '<p class="small-muted"><i class="ti ti-alert-triangle"
     const template = this.annexTemplates.find((t) => t.id === templateId);
     if (!template) return;
     const url = annexTemplatesService.getDownloadUrl(templateId);
-    const response = await fetch(url);
-    const blob = await response.blob();
+    let blob;
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      blob = await response.blob();
+    } catch (err) {
+      showToast('No se pudo descargar el PDF. Intente subirlo de nuevo.', 'error');
+      return;
+    }
     const file = new File([blob], template.nombre, { type: 'application/pdf' });
 
     this.picker = new SignaturePositionPicker({
