@@ -44,6 +44,8 @@ try {
 
 async function initWhatsApp() {
   if (!_Baileys) { waStatus = 'módulo no instalado'; console.error('[WA] Módulo no disponible — no se inicia'); return; }
+  // Limpiar cliente anterior antes de crear uno nuevo
+  if (waClient) { try { waClient.end(undefined); } catch {} waClient = null; }
   try {
     const WA_DIR = path.join(fs.existsSync('/var/data') ? '/var/data' : path.join(__dirname, 'data'), 'wwa-session');
     if (!fs.existsSync(WA_DIR)) fs.mkdirSync(WA_DIR, { recursive: true });
@@ -58,9 +60,12 @@ async function initWhatsApp() {
       browser: ['Millar', 'Chrome', '1.0.0']
     });
 
+    const thisClient = waClient;
+
     waClient.ev.on('creds.update', saveCreds);
 
     waClient.ev.on('connection.update', async ({ connection, lastDisconnect, qr }) => {
+      if (thisClient !== waClient) return; // cliente obsoleto, ignorar
       if (qr) {
         try { waQrDataUrl = await _QRCode.toDataURL(qr); } catch { waQrDataUrl = null; }
         waReady = false; waStatus = 'esperando QR';
@@ -71,10 +76,11 @@ async function initWhatsApp() {
         console.log('[WA] Conectado');
       }
       if (connection === 'close') {
-        waReady = false; waQrDataUrl = null;
+        waReady = false; waQrDataUrl = null; waClient = null;
         const { Boom } = require('@hapi/boom');
         const code = lastDisconnect?.error instanceof Boom ? lastDisconnect.error.output.statusCode : 0;
         const { DisconnectReason } = _Baileys;
+        console.log('[WA] Conexión cerrada, código:', code);
         if (code === DisconnectReason.loggedOut) {
           waStatus = 'sesión cerrada — escanea QR de nuevo';
           console.log('[WA] Sesión cerrada');
@@ -1250,7 +1256,7 @@ app.get('/api/wa/qr', requireAuth, (_req, res) => {
 });
 app.post('/api/wa/reinit', requireAuth, (_req, res) => {
   if (process.env.ENABLE_WHATSAPP !== 'true') return res.json({ ok: false, message: 'WhatsApp no habilitado (ENABLE_WHATSAPP != true)' });
-  if (waClient) { try { waClient.destroy(); } catch {} waClient = null; }
+  if (waClient) { try { waClient.end(undefined); } catch {} waClient = null; }
   waReady = false; waQrDataUrl = null;
   initWhatsApp();
   res.json({ ok: true });
