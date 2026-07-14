@@ -766,7 +766,7 @@ app.use((req, res, next) => {
 // ── Guardia de la "puerta de atrás" ───────────────────────────────
 // Solo actúa cuando AUTH_ENFORCE=true. Protege /api/* y /alistamiento/api/*.
 // Deja públicas: páginas HTML, imágenes, login, /api/me y /health.
-const AUTH_PUBLIC = new Set(['/api/login', '/api/me', '/health']);
+const AUTH_PUBLIC = new Set(['/api/login', '/api/me', '/health', '/api/recuperar-codigo', '/api/recuperar-codigo/check']);
 app.use((req, res, next) => {
   if (!AUTH_ENFORCE) return next();                          // interruptor apagado
   const esApi = req.path.startsWith('/api') || req.path.startsWith('/alistamiento/api');
@@ -1251,8 +1251,12 @@ app.post('/api/recuperar-codigo', async (req, res) => {
 });
 
 app.get('/api/recuperar-codigo', (req, res) => {
-  try { res.json(readJSON(FILES.recuperar_codigo, [])); }
-  catch(e) { res.status(500).json({ ok: false, error: e.message }); }
+  try {
+    const lista = readJSON(FILES.recuperar_codigo, []);
+    console.log('[RC] GET devuelve', lista.length, 'registros');
+    res.json(lista);
+  }
+  catch(e) { console.error('[RC] GET error:', e.message); res.status(500).json({ ok: false, error: e.message }); }
 });
 
 app.delete('/api/recuperar-codigo/:id', (req, res) => {
