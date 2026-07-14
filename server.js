@@ -37,10 +37,13 @@ let _Baileys, _QRCode;
 try {
   _Baileys = require('@whiskeysockets/baileys');
   _QRCode  = require('qrcode');
-} catch { /* módulos no instalados aún */ }
+  console.log('[WA] Módulos cargados OK');
+} catch(e) {
+  console.error('[WA] Error cargando módulos:', e.message);
+}
 
 async function initWhatsApp() {
-  if (!_Baileys) { waStatus = 'módulo no instalado'; return; }
+  if (!_Baileys) { waStatus = 'módulo no instalado'; console.error('[WA] Módulo no disponible — no se inicia'); return; }
   try {
     const WA_DIR = path.join(fs.existsSync('/var/data') ? '/var/data' : path.join(__dirname, 'data'), 'wwa-session');
     if (!fs.existsSync(WA_DIR)) fs.mkdirSync(WA_DIR, { recursive: true });
@@ -89,7 +92,12 @@ async function initWhatsApp() {
     console.error('[WA] Error init:', e.message);
   }
 }
-if (process.env.ENABLE_WHATSAPP === 'true') initWhatsApp();
+if (process.env.ENABLE_WHATSAPP === 'true') {
+  console.log('[WA] ENABLE_WHATSAPP=true detectado — iniciando...');
+  initWhatsApp();
+} else {
+  console.log('[WA] ENABLE_WHATSAPP no es true — WA desactivado');
+}
 
 async function enviarWhatsApp(telefono, mensaje) {
   if (!waReady || !waClient) throw new Error('WhatsApp no conectado');
