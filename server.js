@@ -1200,59 +1200,58 @@ app.post('/api/recuperar-codigo/check', (req, res) => {
   } catch(e) { res.status(500).json({ ok: false }); }
 });
 
-app.post('/api/recuperar-codigo', async (req, res) => {
+app.post('/api/recuperar-codigo', (req, res) => {
   try {
     const { cedula, nombre, fechaExpedicion, whatsapp } = req.body || {};
     console.log('[RC] POST recibido, cédula:', cedula ? cedula.slice(0,4)+'***' : 'vacía');
     if (!cedula) return res.status(400).json({ ok: false, error: 'Cédula requerida' });
 
-    const norm  = s => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
     const normN = s => String(s || '').trim().replace(/\s+/g, '');
 
-    console.log('[RC] Leyendo lista...');
     const lista = readJSON(FILES.recuperar_codigo, []);
     const existente = lista.find(s => normN(s.cedula) === normN(cedula));
-    console.log('[RC] existente:', !!existente);
 
     if (!existente && (!nombre || !fechaExpedicion || !whatsapp)) {
       return res.status(400).json({ ok: false, error: 'Campos incompletos para primer registro' });
     }
 
-    const waNumero = existente ? existente.whatsapp : String(whatsapp).trim();
-
-    console.log('[RC] Buscando contrato en incentivos...');
-    const incentivos = loadDB('incentivos') || [];
-    const match = incentivos.find(r => normN(r.cedula) === normN(cedula));
-    console.log('[RC] contrato encontrado:', !!match);
-
     const ahora = new Date().toISOString();
     if (existente) {
       existente.totalSolicitudes = (existente.totalSolicitudes || 1) + 1;
       existente.ultimaSolicitud  = ahora;
-      if (match && !existente.contrato) existente.contrato = match.contrato;
     } else {
       lista.push({
-        id: uuidv4(),
+        id:              uuidv4(),
         cedula:          String(cedula).trim(),
         nombre:          String(nombre).trim(),
         fechaExpedicion: String(fechaExpedicion).trim(),
-        whatsapp:        waNumero,
-        contrato:        match ? match.contrato : null,
+        whatsapp:        String(whatsapp).trim(),
+        contrato:        null,
         totalSolicitudes: 1,
         ultimaSolicitud:  ahora,
         registradoEn:     ahora
       });
     }
-    console.log('[RC] Guardando lista...');
     writeJSON(FILES.recuperar_codigo, lista);
-    console.log('[RC] Respondiendo ok');
-    res.json({ ok: true, encontrado: !!match });
+    console.log('[RC] Guardado OK, total:', lista.length);
+    res.json({ ok: true });
   } catch(e) { console.error('[RC] Error:', e.message); res.status(500).json({ ok: false, error: e.message }); }
 });
 
 app.get('/api/recuperar-codigo', (req, res) => {
   try {
     const lista = readJSON(FILES.recuperar_codigo, []);
+    // Enriquecer con contrato si falta (usa caché de incentivos)
+    if (lista.length) {
+      const normN = s => String(s || '').trim().replace(/\s+/g, '');
+      const incentivos = loadDB('incentivos') || [];
+      lista.forEach(s => {
+        if (!s.contrato) {
+          const m = incentivos.find(r => normN(r.cedula) === normN(s.cedula));
+          if (m) s.contrato = m.contrato;
+        }
+      });
+    }
     console.log('[RC] GET devuelve', lista.length, 'registros');
     res.json(lista);
   }
