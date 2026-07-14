@@ -31,6 +31,42 @@ const compression = require('compression');
 const bcrypt   = require('bcryptjs');
 const crypto   = require('crypto');
 
+// ── WhatsApp (opcional — se activa con ENABLE_WHATSAPP=true en Render) ──
+let waClient = null, waQrDataUrl = null, waReady = false, waStatus = 'desconectado';
+let _WA, _LocalAuth, _QRCode;
+try { ({ Client: _WA, LocalAuth: _LocalAuth } = require('whatsapp-web.js')); _QRCode = require('qrcode'); } catch { /* no instalado aún */ }
+
+function initWhatsApp() {
+  if (!_WA || !_LocalAuth) { waStatus = 'módulo no instalado'; return; }
+  const WA_DIR = path.join(DATA_DIR, 'wwa-session');
+  waClient = new _WA({
+    authStrategy: new _LocalAuth({ dataPath: WA_DIR }),
+    puppeteer: { headless: true, args: ['--no-sandbox','--disable-setuid-sandbox','--disable-dev-shm-usage','--disable-gpu','--single-process'] }
+  });
+  waClient.on('qr', async qr => {
+    try { waQrDataUrl = await _QRCode.toDataURL(qr); } catch { waQrDataUrl = null; }
+    waReady = false; waStatus = 'esperando QR';
+    console.log('[WA] QR generado');
+  });
+  waClient.on('ready', () => { waReady = true; waQrDataUrl = null; waStatus = 'conectado'; console.log('[WA] Listo'); });
+  waClient.on('auth_failure', () => { waReady = false; waStatus = 'error de autenticación'; });
+  waClient.on('disconnected', reason => {
+    waReady = false; waStatus = 'desconectado'; waQrDataUrl = null;
+    console.log('[WA] Desconectado:', reason);
+    setTimeout(initWhatsApp, 8000);
+  });
+  waStatus = 'iniciando';
+  waClient.initialize().catch(e => { waStatus = 'error: ' + e.message; console.error('[WA]', e.message); });
+}
+if (process.env.ENABLE_WHATSAPP === 'true') initWhatsApp();
+
+async function enviarWhatsApp(telefono, mensaje) {
+  if (!waReady || !waClient) throw new Error('WhatsApp no conectado');
+  const digits = String(telefono).replace(/\D/g, '');
+  const chatId = (digits.startsWith('57') ? digits : '57' + digits) + '@c.us';
+  await waClient.sendMessage(chatId, mensaje);
+}
+
 // ── Variables de entorno obligatorias ────────────────────────────
 // #3: RESET_PASS DEBE estar definida en Render como env var.
 //     Si no existe, el servidor arranca pero avisa claramente.
@@ -105,6 +141,7 @@ const FILES = {
   tareas:         path.join(DATA_DIR, 'tareas.json'),
   visitantes:     path.join(DATA_DIR, 'visitantes.json'),
   turnos_asignados: path.join(DATA_DIR, 'turnos_asignados.json'),
+  recuperar_codigo: path.join(DATA_DIR, 'recuperar_codigo.json'),
 };
 
 // ══════════════════════════════════════════════════════════════════
@@ -1024,6 +1061,7 @@ app.post('/api/incentivos', (req, res) => {
         id:     (prev && prev.id) || uuidv4(),  // conservar id si ya existía
         mes, contrato,
         nombre: String(r.nombre == null ? '' : r.nombre).trim(),
+        cedula: String(r.cedula == null ? '' : r.cedula).trim(),
         valor:  normValor(r.valor),
         ts:     Date.now()
       });
@@ -1046,6 +1084,7 @@ app.patch('/api/incentivos/:id', (req, res) => {
     if (b.mes      !== undefined) data[idx].mes      = normMes(b.mes);
     if (b.contrato !== undefined) data[idx].contrato = normContrato(b.contrato);
     if (b.nombre   !== undefined) data[idx].nombre   = String(b.nombre == null ? '' : b.nombre).trim();
+    if (b.cedula   !== undefined) data[idx].cedula   = String(b.cedula == null ? '' : b.cedula).trim();
     if (b.valor    !== undefined) data[idx].valor    = normValor(b.valor);
     data[idx].ts = Date.now();
     saveDB('incentivos', data);
@@ -1090,6 +1129,92 @@ app.post('/api/incentivos-disponibilidad', (req, res) => {
     writeJSON(FILES.incentivos_disp, req.body);
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+// Verifica si la cédula ya tiene WhatsApp registrado
+app.post('/api/recuperar-codigo/check', (req, res) => {
+  try {
+    const { cedula } = req.body || {};
+    if (!cedula) return res.status(400).json({ ok: false });
+    const norm = s => String(s || '').trim().replace(/\s+/g, '');
+    const lista = readJSON(FILES.recuperar_codigo, []);
+    const existe = lista.find(s => norm(s.cedula) === norm(cedula));
+    res.json({ ok: true, registrado: !!existe });
+  } catch(e) { res.status(500).json({ ok: false }); }
+});
+
+app.post('/api/recuperar-codigo', async (req, res) => {
+  try {
+    const { cedula, nombre, fechaExpedicion, whatsapp } = req.body || {};
+    if (!cedula) return res.status(400).json({ ok: false, error: 'Cédula requerida' });
+
+    const norm  = s => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    const normN = s => String(s || '').trim().replace(/\s+/g, '');
+
+    const lista = readJSON(FILES.recuperar_codigo, []);
+    const existente = lista.find(s => normN(s.cedula) === normN(cedula));
+
+    // Primera vez: faltan campos obligatorios
+    if (!existente && (!nombre || !fechaExpedicion || !whatsapp)) {
+      return res.status(400).json({ ok: false, error: 'Campos incompletos para primer registro' });
+    }
+
+    const waNumero = existente ? existente.whatsapp : String(whatsapp).trim();
+
+    // Buscar contrato en incentivos por cédula
+    const incentivos = loadDB('incentivos') || [];
+    const match = incentivos.find(r => normN(r.cedula) === normN(cedula));
+
+    const ahora = new Date().toISOString();
+    if (existente) {
+      existente.totalSolicitudes = (existente.totalSolicitudes || 1) + 1;
+      existente.ultimaSolicitud  = ahora;
+      if (match && !existente.contrato) existente.contrato = match.contrato;
+    } else {
+      lista.push({
+        id: uuidv4(),
+        cedula:          String(cedula).trim(),
+        nombre:          String(nombre).trim(),
+        fechaExpedicion: String(fechaExpedicion).trim(),
+        whatsapp:        waNumero,
+        contrato:        match ? match.contrato : null,
+        totalSolicitudes: 1,
+        ultimaSolicitud:  ahora,
+        registradoEn:     ahora
+      });
+    }
+    writeJSON(FILES.recuperar_codigo, lista);
+
+    // Enviar WhatsApp si está conectado y hay contrato
+    if (match && waReady) {
+      const primerNombre = (existente ? existente.nombre : nombre).split(' ')[0];
+      const msg = `Hola ${primerNombre}! 👋\n\nTu número de contrato en Confecciones Millar es:\n\n*${match.contrato}*\n\nÚsalo para consultar tus incentivos en el sistema.`;
+      enviarWhatsApp(waNumero, msg).catch(e => console.error('[WA] Error enviando:', e.message));
+    }
+
+    res.json({ ok: true, encontrado: !!match });
+  } catch(e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+app.get('/api/recuperar-codigo', requireAuth, (req, res) => {
+  try { res.json(readJSON(FILES.recuperar_codigo, [])); }
+  catch(e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+// ── WhatsApp admin endpoints ────────────────────────────────────────
+app.get('/api/wa/status', requireAuth, (_req, res) => {
+  res.json({ ready: waReady, status: waStatus, hasQr: !!waQrDataUrl });
+});
+app.get('/api/wa/qr', requireAuth, (_req, res) => {
+  if (!waQrDataUrl) return res.json({ ok: false, message: waReady ? 'Ya conectado' : 'QR aún no disponible' });
+  res.json({ ok: true, qr: waQrDataUrl });
+});
+app.post('/api/wa/reinit', requireAuth, (_req, res) => {
+  if (process.env.ENABLE_WHATSAPP !== 'true') return res.json({ ok: false, message: 'WhatsApp no habilitado (ENABLE_WHATSAPP != true)' });
+  if (waClient) { try { waClient.destroy(); } catch {} waClient = null; }
+  waReady = false; waQrDataUrl = null;
+  initWhatsApp();
+  res.json({ ok: true });
 });
 
 const CI_PATH = path.join(__dirname, 'Tablero_CI.html');

@@ -657,6 +657,7 @@ input[type=number]{-moz-appearance:textfield;}
         <button onclick="pedirPassAccion(abrirCfgScreen)" style="padding:8px 14px;border-radius:8px;border:1.5px solid #fde68a;background:#fefce8;color:#b45309;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">⚙️ Configuraciones</button>
         <button onclick="exportarExcel()" style="padding:8px 14px;border-radius:8px;border:1.5px solid #86efac;background:#f0fdf4;color:#15803d;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">📊 Exportar</button>
         <button onclick="abrirDashboard()" style="padding:8px 14px;border-radius:8px;border:1.5px solid #bfdbfe;background:#eff6ff;color:#1d4ed8;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">📈 Dashboard</button>
+        <button onclick="abrirInformeGerencial()" style="padding:8px 14px;border-radius:8px;border:1.5px solid #c7d2fe;background:#eef2ff;color:#4338ca;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">📋 Informe</button>
       </div>
       <div class="date-filter-wrap">
         <button onclick="toggleDatePanel()" id="date-filter-btn"
@@ -3548,6 +3549,243 @@ function verDetalles(id){
 </body></html>`;
 
   const win = window.open('','_blank','width=900,height=700');
+  win.document.write(html);
+  win.document.close();
+}
+
+// ── Informe Gerencial ───────────────────────────────────────────────
+function abrirInformeGerencial(){
+  let m=document.getElementById('modal-informe-ger');
+  if(!m){
+    m=document.createElement('div');
+    m.id='modal-informe-ger';
+    m.style.cssText='display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:2000;align-items:center;justify-content:center;padding:16px;';
+    m.onclick=e=>{if(e.target===m)m.style.display='none';};
+    const hoy=fechaHoy();
+    const primerDiaMes=hoy.slice(0,7)+'-01';
+    m.innerHTML=`<div style="background:#fff;border-radius:14px;width:100%;max-width:420px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.25);font-family:'Nunito',sans-serif;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;letter-spacing:1px;color:#0f172a;margin-bottom:4px;">📋 INFORME GERENCIAL</div>
+      <div style="font-size:12px;color:#64748b;margin-bottom:18px;">Control de Revisión de Telas — Millar</div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;display:block;margin-bottom:5px;">PERÍODO DESDE</label>
+        <input type="date" id="ig-desde" value="${primerDiaMes}" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;font-family:'Nunito',sans-serif;outline:none;">
+      </div>
+      <div style="margin-bottom:22px;">
+        <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;display:block;margin-bottom:5px;">PERÍODO HASTA</label>
+        <input type="date" id="ig-hasta" value="${hoy}" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;font-family:'Nunito',sans-serif;outline:none;">
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="document.getElementById('modal-informe-ger').style.display='none'" style="flex:1;padding:10px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">Cancelar</button>
+        <button onclick="generarInformeGerencial()" style="flex:2;padding:10px;border-radius:8px;border:none;background:#4338ca;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;cursor:pointer;letter-spacing:.5px;">📄 GENERAR PDF</button>
+      </div>
+    </div>`;
+    document.body.appendChild(m);
+  }
+  m.style.display='flex';
+}
+
+function generarInformeGerencial(){
+  const desde=document.getElementById('ig-desde').value;
+  const hasta=document.getElementById('ig-hasta').value;
+  if(!desde||!hasta){showToast('Selecciona las fechas','error');return;}
+  if(desde>hasta){showToast('La fecha "desde" debe ser anterior a "hasta"','error');return;}
+  document.getElementById('modal-informe-ger').style.display='none';
+
+  const regs=_registros.filter(r=>r.finalizado&&r.tipo!=='multitarea'&&r.fecha>=desde&&r.fecha<=hasta);
+  if(!regs.length){showToast('Sin registros finalizados en ese período','error');return;}
+
+  const totalRollos=regs.length;
+  const totalMetros=regs.reduce((s,r)=>s+parseFloat(r.metros||0),0);
+  const aprobados=regs.filter(r=>r.resultado==='aprobado');
+  const rechazados=regs.filter(r=>r.resultado==='rechazado');
+  const pctAprob=Math.round(aprobados.length/totalRollos*100);
+  const pctRech=Math.round(rechazados.length/totalRollos*100);
+
+  const byProv={};
+  regs.forEach(r=>{
+    const p=r.proveedor||'Sin proveedor';
+    if(!byProv[p])byProv[p]={rollos:0,metros:0,aprobados:0,rechazados:0};
+    byProv[p].rollos++;
+    byProv[p].metros+=parseFloat(r.metros||0);
+    if(r.resultado==='aprobado')byProv[p].aprobados++;
+    if(r.resultado==='rechazado')byProv[p].rechazados++;
+  });
+
+  const defCount={};
+  regs.forEach(r=>(r.defectos||[]).forEach(d=>{
+    const n=d.tipo||'Sin nombre';
+    defCount[n]=(defCount[n]||0)+parseInt(d.cantidad||1);
+  }));
+  const topDef=Object.entries(defCount).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const totalDefTotal=Object.values(defCount).reduce((s,v)=>s+v,0);
+
+  const fmtD=s=>{if(!s)return '—';const[y,mo,d]=s.split('-');return `${d}/${mo}/${y}`;};
+  const genEn=new Date().toLocaleString('es-CO',{dateStyle:'long',timeStyle:'short'});
+
+  const TH=`background:#1e3a8a;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:9px 11px;text-align:left;`;
+  const TD=`padding:7px 11px;border-bottom:1px solid #f1f5f9;font-size:12px;`;
+  const TDC=TD+`text-align:center;`;
+  const TDR=TD+`text-align:right;`;
+
+  const provRows=Object.entries(byProv).sort((a,b)=>b[1].rechazados-a[1].rechazados).map(([prov,d])=>{
+    const pR=d.rollos?Math.round(d.rechazados/d.rollos*100):0;
+    const cR=pR>=30?'#dc2626':pR>=15?'#b45309':'#15803d';
+    return `<tr style="background:inherit;">
+      <td style="${TD}">${prov}</td>
+      <td style="${TDC}">${d.rollos}</td>
+      <td style="${TDR}">${d.metros.toFixed(1)} m</td>
+      <td style="${TDC}color:#15803d;font-weight:700;">${d.aprobados}</td>
+      <td style="${TDC}color:#dc2626;font-weight:700;">${d.rechazados}</td>
+      <td style="${TDC}font-weight:700;color:${cR};">${pR}%</td>
+    </tr>`;
+  }).join('');
+
+  const defRows=topDef.map(([nombre,cant],i)=>{
+    const pct=totalDefTotal?Math.round(cant/totalDefTotal*100):0;
+    return `<tr style="background:inherit;">
+      <td style="${TDC}color:#94a3b8;">${i+1}</td>
+      <td style="${TD}">${nombre}</td>
+      <td style="${TDC}font-weight:700;">${cant}</td>
+      <td style="${TD}">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="flex:1;height:7px;background:#f1f5f9;border-radius:4px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:#4338ca;border-radius:4px;"></div></div>
+          <span style="font-size:10px;color:#64748b;min-width:28px;">${pct}%</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  const rechRows=rechazados.map(r=>{
+    const defs=(r.defectos||[]).map(d=>(d.tipo||'—')+(d.cantidad?` (${d.cantidad})`:`m${d.metro||''}`)).join(', ')||'—';
+    return `<tr style="background:inherit;">
+      <td style="${TD}">${fmtD(r.fecha)}</td>
+      <td style="${TD}">${r.factura||r.lote||'—'}</td>
+      <td style="${TDC}">${r.rollo||'—'}</td>
+      <td style="${TD}">${r.proveedor||'—'}</td>
+      <td style="${TD}">${r.referencia||'—'}</td>
+      <td style="${TDR}">${r.metros?r.metros+' m':'—'}</td>
+      <td style="${TD}font-size:11px;color:#dc2626;">${defs}</td>
+    </tr>`;
+  }).join('');
+
+  const html=`<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Informe Gerencial — Revisión de Telas</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;font-size:12px;}
+.page{max-width:900px;margin:0 auto;padding:32px;}
+.header{display:flex;align-items:flex-start;justify-content:space-between;border-bottom:3px solid #1e3a8a;padding-bottom:16px;margin-bottom:24px;}
+.co-name{font-size:20px;font-weight:800;color:#1e3a8a;letter-spacing:1px;font-family:'Segoe UI',Arial,sans-serif;}
+.co-sub{font-size:11px;color:#64748b;margin-top:3px;}
+.hd-right{text-align:right;}
+.hd-title{font-size:13px;font-weight:800;color:#1e3a8a;text-transform:uppercase;letter-spacing:1px;}
+.hd-period{font-size:14px;font-weight:700;color:#0f172a;margin-top:3px;}
+.hd-gen{font-size:10px;color:#94a3b8;margin-top:4px;}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px;}
+.kpi{border-radius:10px;padding:14px 16px;}
+.kpi.t{background:#f8fafc;border:1.5px solid #e2e8f0;}
+.kpi.m{background:#eff6ff;border:1.5px solid #bfdbfe;}
+.kpi.a{background:#f0fdf4;border:1.5px solid #86efac;}
+.kpi.r{background:#fef2f2;border:1.5px solid #fca5a5;}
+.kpi-n{font-size:30px;font-weight:800;line-height:1;font-family:'Segoe UI',Arial,sans-serif;}
+.kpi.t .kpi-n{color:#0f172a;} .kpi.m .kpi-n{color:#1d4ed8;} .kpi.a .kpi-n{color:#15803d;} .kpi.r .kpi-n{color:#dc2626;}
+.kpi-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-top:5px;}
+.kpi-pct{font-size:11px;font-weight:600;margin-top:2px;}
+.kpi.a .kpi-pct{color:#15803d;} .kpi.r .kpi-pct{color:#dc2626;}
+.sec{margin-bottom:26px;}
+.sec-title{font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#1e3a8a;border-bottom:2px solid #e2e8f0;padding-bottom:6px;margin-bottom:12px;}
+table{width:100%;border-collapse:collapse;}
+thead th{${TH}}
+tbody tr:nth-child(even){background:#f8fafc;}
+.footer{margin-top:28px;padding-top:10px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;}
+.footer span{font-size:10px;color:#94a3b8;}
+.no-print{text-align:center;margin-top:20px;}
+@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}.page{padding:20px;}.no-print{display:none;}}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <div>
+      <div class="co-name">CONFECCIONES MILLAR</div>
+      <div class="co-sub">Ingeniería Confecciones Millar S.A.S.</div>
+    </div>
+    <div class="hd-right">
+      <div class="hd-title">Informe Gerencial</div>
+      <div class="hd-title" style="font-size:11px;color:#64748b;font-weight:600;">Control de Revisión de Telas</div>
+      <div class="hd-period">${fmtD(desde)} — ${fmtD(hasta)}</div>
+      <div class="hd-gen">Generado: ${genEn}</div>
+    </div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi t"><div class="kpi-n">${totalRollos}</div><div class="kpi-lbl">Rollos revisados</div></div>
+    <div class="kpi m"><div class="kpi-n">${totalMetros.toFixed(1)}</div><div class="kpi-lbl">Metros revisados</div></div>
+    <div class="kpi a"><div class="kpi-n">${aprobados.length}</div><div class="kpi-lbl">Aprobados</div><div class="kpi-pct">${pctAprob}% del total</div></div>
+    <div class="kpi r"><div class="kpi-n">${rechazados.length}</div><div class="kpi-lbl">Rechazados</div><div class="kpi-pct">${pctRech}% del total</div></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-title">Análisis por Proveedor</div>
+    <table>
+      <thead><tr>
+        <th>Proveedor</th>
+        <th style="text-align:center;">Rollos</th>
+        <th style="text-align:right;">Metros</th>
+        <th style="text-align:center;">Aprobados</th>
+        <th style="text-align:center;">Rechazados</th>
+        <th style="text-align:center;">% Rechazo</th>
+      </tr></thead>
+      <tbody>${provRows||`<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:16px;">Sin datos de proveedor</td></tr>`}</tbody>
+    </table>
+  </div>
+
+  ${topDef.length?`<div class="sec">
+    <div class="sec-title">Defectos más Frecuentes</div>
+    <table>
+      <thead><tr>
+        <th style="text-align:center;width:36px;">#</th>
+        <th>Tipo de defecto</th>
+        <th style="text-align:center;">Hallazgos</th>
+        <th style="width:180px;">Proporción</th>
+      </tr></thead>
+      <tbody>${defRows}</tbody>
+    </table>
+  </div>`:''}
+
+  ${rechazados.length?`<div class="sec">
+    <div class="sec-title">Detalle de Rollos Rechazados (${rechazados.length})</div>
+    <table>
+      <thead><tr>
+        <th>Fecha</th>
+        <th>Factura</th>
+        <th style="text-align:center;">Rollo</th>
+        <th>Proveedor</th>
+        <th>Referencia</th>
+        <th style="text-align:right;">Metros</th>
+        <th>Defectos</th>
+      </tr></thead>
+      <tbody>${rechRows}</tbody>
+    </table>
+  </div>`:''}
+
+  <div class="footer">
+    <span>Confecciones Millar S.A.S. · Sistema de Control de Piso</span>
+    <span>Documento generado electrónicamente · ${genEn}</span>
+  </div>
+</div>
+<div class="no-print">
+  <button onclick="window.print()" style="padding:10px 28px;border-radius:8px;border:none;background:#4338ca;color:#fff;font-size:14px;font-weight:700;cursor:pointer;">🖨️ Imprimir / Guardar PDF</button>
+  <button onclick="window.close()" style="padding:10px 28px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:14px;font-weight:700;cursor:pointer;margin-left:10px;">✕ Cerrar</button>
+</div>
+</body>
+</html>`;
+
+  const win=window.open('','_blank','width=960,height=750');
+  if(!win){showToast('Permite ventanas emergentes para generar el informe','error');return;}
   win.document.write(html);
   win.document.close();
 }

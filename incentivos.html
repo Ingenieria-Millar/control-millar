@@ -155,12 +155,14 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
   <!-- ── CONSULTA (operaria) ── -->
   <div class="card" id="consultaCard">
     <div class="card-title">🔎 Consultar mi incentivo</div>
-    <div class="card-sub">Ingresa tu número de contrato y selecciona el o los meses que quieras consultar.</div>
 
     <label class="label" for="inpContrato">Número de contrato</label>
     <input class="input" id="inpContrato" type="text" inputmode="numeric" placeholder="" autocomplete="off">
 
     <button class="btn-primary" id="btnBuscar">Consultar</button>
+    <div style="text-align:center;margin-top:10px;">
+      <a href="#" onclick="abrirRecuperarCodigo();return false;" style="font-size:13px;color:#2563eb;text-decoration:none;font-weight:600;">¿No recuerdas tu código? Recupéralo aquí</a>
+    </div>
     <div class="error" id="errConsulta"></div>
 
     <div id="mesWrap">
@@ -189,7 +191,7 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
   <!-- ── ADMIN (oculto; se desbloquea con la tuerca) ── -->
   <div class="card" id="adminCard">
     <div class="card-title">⚙️ Administración <span class="admin-badge">Admin</span></div>
-    <div class="card-sub">Importa el Excel (columnas <strong>MES, CONTRATO, NOMBRE, VALOR</strong>), edita registros directamente en la tabla y exporta con los cambios.</div>
+    <div class="card-sub">Importa el Excel (columnas <strong>MES, CONTRATO, NOMBRE, CÉDULA, VALOR</strong>), edita registros directamente en la tabla y exporta con los cambios.</div>
 
     <!-- Disponibilidad por mes -->
     <div style="background:#f8fafc;border:1.5px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:18px;">
@@ -215,7 +217,7 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
 
     <div class="tbl-scroll">
       <table class="data-tbl">
-        <thead><tr><th>Mes</th><th>Contrato</th><th>Nombre</th><th class="r">Valor</th><th style="text-align:right;">Acciones</th></tr></thead>
+        <thead><tr><th>Mes</th><th>Contrato</th><th>Nombre</th><th>Cédula</th><th class="r">Valor</th><th style="text-align:right;">Acciones</th></tr></thead>
         <tbody id="admBody"></tbody>
       </table>
     </div>
@@ -224,6 +226,47 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
       <button id="pgPrev" title="Anterior">‹</button>
       <span class="pg-info" id="pgInfo">—</span>
       <button id="pgNext" title="Siguiente">›</button>
+    </div>
+
+    <!-- WhatsApp -->
+    <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:12px;padding:16px 18px;margin-top:20px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">📱 WhatsApp</div>
+          <div style="font-size:12px;color:#64748b;margin-top:2px;">Estado del servicio de envío automático</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span id="wa-status-badge" style="font-size:13px;font-weight:700;color:#dc2626;">🔴 desconectado</span>
+          <button id="wa-reinit-btn" onclick="reiniciarWa()" style="padding:6px 14px;border-radius:8px;border:1.5px solid #86efac;background:#fff;color:#15803d;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Reiniciar</button>
+        </div>
+      </div>
+      <div id="wa-qr-wrap" style="display:none;text-align:center;padding:10px 0;">
+        <div style="font-size:12px;color:#64748b;margin-bottom:8px;">Escanea con WhatsApp → Dispositivos vinculados → Vincular dispositivo</div>
+        <img id="wa-qr-img" src="" alt="QR WhatsApp" style="width:200px;height:200px;border-radius:8px;border:2px solid #e2e8f0;">
+      </div>
+    </div>
+
+    <!-- Solicitudes de recuperación de código -->
+    <div style="margin-top:20px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">🔑 Solicitudes de Recuperación</div>
+        <button onclick="cargarSolicitudesRecuperacion()" style="padding:5px 12px;border-radius:7px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:12px;font-weight:700;cursor:pointer;">↻ Actualizar</button>
+      </div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;">
+          <thead><tr style="background:#f8fafc;">
+            <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">Cédula</th>
+            <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">Nombre</th>
+            <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">F. Expedición</th>
+            <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">WhatsApp</th>
+            <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">Contrato</th>
+            <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">Última solicitud</th>
+          </tr></thead>
+          <tbody id="rc-solicitudes-body">
+            <tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:14px;">Sin solicitudes aún.</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -362,11 +405,16 @@ function abrirPassModal(){
   setTimeout(()=>document.getElementById('passInput').focus(), 80);
 }
 function cerrarPassModal(){ document.getElementById('passModal').classList.remove('show'); }
+let _waInterval = null;
 function mostrarAdmin(){
   document.getElementById('consultaCard').style.display = 'none';
   document.getElementById('adminCard').style.display = 'block';
   document.getElementById('btnGear').classList.add('on');
   window.scrollTo({ top:0, behavior:'smooth' });
+  cargarWaStatus();
+  cargarSolicitudesRecuperacion();
+  if(_waInterval) clearInterval(_waInterval);
+  _waInterval = setInterval(cargarWaStatus, 8000);
 }
 function mostrarConsulta(){
   document.getElementById('adminCard').style.display = 'none';
@@ -503,7 +551,7 @@ function renderTabla(){
   const slice = filtered.slice(start, start + PAGE_SIZE);
 
   if(!slice.length){
-    body.innerHTML = `<tr><td colspan="5" class="tbl-empty">${adminData.length ? 'Sin coincidencias.' : 'Aún no hay incentivos cargados. Importa un Excel.'}</td></tr>`;
+    body.innerHTML = `<tr><td colspan="6" class="tbl-empty">${adminData.length ? 'Sin coincidencias.' : 'Aún no hay incentivos cargados. Importa un Excel.'}</td></tr>`;
   } else {
     body.innerHTML = slice.map(r => {
       if(r.id === editingId){
@@ -511,12 +559,14 @@ function renderTabla(){
           `<td><input class="ed-mes" value="${esc(r.mes)}"></td>`+
           `<td><input class="ed-contrato" value="${esc(r.contrato)}"></td>`+
           `<td><input class="ed-nombre" value="${esc(r.nombre)}"></td>`+
+          `<td><input class="ed-cedula" inputmode="numeric" value="${esc(r.cedula||'')}"></td>`+
           `<td class="r"><input class="ed-valor r" inputmode="numeric" value="${Number(r.valor)||0}"></td>`+
           `<td><div class="row-acts"><button class="ico-btn save" data-act="save" title="Guardar">💾</button>`+
           `<button class="ico-btn" data-act="cancel" title="Cancelar">✖</button></div></td></tr>`;
       }
       return `<tr data-id="${esc(r.id)}">`+
         `<td>${esc(r.mes)}</td><td>${esc(r.contrato)}</td><td>${esc(r.nombre)}</td>`+
+        `<td>${esc(r.cedula||'')}</td>`+
         `<td class="r">${COP.format(r.valor||0)}</td>`+
         `<td><div class="row-acts"><button class="ico-btn" data-act="edit" title="Editar">✏️</button>`+
         `<button class="ico-btn del" data-act="del" title="Eliminar">🗑</button></div></td></tr>`;
@@ -542,6 +592,7 @@ document.getElementById('admBody').addEventListener('click', async e => {
       mes:      tr.querySelector('.ed-mes').value.trim(),
       contrato: tr.querySelector('.ed-contrato').value.trim(),
       nombre:   tr.querySelector('.ed-nombre').value.trim(),
+      cedula:   tr.querySelector('.ed-cedula').value.trim(),
       valor:    tr.querySelector('.ed-valor').value
     };
     if(!payload.mes || !payload.contrato){ toast('MES y CONTRATO son obligatorios'); return; }
@@ -603,6 +654,7 @@ function parseAndUpload(file){
         mes:      pick(r, ['mes','month','periodo']).toString().trim(),
         contrato: pick(r, ['contrato','contract','numero contrato','n contrato','no contrato','número contrato']).toString().trim(),
         nombre:   pick(r, ['nombre','name','empleado','operaria']).toString().trim(),
+        cedula:   pick(r, ['cedula','cédula','cedúla','documento','cc','identificacion','identificación']).toString().trim(),
         valor:    pick(r, ['valor','value','incentivo','monto','total'])
       })).filter(r => r.mes && r.contrato);
 
@@ -627,9 +679,9 @@ function exportar(){
   const rows = adminData
     .slice()
     .sort((a,b)=>{ const m=(a.mes||'').localeCompare(b.mes||''); return m!==0?m:(a.contrato||'').localeCompare(b.contrato||'', undefined,{numeric:true}); })
-    .map(r => ({ MES:r.mes||'', CONTRATO:r.contrato||'', NOMBRE:r.nombre||'', VALOR:Number(r.valor)||0 }));
-  const ws = XLSX.utils.json_to_sheet(rows, { header:['MES','CONTRATO','NOMBRE','VALOR'] });
-  ws['!cols'] = [{wch:14},{wch:12},{wch:28},{wch:12}];
+    .map(r => ({ MES:r.mes||'', CONTRATO:r.contrato||'', NOMBRE:r.nombre||'', 'CÉDULA':r.cedula||'', VALOR:Number(r.valor)||0 }));
+  const ws = XLSX.utils.json_to_sheet(rows, { header:['MES','CONTRATO','NOMBRE','CÉDULA','VALOR'] });
+  ws['!cols'] = [{wch:14},{wch:12},{wch:28},{wch:14},{wch:12}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Incentivos');
   XLSX.writeFile(wb, 'incentivos_' + new Date().toISOString().slice(0,10) + '.xlsx');
@@ -640,12 +692,12 @@ function exportar(){
 function descargarPlantilla(){
   if(typeof XLSX === 'undefined'){ toast('Librería Excel no disponible'); return; }
   const ws = XLSX.utils.aoa_to_sheet([
-    ['MES','CONTRATO','NOMBRE','VALOR'],
-    ['Enero','1024','Ana Gómez', 150000],
-    ['Enero','1025','María López', 132000],
-    ['Febrero','1024','Ana Gómez', 148000]
+    ['MES','CONTRATO','NOMBRE','CÉDULA','VALOR'],
+    ['Enero','1024','Ana Gómez','1043210001', 150000],
+    ['Enero','1025','María López','1043210002', 132000],
+    ['Febrero','1024','Ana Gómez','1043210001', 148000]
   ]);
-  ws['!cols'] = [{wch:14},{wch:12},{wch:28},{wch:12}];
+  ws['!cols'] = [{wch:14},{wch:12},{wch:28},{wch:14},{wch:12}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Incentivos');
   XLSX.writeFile(wb, 'plantilla_incentivos.xlsx');
@@ -674,6 +726,184 @@ document.getElementById('btnClear').addEventListener('click', abrirClearModal);
 document.getElementById('clearCancel').addEventListener('click', cerrarClearModal);
 document.getElementById('clearOk').addEventListener('click', confirmarClear);
 document.getElementById('clearModal').addEventListener('click', e=>{ if(e.target.id==='clearModal') cerrarClearModal(); });
+
+// ── Modal recuperar código — lógica multi-paso ──────────────────────
+function abrirRecuperarCodigo(){
+  const m=document.getElementById('modal-recuperar');
+  m.style.display='flex';
+  rcMostrarPaso1();
+}
+function cerrarRecuperarCodigo(){
+  document.getElementById('modal-recuperar').style.display='none';
+}
+function rcMostrarPaso1(){
+  document.getElementById('rc-cedula').value='';
+  document.getElementById('rc-msg').textContent='';
+  document.getElementById('rc-paso1').style.display='block';
+  document.getElementById('rc-paso2').style.display='none';
+  document.getElementById('rc-final').style.display='none';
+  document.getElementById('rc-cedula').focus();
+}
+async function rcVerificarCedula(){
+  const cedula=document.getElementById('rc-cedula').value.trim();
+  const msg=document.getElementById('rc-msg');
+  if(!cedula){msg.style.color='#dc2626';msg.textContent='Ingresa tu número de cédula.';return;}
+  const btn=document.getElementById('rc-btn-verificar');
+  btn.disabled=true;btn.textContent='Verificando…';msg.textContent='';
+  try{
+    const r=await fetch('/api/recuperar-codigo/check',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cedula})});
+    const d=await r.json();
+    if(d.registrado){
+      // Ya tiene WhatsApp registrado — enviar directo
+      await rcEnviarSolicitud(cedula,null,null,null);
+    } else {
+      // Primera vez — mostrar campos extra
+      document.getElementById('rc-paso1').style.display='none';
+      document.getElementById('rc-paso2').style.display='block';
+      document.getElementById('rc-nombre').value='';
+      document.getElementById('rc-fecha-exp').value='';
+      document.getElementById('rc-whatsapp').value='';
+      document.getElementById('rc-msg').textContent='';
+      document.getElementById('rc-nombre').focus();
+    }
+  }catch{msg.style.color='#dc2626';msg.textContent='Sin conexión. Intenta de nuevo.';}
+  finally{btn.disabled=false;btn.textContent='Verificar';}
+}
+async function rcEnviarNuevo(){
+  const cedula=document.getElementById('rc-cedula').value.trim();
+  const nombre=document.getElementById('rc-nombre').value.trim();
+  const fechaExp=document.getElementById('rc-fecha-exp').value.trim();
+  const whatsapp=document.getElementById('rc-whatsapp').value.trim();
+  const msg=document.getElementById('rc-msg');
+  if(!nombre||!fechaExp||!whatsapp){msg.style.color='#dc2626';msg.textContent='Completa todos los campos.';return;}
+  await rcEnviarSolicitud(cedula,nombre,fechaExp,whatsapp);
+}
+async function rcEnviarSolicitud(cedula,nombre,fechaExpedicion,whatsapp){
+  const msg=document.getElementById('rc-msg');
+  const btnN=document.getElementById('rc-btn-nuevo');
+  if(btnN){btnN.disabled=true;btnN.textContent='Enviando…';}
+  try{
+    const body={cedula};
+    if(nombre)body.nombre=nombre;
+    if(fechaExpedicion)body.fechaExpedicion=fechaExpedicion;
+    if(whatsapp)body.whatsapp=whatsapp;
+    const r=await fetch('/api/recuperar-codigo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await r.json();
+    if(r.ok){
+      document.getElementById('rc-paso1').style.display='none';
+      document.getElementById('rc-paso2').style.display='none';
+      document.getElementById('rc-final').style.display='block';
+    } else {
+      msg.style.color='#dc2626';
+      msg.textContent=d.error||'Error al procesar la solicitud.';
+      if(btnN){btnN.disabled=false;btnN.textContent='Enviar solicitud';}
+    }
+  }catch{
+    msg.style.color='#dc2626';msg.textContent='Sin conexión. Intenta de nuevo.';
+    if(btnN){btnN.disabled=false;btnN.textContent='Enviar solicitud';}
+  }
+}
+document.getElementById('modal-recuperar').addEventListener('click',e=>{if(e.target.id==='modal-recuperar')cerrarRecuperarCodigo();});
+
+// ── WhatsApp admin panel ────────────────────────────────────────────
+async function cargarWaStatus(){
+  try{
+    const r=await fetch('/api/wa/status');
+    if(!r.ok)return;
+    const d=await r.json();
+    const el=document.getElementById('wa-status-badge');
+    if(!el)return;
+    el.textContent=d.ready?'🟢 Conectado':'🔴 '+d.status;
+    el.style.color=d.ready?'#15803d':'#dc2626';
+    document.getElementById('wa-qr-wrap').style.display=d.hasQr&&!d.ready?'block':'none';
+    if(d.hasQr&&!d.ready)cargarWaQr();
+  }catch{}
+}
+async function cargarWaQr(){
+  try{
+    const r=await fetch('/api/wa/qr');
+    const d=await r.json();
+    if(d.ok&&d.qr){
+      const img=document.getElementById('wa-qr-img');
+      if(img)img.src=d.qr;
+    }
+  }catch{}
+}
+async function reiniciarWa(){
+  const btn=document.getElementById('wa-reinit-btn');
+  btn.disabled=true;btn.textContent='Reiniciando…';
+  try{
+    await fetch('/api/wa/reinit',{method:'POST'});
+    setTimeout(()=>{cargarWaStatus();btn.disabled=false;btn.textContent='Reiniciar';},4000);
+  }catch{btn.disabled=false;btn.textContent='Reiniciar';}
+}
+async function cargarSolicitudesRecuperacion(){
+  const tbody=document.getElementById('rc-solicitudes-body');
+  if(!tbody)return;
+  try{
+    const r=await fetch('/api/recuperar-codigo');
+    if(!r.ok)return;
+    const lista=await r.json();
+    if(!lista.length){tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:14px;">Sin solicitudes aún.</td></tr>';return;}
+    const fmtFecha=s=>{if(!s)return '—';const d=new Date(s);return d.toLocaleDateString('es-CO',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+d.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'});};
+    tbody.innerHTML=[...lista].reverse().map(s=>`<tr>
+      <td style="padding:7px 10px;font-size:12px;">${s.cedula||'—'}</td>
+      <td style="padding:7px 10px;font-size:12px;">${s.nombre||'—'}</td>
+      <td style="padding:7px 10px;font-size:12px;">${s.fechaExpedicion||'—'}</td>
+      <td style="padding:7px 10px;font-size:12px;">${s.whatsapp||'—'}</td>
+      <td style="padding:7px 10px;font-size:13px;font-weight:700;color:#1e3a8a;">${s.contrato||'<span style="color:#dc2626;">No encontrado</span>'}</td>
+      <td style="padding:7px 10px;font-size:11px;color:#64748b;">${fmtFecha(s.ultimaSolicitud)} (${s.totalSolicitudes||1} vez)</td>
+    </tr>`).join('');
+  }catch{}
+}
 </script>
+
+<!-- Modal recuperar código — multi-paso -->
+<div id="modal-recuperar" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:2000;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#fff;border-radius:16px;width:100%;max-width:400px;padding:28px;box-shadow:0 20px 60px rgba(0,0,0,.25);font-family:'Nunito',sans-serif;">
+    <div style="font-size:18px;font-weight:800;color:#0f172a;margin-bottom:4px;">🔑 Recuperar mi código</div>
+    <div id="rc-msg" style="font-size:13px;font-weight:600;margin:8px 0 2px;min-height:16px;"></div>
+
+    <!-- Paso 1: solo cédula -->
+    <div id="rc-paso1">
+      <div style="font-size:13px;color:#64748b;margin-bottom:18px;">Ingresa tu número de cédula para continuar.</div>
+      <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:5px;">Número de cédula</label>
+      <input id="rc-cedula" type="text" inputmode="numeric" style="width:100%;padding:10px 13px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:14px;font-family:'Nunito',sans-serif;outline:none;margin-bottom:18px;" placeholder="Ej. 1234567890" onkeydown="if(event.key==='Enter')rcVerificarCedula()">
+      <div style="display:flex;gap:8px;">
+        <button onclick="cerrarRecuperarCodigo()" style="flex:1;padding:11px;border-radius:9px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:14px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;">Cancelar</button>
+        <button id="rc-btn-verificar" onclick="rcVerificarCedula()" style="flex:2;padding:11px;border-radius:9px;border:none;background:#2563eb;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;">Verificar</button>
+      </div>
+    </div>
+
+    <!-- Paso 2: primera vez — campos extra -->
+    <div id="rc-paso2" style="display:none;">
+      <div style="font-size:13px;color:#64748b;margin-bottom:16px;">Es tu primera solicitud. Necesitamos verificar tu identidad.</div>
+      <div style="margin-bottom:12px;">
+        <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:5px;">Nombre completo</label>
+        <input id="rc-nombre" type="text" autocomplete="name" style="width:100%;padding:10px 13px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:14px;font-family:'Nunito',sans-serif;outline:none;" placeholder="Como aparece en la cédula">
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:5px;">Fecha de expedición de cédula</label>
+        <input id="rc-fecha-exp" type="date" style="width:100%;padding:10px 13px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:14px;font-family:'Nunito',sans-serif;outline:none;">
+      </div>
+      <div style="margin-bottom:18px;">
+        <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:5px;">Número de WhatsApp</label>
+        <input id="rc-whatsapp" type="tel" inputmode="numeric" style="width:100%;padding:10px 13px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:14px;font-family:'Nunito',sans-serif;outline:none;" placeholder="Ej. 3001234567">
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="rcMostrarPaso1()" style="flex:1;padding:11px;border-radius:9px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:14px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;">← Volver</button>
+        <button id="rc-btn-nuevo" onclick="rcEnviarNuevo()" style="flex:2;padding:11px;border-radius:9px;border:none;background:#2563eb;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;">Enviar solicitud</button>
+      </div>
+    </div>
+
+    <!-- Final: mensaje confirmación -->
+    <div id="rc-final" style="display:none;text-align:center;padding:8px 0;">
+      <div style="font-size:36px;margin-bottom:10px;">📲</div>
+      <div style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:8px;">¡Solicitud recibida!</div>
+      <div style="font-size:14px;color:#475569;margin-bottom:20px;line-height:1.5;">En máximo <strong>24 horas</strong> recibirás tu número de contrato por WhatsApp.</div>
+      <button onclick="cerrarRecuperarCodigo()" style="padding:11px 28px;border-radius:9px;border:none;background:#2563eb;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;">Cerrar</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
