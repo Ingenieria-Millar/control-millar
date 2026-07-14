@@ -38,6 +38,7 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
 
 /* LAYOUT */
 .wrap{max-width:920px;margin:0 auto;padding:clamp(16px,3vw,32px) clamp(12px,2.5vw,24px);}
+.wrap.admin-mode{max-width:100%;}
 .card{background:#fff;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,.06);padding:clamp(20px,3vw,30px);margin-bottom:20px;}
 .card-title{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:8px;}
 .card-sub{font-size:13px;color:var(--muted);margin-bottom:18px;}
@@ -208,6 +209,10 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
           <span style="font-size:18px;">📊</span>
           <span>Incentivos</span>
         </button>
+        <button id="tab-btn-meses" onclick="switchTab('meses')" class="tab-nav-btn">
+          <span style="font-size:18px;">📅</span>
+          <span>Meses</span>
+        </button>
         <button id="tab-btn-solicitudes" onclick="switchTab('solicitudes')" class="tab-nav-btn">
           <span style="font-size:18px;">🔑</span>
           <span>Solicitudes</span>
@@ -217,12 +222,15 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
       <!-- Contenido -->
       <div style="flex:1;padding:20px;overflow:auto;">
 
+        <!-- Panel Meses -->
+        <div id="panel-meses" style="display:none;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:14px;">📅 Disponibilidad de Incentivos por Mes</div>
+          <div style="font-size:12px;color:#64748b;margin-bottom:16px;">Toca un mes para cambiar su estado. Se aplica para <strong>todos</strong> los empleados.</div>
+          <div id="dispGrid" style="display:flex;flex-wrap:wrap;gap:10px;"></div>
+        </div>
+
         <!-- Panel Incentivos -->
         <div id="panel-incentivos">
-          <div style="background:#f8fafc;border:1.5px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:18px;">
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:4px;">📅 Disponibilidad de Incentivos por Mes</div>
-            <div id="dispGrid" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
-          </div>
           <div class="admin-toolbar">
             <label class="btn-app primary" for="fileXls">📤 Importar<input type="file" id="fileXls" accept=".xlsx,.xls" hidden></label>
             <button class="btn-app" id="btnExport">📥 Exportar</button>
@@ -427,16 +435,17 @@ function abrirPassModal(){
 function cerrarPassModal(){ document.getElementById('passModal').classList.remove('show'); }
 let _waInterval = null;
 function switchTab(tab){
-  document.getElementById('panel-incentivos').style.display  = tab==='incentivos'  ? 'block' : 'none';
-  document.getElementById('panel-solicitudes').style.display = tab==='solicitudes' ? 'block' : 'none';
-  document.getElementById('tab-btn-incentivos').classList.toggle('tab-nav-active',  tab==='incentivos');
-  document.getElementById('tab-btn-solicitudes').classList.toggle('tab-nav-active', tab==='solicitudes');
+  ['incentivos','solicitudes','meses'].forEach(t=>{
+    document.getElementById('panel-'+t).style.display = tab===t ? 'block' : 'none';
+    document.getElementById('tab-btn-'+t).classList.toggle('tab-nav-active', tab===t);
+  });
   if(tab==='solicitudes') cargarSolicitudesRecuperacion();
 }
 function mostrarAdmin(){
   document.getElementById('consultaCard').style.display = 'none';
   document.getElementById('adminCard').style.display = 'block';
   document.getElementById('btnGear').classList.add('on');
+  document.querySelector('.wrap').classList.add('admin-mode');
   window.scrollTo({ top:0, behavior:'smooth' });
   switchTab('incentivos');
 }
@@ -444,6 +453,7 @@ function mostrarConsulta(){
   document.getElementById('adminCard').style.display = 'none';
   document.getElementById('consultaCard').style.display = 'block';
   document.getElementById('btnGear').classList.remove('on');
+  document.querySelector('.wrap').classList.remove('admin-mode');
   window.scrollTo({ top:0, behavior:'smooth' });
 }
 function validarPass(){
