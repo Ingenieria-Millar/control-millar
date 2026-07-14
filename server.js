@@ -1263,6 +1263,22 @@ app.get('/api/recuperar-codigo', (req, res) => {
   catch(e) { console.error('[RC] GET error:', e.message); res.status(500).json({ ok: false, error: e.message }); }
 });
 
+// Diagnóstico temporal — muestra estado del almacenamiento en Render
+app.get('/api/debug-rc', (req, res) => {
+  try {
+    const filePath = FILES.recuperar_codigo;
+    const existe   = fs.existsSync(filePath);
+    let contenido  = null;
+    if (existe) {
+      try { contenido = JSON.parse(fs.readFileSync(filePath, 'utf8')); } catch(e) { contenido = 'ERROR AL LEER: ' + e.message; }
+    }
+    // test de escritura
+    let writeOk = false, writeErr = null;
+    try { fs.writeFileSync(filePath + '.test', 'ok', 'utf8'); fs.unlinkSync(filePath + '.test'); writeOk = true; } catch(e) { writeErr = e.message; }
+    res.json({ DATA_DIR, SQLITE_ON, filePath, existe, registros: Array.isArray(contenido) ? contenido.length : contenido, writeOk, writeErr });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 app.delete('/api/recuperar-codigo/:id', (req, res) => {
   try {
     const lista = readJSON(FILES.recuperar_codigo, []);
