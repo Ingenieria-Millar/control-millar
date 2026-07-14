@@ -198,7 +198,6 @@ const FILES = {
   tareas:         path.join(DATA_DIR, 'tareas.json'),
   visitantes:     path.join(DATA_DIR, 'visitantes.json'),
   turnos_asignados: path.join(DATA_DIR, 'turnos_asignados.json'),
-  recuperar_codigo: path.join(DATA_DIR, 'recuperar_codigo.json'),
 };
 
 // ══════════════════════════════════════════════════════════════════
@@ -766,7 +765,7 @@ app.use((req, res, next) => {
 // ── Guardia de la "puerta de atrás" ───────────────────────────────
 // Solo actúa cuando AUTH_ENFORCE=true. Protege /api/* y /alistamiento/api/*.
 // Deja públicas: páginas HTML, imágenes, login, /api/me y /health.
-const AUTH_PUBLIC = new Set(['/api/login', '/api/me', '/health', '/api/recuperar-codigo', '/api/recuperar-codigo/check']);
+const AUTH_PUBLIC = new Set(['/api/login', '/api/me', '/health']);
 app.use((req, res, next) => {
   if (!AUTH_ENFORCE) return next();                          // interruptor apagado
   const esApi = req.path.startsWith('/api') || req.path.startsWith('/alistamiento/api');
@@ -1188,106 +1187,6 @@ app.post('/api/incentivos-disponibilidad', (req, res) => {
   } catch(e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
-// Verifica si la cédula ya tiene WhatsApp registrado
-app.post('/api/recuperar-codigo/check', (req, res) => {
-  try {
-    const { cedula } = req.body || {};
-    if (!cedula) return res.status(400).json({ ok: false });
-    const norm = s => String(s || '').trim().replace(/\s+/g, '');
-    const lista = readJSON(FILES.recuperar_codigo, []);
-    const existe = lista.find(s => norm(s.cedula) === norm(cedula));
-    res.json({ ok: true, registrado: !!existe });
-  } catch(e) { res.status(500).json({ ok: false }); }
-});
-
-app.post('/api/recuperar-codigo', (req, res) => {
-  try {
-    const { cedula, nombre, fechaExpedicion, whatsapp } = req.body || {};
-    console.log('[RC] POST recibido, cédula:', cedula ? cedula.slice(0,4)+'***' : 'vacía');
-    if (!cedula) return res.status(400).json({ ok: false, error: 'Cédula requerida' });
-
-    const normN = s => String(s || '').trim().replace(/\s+/g, '');
-
-    const lista = readJSON(FILES.recuperar_codigo, []);
-    const existente = lista.find(s => normN(s.cedula) === normN(cedula));
-
-    if (!existente && (!nombre || !fechaExpedicion || !whatsapp)) {
-      return res.status(400).json({ ok: false, error: 'Campos incompletos para primer registro' });
-    }
-
-    const ahora = new Date().toISOString();
-    if (existente) {
-      existente.totalSolicitudes = (existente.totalSolicitudes || 1) + 1;
-      existente.ultimaSolicitud  = ahora;
-    } else {
-      lista.push({
-        id:              uuidv4(),
-        cedula:          String(cedula).trim(),
-        nombre:          String(nombre).trim(),
-        fechaExpedicion: String(fechaExpedicion).trim(),
-        whatsapp:        String(whatsapp).trim(),
-        contrato:        null,
-        totalSolicitudes: 1,
-        ultimaSolicitud:  ahora,
-        registradoEn:     ahora
-      });
-    }
-    // Escritura síncrona — garantiza que el dato está en disco antes de responder
-    if (SQLITE_ON) {
-      sqliteSet('recuperar_codigo', lista);
-    } else {
-      fs.writeFileSync(FILES.recuperar_codigo, JSON.stringify(lista), 'utf8');
-    }
-    console.log('[RC] Guardado OK, total:', lista.length);
-    res.json({ ok: true });
-  } catch(e) { console.error('[RC] Error:', e.message); res.status(500).json({ ok: false, error: e.message }); }
-});
-
-app.get('/api/recuperar-codigo', (req, res) => {
-  try {
-    const lista = readJSON(FILES.recuperar_codigo, []);
-    // Enriquecer con contrato si falta (usa caché de incentivos)
-    if (lista.length) {
-      const normN = s => String(s || '').trim().replace(/\s+/g, '');
-      const incentivos = loadDB('incentivos') || [];
-      lista.forEach(s => {
-        if (!s.contrato) {
-          const m = incentivos.find(r => normN(r.cedula) === normN(s.cedula));
-          if (m) s.contrato = m.contrato;
-        }
-      });
-    }
-    console.log('[RC] GET devuelve', lista.length, 'registros');
-    res.json(lista);
-  }
-  catch(e) { console.error('[RC] GET error:', e.message); res.status(500).json({ ok: false, error: e.message }); }
-});
-
-// Diagnóstico temporal — muestra estado del almacenamiento en Render
-app.get('/api/debug-rc', (req, res) => {
-  try {
-    const filePath = FILES.recuperar_codigo;
-    const existe   = fs.existsSync(filePath);
-    let contenido  = null;
-    if (existe) {
-      try { contenido = JSON.parse(fs.readFileSync(filePath, 'utf8')); } catch(e) { contenido = 'ERROR AL LEER: ' + e.message; }
-    }
-    // test de escritura
-    let writeOk = false, writeErr = null;
-    try { fs.writeFileSync(filePath + '.test', 'ok', 'utf8'); fs.unlinkSync(filePath + '.test'); writeOk = true; } catch(e) { writeErr = e.message; }
-    res.json({ DATA_DIR, SQLITE_ON, filePath, existe, registros: Array.isArray(contenido) ? contenido.length : contenido, writeOk, writeErr });
-  } catch(e) { res.status(500).json({ error: e.message }); }
-});
-
-app.delete('/api/recuperar-codigo/:id', (req, res) => {
-  try {
-    const lista = readJSON(FILES.recuperar_codigo, []);
-    const nueva = lista.filter(s => s.id !== req.params.id);
-    if(nueva.length === lista.length) return res.status(404).json({ ok: false, error: 'No encontrado' });
-    writeJSON(FILES.recuperar_codigo, nueva);
-    res.json({ ok: true });
-  } catch(e) { res.status(500).json({ ok: false, error: e.message }); }
-});
 
 // ── WhatsApp admin endpoints ────────────────────────────────────────
 app.get('/api/wa/status', requireAuth, (_req, res) => {

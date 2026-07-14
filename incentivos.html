@@ -167,9 +167,6 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
     <input class="input" id="inpContrato" type="text" inputmode="numeric" placeholder="" autocomplete="off">
 
     <button class="btn-primary" id="btnBuscar">Consultar</button>
-    <div style="text-align:center;margin-top:10px;">
-      <a href="#" onclick="abrirRecuperarCodigo();return false;" style="font-size:13px;color:#2563eb;text-decoration:none;font-weight:600;">¿No recuerdas tu código? Recupéralo aquí</a>
-    </div>
     <div class="error" id="errConsulta"></div>
 
     <div id="mesWrap">
@@ -212,10 +209,6 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
         <button id="tab-btn-meses" onclick="switchTab('meses')" class="tab-nav-btn">
           <span style="font-size:18px;">📅</span>
           <span>Meses</span>
-        </button>
-        <button id="tab-btn-solicitudes" onclick="switchTab('solicitudes')" class="tab-nav-btn">
-          <span style="font-size:18px;">🔑</span>
-          <span>Solicitudes</span>
         </button>
       </div>
 
@@ -263,36 +256,6 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
           </div>
         </div>
 
-        <!-- Panel Solicitudes -->
-        <div id="panel-solicitudes" style="display:none;">
-          <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:12px;padding:12px 18px;margin-bottom:18px;">
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">📱 Envío de código por WhatsApp</div>
-          </div>
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">🔑 Solicitudes de Recuperación</div>
-            <div style="display:flex;gap:8px;">
-              <button onclick="exportarSolicitudes()" style="padding:5px 12px;border-radius:7px;border:1.5px solid #86efac;background:#fff;color:#15803d;font-size:12px;font-weight:700;cursor:pointer;">⬇ Excel</button>
-              <button onclick="cargarSolicitudesRecuperacion()" style="padding:5px 12px;border-radius:7px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:12px;font-weight:700;cursor:pointer;">↻ Actualizar</button>
-            </div>
-          </div>
-          <div style="overflow-x:auto;">
-            <table style="width:100%;border-collapse:collapse;font-size:12px;">
-              <thead><tr style="background:#f8fafc;">
-                <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">Cédula</th>
-                <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">Nombre</th>
-                <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">F. Expedición</th>
-                <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">WhatsApp</th>
-                <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">Contrato</th>
-                <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">Última solicitud</th>
-                <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">Enviar</th>
-                <th style="padding:8px 10px;border-bottom:2px solid #e2e8f0;"></th>
-              </tr></thead>
-              <tbody id="rc-solicitudes-body">
-                <tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:14px;">Sin solicitudes aún.</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
 
       </div>
     </div>
@@ -435,11 +398,10 @@ function abrirPassModal(){
 function cerrarPassModal(){ document.getElementById('passModal').classList.remove('show'); }
 let _waInterval = null;
 function switchTab(tab){
-  ['incentivos','solicitudes','meses'].forEach(t=>{
+  ['incentivos','meses'].forEach(t=>{
     document.getElementById('panel-'+t).style.display = tab===t ? 'block' : 'none';
     document.getElementById('tab-btn-'+t).classList.toggle('tab-nav-active', tab===t);
   });
-  if(tab==='solicitudes') cargarSolicitudesRecuperacion();
 }
 function mostrarAdmin(){
   document.getElementById('consultaCard').style.display = 'none';
@@ -757,89 +719,6 @@ document.getElementById('clearCancel').addEventListener('click', cerrarClearModa
 document.getElementById('clearOk').addEventListener('click', confirmarClear);
 document.getElementById('clearModal').addEventListener('click', e=>{ if(e.target.id==='clearModal') cerrarClearModal(); });
 
-// ── Modal recuperar código — lógica multi-paso ──────────────────────
-function abrirRecuperarCodigo(){
-  const m=document.getElementById('modal-recuperar');
-  m.style.display='flex';
-  rcMostrarPaso1();
-}
-function cerrarRecuperarCodigo(){
-  document.getElementById('modal-recuperar').style.display='none';
-}
-function rcMostrarPaso1(){
-  document.getElementById('rc-cedula').value='';
-  document.getElementById('rc-msg').textContent='';
-  document.getElementById('rc-paso1').style.display='block';
-  document.getElementById('rc-paso2').style.display='none';
-  document.getElementById('rc-final').style.display='none';
-  document.getElementById('rc-cedula').focus();
-}
-async function rcVerificarCedula(){
-  const cedula=document.getElementById('rc-cedula').value.trim();
-  const msg=document.getElementById('rc-msg');
-  if(!cedula){msg.style.color='#dc2626';msg.textContent='Ingresa tu número de cédula.';return;}
-  const btn=document.getElementById('rc-btn-verificar');
-  btn.disabled=true;btn.textContent='Verificando…';msg.textContent='';
-  try{
-    const r=await fetch('/api/recuperar-codigo/check',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cedula})});
-    const d=await r.json();
-    if(d.registrado){
-      // Ya tiene WhatsApp registrado — enviar directo
-      await rcEnviarSolicitud(cedula,null,null,null);
-    } else {
-      // Primera vez — mostrar campos extra
-      document.getElementById('rc-paso1').style.display='none';
-      document.getElementById('rc-paso2').style.display='block';
-      document.getElementById('rc-nombre').value='';
-      document.getElementById('rc-fecha-exp').value='';
-      document.getElementById('rc-whatsapp').value='';
-      document.getElementById('rc-msg').textContent='';
-      document.getElementById('rc-nombre').focus();
-    }
-  }catch{msg.style.color='#dc2626';msg.textContent='Sin conexión. Intenta de nuevo.';}
-  finally{btn.disabled=false;btn.textContent='Verificar';}
-}
-async function rcEnviarNuevo(){
-  const cedula=document.getElementById('rc-cedula').value.trim();
-  const nombre=document.getElementById('rc-nombre').value.trim();
-  const fechaExp=document.getElementById('rc-fecha-exp').value.trim();
-  const whatsapp=document.getElementById('rc-whatsapp').value.trim();
-  const msg=document.getElementById('rc-msg');
-  if(!nombre||!fechaExp||!whatsapp){msg.style.color='#dc2626';msg.textContent='Completa todos los campos.';return;}
-  await rcEnviarSolicitud(cedula,nombre,fechaExp,whatsapp);
-}
-async function rcEnviarSolicitud(cedula,nombre,fechaExpedicion,whatsapp){
-  const msg=document.getElementById('rc-msg');
-  const btnN=document.getElementById('rc-btn-nuevo');
-  if(btnN){btnN.disabled=true;btnN.textContent='Enviando…';}
-  const ctrl=new AbortController();
-  const tOut=setTimeout(()=>ctrl.abort(),12000);
-  try{
-    const body={cedula};
-    if(nombre)body.nombre=nombre;
-    if(fechaExpedicion)body.fechaExpedicion=fechaExpedicion;
-    if(whatsapp)body.whatsapp=whatsapp;
-    const r=await fetch('/api/recuperar-codigo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:ctrl.signal});
-    clearTimeout(tOut);
-    const d=await r.json();
-    if(r.ok){
-      document.getElementById('rc-paso1').style.display='none';
-      document.getElementById('rc-paso2').style.display='none';
-      document.getElementById('rc-final').style.display='block';
-    } else {
-      msg.style.color='#dc2626';
-      msg.textContent=d.error||'Error al procesar la solicitud.';
-      if(btnN){btnN.disabled=false;btnN.textContent='Enviar solicitud';}
-    }
-  }catch(e){
-    clearTimeout(tOut);
-    const esTimeout=e.name==='AbortError';
-    msg.style.color='#dc2626';
-    msg.textContent=esTimeout?'El servidor tardó demasiado. Intenta de nuevo.':'Sin conexión. Intenta de nuevo.';
-    if(btnN){btnN.disabled=false;btnN.textContent='Enviar solicitud';}
-  }
-}
-document.getElementById('modal-recuperar').addEventListener('click',e=>{if(e.target.id==='modal-recuperar')cerrarRecuperarCodigo();});
 
 // ── WhatsApp admin panel ────────────────────────────────────────────
 async function cargarWaStatus(){
@@ -873,115 +752,7 @@ async function reiniciarWa(){
     setTimeout(()=>{cargarWaStatus();btn.disabled=false;btn.textContent='Reiniciar';},4000);
   }catch{btn.disabled=false;btn.textContent='Reiniciar';}
 }
-let _rcLista=[];
-
-async function eliminarSolicitud(id){
-  if(!id||!confirm('¿Eliminar esta solicitud?'))return;
-  try{
-    const r=await fetch('/api/recuperar-codigo/'+encodeURIComponent(id),{method:'DELETE'});
-    if(!r.ok)throw new Error('Error');
-    cargarSolicitudesRecuperacion();
-  }catch{alert('No se pudo eliminar.');}
-}
-
-function exportarSolicitudes(){
-  if(typeof XLSX==='undefined'){alert('Librería Excel no disponible');return;}
-  if(!_rcLista.length){alert('Sin solicitudes para exportar.');return;}
-  const rows=_rcLista.map(s=>({
-    'CÉDULA':s.cedula||'',
-    'NOMBRE':s.nombre||'',
-    'F. EXPEDICIÓN':s.fechaExpedicion||'',
-    'WHATSAPP':s.whatsapp||'',
-    'CONTRATO':s.contrato||'',
-    'ÚLTIMA SOLICITUD':s.ultimaSolicitud?new Date(s.ultimaSolicitud).toLocaleString('es-CO'):'',
-    'TOTAL SOLICITUDES':s.totalSolicitudes||1
-  }));
-  const ws=XLSX.utils.json_to_sheet(rows,{header:['CÉDULA','NOMBRE','F. EXPEDICIÓN','WHATSAPP','CONTRATO','ÚLTIMA SOLICITUD','TOTAL SOLICITUDES']});
-  ws['!cols']=[{wch:14},{wch:28},{wch:14},{wch:14},{wch:12},{wch:22},{wch:10}];
-  const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,ws,'Solicitudes');
-  XLSX.writeFile(wb,'solicitudes_recuperacion.xlsx');
-}
-
-async function cargarSolicitudesRecuperacion(){
-  const tbody=document.getElementById('rc-solicitudes-body');
-  if(!tbody)return;
-  try{
-    const r=await fetch('/api/recuperar-codigo');
-    if(!r.ok){tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:#dc2626;padding:14px;">Error al cargar solicitudes ('+r.status+'). Revisa los logs.</td></tr>';return;}
-    const lista=await r.json();
-    if(!lista.length){tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:14px;">Sin solicitudes aún.</td></tr>';return;}
-    const fmtFecha=s=>{if(!s)return '—';const d=new Date(s);return d.toLocaleDateString('es-CO',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+d.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'});};
-    _rcLista=[...lista];
-    tbody.innerHTML=[..._rcLista].reverse().map(s=>{
-      const digits=(s.whatsapp||'').replace(/\D/g,'');
-      const jid=digits.startsWith('57')?digits:'57'+digits;
-      const primerNombre=(s.nombre||'').split(' ')[0];
-      const msgWa=encodeURIComponent(`Hola ${primerNombre}! 👋\n\nTu número de contrato en Confecciones Millar es:\n\n*${s.contrato||'—'}*\n\nÚsalo para consultar tus incentivos.`);
-      const btnWa=s.whatsapp&&s.contrato
-        ?`<a href="https://wa.me/${jid}?text=${msgWa}" target="_blank" style="display:inline-block;padding:5px 10px;background:#25d366;color:#fff;border-radius:7px;font-size:11px;font-weight:700;text-decoration:none;">📲 Enviar</a>`
-        :'<span style="color:#94a3b8;font-size:11px;">—</span>';
-      return `<tr data-rcid="${s.id||''}">
-        <td style="padding:7px 10px;font-size:12px;">${s.cedula||'—'}</td>
-        <td style="padding:7px 10px;font-size:12px;">${s.nombre||'—'}</td>
-        <td style="padding:7px 10px;font-size:12px;">${s.fechaExpedicion||'—'}</td>
-        <td style="padding:7px 10px;font-size:12px;">${s.whatsapp||'—'}</td>
-        <td style="padding:7px 10px;font-size:13px;font-weight:700;color:#1e3a8a;">${s.contrato||'<span style="color:#dc2626;">No encontrado</span>'}</td>
-        <td style="padding:7px 10px;font-size:11px;color:#64748b;">${fmtFecha(s.ultimaSolicitud)} (${s.totalSolicitudes||1}x)</td>
-        <td style="padding:7px 10px;">${btnWa}</td>
-        <td style="padding:7px 10px;"><button onclick="eliminarSolicitud('${s.id||''}')" style="padding:4px 8px;border-radius:6px;border:1.5px solid #fecaca;background:#fff;color:#dc2626;font-size:11px;font-weight:700;cursor:pointer;" title="Eliminar">🗑</button></td>
-      </tr>`;
-    }).join('');
-  }catch{}
-}
 </script>
 
-<!-- Modal recuperar código — multi-paso -->
-<div id="modal-recuperar" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:2000;align-items:center;justify-content:center;padding:16px;">
-  <div style="background:#fff;border-radius:16px;width:100%;max-width:400px;padding:28px;box-shadow:0 20px 60px rgba(0,0,0,.25);font-family:'Nunito',sans-serif;">
-    <div style="font-size:18px;font-weight:800;color:#0f172a;margin-bottom:4px;">🔑 Recuperar mi código</div>
-    <div id="rc-msg" style="font-size:13px;font-weight:600;margin:8px 0 2px;min-height:16px;"></div>
-
-    <!-- Paso 1: solo cédula -->
-    <div id="rc-paso1">
-      <div style="font-size:13px;color:#64748b;margin-bottom:18px;">Ingresa tu número de cédula para continuar.</div>
-      <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:5px;">Número de cédula</label>
-      <input id="rc-cedula" type="text" inputmode="numeric" style="width:100%;padding:10px 13px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:14px;font-family:'Nunito',sans-serif;outline:none;margin-bottom:18px;" placeholder="Ej. 1234567890" onkeydown="if(event.key==='Enter')rcVerificarCedula()">
-      <div style="display:flex;gap:8px;">
-        <button onclick="cerrarRecuperarCodigo()" style="flex:1;padding:11px;border-radius:9px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:14px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;">Cancelar</button>
-        <button id="rc-btn-verificar" onclick="rcVerificarCedula()" style="flex:2;padding:11px;border-radius:9px;border:none;background:#2563eb;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;">Verificar</button>
-      </div>
-    </div>
-
-    <!-- Paso 2: primera vez — campos extra -->
-    <div id="rc-paso2" style="display:none;">
-      <div style="font-size:13px;color:#64748b;margin-bottom:16px;">Es tu primera solicitud. Necesitamos verificar tu identidad.</div>
-      <div style="margin-bottom:12px;">
-        <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:5px;">Nombre completo</label>
-        <input id="rc-nombre" type="text" autocomplete="name" style="width:100%;padding:10px 13px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:14px;font-family:'Nunito',sans-serif;outline:none;" placeholder="Como aparece en la cédula">
-      </div>
-      <div style="margin-bottom:12px;">
-        <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:5px;">Fecha de expedición de cédula</label>
-        <input id="rc-fecha-exp" type="date" style="width:100%;padding:10px 13px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:14px;font-family:'Nunito',sans-serif;outline:none;">
-      </div>
-      <div style="margin-bottom:18px;">
-        <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:5px;">Número de WhatsApp</label>
-        <input id="rc-whatsapp" type="tel" inputmode="numeric" style="width:100%;padding:10px 13px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:14px;font-family:'Nunito',sans-serif;outline:none;" placeholder="Ej. 3001234567">
-      </div>
-      <div style="display:flex;gap:8px;">
-        <button onclick="rcMostrarPaso1()" style="flex:1;padding:11px;border-radius:9px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:14px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;">← Volver</button>
-        <button id="rc-btn-nuevo" onclick="rcEnviarNuevo()" style="flex:2;padding:11px;border-radius:9px;border:none;background:#2563eb;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;">Enviar solicitud</button>
-      </div>
-    </div>
-
-    <!-- Final: mensaje confirmación -->
-    <div id="rc-final" style="display:none;text-align:center;padding:8px 0;">
-      <div style="font-size:36px;margin-bottom:10px;">✅</div>
-      <div style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:8px;">¡Solicitud recibida!</div>
-      <div style="font-size:14px;color:#475569;margin-bottom:20px;line-height:1.5;">Pronto recibirás tu número de contrato en el WhatsApp que registraste.</div>
-      <button onclick="cerrarRecuperarCodigo()" style="padding:11px 28px;border-radius:9px;border:none;background:#2563eb;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;">Cerrar</button>
-    </div>
-  </div>
-</div>
 </body>
 </html>
