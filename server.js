@@ -766,7 +766,7 @@ app.use((req, res, next) => {
 // ── Guardia de la "puerta de atrás" ───────────────────────────────
 // Solo actúa cuando AUTH_ENFORCE=true. Protege /api/* y /alistamiento/api/*.
 // Deja públicas: páginas HTML, imágenes, login, /api/me y /health.
-const AUTH_PUBLIC = new Set(['/api/login', '/api/me', '/health']);
+const AUTH_PUBLIC = new Set(['/api/login', '/api/me', '/health', '/api/buscar-contrato']);
 app.use((req, res, next) => {
   if (!AUTH_ENFORCE) return next();                          // interruptor apagado
   const esApi = req.path.startsWith('/api') || req.path.startsWith('/alistamiento/api');

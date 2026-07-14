@@ -215,7 +215,7 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
         </button>
         <button id="tab-btn-consultas" onclick="switchTab('consultas')" class="tab-nav-btn">
           <span style="font-size:18px;">🔎</span>
-          <span>Consultas</span>
+          <span>Registros</span>
         </button>
       </div>
 
@@ -232,7 +232,7 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
         <!-- Panel Consultas -->
         <div id="panel-consultas" style="display:none;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">🔎 Consultas de Número de Contrato</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">🔎 Registros de Número de Contrato</div>
             <button onclick="cargarConsultas()" style="padding:5px 12px;border-radius:7px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:12px;font-weight:700;cursor:pointer;">↻ Actualizar</button>
           </div>
           <div style="overflow-x:auto;">
@@ -247,7 +247,7 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
                 <th style="padding:8px 10px;border-bottom:2px solid #e2e8f0;"></th>
               </tr></thead>
               <tbody id="consultas-body">
-                <tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:14px;">Sin consultas aún.</td></tr>
+                <tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:14px;">Sin registros aún.</td></tr>
               </tbody>
             </table>
           </div>
@@ -808,6 +808,7 @@ async function bcBuscar(){
   btn.disabled=true;btn.textContent='Buscando…';msg.textContent='';
   try{
     const r=await fetch('/api/buscar-contrato',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cedula,fechaExpedicion,celular})});
+    if(!r.ok){msg.textContent='Error del servidor ('+r.status+'). Intenta de nuevo.';return;}
     const d=await r.json();
     if(d.encontrado){
       document.getElementById('bc-nombre').textContent=d.nombre||'';
@@ -815,7 +816,7 @@ async function bcBuscar(){
       document.getElementById('bc-form').style.display='none';
       document.getElementById('bc-resultado').style.display='block';
     } else {
-      msg.textContent='No se encontró ningún contrato para esa cédula.';
+      msg.textContent='Tu cédula no está en el sistema aún. Tu registro fue guardado — contacta con tu coordinador.';
     }
   }catch{
     msg.textContent='Sin conexión. Intenta de nuevo.';
@@ -835,7 +836,7 @@ async function cargarConsultas(){
     const r=await fetch('/api/buscar-contrato');
     if(!r.ok){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#dc2626;padding:14px;">Error ('+r.status+')</td></tr>';return;}
     const lista=await r.json();
-    if(!lista.length){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:14px;">Sin consultas aún.</td></tr>';return;}
+    if(!lista.length){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:14px;">Sin registros aún.</td></tr>';return;}
     const fmt=s=>{if(!s)return '—';const d=new Date(s);return d.toLocaleDateString('es-CO',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+d.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'});};
     tbody.innerHTML=[...lista].reverse().map(c=>`<tr>
       <td style="padding:7px 10px;font-size:12px;">${c.cedula||'—'}</td>
