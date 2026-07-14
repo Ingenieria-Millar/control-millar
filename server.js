@@ -1246,12 +1246,12 @@ app.post('/api/recuperar-codigo', async (req, res) => {
   } catch(e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
-app.get('/api/recuperar-codigo', requireAuth, (req, res) => {
+app.get('/api/recuperar-codigo', (req, res) => {
   try { res.json(readJSON(FILES.recuperar_codigo, [])); }
   catch(e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
-app.delete('/api/recuperar-codigo/:id', requireAuth, (req, res) => {
+app.delete('/api/recuperar-codigo/:id', (req, res) => {
   try {
     const lista = readJSON(FILES.recuperar_codigo, []);
     const nueva = lista.filter(s => s.id !== req.params.id);
