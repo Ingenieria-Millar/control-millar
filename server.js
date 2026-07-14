@@ -31,40 +31,71 @@ const compression = require('compression');
 const bcrypt   = require('bcryptjs');
 const crypto   = require('crypto');
 
-// ── WhatsApp (opcional — se activa con ENABLE_WHATSAPP=true en Render) ──
+// ── WhatsApp via Baileys (sin Chrome) ─────────────────────────────
 let waClient = null, waQrDataUrl = null, waReady = false, waStatus = 'desconectado';
-let _WA, _LocalAuth, _QRCode;
-try { ({ Client: _WA, LocalAuth: _LocalAuth } = require('whatsapp-web.js')); _QRCode = require('qrcode'); } catch { /* no instalado aún */ }
+let _Baileys, _QRCode;
+try {
+  _Baileys = require('@whiskeysockets/baileys');
+  _QRCode  = require('qrcode');
+} catch { /* módulos no instalados aún */ }
 
-function initWhatsApp() {
-  if (!_WA || !_LocalAuth) { waStatus = 'módulo no instalado'; return; }
-  const WA_DIR = path.join(fs.existsSync('/var/data') ? '/var/data' : path.join(__dirname, 'data'), 'wwa-session');
-  waClient = new _WA({
-    authStrategy: new _LocalAuth({ dataPath: WA_DIR }),
-    puppeteer: { headless: true, args: ['--no-sandbox','--disable-setuid-sandbox','--disable-dev-shm-usage','--disable-gpu','--single-process'] }
-  });
-  waClient.on('qr', async qr => {
-    try { waQrDataUrl = await _QRCode.toDataURL(qr); } catch { waQrDataUrl = null; }
-    waReady = false; waStatus = 'esperando QR';
-    console.log('[WA] QR generado');
-  });
-  waClient.on('ready', () => { waReady = true; waQrDataUrl = null; waStatus = 'conectado'; console.log('[WA] Listo'); });
-  waClient.on('auth_failure', () => { waReady = false; waStatus = 'error de autenticación'; });
-  waClient.on('disconnected', reason => {
-    waReady = false; waStatus = 'desconectado'; waQrDataUrl = null;
-    console.log('[WA] Desconectado:', reason);
-    setTimeout(initWhatsApp, 8000);
-  });
-  waStatus = 'iniciando';
-  waClient.initialize().catch(e => { waStatus = 'error: ' + e.message; console.error('[WA]', e.message); });
+async function initWhatsApp() {
+  if (!_Baileys) { waStatus = 'módulo no instalado'; return; }
+  try {
+    const WA_DIR = path.join(fs.existsSync('/var/data') ? '/var/data' : path.join(__dirname, 'data'), 'wwa-session');
+    if (!fs.existsSync(WA_DIR)) fs.mkdirSync(WA_DIR, { recursive: true });
+
+    const { state, saveCreds } = await _Baileys.useMultiFileAuthState(WA_DIR);
+    const pino = require('pino');
+
+    waClient = _Baileys.default({
+      auth: state,
+      printQRInTerminal: false,
+      logger: pino({ level: 'silent' }),
+      browser: ['Millar', 'Chrome', '1.0.0']
+    });
+
+    waClient.ev.on('creds.update', saveCreds);
+
+    waClient.ev.on('connection.update', async ({ connection, lastDisconnect, qr }) => {
+      if (qr) {
+        try { waQrDataUrl = await _QRCode.toDataURL(qr); } catch { waQrDataUrl = null; }
+        waReady = false; waStatus = 'esperando QR';
+        console.log('[WA] QR generado');
+      }
+      if (connection === 'open') {
+        waReady = true; waQrDataUrl = null; waStatus = 'conectado';
+        console.log('[WA] Conectado');
+      }
+      if (connection === 'close') {
+        waReady = false; waQrDataUrl = null;
+        const { Boom } = require('@hapi/boom');
+        const code = lastDisconnect?.error instanceof Boom ? lastDisconnect.error.output.statusCode : 0;
+        const { DisconnectReason } = _Baileys;
+        if (code === DisconnectReason.loggedOut) {
+          waStatus = 'sesión cerrada — escanea QR de nuevo';
+          console.log('[WA] Sesión cerrada');
+          setTimeout(initWhatsApp, 3000);
+        } else {
+          waStatus = 'reconectando…';
+          setTimeout(initWhatsApp, 5000);
+        }
+      }
+    });
+
+    waStatus = 'iniciando';
+  } catch(e) {
+    waStatus = 'error: ' + e.message;
+    console.error('[WA] Error init:', e.message);
+  }
 }
 if (process.env.ENABLE_WHATSAPP === 'true') initWhatsApp();
 
 async function enviarWhatsApp(telefono, mensaje) {
   if (!waReady || !waClient) throw new Error('WhatsApp no conectado');
   const digits = String(telefono).replace(/\D/g, '');
-  const chatId = (digits.startsWith('57') ? digits : '57' + digits) + '@c.us';
-  await waClient.sendMessage(chatId, mensaje);
+  const jid = (digits.startsWith('57') ? digits : '57' + digits) + '@s.whatsapp.net';
+  await waClient.sendMessage(jid, { text: mensaje });
 }
 
 // ── Variables de entorno obligatorias ────────────────────────────
