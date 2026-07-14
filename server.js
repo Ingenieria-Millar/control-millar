@@ -1242,13 +1242,6 @@ app.post('/api/recuperar-codigo', async (req, res) => {
     }
     writeJSON(FILES.recuperar_codigo, lista);
 
-    // Enviar WhatsApp si está conectado y hay contrato
-    if (match && waReady) {
-      const primerNombre = (existente ? existente.nombre : nombre).split(' ')[0];
-      const msg = `Hola ${primerNombre}! 👋\n\nTu número de contrato en Confecciones Millar es:\n\n*${match.contrato}*\n\nÚsalo para consultar tus incentivos en el sistema.`;
-      enviarWhatsApp(waNumero, msg).catch(e => console.error('[WA] Error enviando:', e.message));
-    }
-
     res.json({ ok: true, encontrado: !!match });
   } catch(e) { res.status(500).json({ ok: false, error: e.message }); }
 });

@@ -228,22 +228,10 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
       <button id="pgNext" title="Siguiente">›</button>
     </div>
 
-    <!-- WhatsApp -->
-    <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:12px;padding:16px 18px;margin-top:20px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
-        <div>
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">📱 WhatsApp</div>
-          <div style="font-size:12px;color:#64748b;margin-top:2px;">Estado del servicio de envío automático</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span id="wa-status-badge" style="font-size:13px;font-weight:700;color:#dc2626;">🔴 desconectado</span>
-          <button id="wa-reinit-btn" onclick="reiniciarWa()" style="padding:6px 14px;border-radius:8px;border:1.5px solid #86efac;background:#fff;color:#15803d;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Reiniciar</button>
-        </div>
-      </div>
-      <div id="wa-qr-wrap" style="display:none;text-align:center;padding:10px 0;">
-        <div style="font-size:12px;color:#64748b;margin-bottom:8px;">Escanea con WhatsApp → Dispositivos vinculados → Vincular dispositivo</div>
-        <img id="wa-qr-img" src="" alt="QR WhatsApp" style="width:200px;height:200px;border-radius:8px;border:2px solid #e2e8f0;">
-      </div>
+    <!-- WhatsApp manual -->
+    <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:12px;padding:12px 18px;margin-top:20px;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">📱 Envío de código por WhatsApp</div>
+      <div style="font-size:12px;color:#64748b;margin-top:4px;">Haz clic en <strong>📲 Enviar</strong> en cada fila para abrir WhatsApp con el mensaje listo. El código se envía manualmente.</div>
     </div>
 
     <!-- Solicitudes de recuperación de código -->
@@ -257,13 +245,13 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
           <thead><tr style="background:#f8fafc;">
             <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">Cédula</th>
             <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">Nombre</th>
-            <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">F. Expedición</th>
             <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">WhatsApp</th>
             <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">Contrato</th>
             <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">Última solicitud</th>
+            <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">Enviar</th>
           </tr></thead>
           <tbody id="rc-solicitudes-body">
-            <tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:14px;">Sin solicitudes aún.</td></tr>
+            <tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:14px;">Sin solicitudes aún.</td></tr>
           </tbody>
         </table>
       </div>
@@ -411,10 +399,7 @@ function mostrarAdmin(){
   document.getElementById('adminCard').style.display = 'block';
   document.getElementById('btnGear').classList.add('on');
   window.scrollTo({ top:0, behavior:'smooth' });
-  cargarWaStatus();
   cargarSolicitudesRecuperacion();
-  if(_waInterval) clearInterval(_waInterval);
-  _waInterval = setInterval(cargarWaStatus, 8000);
 }
 function mostrarConsulta(){
   document.getElementById('adminCard').style.display = 'none';
@@ -844,16 +829,25 @@ async function cargarSolicitudesRecuperacion(){
     const r=await fetch('/api/recuperar-codigo');
     if(!r.ok)return;
     const lista=await r.json();
-    if(!lista.length){tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:14px;">Sin solicitudes aún.</td></tr>';return;}
+    if(!lista.length){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:14px;">Sin solicitudes aún.</td></tr>';return;}
     const fmtFecha=s=>{if(!s)return '—';const d=new Date(s);return d.toLocaleDateString('es-CO',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+d.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'});};
-    tbody.innerHTML=[...lista].reverse().map(s=>`<tr>
-      <td style="padding:7px 10px;font-size:12px;">${s.cedula||'—'}</td>
-      <td style="padding:7px 10px;font-size:12px;">${s.nombre||'—'}</td>
-      <td style="padding:7px 10px;font-size:12px;">${s.fechaExpedicion||'—'}</td>
-      <td style="padding:7px 10px;font-size:12px;">${s.whatsapp||'—'}</td>
-      <td style="padding:7px 10px;font-size:13px;font-weight:700;color:#1e3a8a;">${s.contrato||'<span style="color:#dc2626;">No encontrado</span>'}</td>
-      <td style="padding:7px 10px;font-size:11px;color:#64748b;">${fmtFecha(s.ultimaSolicitud)} (${s.totalSolicitudes||1} vez)</td>
-    </tr>`).join('');
+    tbody.innerHTML=[...lista].reverse().map(s=>{
+      const digits=(s.whatsapp||'').replace(/\D/g,'');
+      const jid=digits.startsWith('57')?digits:'57'+digits;
+      const primerNombre=(s.nombre||'').split(' ')[0];
+      const msgWa=encodeURIComponent(`Hola ${primerNombre}! 👋\n\nTu número de contrato en Confecciones Millar es:\n\n*${s.contrato||'—'}*\n\nÚsalo para consultar tus incentivos.`);
+      const btnWa=s.whatsapp&&s.contrato
+        ?`<a href="https://wa.me/${jid}?text=${msgWa}" target="_blank" style="display:inline-block;padding:5px 10px;background:#25d366;color:#fff;border-radius:7px;font-size:11px;font-weight:700;text-decoration:none;">📲 Enviar</a>`
+        :'<span style="color:#94a3b8;font-size:11px;">—</span>';
+      return `<tr>
+        <td style="padding:7px 10px;font-size:12px;">${s.cedula||'—'}</td>
+        <td style="padding:7px 10px;font-size:12px;">${s.nombre||'—'}</td>
+        <td style="padding:7px 10px;font-size:12px;">${s.whatsapp||'—'}</td>
+        <td style="padding:7px 10px;font-size:13px;font-weight:700;color:#1e3a8a;">${s.contrato||'<span style="color:#dc2626;">No encontrado</span>'}</td>
+        <td style="padding:7px 10px;font-size:11px;color:#64748b;">${fmtFecha(s.ultimaSolicitud)} (${s.totalSolicitudes||1}x)</td>
+        <td style="padding:7px 10px;">${btnWa}</td>
+      </tr>`;
+    }).join('');
   }catch{}
 }
 </script>
@@ -898,9 +892,9 @@ async function cargarSolicitudesRecuperacion(){
 
     <!-- Final: mensaje confirmación -->
     <div id="rc-final" style="display:none;text-align:center;padding:8px 0;">
-      <div style="font-size:36px;margin-bottom:10px;">📲</div>
+      <div style="font-size:36px;margin-bottom:10px;">✅</div>
       <div style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:8px;">¡Solicitud recibida!</div>
-      <div style="font-size:14px;color:#475569;margin-bottom:20px;line-height:1.5;">En máximo <strong>24 horas</strong> recibirás tu número de contrato por WhatsApp.</div>
+      <div style="font-size:14px;color:#475569;margin-bottom:20px;line-height:1.5;">Un asesor te contactará pronto al número de WhatsApp que registraste.</div>
       <button onclick="cerrarRecuperarCodigo()" style="padding:11px 28px;border-radius:9px;border:none;background:#2563eb;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;">Cerrar</button>
     </div>
   </div>
