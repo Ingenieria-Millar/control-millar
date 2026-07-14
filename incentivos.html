@@ -812,12 +812,15 @@ async function rcEnviarSolicitud(cedula,nombre,fechaExpedicion,whatsapp){
   const msg=document.getElementById('rc-msg');
   const btnN=document.getElementById('rc-btn-nuevo');
   if(btnN){btnN.disabled=true;btnN.textContent='Enviando…';}
+  const ctrl=new AbortController();
+  const tOut=setTimeout(()=>ctrl.abort(),12000);
   try{
     const body={cedula};
     if(nombre)body.nombre=nombre;
     if(fechaExpedicion)body.fechaExpedicion=fechaExpedicion;
     if(whatsapp)body.whatsapp=whatsapp;
-    const r=await fetch('/api/recuperar-codigo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const r=await fetch('/api/recuperar-codigo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:ctrl.signal});
+    clearTimeout(tOut);
     const d=await r.json();
     if(r.ok){
       document.getElementById('rc-paso1').style.display='none';
@@ -828,8 +831,11 @@ async function rcEnviarSolicitud(cedula,nombre,fechaExpedicion,whatsapp){
       msg.textContent=d.error||'Error al procesar la solicitud.';
       if(btnN){btnN.disabled=false;btnN.textContent='Enviar solicitud';}
     }
-  }catch{
-    msg.style.color='#dc2626';msg.textContent='Sin conexión. Intenta de nuevo.';
+  }catch(e){
+    clearTimeout(tOut);
+    const esTimeout=e.name==='AbortError';
+    msg.style.color='#dc2626';
+    msg.textContent=esTimeout?'El servidor tardó demasiado. Intenta de nuevo.':'Sin conexión. Intenta de nuevo.';
     if(btnN){btnN.disabled=false;btnN.textContent='Enviar solicitud';}
   }
 }

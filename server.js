@@ -1203,6 +1203,7 @@ app.post('/api/recuperar-codigo/check', (req, res) => {
 app.post('/api/recuperar-codigo', async (req, res) => {
   try {
     const { cedula, nombre, fechaExpedicion, whatsapp } = req.body || {};
+    console.log('[RC] POST recibido, cédula:', cedula ? cedula.slice(0,4)+'***' : 'vacía');
     if (!cedula) return res.status(400).json({ ok: false, error: 'Cédula requerida' });
 
     const norm  = s => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
