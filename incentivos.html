@@ -213,6 +213,10 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
           <span style="font-size:18px;">📅</span>
           <span>Meses</span>
         </button>
+        <button id="tab-btn-consultas" onclick="switchTab('consultas')" class="tab-nav-btn">
+          <span style="font-size:18px;">🔎</span>
+          <span>Consultas</span>
+        </button>
       </div>
 
       <!-- Contenido -->
@@ -223,6 +227,30 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:14px;">📅 Disponibilidad de Incentivos por Mes</div>
           <div style="font-size:12px;color:#64748b;margin-bottom:16px;">Toca un mes para cambiar su estado. Se aplica para <strong>todos</strong> los empleados.</div>
           <div id="dispGrid" style="display:flex;flex-wrap:wrap;gap:10px;"></div>
+        </div>
+
+        <!-- Panel Consultas -->
+        <div id="panel-consultas" style="display:none;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">🔎 Consultas de Número de Contrato</div>
+            <button onclick="cargarConsultas()" style="padding:5px 12px;border-radius:7px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:12px;font-weight:700;cursor:pointer;">↻ Actualizar</button>
+          </div>
+          <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:12px;">
+              <thead><tr style="background:#f8fafc;">
+                <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">Cédula</th>
+                <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">Nombre</th>
+                <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">Contrato</th>
+                <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">F. Expedición</th>
+                <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">Celular</th>
+                <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">Fecha consulta</th>
+                <th style="padding:8px 10px;border-bottom:2px solid #e2e8f0;"></th>
+              </tr></thead>
+              <tbody id="consultas-body">
+                <tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:14px;">Sin consultas aún.</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <!-- Panel Incentivos -->
@@ -401,10 +429,11 @@ function abrirPassModal(){
 function cerrarPassModal(){ document.getElementById('passModal').classList.remove('show'); }
 let _waInterval = null;
 function switchTab(tab){
-  ['incentivos','meses'].forEach(t=>{
+  ['incentivos','meses','consultas'].forEach(t=>{
     document.getElementById('panel-'+t).style.display = tab===t ? 'block' : 'none';
     document.getElementById('tab-btn-'+t).classList.toggle('tab-nav-active', tab===t);
   });
+  if(tab==='consultas') cargarConsultas();
 }
 function mostrarAdmin(){
   document.getElementById('consultaCard').style.display = 'none';
@@ -759,8 +788,11 @@ async function reiniciarWa(){
 function abrirBuscarContrato(){
   document.getElementById('modal-buscar-contrato').style.display='flex';
   document.getElementById('bc-cedula').value='';
-  document.getElementById('bc-resultado').style.display='none';
+  document.getElementById('bc-fecha').value='';
+  document.getElementById('bc-celular').value='';
   document.getElementById('bc-msg').textContent='';
+  document.getElementById('bc-form').style.display='block';
+  document.getElementById('bc-resultado').style.display='none';
   setTimeout(()=>document.getElementById('bc-cedula').focus(),100);
 }
 function cerrarBuscarContrato(){
@@ -768,49 +800,96 @@ function cerrarBuscarContrato(){
 }
 async function bcBuscar(){
   const cedula=document.getElementById('bc-cedula').value.trim();
+  const fechaExpedicion=document.getElementById('bc-fecha').value.trim();
+  const celular=document.getElementById('bc-celular').value.trim();
   const msg=document.getElementById('bc-msg');
-  const res=document.getElementById('bc-resultado');
-  if(!cedula){msg.style.color='#dc2626';msg.textContent='Ingresa tu número de cédula.';return;}
+  if(!cedula||!fechaExpedicion||!celular){msg.textContent='Completa todos los campos.';return;}
   const btn=document.getElementById('bc-btn');
-  btn.disabled=true;btn.textContent='Buscando…';msg.textContent='';res.style.display='none';
+  btn.disabled=true;btn.textContent='Buscando…';msg.textContent='';
   try{
-    const r=await fetch('/api/buscar-contrato',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cedula})});
+    const r=await fetch('/api/buscar-contrato',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cedula,fechaExpedicion,celular})});
     const d=await r.json();
     if(d.encontrado){
       document.getElementById('bc-nombre').textContent=d.nombre||'';
       document.getElementById('bc-contrato').textContent=d.contrato||'—';
-      res.style.display='block';
-      msg.textContent='';
+      document.getElementById('bc-form').style.display='none';
+      document.getElementById('bc-resultado').style.display='block';
     } else {
-      msg.style.color='#dc2626';
       msg.textContent='No se encontró ningún contrato para esa cédula.';
     }
   }catch{
-    msg.style.color='#dc2626';
     msg.textContent='Sin conexión. Intenta de nuevo.';
   }finally{
     btn.disabled=false;btn.textContent='Buscar';
   }
 }
 document.getElementById('modal-buscar-contrato').addEventListener('click',e=>{if(e.target.id==='modal-buscar-contrato')cerrarBuscarContrato();});
-document.getElementById('bc-cedula').addEventListener('keydown',e=>{if(e.key==='Enter')bcBuscar();});
+document.getElementById('bc-celular').addEventListener('keydown',e=>{if(e.key==='Enter')bcBuscar();});
+
+// ── Admin: tabla de consultas ───────────────────────────────────────
+async function cargarConsultas(){
+  const tbody=document.getElementById('consultas-body');
+  if(!tbody)return;
+  tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:14px;">Cargando…</td></tr>';
+  try{
+    const r=await fetch('/api/buscar-contrato');
+    if(!r.ok){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#dc2626;padding:14px;">Error ('+r.status+')</td></tr>';return;}
+    const lista=await r.json();
+    if(!lista.length){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:14px;">Sin consultas aún.</td></tr>';return;}
+    const fmt=s=>{if(!s)return '—';const d=new Date(s);return d.toLocaleDateString('es-CO',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+d.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'});};
+    tbody.innerHTML=[...lista].reverse().map(c=>`<tr>
+      <td style="padding:7px 10px;font-size:12px;">${c.cedula||'—'}</td>
+      <td style="padding:7px 10px;font-size:12px;">${c.nombre||'—'}</td>
+      <td style="padding:7px 10px;font-size:13px;font-weight:700;color:#1e3a8a;">${c.contrato||'<span style="color:#dc2626;">No encontrado</span>'}</td>
+      <td style="padding:7px 10px;font-size:12px;">${c.fechaExpedicion||'—'}</td>
+      <td style="padding:7px 10px;font-size:12px;">${c.celular||'—'}</td>
+      <td style="padding:7px 10px;font-size:11px;color:#64748b;">${fmt(c.fecha)}</td>
+      <td style="padding:7px 10px;"><button onclick="eliminarConsulta('${c.id||''}')" style="padding:4px 8px;border-radius:6px;border:1.5px solid #fecaca;background:#fff;color:#dc2626;font-size:11px;font-weight:700;cursor:pointer;">🗑</button></td>
+    </tr>`).join('');
+  }catch{tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#dc2626;padding:14px;">Sin conexión.</td></tr>';}
+}
+async function eliminarConsulta(id){
+  if(!id||!confirm('¿Eliminar este registro?'))return;
+  try{
+    const r=await fetch('/api/buscar-contrato/'+encodeURIComponent(id),{method:'DELETE'});
+    if(!r.ok)throw new Error();
+    cargarConsultas();
+  }catch{alert('No se pudo eliminar.');}
+}
 </script>
 
 <!-- Modal buscar contrato por cédula -->
 <div id="modal-buscar-contrato" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:2000;align-items:center;justify-content:center;padding:16px;">
-  <div style="background:#fff;border-radius:16px;width:100%;max-width:380px;padding:28px;box-shadow:0 20px 60px rgba(0,0,0,.25);font-family:'Nunito',sans-serif;">
+  <div style="background:#fff;border-radius:16px;width:100%;max-width:400px;padding:28px;box-shadow:0 20px 60px rgba(0,0,0,.25);font-family:'Nunito',sans-serif;">
     <div style="font-size:18px;font-weight:800;color:#0f172a;margin-bottom:16px;">🔎 Buscar número de contrato</div>
-    <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:6px;">Número de cédula</label>
-    <input id="bc-cedula" type="text" inputmode="numeric" placeholder="Ej. 1234567890" style="width:100%;padding:10px 13px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:15px;font-family:'Nunito',sans-serif;outline:none;margin-bottom:12px;">
-    <div id="bc-msg" style="font-size:13px;font-weight:600;min-height:18px;margin-bottom:8px;"></div>
-    <div id="bc-resultado" style="display:none;background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:14px 16px;margin-bottom:14px;text-align:center;">
-      <div style="font-size:12px;color:#64748b;margin-bottom:4px;" id="bc-nombre"></div>
-      <div style="font-size:13px;color:#64748b;margin-bottom:2px;">Tu número de contrato es:</div>
-      <div id="bc-contrato" style="font-size:32px;font-weight:800;color:#1e3a8a;letter-spacing:2px;font-family:'Barlow Condensed',sans-serif;"></div>
+
+    <div id="bc-form">
+      <div style="margin-bottom:12px;">
+        <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:5px;">Número de cédula</label>
+        <input id="bc-cedula" type="text" inputmode="numeric" placeholder="Ej. 1234567890" style="width:100%;padding:10px 13px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:14px;font-family:'Nunito',sans-serif;outline:none;">
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:5px;">Fecha de expedición de cédula</label>
+        <input id="bc-fecha" type="date" style="width:100%;padding:10px 13px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:14px;font-family:'Nunito',sans-serif;outline:none;">
+      </div>
+      <div style="margin-bottom:14px;">
+        <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:5px;">Número de celular</label>
+        <input id="bc-celular" type="tel" inputmode="numeric" placeholder="Ej. 3001234567" style="width:100%;padding:10px 13px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:14px;font-family:'Nunito',sans-serif;outline:none;">
+      </div>
+      <div id="bc-msg" style="font-size:13px;font-weight:600;min-height:18px;margin-bottom:8px;color:#dc2626;"></div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="cerrarBuscarContrato()" style="flex:1;padding:11px;border-radius:9px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:14px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;">Cancelar</button>
+        <button id="bc-btn" onclick="bcBuscar()" style="flex:2;padding:11px;border-radius:9px;border:none;background:#2563eb;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;">Buscar</button>
+      </div>
     </div>
-    <div style="display:flex;gap:8px;">
-      <button onclick="cerrarBuscarContrato()" style="flex:1;padding:11px;border-radius:9px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:14px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;">Cerrar</button>
-      <button id="bc-btn" onclick="bcBuscar()" style="flex:2;padding:11px;border-radius:9px;border:none;background:#2563eb;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;">Buscar</button>
+
+    <div id="bc-resultado" style="display:none;">
+      <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:18px 16px;margin-bottom:16px;text-align:center;">
+        <div id="bc-nombre" style="font-size:13px;color:#64748b;margin-bottom:6px;"></div>
+        <div style="font-size:13px;color:#64748b;margin-bottom:4px;">Tu número de contrato es:</div>
+        <div id="bc-contrato" style="font-size:36px;font-weight:800;color:#1e3a8a;letter-spacing:2px;font-family:'Barlow Condensed',sans-serif;"></div>
+      </div>
+      <button onclick="cerrarBuscarContrato()" style="width:100%;padding:11px;border-radius:9px;border:none;background:#2563eb;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;">Cerrar</button>
     </div>
   </div>
 </div>

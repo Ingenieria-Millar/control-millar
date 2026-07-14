@@ -198,6 +198,7 @@ const FILES = {
   tareas:         path.join(DATA_DIR, 'tareas.json'),
   visitantes:     path.join(DATA_DIR, 'visitantes.json'),
   turnos_asignados: path.join(DATA_DIR, 'turnos_asignados.json'),
+  consultas_contrato: path.join(DATA_DIR, 'consultas_contrato.json'),
 };
 
 // ══════════════════════════════════════════════════════════════════
@@ -1188,16 +1189,44 @@ app.post('/api/incentivos-disponibilidad', (req, res) => {
 });
 
 
-// Busca número de contrato por cédula
+// Busca número de contrato por cédula y guarda el registro
 app.post('/api/buscar-contrato', (req, res) => {
   try {
-    const { cedula } = req.body || {};
+    const { cedula, fechaExpedicion, celular } = req.body || {};
     if (!cedula) return res.status(400).json({ ok: false, error: 'Cédula requerida' });
     const norm = s => String(s || '').trim().replace(/\s+/g, '');
     const incentivos = loadDB('incentivos') || [];
     const match = incentivos.find(r => norm(r.cedula) === norm(cedula));
+    const lista = readJSON(FILES.consultas_contrato, []);
+    const ahora = new Date().toISOString();
+    lista.push({
+      id:              uuidv4(),
+      cedula:          String(cedula).trim(),
+      nombre:          match ? (match.nombre || '') : '',
+      contrato:        match ? (match.contrato || '') : '',
+      fechaExpedicion: String(fechaExpedicion || '').trim(),
+      celular:         String(celular || '').trim(),
+      encontrado:      !!match,
+      fecha:           ahora,
+    });
+    fs.writeFileSync(FILES.consultas_contrato, JSON.stringify(lista), 'utf8');
     if (!match) return res.json({ ok: true, encontrado: false });
     res.json({ ok: true, encontrado: true, contrato: match.contrato, nombre: match.nombre });
+  } catch(e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+app.get('/api/buscar-contrato', (req, res) => {
+  try { res.json(readJSON(FILES.consultas_contrato, [])); }
+  catch(e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+app.delete('/api/buscar-contrato/:id', (req, res) => {
+  try {
+    const lista = readJSON(FILES.consultas_contrato, []);
+    const nueva = lista.filter(s => s.id !== req.params.id);
+    if (nueva.length === lista.length) return res.status(404).json({ ok: false });
+    fs.writeFileSync(FILES.consultas_contrato, JSON.stringify(nueva), 'utf8');
+    res.json({ ok: true });
   } catch(e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
