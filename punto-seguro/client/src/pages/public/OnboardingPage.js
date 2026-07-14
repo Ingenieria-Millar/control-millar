@@ -203,7 +203,8 @@ export class OnboardingPage {
     document.getElementById('sig-canvas')?.addEventListener('mouseup', () => this.signaturePad?.updateConfirmButtonsState());
     document.getElementById('sig-canvas')?.addEventListener('touchend', () => this.signaturePad?.updateConfirmButtonsState());
     document.getElementById('onboard-sign-btn')?.addEventListener('click', () => this._handleSign());
-    document.getElementById('ob-induction-continue')?.addEventListener('click', () => {
+    document.getElementById('ob-induction-continue')?.addEventListener('click', async () => {
+      try { await workersService.update(this.workerId, { inductionCompletadaEn: new Date().toISOString() }); } catch {}
       this.step = 'quiz';
       this.answers = {};
       this._draw();

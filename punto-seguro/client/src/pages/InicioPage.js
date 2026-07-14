@@ -22,22 +22,35 @@ export class InicioPage {
     ]);
 
     const totalWorkers = workers.length;
-    const fullySigned = workers.filter((w) => (w.documentosFirmadosCount || 0) >= 9).length;
-    const totalAttempts = attempts.length;
-    const passed = attempts.filter((a) => a.puntaje >= 80).length;
-    const passRate = totalAttempts ? Math.round((passed / totalAttempts) * 100) : 0;
+    const totalDocs = annexTemplates.length;
+    const fullySigned = workers.filter((w) => totalDocs > 0 && (w.documentosFirmadosCount || 0) >= totalDocs).length;
+    const inductionDone = workers.filter((w) => !!w.inductionCompletadaEn).length;
+    const workerIds = new Set(workers.map(w => w.id));
+    const workerAttempts = attempts.filter(a => workerIds.has(a.workerId));
+    const lastByWorker = {};
+    workerAttempts.forEach(a => {
+      if (!lastByWorker[a.workerId] || new Date(a.fecha) > new Date(lastByWorker[a.workerId].fecha))
+        lastByWorker[a.workerId] = a;
+    });
+    const evalDone = Object.values(lastByWorker).length;
+    const passed = Object.values(lastByWorker).filter(a => a.puntaje >= 80).length;
     const packageReady = annexTemplates.length > 0 && !!induction?.quizId;
 
     container.innerHTML = `
       ${pageHeader(
         'Panel general',
-        'Bienvenido a Punto Seguro',
-        'Gestiona la firma de documentos de ingreso, el paquete de inducción y el programa de capacitación en un solo lugar.'
+        'Bienvenido al módulo de Inducción Integral',
+        'Controla el avance de cada trabajador en firmas, inducción y evaluación desde un solo lugar.'
       )}
-      <div class="grid-3" style="margin-bottom:20px">
+      <div class="grid-3" style="margin-bottom:12px">
         <div class="stat-card"><div class="num">${totalWorkers}</div><div class="label">Trabajadores registrados</div></div>
-        <div class="stat-card"><div class="num">${fullySigned}</div><div class="label">Con los 9 anexos firmados</div></div>
-        <div class="stat-card"><div class="num">${passRate}%</div><div class="label">Aprobación en evaluaciones</div></div>
+        <div class="stat-card"><div class="num">${fullySigned}</div><div class="label">Documentos firmados completos</div></div>
+        <div class="stat-card"><div class="num">${inductionDone}</div><div class="label">Inducciones completadas</div></div>
+      </div>
+      <div class="grid-3" style="margin-bottom:20px">
+        <div class="stat-card"><div class="num">${evalDone}</div><div class="label">Evaluaciones realizadas</div></div>
+        <div class="stat-card"><div class="num">${passed}</div><div class="label">Evaluaciones aprobadas ≥ 80</div></div>
+        <div class="stat-card"><div class="num">${totalWorkers > 0 ? Math.round((fullySigned / totalWorkers) * 100) : 0}%</div><div class="label">Cobertura de firmas</div></div>
       </div>
       <div class="grid-2">
         <div class="card">

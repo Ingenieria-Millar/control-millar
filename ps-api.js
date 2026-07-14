@@ -111,7 +111,7 @@ router.put('/trabajadores/:id', (req, res) => {
   const workers = psRead(FILES.workers, []);
   const idx = workers.findIndex(x => x.id === req.params.id);
   if (idx === -1) return res.status(404).json({ success: false, message: 'Trabajador no encontrado.' });
-  ['nombre','documento','cargo','fechaIngreso','correo','celular','area','consentimientoFirmaElectronica']
+  ['nombre','documento','cargo','fechaIngreso','correo','celular','area','consentimientoFirmaElectronica','inductionCompletadaEn']
     .forEach(k => { if (req.body[k] !== undefined) workers[idx][k] = req.body[k]; });
   workers[idx].updatedAt = new Date().toISOString();
   psWrite(FILES.workers, workers);

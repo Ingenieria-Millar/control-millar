@@ -7,6 +7,7 @@ import { quizzesService } from '../services/quizzes.service.js';
 import { annexTemplatesService } from '../services/annexTemplates.service.js';
 import { signaturePositionsService } from '../services/signaturePositions.service.js';
 import { inductionContentService } from '../services/inductionContent.service.js';
+import { attemptsService } from '../services/attempts.service.js';
 import { parseExcelFile } from '../services/excelImport.service.js';
 import { importWorkersFromRows } from '../services/workersImport.service.js';
 import { Modal } from '../components/Modal.js';
@@ -25,7 +26,11 @@ export class TrabajadoresPage {
 
   async render(container) {
     this.container = container;
-    this.workers = await workersService.listAll();
+    [this.workers, this.attempts, this.annexTemplates] = await Promise.all([
+      workersService.listAll(),
+      attemptsService.listAll(),
+      annexTemplatesService.listAll(),
+    ]);
     container.innerHTML = this._html();
     this._attachListeners();
   }
@@ -62,25 +67,55 @@ ${this._renderTable()}
     if (!this.workers.length) {
       return emptyState('ti-users', 'Sin trabajadores aún', 'Registra el primer trabajador con el formulario de arriba.');
     }
+    const totalDocs = this.annexTemplates.length;
+
+    // índice: workerId → último intento
+    const lastAttempt = {};
+    (this.attempts || []).forEach(a => {
+      if (!lastAttempt[a.workerId] || new Date(a.fecha) > new Date(lastAttempt[a.workerId].fecha))
+        lastAttempt[a.workerId] = a;
+    });
+
     const rows = this.workers
       .slice()
       .reverse()
       .map((w) => {
         const firmados = w.documentosFirmadosCount || 0;
-        const badge =
-          firmados >= 9
-            ? '<span class="badge badge-green">9/9 firmados</span>'
+        const firmasBadge = totalDocs === 0
+          ? '<span class="badge badge-grey">Sin plantillas</span>'
+          : firmados >= totalDocs
+            ? `<span class="badge badge-green"><i class="ti ti-check"></i> ${firmados}/${totalDocs}</span>`
             : firmados > 0
-            ? `<span class="badge badge-amber">${firmados}/9 firmados</span>`
-            : '<span class="badge badge-grey">Sin firmar</span>';
-        return `<tr><td><strong>${escapeHtml(w.nombre)}</strong><br><span class="small-muted">${escapeHtml(w.documento)}</span></td><td>${escapeHtml(w.cargo || '—')}</td><td>${escapeHtml(w.area || '—')}</td><td>${formatDate(w.fechaIngreso)}</td><td>${badge}</td><td style="white-space:nowrap">
-<button class="btn btn-ghost btn-sm" data-sign-worker="${w.id}"><i class="ti ti-signature"></i> Firmar aquí</button>
-<button class="btn btn-primary btn-sm" data-onboard-link="${w.id}" style="margin-left:4px"><i class="ti ti-link"></i> Enviar enlace</button>
+              ? `<span class="badge badge-amber">${firmados}/${totalDocs}</span>`
+              : `<span class="badge badge-grey">0/${totalDocs}</span>`;
+
+        const induccionBadge = w.inductionCompletadaEn
+          ? '<span class="badge badge-green"><i class="ti ti-check"></i> Completada</span>'
+          : '<span class="badge badge-grey">Pendiente</span>';
+
+        const att = lastAttempt[w.id];
+        const evalBadge = att
+          ? att.puntaje >= 80
+            ? `<span class="badge badge-green">${att.puntaje} pts</span>`
+            : att.puntaje >= 60
+              ? `<span class="badge badge-amber">${att.puntaje} pts</span>`
+              : `<span class="badge badge-red">${att.puntaje} pts</span>`
+          : '<span class="badge badge-grey">Pendiente</span>';
+
+        return `<tr>
+<td><strong>${escapeHtml(w.nombre)}</strong><br><span class="small-muted">${escapeHtml(w.documento)}</span></td>
+<td>${escapeHtml(w.cargo || '—')}<br><span class="small-muted">${escapeHtml(w.area || '—')}</span></td>
+<td>${firmasBadge}</td>
+<td>${induccionBadge}</td>
+<td>${evalBadge}</td>
+<td style="white-space:nowrap">
+<button class="btn btn-ghost btn-sm" data-sign-worker="${w.id}"><i class="ti ti-signature"></i> Firmar</button>
+<button class="btn btn-primary btn-sm" data-onboard-link="${w.id}" style="margin-left:4px"><i class="ti ti-link"></i> Enlace</button>
 ${firmados ? `<button class="btn btn-ghost btn-sm" data-view-docs="${w.id}" style="margin-left:4px"><i class="ti ti-folder"></i></button>` : ''}
 </td></tr>`;
       })
       .join('');
-    return `<div class="table-wrap"><table class="data-table"><thead><tr><th>Trabajador</th><th>Cargo</th><th>Área</th><th>Ingreso</th><th>Estado firma</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    return `<div class="table-wrap"><table class="data-table"><thead><tr><th>Trabajador</th><th>Cargo / Área</th><th>Firma</th><th>Inducción</th><th>Evaluación</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
   }
 
   _attachListeners() {

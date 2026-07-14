@@ -1,1 +1,0 @@
-function i(e,s,a){return`<div class="empty-state"><div class="icon"><i class="ti ${e}"></i></div><div class="title">${s}</div><div class="desc">${a}</div></div>`}function t(e,s,a){return`<div class="page-header"><p class="page-eyebrow">${e}</p><h1 class="page-title">${s}</h1><p class="page-desc">${a}</p></div>`}export{i as e,t as p};

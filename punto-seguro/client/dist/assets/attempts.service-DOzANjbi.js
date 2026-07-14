@@ -1,1 +1,0 @@
-import{h as a,w as e}from"./errorNotifier-B--TSDlC.js";const s={getAll:()=>a.get("/resultados"),create:t=>a.post("/resultados",t)},l={async listAll(){const{data:t}=await e(()=>s.getAll(),"No se pudieron cargar los resultados.");return t},async submit(t){const{data:r}=await e(()=>s.create(t),"No se pudo registrar el resultado de la evaluación.");return r}};export{l as a};
