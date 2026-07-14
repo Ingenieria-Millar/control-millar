@@ -1209,19 +1209,21 @@ app.post('/api/recuperar-codigo', async (req, res) => {
     const norm  = s => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
     const normN = s => String(s || '').trim().replace(/\s+/g, '');
 
+    console.log('[RC] Leyendo lista...');
     const lista = readJSON(FILES.recuperar_codigo, []);
     const existente = lista.find(s => normN(s.cedula) === normN(cedula));
+    console.log('[RC] existente:', !!existente);
 
-    // Primera vez: faltan campos obligatorios
     if (!existente && (!nombre || !fechaExpedicion || !whatsapp)) {
       return res.status(400).json({ ok: false, error: 'Campos incompletos para primer registro' });
     }
 
     const waNumero = existente ? existente.whatsapp : String(whatsapp).trim();
 
-    // Buscar contrato en incentivos por cédula
+    console.log('[RC] Buscando contrato en incentivos...');
     const incentivos = loadDB('incentivos') || [];
     const match = incentivos.find(r => normN(r.cedula) === normN(cedula));
+    console.log('[RC] contrato encontrado:', !!match);
 
     const ahora = new Date().toISOString();
     if (existente) {
@@ -1241,10 +1243,11 @@ app.post('/api/recuperar-codigo', async (req, res) => {
         registradoEn:     ahora
       });
     }
+    console.log('[RC] Guardando lista...');
     writeJSON(FILES.recuperar_codigo, lista);
-
+    console.log('[RC] Respondiendo ok');
     res.json({ ok: true, encontrado: !!match });
-  } catch(e) { res.status(500).json({ ok: false, error: e.message }); }
+  } catch(e) { console.error('[RC] Error:', e.message); res.status(500).json({ ok: false, error: e.message }); }
 });
 
 app.get('/api/recuperar-codigo', (req, res) => {
