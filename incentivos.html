@@ -89,6 +89,9 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
 .admin-badge{display:inline-block;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#fff;background:var(--blue);padding:3px 10px;border-radius:20px;margin-left:8px;vertical-align:middle;}
 .admin-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px;}
 .admin-toolbar .spacer{flex:1;}
+.tab-nav-btn{display:flex;flex-direction:column;align-items:center;gap:5px;width:100%;padding:12px 8px;border:none;border-radius:10px;background:transparent;color:#64748b;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;transition:all .15s;}
+.tab-nav-btn:hover{background:#e2e8f0;color:#0f172a;}
+.tab-nav-active{background:#e0e7ff!important;color:#2563eb!important;}
 .admin-search{display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
 .admin-search input{flex:1;min-width:150px;padding:10px 14px;border:1.5px solid var(--border);border-radius:9px;font-family:'Nunito',sans-serif;font-size:14px;outline:none;}
 .admin-search input:focus{border-color:var(--blue);}
@@ -192,79 +195,97 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
   </div>
 
   <!-- ── ADMIN (oculto; se desbloquea con la tuerca) ── -->
-  <div class="card" id="adminCard">
-    <div class="card-title">⚙️ Administración <span class="admin-badge">Admin</span></div>
-
-    <!-- Disponibilidad por mes -->
-    <div style="background:#f8fafc;border:1.5px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:18px;">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:4px;">📅 Disponibilidad de Incentivos por Mes</div>
-      <div id="dispGrid" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+  <div class="card" id="adminCard" style="padding:0;overflow:hidden;">
+    <div style="padding:18px 20px 14px;border-bottom:1.5px solid var(--border);">
+      <span class="card-title" style="margin:0;">⚙️ Administración</span>
+      <span class="admin-badge">Admin</span>
     </div>
+    <div style="display:flex;min-height:480px;">
 
-    <div class="admin-toolbar">
-      <label class="btn-app primary" for="fileXls">📤 Importar<input type="file" id="fileXls" accept=".xlsx,.xls" hidden></label>
-      <button class="btn-app" id="btnExport">📥 Exportar</button>
-      <button class="btn-app" id="btnPlantilla">📄 Plantilla</button>
-      <span class="spacer"></span>
-      <button class="btn-app danger" id="btnClear">🗑 Limpiar todo</button>
-    </div>
-
-    <div class="admin-search">
-      <span class="count" id="admCount">0 registros</span>
-    </div>
-
-    <div class="tbl-scroll">
-      <table class="data-tbl">
-        <thead>
-          <tr><th>Cédula</th><th>Nombre</th><th>N° Contrato</th><th>Mes</th><th class="r">Valor</th><th></th></tr>
-          <tr class="filter-row">
-            <td><input id="admFiltroCedula" type="text" placeholder="Buscar…"></td>
-            <td><input id="admFiltroNombre" type="text" placeholder="Buscar…"></td>
-            <td><input id="admFiltroContrato" type="text" placeholder="Buscar…"></td>
-            <td><input id="admFiltroMes" type="text" placeholder="Buscar…"></td>
-            <td></td><td></td>
-          </tr>
-        </thead>
-        <tbody id="admBody"></tbody>
-      </table>
-    </div>
-
-    <div class="pager">
-      <button id="pgPrev" title="Anterior">‹</button>
-      <span class="pg-info" id="pgInfo">—</span>
-      <button id="pgNext" title="Siguiente">›</button>
-    </div>
-
-    <!-- WhatsApp manual -->
-    <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:12px;padding:12px 18px;margin-top:20px;">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">📱 Envío de código por WhatsApp</div>
-    </div>
-
-    <!-- Solicitudes de recuperación de código -->
-    <div style="margin-top:20px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">🔑 Solicitudes de Recuperación</div>
-        <div style="display:flex;gap:8px;">
-          <button onclick="exportarSolicitudes()" style="padding:5px 12px;border-radius:7px;border:1.5px solid #86efac;background:#fff;color:#15803d;font-size:12px;font-weight:700;cursor:pointer;">⬇ Excel</button>
-          <button onclick="cargarSolicitudesRecuperacion()" style="padding:5px 12px;border-radius:7px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:12px;font-weight:700;cursor:pointer;">↻ Actualizar</button>
-        </div>
+      <!-- Sidebar -->
+      <div style="width:160px;flex-shrink:0;border-right:1.5px solid var(--border);padding:12px 8px;display:flex;flex-direction:column;gap:4px;background:#f8fafc;">
+        <button id="tab-btn-incentivos" onclick="switchTab('incentivos')" class="tab-nav-btn tab-nav-active">
+          <span style="font-size:18px;">📊</span>
+          <span>Incentivos</span>
+        </button>
+        <button id="tab-btn-solicitudes" onclick="switchTab('solicitudes')" class="tab-nav-btn">
+          <span style="font-size:18px;">🔑</span>
+          <span>Solicitudes</span>
+        </button>
       </div>
-      <div style="overflow-x:auto;">
-        <table style="width:100%;border-collapse:collapse;font-size:12px;">
-          <thead><tr style="background:#f8fafc;">
-            <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">Cédula</th>
-            <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">Nombre</th>
-            <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">F. Expedición</th>
-            <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">WhatsApp</th>
-            <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">Contrato</th>
-            <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">Última solicitud</th>
-            <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">Enviar</th>
-            <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;"></th>
-          </tr></thead>
-          <tbody id="rc-solicitudes-body">
-            <tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:14px;">Sin solicitudes aún.</td></tr>
-          </tbody>
-        </table>
+
+      <!-- Contenido -->
+      <div style="flex:1;padding:20px;overflow:auto;">
+
+        <!-- Panel Incentivos -->
+        <div id="panel-incentivos">
+          <div style="background:#f8fafc;border:1.5px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:18px;">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:4px;">📅 Disponibilidad de Incentivos por Mes</div>
+            <div id="dispGrid" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+          </div>
+          <div class="admin-toolbar">
+            <label class="btn-app primary" for="fileXls">📤 Importar<input type="file" id="fileXls" accept=".xlsx,.xls" hidden></label>
+            <button class="btn-app" id="btnExport">📥 Exportar</button>
+            <button class="btn-app" id="btnPlantilla">📄 Plantilla</button>
+            <span class="spacer"></span>
+            <button class="btn-app danger" id="btnClear">🗑 Limpiar todo</button>
+          </div>
+          <div class="admin-search">
+            <span class="count" id="admCount">0 registros</span>
+          </div>
+          <div class="tbl-scroll">
+            <table class="data-tbl">
+              <thead>
+                <tr><th>Cédula</th><th>Nombre</th><th>N° Contrato</th><th>Mes</th><th class="r">Valor</th><th></th></tr>
+                <tr class="filter-row">
+                  <td><input id="admFiltroCedula" type="text" placeholder="Buscar…"></td>
+                  <td><input id="admFiltroNombre" type="text" placeholder="Buscar…"></td>
+                  <td><input id="admFiltroContrato" type="text" placeholder="Buscar…"></td>
+                  <td><input id="admFiltroMes" type="text" placeholder="Buscar…"></td>
+                  <td></td><td></td>
+                </tr>
+              </thead>
+              <tbody id="admBody"></tbody>
+            </table>
+          </div>
+          <div class="pager">
+            <button id="pgPrev" title="Anterior">‹</button>
+            <span class="pg-info" id="pgInfo">—</span>
+            <button id="pgNext" title="Siguiente">›</button>
+          </div>
+        </div>
+
+        <!-- Panel Solicitudes -->
+        <div id="panel-solicitudes" style="display:none;">
+          <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:12px;padding:12px 18px;margin-bottom:18px;">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">📱 Envío de código por WhatsApp</div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">🔑 Solicitudes de Recuperación</div>
+            <div style="display:flex;gap:8px;">
+              <button onclick="exportarSolicitudes()" style="padding:5px 12px;border-radius:7px;border:1.5px solid #86efac;background:#fff;color:#15803d;font-size:12px;font-weight:700;cursor:pointer;">⬇ Excel</button>
+              <button onclick="cargarSolicitudesRecuperacion()" style="padding:5px 12px;border-radius:7px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:12px;font-weight:700;cursor:pointer;">↻ Actualizar</button>
+            </div>
+          </div>
+          <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:12px;">
+              <thead><tr style="background:#f8fafc;">
+                <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">Cédula</th>
+                <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">Nombre</th>
+                <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">F. Expedición</th>
+                <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">WhatsApp</th>
+                <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">Contrato</th>
+                <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">Última solicitud</th>
+                <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">Enviar</th>
+                <th style="padding:8px 10px;border-bottom:2px solid #e2e8f0;"></th>
+              </tr></thead>
+              <tbody id="rc-solicitudes-body">
+                <tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:14px;">Sin solicitudes aún.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -405,12 +426,19 @@ function abrirPassModal(){
 }
 function cerrarPassModal(){ document.getElementById('passModal').classList.remove('show'); }
 let _waInterval = null;
+function switchTab(tab){
+  document.getElementById('panel-incentivos').style.display  = tab==='incentivos'  ? 'block' : 'none';
+  document.getElementById('panel-solicitudes').style.display = tab==='solicitudes' ? 'block' : 'none';
+  document.getElementById('tab-btn-incentivos').classList.toggle('tab-nav-active',  tab==='incentivos');
+  document.getElementById('tab-btn-solicitudes').classList.toggle('tab-nav-active', tab==='solicitudes');
+  if(tab==='solicitudes') cargarSolicitudesRecuperacion();
+}
 function mostrarAdmin(){
   document.getElementById('consultaCard').style.display = 'none';
   document.getElementById('adminCard').style.display = 'block';
   document.getElementById('btnGear').classList.add('on');
   window.scrollTo({ top:0, behavior:'smooth' });
-  cargarSolicitudesRecuperacion();
+  switchTab('incentivos');
 }
 function mostrarConsulta(){
   document.getElementById('adminCard').style.display = 'none';
@@ -934,7 +962,7 @@ async function cargarSolicitudesRecuperacion(){
     <div id="rc-final" style="display:none;text-align:center;padding:8px 0;">
       <div style="font-size:36px;margin-bottom:10px;">✅</div>
       <div style="font-size:16px;font-weight:800;color:#0f172a;margin-bottom:8px;">¡Solicitud recibida!</div>
-      <div style="font-size:14px;color:#475569;margin-bottom:20px;line-height:1.5;">Un asesor te contactará pronto al número de WhatsApp que registraste.</div>
+      <div style="font-size:14px;color:#475569;margin-bottom:20px;line-height:1.5;">Pronto recibirás tu número de contrato en el WhatsApp que registraste.</div>
       <button onclick="cerrarRecuperarCodigo()" style="padding:11px 28px;border-radius:9px;border:none;background:#2563eb;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif;">Cerrar</button>
     </div>
   </div>
