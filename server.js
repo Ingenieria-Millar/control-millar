@@ -1188,6 +1188,19 @@ app.post('/api/incentivos-disponibilidad', (req, res) => {
 });
 
 
+// Busca número de contrato por cédula
+app.post('/api/buscar-contrato', (req, res) => {
+  try {
+    const { cedula } = req.body || {};
+    if (!cedula) return res.status(400).json({ ok: false, error: 'Cédula requerida' });
+    const norm = s => String(s || '').trim().replace(/\s+/g, '');
+    const incentivos = loadDB('incentivos') || [];
+    const match = incentivos.find(r => norm(r.cedula) === norm(cedula));
+    if (!match) return res.json({ ok: true, encontrado: false });
+    res.json({ ok: true, encontrado: true, contrato: match.contrato, nombre: match.nombre });
+  } catch(e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
 // ── WhatsApp admin endpoints ────────────────────────────────────────
 app.get('/api/wa/status', requireAuth, (_req, res) => {
   res.json({ ready: waReady, status: waStatus, hasQr: !!waQrDataUrl });
