@@ -53,11 +53,23 @@ async function initWhatsApp() {
     const { state, saveCreds } = await _Baileys.useMultiFileAuthState(WA_DIR);
     const pino = require('pino');
 
+    let waVersion;
+    try {
+      const fetched = await _Baileys.fetchLatestBaileysVersion();
+      waVersion = fetched.version;
+      console.log('[WA] Versión WA Web:', waVersion.join('.'));
+    } catch {
+      waVersion = [2, 3000, 1019032649];
+      console.log('[WA] Versión WA Web (fallback):', waVersion.join('.'));
+    }
+
     waClient = _Baileys.default({
+      version: waVersion,
       auth: state,
       printQRInTerminal: false,
       logger: pino({ level: 'silent' }),
-      browser: ['Millar', 'Chrome', '1.0.0']
+      browser: _Baileys.Browsers.ubuntu('Chrome'),
+      syncFullHistory: false,
     });
 
     const thisClient = waClient;
