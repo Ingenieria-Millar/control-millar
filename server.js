@@ -1232,7 +1232,12 @@ app.post('/api/recuperar-codigo', (req, res) => {
         registradoEn:     ahora
       });
     }
-    writeJSON(FILES.recuperar_codigo, lista);
+    // Escritura síncrona — garantiza que el dato está en disco antes de responder
+    if (SQLITE_ON) {
+      sqliteSet('recuperar_codigo', lista);
+    } else {
+      fs.writeFileSync(FILES.recuperar_codigo, JSON.stringify(lista), 'utf8');
+    }
     console.log('[RC] Guardado OK, total:', lista.length);
     res.json({ ok: true });
   } catch(e) { console.error('[RC] Error:', e.message); res.status(500).json({ ok: false, error: e.message }); }
