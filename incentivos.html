@@ -98,7 +98,10 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
 
 .tbl-scroll{max-height:520px;overflow:auto;border:1.5px solid var(--border);border-radius:12px;}
 .data-tbl{width:100%;border-collapse:collapse;font-size:13px;}
-.data-tbl thead th{position:sticky;top:0;background:#f8fafc;z-index:2;text-align:left;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding:10px 12px;border-bottom:2px solid var(--border);}
+.data-tbl thead th{position:sticky;top:0;background:#f8fafc;z-index:2;text-align:left;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding:10px 12px;border-bottom:1px solid var(--border);}
+.data-tbl thead tr.filter-row td{position:sticky;top:37px;background:#fff;z-index:2;padding:5px 6px;border-bottom:2px solid var(--border);}
+.data-tbl thead tr.filter-row input{width:100%;padding:5px 8px;border:1.5px solid var(--border);border-radius:7px;font-size:12px;font-family:'Nunito',sans-serif;outline:none;background:#f8fafc;box-sizing:border-box;}
+.data-tbl thead tr.filter-row input:focus{border-color:var(--blue);background:#fff;}
 .data-tbl th.r,.data-tbl td.r{text-align:right;}
 .data-tbl td{padding:9px 12px;border-bottom:1px solid #eef2f7;font-weight:600;}
 .data-tbl tr:hover td{background:#f8fafc;}
@@ -191,12 +194,10 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
   <!-- ── ADMIN (oculto; se desbloquea con la tuerca) ── -->
   <div class="card" id="adminCard">
     <div class="card-title">⚙️ Administración <span class="admin-badge">Admin</span></div>
-    <div class="card-sub">Importa el Excel (columnas <strong>MES, CONTRATO, NOMBRE, CÉDULA, VALOR</strong>), edita registros directamente en la tabla y exporta con los cambios.</div>
 
     <!-- Disponibilidad por mes -->
     <div style="background:#f8fafc;border:1.5px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:18px;">
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:4px;">📅 Disponibilidad de Incentivos por Mes</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;">Toca el mes para cambiar su estado. Se aplica para <strong>todos</strong> los empleados.</div>
       <div id="dispGrid" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
     </div>
 
@@ -209,15 +210,21 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
     </div>
 
     <div class="admin-search">
-      <select id="admFiltroMes"><option value="">Todos los meses</option></select>
-      <input id="admFiltroContrato" type="text" placeholder="Contrato…" style="min-width:100px;flex:0 0 120px;">
-      <input id="admFiltroNombre" type="text" placeholder="Nombre…">
       <span class="count" id="admCount">0 registros</span>
     </div>
 
     <div class="tbl-scroll">
       <table class="data-tbl">
-        <thead><tr><th>Mes</th><th>Contrato</th><th>Nombre</th><th>Cédula</th><th class="r">Valor</th><th style="text-align:right;">Acciones</th></tr></thead>
+        <thead>
+          <tr><th>Cédula</th><th>Nombre</th><th>N° Contrato</th><th>Mes</th><th class="r">Valor</th><th></th></tr>
+          <tr class="filter-row">
+            <td><input id="admFiltroCedula" type="text" placeholder="Buscar…"></td>
+            <td><input id="admFiltroNombre" type="text" placeholder="Buscar…"></td>
+            <td><input id="admFiltroContrato" type="text" placeholder="Buscar…"></td>
+            <td><input id="admFiltroMes" type="text" placeholder="Buscar…"></td>
+            <td></td><td></td>
+          </tr>
+        </thead>
         <tbody id="admBody"></tbody>
       </table>
     </div>
@@ -231,27 +238,31 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
     <!-- WhatsApp manual -->
     <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:12px;padding:12px 18px;margin-top:20px;">
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">📱 Envío de código por WhatsApp</div>
-      <div style="font-size:12px;color:#64748b;margin-top:4px;">Haz clic en <strong>📲 Enviar</strong> en cada fila para abrir WhatsApp con el mensaje listo. El código se envía manualmente.</div>
     </div>
 
     <!-- Solicitudes de recuperación de código -->
     <div style="margin-top:20px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">🔑 Solicitudes de Recuperación</div>
-        <button onclick="cargarSolicitudesRecuperacion()" style="padding:5px 12px;border-radius:7px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:12px;font-weight:700;cursor:pointer;">↻ Actualizar</button>
+        <div style="display:flex;gap:8px;">
+          <button onclick="exportarSolicitudes()" style="padding:5px 12px;border-radius:7px;border:1.5px solid #86efac;background:#fff;color:#15803d;font-size:12px;font-weight:700;cursor:pointer;">⬇ Excel</button>
+          <button onclick="cargarSolicitudesRecuperacion()" style="padding:5px 12px;border-radius:7px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:12px;font-weight:700;cursor:pointer;">↻ Actualizar</button>
+        </div>
       </div>
       <div style="overflow-x:auto;">
         <table style="width:100%;border-collapse:collapse;font-size:12px;">
           <thead><tr style="background:#f8fafc;">
             <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">Cédula</th>
             <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">Nombre</th>
+            <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">F. Expedición</th>
             <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">WhatsApp</th>
             <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">Contrato</th>
             <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">Última solicitud</th>
             <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">Enviar</th>
+            <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;"></th>
           </tr></thead>
           <tbody id="rc-solicitudes-body">
-            <tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:14px;">Sin solicitudes aún.</td></tr>
+            <tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:14px;">Sin solicitudes aún.</td></tr>
           </tbody>
         </table>
       </div>
@@ -492,14 +503,7 @@ async function cargarTodo(){
   aplicarBusqueda(true);
 }
 
-function poblarMesSelect(){
-  const meses = [...new Set(adminData.map(r=>r.mes).filter(Boolean))].sort();
-  const sel = document.getElementById('admFiltroMes');
-  const current = sel.value;
-  sel.innerHTML = '<option value="">Todos los meses</option>' +
-    meses.map(m=>`<option value="${esc(m)}">${esc(m)}</option>`).join('');
-  if(current) sel.value = current;
-}
+function poblarMesSelect(){ /* select reemplazado por input de texto en thead */ }
 
 function handleVolver(e){
   if(adminUnlocked && document.getElementById('adminCard').style.display !== 'none'){
@@ -509,13 +513,15 @@ function handleVolver(e){
 }
 
 function aplicarBusqueda(reset){
-  const mes      = document.getElementById('admFiltroMes').value.toLowerCase();
+  const mes      = document.getElementById('admFiltroMes').value.trim().toLowerCase();
   const contrato = document.getElementById('admFiltroContrato').value.trim().toLowerCase();
   const nombre   = document.getElementById('admFiltroNombre').value.trim().toLowerCase();
+  const cedula   = document.getElementById('admFiltroCedula').value.trim().toLowerCase();
   filtered = adminData.filter(r=>{
-    if(mes      && !(r.mes||'').toLowerCase().includes(mes))      return false;
+    if(mes      && !(r.mes||'').toLowerCase().includes(mes))          return false;
     if(contrato && !(r.contrato||'').toLowerCase().includes(contrato)) return false;
-    if(nombre   && !(r.nombre||'').toLowerCase().includes(nombre)) return false;
+    if(nombre   && !(r.nombre||'').toLowerCase().includes(nombre))     return false;
+    if(cedula   && !(r.cedula||'').toLowerCase().includes(cedula))     return false;
     return true;
   });
   filtered.sort((a,b)=>{
@@ -541,17 +547,17 @@ function renderTabla(){
     body.innerHTML = slice.map(r => {
       if(r.id === editingId){
         return `<tr data-id="${esc(r.id)}">`+
-          `<td><input class="ed-mes" value="${esc(r.mes)}"></td>`+
-          `<td><input class="ed-contrato" value="${esc(r.contrato)}"></td>`+
-          `<td><input class="ed-nombre" value="${esc(r.nombre)}"></td>`+
           `<td><input class="ed-cedula" inputmode="numeric" value="${esc(r.cedula||'')}"></td>`+
+          `<td><input class="ed-nombre" value="${esc(r.nombre)}"></td>`+
+          `<td><input class="ed-contrato" value="${esc(r.contrato)}"></td>`+
+          `<td><input class="ed-mes" value="${esc(r.mes)}"></td>`+
           `<td class="r"><input class="ed-valor r" inputmode="numeric" value="${Number(r.valor)||0}"></td>`+
           `<td><div class="row-acts"><button class="ico-btn save" data-act="save" title="Guardar">💾</button>`+
           `<button class="ico-btn" data-act="cancel" title="Cancelar">✖</button></div></td></tr>`;
       }
       return `<tr data-id="${esc(r.id)}">`+
-        `<td>${esc(r.mes)}</td><td>${esc(r.contrato)}</td><td>${esc(r.nombre)}</td>`+
-        `<td>${esc(r.cedula||'')}</td>`+
+        `<td>${esc(r.cedula||'')}</td><td>${esc(r.nombre)}</td><td>${esc(r.contrato)}</td>`+
+        `<td>${esc(r.mes)}</td>`+
         `<td class="r">${COP.format(r.valor||0)}</td>`+
         `<td><div class="row-acts"><button class="ico-btn" data-act="edit" title="Editar">✏️</button>`+
         `<button class="ico-btn del" data-act="del" title="Eliminar">🗑</button></div></td></tr>`;
@@ -615,9 +621,10 @@ document.getElementById('admBody').addEventListener('keydown', e => {
   }
 });
 
-document.getElementById('admFiltroMes').addEventListener('change', ()=>aplicarBusqueda(true));
+document.getElementById('admFiltroMes').addEventListener('input', ()=>aplicarBusqueda(true));
 document.getElementById('admFiltroContrato').addEventListener('input', ()=>aplicarBusqueda(true));
 document.getElementById('admFiltroNombre').addEventListener('input', ()=>aplicarBusqueda(true));
+document.getElementById('admFiltroCedula').addEventListener('input', ()=>aplicarBusqueda(true));
 document.getElementById('pgPrev').addEventListener('click', ()=>{ if(page>1){ page--; renderTabla(); } });
 document.getElementById('pgNext').addEventListener('click', ()=>{
   const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -822,6 +829,36 @@ async function reiniciarWa(){
     setTimeout(()=>{cargarWaStatus();btn.disabled=false;btn.textContent='Reiniciar';},4000);
   }catch{btn.disabled=false;btn.textContent='Reiniciar';}
 }
+let _rcLista=[];
+
+async function eliminarSolicitud(id){
+  if(!id||!confirm('¿Eliminar esta solicitud?'))return;
+  try{
+    const r=await fetch('/api/recuperar-codigo/'+encodeURIComponent(id),{method:'DELETE'});
+    if(!r.ok)throw new Error('Error');
+    cargarSolicitudesRecuperacion();
+  }catch{alert('No se pudo eliminar.');}
+}
+
+function exportarSolicitudes(){
+  if(typeof XLSX==='undefined'){alert('Librería Excel no disponible');return;}
+  if(!_rcLista.length){alert('Sin solicitudes para exportar.');return;}
+  const rows=_rcLista.map(s=>({
+    'CÉDULA':s.cedula||'',
+    'NOMBRE':s.nombre||'',
+    'F. EXPEDICIÓN':s.fechaExpedicion||'',
+    'WHATSAPP':s.whatsapp||'',
+    'CONTRATO':s.contrato||'',
+    'ÚLTIMA SOLICITUD':s.ultimaSolicitud?new Date(s.ultimaSolicitud).toLocaleString('es-CO'):'',
+    'TOTAL SOLICITUDES':s.totalSolicitudes||1
+  }));
+  const ws=XLSX.utils.json_to_sheet(rows,{header:['CÉDULA','NOMBRE','F. EXPEDICIÓN','WHATSAPP','CONTRATO','ÚLTIMA SOLICITUD','TOTAL SOLICITUDES']});
+  ws['!cols']=[{wch:14},{wch:28},{wch:14},{wch:14},{wch:12},{wch:22},{wch:10}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Solicitudes');
+  XLSX.writeFile(wb,'solicitudes_recuperacion.xlsx');
+}
+
 async function cargarSolicitudesRecuperacion(){
   const tbody=document.getElementById('rc-solicitudes-body');
   if(!tbody)return;
@@ -829,9 +866,10 @@ async function cargarSolicitudesRecuperacion(){
     const r=await fetch('/api/recuperar-codigo');
     if(!r.ok)return;
     const lista=await r.json();
-    if(!lista.length){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:14px;">Sin solicitudes aún.</td></tr>';return;}
+    if(!lista.length){tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:14px;">Sin solicitudes aún.</td></tr>';return;}
     const fmtFecha=s=>{if(!s)return '—';const d=new Date(s);return d.toLocaleDateString('es-CO',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+d.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'});};
-    tbody.innerHTML=[...lista].reverse().map(s=>{
+    _rcLista=[...lista];
+    tbody.innerHTML=[..._rcLista].reverse().map(s=>{
       const digits=(s.whatsapp||'').replace(/\D/g,'');
       const jid=digits.startsWith('57')?digits:'57'+digits;
       const primerNombre=(s.nombre||'').split(' ')[0];
@@ -839,13 +877,15 @@ async function cargarSolicitudesRecuperacion(){
       const btnWa=s.whatsapp&&s.contrato
         ?`<a href="https://wa.me/${jid}?text=${msgWa}" target="_blank" style="display:inline-block;padding:5px 10px;background:#25d366;color:#fff;border-radius:7px;font-size:11px;font-weight:700;text-decoration:none;">📲 Enviar</a>`
         :'<span style="color:#94a3b8;font-size:11px;">—</span>';
-      return `<tr>
+      return `<tr data-rcid="${s.id||''}">
         <td style="padding:7px 10px;font-size:12px;">${s.cedula||'—'}</td>
         <td style="padding:7px 10px;font-size:12px;">${s.nombre||'—'}</td>
+        <td style="padding:7px 10px;font-size:12px;">${s.fechaExpedicion||'—'}</td>
         <td style="padding:7px 10px;font-size:12px;">${s.whatsapp||'—'}</td>
         <td style="padding:7px 10px;font-size:13px;font-weight:700;color:#1e3a8a;">${s.contrato||'<span style="color:#dc2626;">No encontrado</span>'}</td>
         <td style="padding:7px 10px;font-size:11px;color:#64748b;">${fmtFecha(s.ultimaSolicitud)} (${s.totalSolicitudes||1}x)</td>
         <td style="padding:7px 10px;">${btnWa}</td>
+        <td style="padding:7px 10px;"><button onclick="eliminarSolicitud('${s.id||''}')" style="padding:4px 8px;border-radius:6px;border:1.5px solid #fecaca;background:#fff;color:#dc2626;font-size:11px;font-weight:700;cursor:pointer;" title="Eliminar">🗑</button></td>
       </tr>`;
     }).join('');
   }catch{}

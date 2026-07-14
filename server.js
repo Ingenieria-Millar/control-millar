@@ -1251,6 +1251,16 @@ app.get('/api/recuperar-codigo', requireAuth, (req, res) => {
   catch(e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
+app.delete('/api/recuperar-codigo/:id', requireAuth, (req, res) => {
+  try {
+    const lista = readJSON(FILES.recuperar_codigo, []);
+    const nueva = lista.filter(s => s.id !== req.params.id);
+    if(nueva.length === lista.length) return res.status(404).json({ ok: false, error: 'No encontrado' });
+    writeJSON(FILES.recuperar_codigo, nueva);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
 // ── WhatsApp admin endpoints ────────────────────────────────────────
 app.get('/api/wa/status', requireAuth, (_req, res) => {
   res.json({ ready: waReady, status: waStatus, hasQr: !!waQrDataUrl });
