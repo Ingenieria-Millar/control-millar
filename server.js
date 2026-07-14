@@ -38,7 +38,7 @@ try { ({ Client: _WA, LocalAuth: _LocalAuth } = require('whatsapp-web.js')); _QR
 
 function initWhatsApp() {
   if (!_WA || !_LocalAuth) { waStatus = 'módulo no instalado'; return; }
-  const WA_DIR = path.join(DATA_DIR, 'wwa-session');
+  const WA_DIR = path.join(fs.existsSync('/var/data') ? '/var/data' : path.join(__dirname, 'data'), 'wwa-session');
   waClient = new _WA({
     authStrategy: new _LocalAuth({ dataPath: WA_DIR }),
     puppeteer: { headless: true, args: ['--no-sandbox','--disable-setuid-sandbox','--disable-dev-shm-usage','--disable-gpu','--single-process'] }
