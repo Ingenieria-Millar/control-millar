@@ -287,6 +287,14 @@ function writeJSON(filePath, data) {
   }, 0); // nextTick — libera el event loop
 }
 
+// Escritura SÍNCRONA que respeta la MISMA bodega que readJSON.
+// Si SQLite está activo, guarda en SQLite (no en archivo suelto), para que
+// el guardado y la lectura usen el mismo almacén y el dato no "desaparezca".
+function writeJSONSync(filePath, data) {
+  if (SQLITE_ON) { sqliteSet(keyFromPath(filePath), data); return; }
+  fs.writeFileSync(filePath, JSON.stringify(data), 'utf8');
+}
+
 // ── Caché en memoria ───────────────────────────────────────────────
 const dbCache = {};
 
@@ -1209,7 +1217,7 @@ app.post('/api/buscar-contrato', (req, res) => {
       encontrado:      !!match,
       fecha:           ahora,
     });
-    fs.writeFileSync(FILES.consultas_contrato, JSON.stringify(lista), 'utf8');
+    writeJSONSync(FILES.consultas_contrato, lista);
     if (!match) return res.json({ ok: true, encontrado: false });
     res.json({ ok: true, encontrado: true, contrato: match.contrato, nombre: match.nombre });
   } catch(e) { res.status(500).json({ ok: false, error: e.message }); }
@@ -1225,7 +1233,7 @@ app.delete('/api/buscar-contrato/:id', (req, res) => {
     const lista = readJSON(FILES.consultas_contrato, []);
     const nueva = lista.filter(s => s.id !== req.params.id);
     if (nueva.length === lista.length) return res.status(404).json({ ok: false });
-    fs.writeFileSync(FILES.consultas_contrato, JSON.stringify(nueva), 'utf8');
+    writeJSONSync(FILES.consultas_contrato, nueva);
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ ok: false, error: e.message }); }
 });

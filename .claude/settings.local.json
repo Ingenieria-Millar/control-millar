@@ -29,7 +29,16 @@
       "Bash(curl -s -X POST http://localhost:3000/api/incentivos-disponibilidad -H \"Content-Type: application/json\" -d \"{\\\\\"Enero\\\\\":true,\\\\\"Febrero\\\\\":false}\")",
       "PowerShell(New-Item -ItemType Directory -Force \"C:\\\\Users\\\\jpalacio\\\\Documents\\\\APLICACIONES IA\\\\CONTROL DE PISO MILLAR\\\\pdf-plantillas\")",
       "PowerShell($json = Get-Content \"C:\\\\Users\\\\jpalacio\\\\Documents\\\\APLICACIONES IA\\\\CONTROL DE PISO MILLAR\\\\ps-data\\\\ps_annex_templates.json\" | ConvertFrom-Json; $json | ForEach-Object { \"$\\($_.nombre\\) — $\\($_.sizeKb\\) KB — base64: $\\(if\\($_.pdfBase64\\){'SI'}else{'NO'}\\)\" })",
-      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\jpalacio\\\\Documents\\\\APLICACIONES IA\\\\CONTROL DE PISO MILLAR\" -Depth 1 | Where-Object { $_.FullName -notmatch 'node_modules' } | Select-Object Name, PSIsContainer | Format-Table -AutoSize)"
+      "PowerShell(Get-ChildItem \"C:\\\\Users\\\\jpalacio\\\\Documents\\\\APLICACIONES IA\\\\CONTROL DE PISO MILLAR\" -Depth 1 | Where-Object { $_.FullName -notmatch 'node_modules' } | Select-Object Name, PSIsContainer | Format-Table -AutoSize)",
+      "Bash(curl -s -X POST http://localhost:3000/api/buscar-contrato -H \"Content-Type: application/json\" -d '{\"cedula\":\"1234567890\",\"fechaExpedicion\":\"2020-01-15\",\"celular\":\"3001234567\"}')",
+      "Bash(curl -s http://localhost:3000/api/buscar-contrato)",
+      "Bash(echo \"=== 1. Version desplegada \\(marca\\) ===\")",
+      "Bash(curl -s https://control-millar-q24x.onrender.com/incentivos)",
+      "Bash(rm -f data/millar.db data/consultas_contrato.json)",
+      "Bash(STORAGE=sqlite PORT=3050 node server.js)",
+      "Bash(curl -s http://localhost:3050/api/buscar-contrato)",
+      "Bash(curl -s -X POST http://localhost:3050/api/buscar-contrato -H 'Content-Type: application/json' -d '{\"cedula\":\"555SQLITE\",\"fechaExpedicion\":\"2022-06-01\",\"celular\":\"3007778888\"}')",
+      "Bash(curl -s -X POST http://localhost:3050/api/buscar-contrato -H 'Content-Type: application/json' -d '{\"cedula\":\"666SQLITE\",\"fechaExpedicion\":\"2023-01-01\",\"celular\":\"3001112222\"}')"
     ]
   }
 }
