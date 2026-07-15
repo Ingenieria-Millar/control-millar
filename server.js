@@ -545,7 +545,10 @@ const BCRYPT_ROUNDS = 10;
 // actuales (app_config._usuarios_extra + Programador). Idempotente: si
 // users.json ya existe, no lo regenera (evita re-hashear en cada arranque).
 function ensureUsersFile() {
-  if (fs.existsSync(FILES.users)) return readJSON(FILES.users, { version: 1, users: {} });
+  // Debe respetar SQLite: mirar el archivo físico no sirve (con SQLite nunca se crea).
+  // Revisamos si ya hay usuarios en el almacén real (archivo o SQLite) antes de re-crear.
+  const _existentes = readJSON(FILES.users, null);
+  if (_existentes && _existentes.users && Object.keys(_existentes.users).length) return _existentes;
 
   const appCfg = readJSON(FILES.app_config, {});
   const extra  = Array.isArray(appCfg._usuarios_extra) ? appCfg._usuarios_extra : [];
@@ -575,7 +578,7 @@ function ensureUsersFile() {
 
   const store = { version: 1, migratedAt: new Date().toISOString(), users };
   try {
-    fs.writeFileSync(FILES.users, JSON.stringify(store, null, 2), 'utf8');
+    writeJSONSync(FILES.users, store);   // usa SQLite si está activo (no solo archivo suelto)
     console.log(`[AUTH] users.json creado — ${Object.keys(users).length} usuario(s) migrados a hash.`);
   } catch (e) {
     console.error('[AUTH] Error creando users.json:', e.message);
@@ -625,8 +628,7 @@ function syncUsersFromConfig(appCfg) {
     });
     if (changed) {
       store.updatedAt = new Date().toISOString();
-      fs.promises.writeFile(FILES.users, JSON.stringify(store, null, 2), 'utf8')
-        .catch(e => console.error('[AUTH] Error sincronizando users.json:', e.message));
+      writeJSONSync(FILES.users, store);   // usa SQLite si está activo (login lee del mismo almacén)
     }
   } catch (e) {
     console.error('[AUTH] syncUsersFromConfig falló:', e.message);
