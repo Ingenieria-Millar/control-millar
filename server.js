@@ -1246,6 +1246,36 @@ app.get('/api/buscar-contrato', (req, res) => {
   catch(e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 
+// Editar un registro: cédula, fecha de expedición y celular.
+// Nombre y contrato se RECALCULAN frescos desde incentivos según la cédula.
+app.put('/api/buscar-contrato/:id', (req, res) => {
+  try {
+    const { cedula, fechaExpedicion, celular } = req.body || {};
+    const lista = readJSON(FILES.consultas_contrato, []);
+    const idx = lista.findIndex(s => s.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ ok: false });
+
+    const norm = s => String(s || '').trim().replace(/\s+/g, '').toLowerCase();
+    const nuevaCedula = cedula !== undefined ? String(cedula).trim() : lista[idx].cedula;
+
+    // Recalcular nombre/contrato con la cédula (posiblemente nueva)
+    const incentivos = loadDB('incentivos') || [];
+    const match = incentivos.find(r => norm(r.cedula) === norm(nuevaCedula));
+
+    lista[idx] = {
+      ...lista[idx],
+      cedula:          nuevaCedula,
+      fechaExpedicion: fechaExpedicion !== undefined ? String(fechaExpedicion).trim() : lista[idx].fechaExpedicion,
+      celular:         celular         !== undefined ? String(celular).trim()         : lista[idx].celular,
+      nombre:          match ? (match.nombre || '')   : '',
+      contrato:        match ? (match.contrato || '') : '',
+      encontrado:      !!match,
+    };
+    writeJSONSync(FILES.consultas_contrato, lista);
+    res.json({ ok: true, registro: lista[idx] });
+  } catch(e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
 app.delete('/api/buscar-contrato/:id', (req, res) => {
   try {
     const lista = readJSON(FILES.consultas_contrato, []);

@@ -232,7 +232,7 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
         <!-- Panel Consultas -->
         <div id="panel-consultas" style="display:none;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">🔎 Registros de Número de Contrato <span style="font-size:11px;font-weight:600;color:#94a3b8;letter-spacing:0;text-transform:none;">(v. 15-jul meses+export)</span></div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">🔎 Registros de Número de Contrato <span style="font-size:11px;font-weight:600;color:#94a3b8;letter-spacing:0;text-transform:none;">(v. 15-jul editar)</span></div>
             <div style="display:flex;gap:8px;">
               <button onclick="exportarConsultas()" style="padding:5px 12px;border-radius:7px;border:1.5px solid #16a34a;background:#16a34a;color:#fff;font-size:12px;font-weight:700;cursor:pointer;">📥 Exportar Excel</button>
               <button onclick="cargarConsultas()" style="padding:5px 12px;border-radius:7px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:12px;font-weight:700;cursor:pointer;">↻ Actualizar</button>
@@ -850,6 +850,9 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 // ── Admin: tabla de consultas ───────────────────────────────────────
 let _consultasLista=[];
+let _editConsultaId=null;   // id de la fila en modo edición (null = ninguna)
+function _fmtFecha(s){if(!s)return '—';const d=new Date(s);return d.toLocaleDateString('es-CO',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+d.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'});}
+
 async function cargarConsultas(){
   const tbody=document.getElementById('consultas-body');
   if(!tbody)return;
@@ -857,20 +860,63 @@ async function cargarConsultas(){
   try{
     const r=await fetch('/api/buscar-contrato');
     if(!r.ok){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#dc2626;padding:14px;">Error ('+r.status+')</td></tr>';return;}
-    const lista=await r.json();
-    _consultasLista=lista;
-    if(!lista.length){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:14px;">Sin registros aún.</td></tr>';return;}
-    const fmt=s=>{if(!s)return '—';const d=new Date(s);return d.toLocaleDateString('es-CO',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+d.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'});};
-    tbody.innerHTML=[...lista].reverse().map(c=>`<tr>
-      <td style="padding:7px 10px;font-size:12px;">${c.cedula||'—'}</td>
-      <td style="padding:7px 10px;font-size:12px;">${c.nombre||'—'}</td>
-      <td style="padding:7px 10px;font-size:13px;font-weight:700;color:#1e3a8a;">${c.contrato||'<span style="color:#dc2626;">No encontrado</span>'}</td>
-      <td style="padding:7px 10px;font-size:12px;">${c.fechaExpedicion||'—'}</td>
-      <td style="padding:7px 10px;font-size:12px;">${c.celular||'—'}</td>
-      <td style="padding:7px 10px;font-size:11px;color:#64748b;">${fmt(c.fecha)}</td>
-      <td style="padding:7px 10px;"><button onclick="eliminarConsulta('${c.id||''}')" style="padding:4px 8px;border-radius:6px;border:1.5px solid #fecaca;background:#fff;color:#dc2626;font-size:11px;font-weight:700;cursor:pointer;">🗑</button></td>
-    </tr>`).join('');
+    _consultasLista=await r.json();
+    _editConsultaId=null;
+    pintarConsultas();
   }catch{tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#dc2626;padding:14px;">Sin conexión.</td></tr>';}
+}
+
+function pintarConsultas(){
+  const tbody=document.getElementById('consultas-body');
+  if(!tbody)return;
+  if(!_consultasLista.length){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:14px;">Sin registros aún.</td></tr>';return;}
+  const td='padding:7px 10px;font-size:12px;';
+  const inp='width:100%;padding:5px 7px;border:1.5px solid #93c5fd;border-radius:6px;font-size:12px;font-family:inherit;box-sizing:border-box;';
+  tbody.innerHTML=[..._consultasLista].reverse().map(c=>{
+    if(c.id===_editConsultaId){
+      // Fila en modo edición: cédula, fecha, celular editables
+      return `<tr style="background:#eff6ff;">
+        <td style="${td}"><input id="ec-cedula" value="${esc(c.cedula||'')}" style="${inp}"></td>
+        <td style="${td}color:#94a3b8;">${esc(c.nombre||'—')}</td>
+        <td style="${td}color:#94a3b8;">${esc(c.contrato||'—')}</td>
+        <td style="${td}"><input id="ec-fecha" type="date" value="${esc(c.fechaExpedicion||'')}" style="${inp}"></td>
+        <td style="${td}"><input id="ec-celular" value="${esc(c.celular||'')}" style="${inp}"></td>
+        <td style="${td}color:#64748b;font-size:11px;">${_fmtFecha(c.fecha)}</td>
+        <td style="padding:7px 10px;white-space:nowrap;">
+          <button onclick="guardarConsulta('${c.id}')" style="padding:4px 8px;border-radius:6px;border:1.5px solid #16a34a;background:#16a34a;color:#fff;font-size:11px;font-weight:700;cursor:pointer;">Guardar</button>
+          <button onclick="cancelarEdicionConsulta()" style="padding:4px 8px;border-radius:6px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:11px;font-weight:700;cursor:pointer;">Cancelar</button>
+        </td>
+      </tr>`;
+    }
+    return `<tr>
+      <td style="${td}">${esc(c.cedula||'—')}</td>
+      <td style="${td}">${esc(c.nombre||'—')}</td>
+      <td style="padding:7px 10px;font-size:13px;font-weight:700;color:#1e3a8a;">${c.contrato?esc(c.contrato):'<span style="color:#dc2626;">No encontrado</span>'}</td>
+      <td style="${td}">${esc(c.fechaExpedicion||'—')}</td>
+      <td style="${td}">${esc(c.celular||'—')}</td>
+      <td style="padding:7px 10px;font-size:11px;color:#64748b;">${_fmtFecha(c.fecha)}</td>
+      <td style="padding:7px 10px;white-space:nowrap;">
+        <button onclick="editarConsulta('${c.id||''}')" title="Editar" style="padding:4px 8px;border-radius:6px;border:1.5px solid #bfdbfe;background:#fff;color:#2563eb;font-size:11px;font-weight:700;cursor:pointer;">✏️</button>
+        <button onclick="eliminarConsulta('${c.id||''}')" title="Eliminar" style="padding:4px 8px;border-radius:6px;border:1.5px solid #fecaca;background:#fff;color:#dc2626;font-size:11px;font-weight:700;cursor:pointer;">🗑</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function editarConsulta(id){ _editConsultaId=id; pintarConsultas(); }
+function cancelarEdicionConsulta(){ _editConsultaId=null; pintarConsultas(); }
+async function guardarConsulta(id){
+  const cedula=document.getElementById('ec-cedula').value.trim();
+  const fechaExpedicion=document.getElementById('ec-fecha').value.trim();
+  const celular=document.getElementById('ec-celular').value.trim();
+  if(!cedula){alert('La cédula no puede quedar vacía.');return;}
+  try{
+    const r=await fetch('/api/buscar-contrato/'+encodeURIComponent(id),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({cedula,fechaExpedicion,celular})});
+    if(!r.ok)throw new Error();
+    _editConsultaId=null;
+    cargarConsultas();
+    toast('Registro actualizado');
+  }catch{alert('No se pudo guardar. Intenta de nuevo.');}
 }
 async function eliminarConsulta(id){
   if(!id||!confirm('¿Eliminar este registro?'))return;
