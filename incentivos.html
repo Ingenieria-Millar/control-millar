@@ -232,8 +232,11 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
         <!-- Panel Consultas -->
         <div id="panel-consultas" style="display:none;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">🔎 Registros de Número de Contrato <span style="font-size:11px;font-weight:600;color:#94a3b8;letter-spacing:0;text-transform:none;">(v. 15-jul llave-seguridad)</span></div>
-            <button onclick="cargarConsultas()" style="padding:5px 12px;border-radius:7px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:12px;font-weight:700;cursor:pointer;">↻ Actualizar</button>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">🔎 Registros de Número de Contrato <span style="font-size:11px;font-weight:600;color:#94a3b8;letter-spacing:0;text-transform:none;">(v. 15-jul meses+export)</span></div>
+            <div style="display:flex;gap:8px;">
+              <button onclick="exportarConsultas()" style="padding:5px 12px;border-radius:7px;border:1.5px solid #16a34a;background:#16a34a;color:#fff;font-size:12px;font-weight:700;cursor:pointer;">📥 Exportar Excel</button>
+              <button onclick="cargarConsultas()" style="padding:5px 12px;border-radius:7px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:12px;font-weight:700;cursor:pointer;">↻ Actualizar</button>
+            </div>
           </div>
           <div style="overflow-x:auto;">
             <table style="width:100%;border-collapse:collapse;font-size:12px;">
@@ -329,6 +332,16 @@ const ADMIN_PASS = 'Millar20.';
 const PAGE_SIZE = 50;
 const COP = new Intl.NumberFormat('es-CO', { style:'currency', currency:'COP', maximumFractionDigits:0 });
 
+// Orden cronológico de meses (enero=1 … diciembre=12). Sin tilde/mayúsculas.
+const ORDEN_MES = {enero:1,febrero:2,marzo:3,abril:4,mayo:5,junio:6,julio:7,agosto:8,septiembre:9,setiembre:9,octubre:10,noviembre:11,diciembre:12};
+function mesIndice(nombre){
+  const k = String(nombre||'').trim().toLowerCase();
+  return ORDEN_MES[k] || 99; // desconocidos van al final
+}
+function ordenarPorMes(arr){
+  return [...arr].sort((a,b)=> mesIndice(a.mes) - mesIndice(b.mes));
+}
+
 function toast(msg){
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
@@ -351,7 +364,7 @@ async function buscar(){
   try{
     const res = await fetch('/api/incentivos?contrato=' + encodeURIComponent(contrato));
     if(!res.ok) throw new Error('Error del servidor');
-    registrosContrato = await res.json();
+    registrosContrato = ordenarPorMes(await res.json());
   }catch(e){ err.textContent = 'No se pudo consultar. Intenta de nuevo.'; return; }
 
   if(!Array.isArray(registrosContrato) || registrosContrato.length === 0){
@@ -489,7 +502,7 @@ function pick(row, keys){
 }
 
 function renderDispAdmin(){
-  const meses = [...new Set(adminData.map(r=>r.mes).filter(Boolean))].sort();
+  const meses = [...new Set(adminData.map(r=>r.mes).filter(Boolean))].sort((a,b)=>mesIndice(a)-mesIndice(b));
   const el = document.getElementById('dispGrid');
   if(!meses.length){
     el.innerHTML = '<span style="color:#94a3b8;font-size:13px;">No hay meses cargados aún.</span>';
@@ -832,6 +845,7 @@ document.getElementById('modal-buscar-contrato').addEventListener('click',e=>{if
 document.getElementById('bc-celular').addEventListener('keydown',e=>{if(e.key==='Enter')bcBuscar();});
 
 // ── Admin: tabla de consultas ───────────────────────────────────────
+let _consultasLista=[];
 async function cargarConsultas(){
   const tbody=document.getElementById('consultas-body');
   if(!tbody)return;
@@ -840,6 +854,7 @@ async function cargarConsultas(){
     const r=await fetch('/api/buscar-contrato');
     if(!r.ok){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#dc2626;padding:14px;">Error ('+r.status+')</td></tr>';return;}
     const lista=await r.json();
+    _consultasLista=lista;
     if(!lista.length){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:14px;">Sin registros aún.</td></tr>';return;}
     const fmt=s=>{if(!s)return '—';const d=new Date(s);return d.toLocaleDateString('es-CO',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+d.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'});};
     tbody.innerHTML=[...lista].reverse().map(c=>`<tr>
@@ -860,6 +875,26 @@ async function eliminarConsulta(id){
     if(!r.ok)throw new Error();
     cargarConsultas();
   }catch{alert('No se pudo eliminar.');}
+}
+async function exportarConsultas(){
+  if(typeof XLSX==='undefined'){ toast('Librería Excel no disponible'); return; }
+  // Trae la lista fresca por si no se ha cargado la tabla
+  let lista=_consultasLista;
+  try{ const r=await fetch('/api/buscar-contrato'); if(r.ok) lista=await r.json(); }catch{}
+  if(!lista||!lista.length){ toast('No hay registros para exportar'); return; }
+  const fmt=s=>{if(!s)return '';const d=new Date(s);return d.toLocaleDateString('es-CO',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+d.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'});};
+  const rows=lista.map(c=>({
+    'CÉDULA':c.cedula||'',
+    'NOMBRE':c.nombre||'',
+    'CONTRATO':c.contrato||'',
+    'F. EXPEDICIÓN':c.fechaExpedicion||'',
+    'CELULAR':c.celular||'',
+    'FECHA CONSULTA':fmt(c.fecha),
+  }));
+  const ws=XLSX.utils.json_to_sheet(rows,{header:['CÉDULA','NOMBRE','CONTRATO','F. EXPEDICIÓN','CELULAR','FECHA CONSULTA']});
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Registros');
+  XLSX.writeFile(wb,'registros_'+new Date().toISOString().slice(0,10)+'.xlsx');
 }
 </script>
 
