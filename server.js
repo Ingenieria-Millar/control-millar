@@ -1197,16 +1197,33 @@ app.post('/api/incentivos-disponibilidad', (req, res) => {
 });
 
 
-// Busca número de contrato por cédula y guarda el registro
+// Busca número de contrato por cédula.
+// 1a vez (cédula NO en la tabla): guarda cédula+fecha+celular como "llave".
+// 2a vez (cédula YA en la tabla): NO guarda; exige que fecha Y celular
+//   coincidan con lo guardado. Si no coinciden → 'no_coincide'.
+// El código (contrato) siempre se saca fresco de la lista de incentivos.
 app.post('/api/buscar-contrato', (req, res) => {
   try {
     const { cedula, fechaExpedicion, celular } = req.body || {};
     if (!cedula) return res.status(400).json({ ok: false, error: 'Cédula requerida' });
-    const norm = s => String(s || '').trim().replace(/\s+/g, '');
+    const norm = s => String(s || '').trim().replace(/\s+/g, '').toLowerCase();
+
     const incentivos = loadDB('incentivos') || [];
     const match = incentivos.find(r => norm(r.cedula) === norm(cedula));
+
     const lista = readJSON(FILES.consultas_contrato, []);
-    const ahora = new Date().toISOString();
+    const previo = lista.find(r => norm(r.cedula) === norm(cedula));
+
+    // ── Caso 2: ya existe registro para esa cédula ──
+    if (previo) {
+      const coincide = norm(previo.fechaExpedicion) === norm(fechaExpedicion)
+                    && norm(previo.celular)         === norm(celular);
+      if (!coincide) return res.json({ ok: true, estado: 'no_coincide' });
+      if (!match)    return res.json({ ok: true, estado: 'sin_incentivos' });
+      return res.json({ ok: true, estado: 'ok', contrato: match.contrato, nombre: match.nombre });
+    }
+
+    // ── Caso 1: primera vez → guarda la llave ──
     lista.push({
       id:              uuidv4(),
       cedula:          String(cedula).trim(),
@@ -1215,11 +1232,12 @@ app.post('/api/buscar-contrato', (req, res) => {
       fechaExpedicion: String(fechaExpedicion || '').trim(),
       celular:         String(celular || '').trim(),
       encontrado:      !!match,
-      fecha:           ahora,
+      fecha:           new Date().toISOString(),
     });
     writeJSONSync(FILES.consultas_contrato, lista);
-    if (!match) return res.json({ ok: true, encontrado: false });
-    res.json({ ok: true, encontrado: true, contrato: match.contrato, nombre: match.nombre });
+
+    if (!match) return res.json({ ok: true, estado: 'sin_incentivos' });
+    return res.json({ ok: true, estado: 'ok', contrato: match.contrato, nombre: match.nombre });
   } catch(e) { res.status(500).json({ ok: false, error: e.message }); }
 });
 

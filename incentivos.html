@@ -232,7 +232,7 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
         <!-- Panel Consultas -->
         <div id="panel-consultas" style="display:none;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">🔎 Registros de Número de Contrato <span style="font-size:11px;font-weight:600;color:#94a3b8;letter-spacing:0;text-transform:none;">(v. 15-jul SQLite-fix)</span></div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">🔎 Registros de Número de Contrato <span style="font-size:11px;font-weight:600;color:#94a3b8;letter-spacing:0;text-transform:none;">(v. 15-jul llave-seguridad)</span></div>
             <button onclick="cargarConsultas()" style="padding:5px 12px;border-radius:7px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:12px;font-weight:700;cursor:pointer;">↻ Actualizar</button>
           </div>
           <div style="overflow-x:auto;">
@@ -810,13 +810,17 @@ async function bcBuscar(){
     const r=await fetch('/api/buscar-contrato',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cedula,fechaExpedicion,celular})});
     if(!r.ok){msg.textContent='Error del servidor ('+r.status+'). Intenta de nuevo.';return;}
     const d=await r.json();
-    if(d.encontrado){
+    if(d.estado==='ok'){
       document.getElementById('bc-nombre').textContent=d.nombre||'';
       document.getElementById('bc-contrato').textContent=d.contrato||'—';
       document.getElementById('bc-form').style.display='none';
       document.getElementById('bc-resultado').style.display='block';
+    } else if(d.estado==='no_coincide'){
+      msg.textContent='Los datos no coinciden con tu primer registro. Verifica tu fecha de expedición y celular.';
+    } else if(d.estado==='sin_incentivos'){
+      msg.textContent='No tienes incentivos registrados. Contacta con tu coordinador.';
     } else {
-      msg.textContent='Tu cédula no está en el sistema aún. Tu registro fue guardado — contacta con tu coordinador.';
+      msg.textContent='No se pudo consultar. Intenta de nuevo.';
     }
   }catch{
     msg.textContent='Sin conexión. Intenta de nuevo.';
