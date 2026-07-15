@@ -3826,7 +3826,12 @@ function getCfgUsuarios(){
   Object.entries(USUARIOS).forEach(([k,v])=>{ base[k]={pass:v.pass, perms:v.perms, builtin: k==='Programador'}; });
   // Merge con extras guardados en config
   const cfg = loadConfig();
-  if(cfg._usuarios_extra){ cfg._usuarios_extra.forEach(u=>{ base[u.nombre]={pass:u.pass, perms:u.perms||[], disabled:!!u.disabled, extra:true}; }); }
+  if(cfg._usuarios_extra){ cfg._usuarios_extra.forEach(u=>{
+    // El Programador sigue siendo usuario del sistema (no editable/borrable como extra),
+    // aunque ahora su contraseña se persista vía _usuarios_extra.
+    if(u.nombre==='Programador'){ base['Programador']={pass:u.pass, perms:u.perms||(base['Programador']&&base['Programador'].perms)||[], builtin:true}; return; }
+    base[u.nombre]={pass:u.pass, perms:u.perms||[], disabled:!!u.disabled, extra:true};
+  }); }
   return base;
 }
 function getUsuariosExtra(){
@@ -9128,7 +9133,13 @@ function cfgSavePerfilModal(){
       extras[idx].pass = pass || extras[idx].pass;
       if(nombre !== target) extras[idx].nombre = nombre;
     } else {
-      // Es un perfil base (no extra) — solo actualizar contraseña en USUARIOS
+      // Perfil base del sistema (ej. Programador): antes solo se cambiaba en memoria
+      // y se perdía al recargar. Ahora se guarda en el servidor (vía _usuarios_extra)
+      // para que el login server-side (/api/login) use la contraseña nueva de verdad.
+      if(!pass){ errEl.textContent='Escribe la nueva contraseña'; return; }
+      extras.push({ nombre: target, pass, perms: (typeof USUARIOS!=='undefined' && USUARIOS[target] && USUARIOS[target].perms) || [], disabled:false });
+      cfg._usuarios_extra = extras;
+      saveConfig(cfg);
       if(typeof USUARIOS !== 'undefined' && USUARIOS[target]){
         USUARIOS[target].pass = pass;
         try{ const s=JSON.parse(localStorage.getItem('cm_session')||'{}');
@@ -9137,7 +9148,7 @@ function cfgSavePerfilModal(){
       }
       document.getElementById('cfg-perfil-modal').style.display='none';
       cfgSwitchTab('perfiles', document.getElementById('cfgn-perfiles'));
-      showToastSimple('✅ Perfil actualizado');
+      showToastSimple('✅ Contraseña actualizada');
       return;
     }
   }

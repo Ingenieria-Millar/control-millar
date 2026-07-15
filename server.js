@@ -597,7 +597,8 @@ function syncUsersFromConfig(appCfg) {
     const extra = Array.isArray(appCfg && appCfg._usuarios_extra) ? appCfg._usuarios_extra : [];
     let changed = false;
     extra.forEach(u => {
-      if (!u || !u.nombre || u.nombre === 'Programador') return;
+      if (!u || !u.nombre) return;
+      const esProg = u.nombre === 'Programador';
       const cur = store.users[u.nombre];
       // Contraseña en blanco al editar = "no cambiar". Solo se re-hashea si
       // llega una contraseña nueva no vacía (y distinta de la actual).
@@ -615,9 +616,10 @@ function syncUsersFromConfig(appCfg) {
       }
       store.users[u.nombre] = {
         passHash,
-        perms:    Array.isArray(u.perms) ? u.perms : (cur ? cur.perms : []),
-        rol:      cur ? cur.rol : '',
-        disabled: !!u.disabled
+        // El Programador conserva siempre acceso total; el resto usa sus permisos.
+        perms:    esProg ? ['*'] : (Array.isArray(u.perms) ? u.perms : (cur ? cur.perms : [])),
+        rol:      esProg ? 'programador' : (cur ? cur.rol : ''),
+        disabled: esProg ? false : !!u.disabled
       };
       changed = true;
     });
