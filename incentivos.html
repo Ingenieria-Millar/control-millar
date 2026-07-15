@@ -841,8 +841,12 @@ async function bcBuscar(){
     btn.disabled=false;btn.textContent='Buscar';
   }
 }
-document.getElementById('modal-buscar-contrato').addEventListener('click',e=>{if(e.target.id==='modal-buscar-contrato')cerrarBuscarContrato();});
-document.getElementById('bc-celular').addEventListener('keydown',e=>{if(e.key==='Enter')bcBuscar();});
+// El HTML del modal está más abajo en el documento; registrar los listeners
+// cuando el DOM esté completo para no leer elementos aún inexistentes (null).
+document.addEventListener('DOMContentLoaded',()=>{
+  document.getElementById('modal-buscar-contrato')?.addEventListener('click',e=>{if(e.target.id==='modal-buscar-contrato')cerrarBuscarContrato();});
+  document.getElementById('bc-celular')?.addEventListener('keydown',e=>{if(e.key==='Enter')bcBuscar();});
+});
 
 // ── Admin: tabla de consultas ───────────────────────────────────────
 let _consultasLista=[];
