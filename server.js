@@ -924,6 +924,12 @@ app.get('/logo.png', (req, res) => {
   res.status(404).end();
 });
 
+// Menú de usuario compartido (Mi perfil / Cerrar sesión) — se incluye en cada pantalla
+app.get('/user-menu.js', (req, res) => {
+  res.type('application/javascript');
+  res.sendFile(path.join(__dirname, 'user-menu.js'));
+});
+
 // GET todos los registros (con filtros opcionales)
 app.get('/api/recogedores', (req, res) => {
   let data = readJSON(FILES.recogedores, []);
