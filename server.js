@@ -622,7 +622,10 @@ function syncUsersFromConfig(appCfg) {
         // El Programador conserva siempre acceso total; el resto usa sus permisos.
         perms:    esProg ? ['*'] : (Array.isArray(u.perms) ? u.perms : (cur ? cur.perms : [])),
         rol:      esProg ? 'programador' : (cur ? cur.rol : ''),
-        disabled: esProg ? false : !!u.disabled
+        disabled: esProg ? false : !!u.disabled,
+        // Conservar el perfil (correo / nombre visible) que el usuario edita en "Mi perfil".
+        email:       (u.email != null ? String(u.email) : (cur ? cur.email : '')) || '',
+        displayName: (u.displayName != null ? String(u.displayName) : (cur ? cur.displayName : '')) || ''
       };
       changed = true;
     });
@@ -1918,7 +1921,54 @@ app.get('/api/me', (req, res) => {
   const store = loadUsers();
   const u = store.users[payload.user];
   if (!u || u.disabled) return res.status(401).json({ ok: false });
-  res.json({ ok: true, user: payload.user, perms: u.perms || [], rol: u.rol || '' });
+  res.json({ ok: true, user: payload.user, perms: u.perms || [], rol: u.rol || '', displayName: u.displayName || '', email: u.email || '' });
+});
+
+// ── Mi perfil: cada usuario ve y edita SOLO su propio perfil ───────
+// La identidad sale del token de sesión (no de un parámetro), para que
+// nadie pueda editar el perfil de otro. Reutiliza el mismo almacén seguro.
+function _authUser(req) {
+  const hdr   = req.headers.authorization || '';
+  const token = hdr.startsWith('Bearer ') ? hdr.slice(7) : (req.headers['x-session-token'] || '');
+  return verifyToken(token);
+}
+// GET /api/mi-perfil → datos del usuario actual (sin contraseña)
+app.get('/api/mi-perfil', (req, res) => {
+  const payload = _authUser(req);
+  if (!payload) return res.status(401).json({ ok: false, error: 'No autenticado' });
+  const store = loadUsers();
+  const u = store.users[payload.user];
+  if (!u || u.disabled) return res.status(401).json({ ok: false });
+  res.json({ ok: true, user: payload.user, displayName: u.displayName || '', email: u.email || '', rol: u.rol || '' });
+});
+// POST /api/mi-perfil { displayName?, email?, currentPass?, newPass? }
+// Para cambiar la contraseña exige la actual (bcrypt.compare). Guarda con
+// writeJSONSync (respeta SQLite). Nunca almacena texto plano.
+app.post('/api/mi-perfil', rateLimit(20, 60 * 1000), (req, res) => {
+  try {
+    const payload = _authUser(req);
+    if (!payload) return res.status(401).json({ ok: false, error: 'No autenticado' });
+    const store = loadUsers();
+    const u = store.users[payload.user];
+    if (!u || u.disabled) return res.status(401).json({ ok: false });
+    const { displayName, email, currentPass, newPass } = req.body || {};
+
+    if (newPass != null && String(newPass) !== '') {
+      if (!bcrypt.compareSync(String(currentPass == null ? '' : currentPass), u.passHash)) {
+        return res.status(400).json({ ok: false, error: 'La contraseña actual no es correcta' });
+      }
+      u.passHash = bcrypt.hashSync(String(newPass), BCRYPT_ROUNDS);
+    }
+    if (displayName != null) u.displayName = String(displayName).trim().slice(0, 80);
+    if (email != null)       u.email       = String(email).trim().slice(0, 120);
+
+    store.users[payload.user] = u;
+    store.updatedAt = new Date().toISOString();
+    writeJSONSync(FILES.users, store);
+    res.json({ ok: true, user: payload.user, displayName: u.displayName || '', email: u.email || '' });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
 });
 
 // Verifica una contraseña contra cualquier usuario habilitado (gate de borrado).
