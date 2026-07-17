@@ -257,9 +257,13 @@ function sqliteGet(key, defaultValue) {
   try { const row = _stmtGet.get(key); return row ? JSON.parse(row.value) : defaultValue; }
   catch (e) { console.error('[SQLITE] get', key, e.message); return defaultValue; }
 }
+// Devuelve true/false según si la escritura REALMENTE quedó guardada.
+// Antes este error se tragaba en silencio y las rutas respondían "ok" igual
+// aunque el guardado hubiera fallado (disco lleno, bloqueo, etc.) — el
+// navegador nunca se enteraba. Ahora el llamador puede saber si falló.
 function sqliteSet(key, data) {
-  try { _stmtSet.run(key, JSON.stringify(data), Date.now()); }
-  catch (e) { console.error('[SQLITE] set', key, e.message); }
+  try { _stmtSet.run(key, JSON.stringify(data), Date.now()); return true; }
+  catch (e) { console.error('[SQLITE] set', key, e.message); return false; }
 }
 
 // ── Helpers de persistencia ────────────────────────────────────────
@@ -275,9 +279,11 @@ function readJSON(filePath, defaultValue) {
 }
 
 // ── Write queue — evita escrituras síncronas bloqueantes ──────────
+// Devuelve true/false (con SQLite activo la escritura es inmediata y
+// síncrona, así que el resultado real ya se conoce al momento de llamar).
 const _writeQueue = {};
 function writeJSON(filePath, data) {
-  if (SQLITE_ON) { sqliteSet(keyFromPath(filePath), data); return; }
+  if (SQLITE_ON) return sqliteSet(keyFromPath(filePath), data);
   // Cancelar escritura pendiente y programar nueva (debounce por archivo)
   if (_writeQueue[filePath]) clearTimeout(_writeQueue[filePath]);
   _writeQueue[filePath] = setTimeout(() => {
@@ -285,14 +291,17 @@ function writeJSON(filePath, data) {
     fs.promises.writeFile(filePath, JSON.stringify(data), 'utf8')
       .catch(e => console.error('Error escribiendo', filePath, e.message));
   }, 0); // nextTick — libera el event loop
+  return true; // encolada; modo archivo local (no producción) — no crítico
 }
 
 // Escritura SÍNCRONA que respeta la MISMA bodega que readJSON.
 // Si SQLite está activo, guarda en SQLite (no en archivo suelto), para que
 // el guardado y la lectura usen el mismo almacén y el dato no "desaparezca".
+// Devuelve true/false según si realmente quedó guardado.
 function writeJSONSync(filePath, data) {
-  if (SQLITE_ON) { sqliteSet(keyFromPath(filePath), data); return; }
-  fs.writeFileSync(filePath, JSON.stringify(data), 'utf8');
+  if (SQLITE_ON) return sqliteSet(keyFromPath(filePath), data);
+  try { fs.writeFileSync(filePath, JSON.stringify(data), 'utf8'); return true; }
+  catch (e) { console.error('Error escribiendo (sync)', filePath, e.message); return false; }
 }
 
 // ── Caché en memoria ───────────────────────────────────────────────
@@ -316,11 +325,21 @@ function loadDB(key) {
   return dbCache[key];
 }
 
+// Devuelve true/false según si el guardado realmente quedó persistido.
+// El caché en memoria (dbCache) se actualiza siempre para que la app
+// siga respondiendo rápido, pero el llamador debe revisar el resultado
+// antes de decirle al usuario "guardado" — si es false, el dato SOLO
+// quedó en memoria (se pierde si el servidor se reinicia).
 function saveDB(key, data) {
   dbCache[key] = data;
-  if (SQLITE_ON) { sqliteSet(key, data); return; }
-  fs.promises.writeFile(FILES[key], JSON.stringify(data), 'utf8')
-    .catch(e => console.error('Error guardando', key, e.message));
+  if (SQLITE_ON) return sqliteSet(key, data);
+  try {
+    fs.writeFileSync(FILES[key], JSON.stringify(data), 'utf8');
+    return true;
+  } catch (e) {
+    console.error('Error guardando', key, e.message);
+    return false;
+  }
 }
 
 // ── Perfil Programador ─────────────────────────────────────────────
@@ -488,7 +507,7 @@ MODULES.forEach(id => {
 });
 
 function saveFloorState() {
-  writeJSON(FILES.floor_state, { states, lastMec, stateTimes, lastEmpleada, multiImps });
+  return writeJSON(FILES.floor_state, { states, lastMec, stateTimes, lastEmpleada, multiImps });
 }
 
 // ── Estado Tablero CI ──────────────────────────────────────────────
@@ -686,7 +705,7 @@ ensureUsersFile();
 //  contra archivos dañados, borrados accidentales o malas ediciones.
 // ══════════════════════════════════════════════════════════════════
 const BACKUP_DIR     = process.env.BACKUP_DIR   || path.join(DATA_DIR, '_backups');
-const BACKUP_KEEP    = parseInt(process.env.BACKUP_KEEP    || '24', 10); // cuántas conservar
+const BACKUP_KEEP    = parseInt(process.env.BACKUP_KEEP    || '6',  10); // cuántas conservar (6 = 1.5 días con copias cada 6h — evita llenar discos pequeños)
 const BACKUP_EVERY_H = parseInt(process.env.BACKUP_EVERY_H || '6',  10); // cada cuántas horas
 
 let _lastBackup = { ts: null, ok: false, files: 0, error: null };
@@ -906,7 +925,9 @@ app.get('/api/visitantes/db', (req, res) => {
 
 app.post('/api/visitantes/db', (req, res) => {
   try {
-    writeJSON(FILES.visitantes, req.body);
+    if (!writeJSON(FILES.visitantes, req.body)) {
+      return res.status(500).json({ ok: false, error: 'No se pudo guardar. Intenta de nuevo.' });
+    }
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
@@ -965,7 +986,7 @@ app.post('/api/recogedores', (req, res) => {
     );
     if (idx !== -1) { data[idx] = { ...data[idx], ...rec }; }
     else            { data.push(rec); }
-    writeJSON(FILES.recogedores, data);
+    if (!writeJSON(FILES.recogedores, data)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
     res.json({ ok: true, registro: data[idx !== -1 ? idx : data.length - 1] });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -980,7 +1001,7 @@ app.patch('/api/recogedores/:id', (req, res) => {
     if (data[idx].meta > 0) {
       data[idx].eficiencia = parseFloat(((data[idx].cantidad / data[idx].meta) * 100).toFixed(1));
     }
-    writeJSON(FILES.recogedores, data);
+    if (!writeJSON(FILES.recogedores, data)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
     res.json({ ok: true, registro: data[idx] });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -992,7 +1013,7 @@ app.delete('/api/recogedores/:id', (req, res) => {
     const len = data.length;
     data = data.filter(r => r.id !== req.params.id);
     if (data.length === len) return res.status(404).json({ error: 'No encontrado' });
-    writeJSON(FILES.recogedores, data);
+    if (!writeJSON(FILES.recogedores, data)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -1009,7 +1030,7 @@ app.get('/api/ordenes', (req, res) => {
 app.post('/api/ordenes', (req, res) => {
   const data = req.body;
   if (!Array.isArray(data)) return res.status(400).json({ error: 'Se esperaba un array' });
-  saveDB('ordenes', data);
+  if (!saveDB('ordenes', data)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
   res.json({ ok: true });
 });
 
@@ -1060,7 +1081,9 @@ app.post('/api/revision-telas', (req, res) => {
       tareas:    mergedTareas
     };
 
-    saveDB('revision_telas', data);
+    if (!saveDB('revision_telas', data)) {
+      return res.status(500).json({ ok: false, error: 'No se pudo guardar. Intenta de nuevo.' });
+    }
     res.json({ ok: true });
     setTimeout(()=>{
       try {
@@ -1082,7 +1105,9 @@ app.post('/api/produccion', (req, res) => {
   const { boards, history } = req.body || {};
   if (!boards || typeof boards !== 'object')
     return res.status(400).json({ error: 'Payload inválido' });
-  saveDB('produccion', { boards, history: history || [] });
+  if (!saveDB('produccion', { boards, history: history || [] })) {
+    return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
+  }
   // Notificar clientes prod — sin history (payload grande, no es tiempo real)
   broadcastProdUpdate({ type: 'prod_update', boards });
   res.json({ ok: true });
@@ -1147,7 +1172,7 @@ app.post('/api/incentivos', (req, res) => {
     });
 
     const merged = [...byKey.values()];
-    saveDB('incentivos', merged);
+    if (!saveDB('incentivos', merged)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
     res.json({ ok: true, recibidos: rows.length, guardados: upserts, total: merged.length });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -1165,7 +1190,7 @@ app.patch('/api/incentivos/:id', (req, res) => {
     if (b.cedula   !== undefined) data[idx].cedula   = String(b.cedula == null ? '' : b.cedula).trim();
     if (b.valor    !== undefined) data[idx].valor    = normValor(b.valor);
     data[idx].ts = Date.now();
-    saveDB('incentivos', data);
+    if (!saveDB('incentivos', data)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
     res.json({ ok: true, registro: data[idx] });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -1176,7 +1201,7 @@ app.delete('/api/incentivos/:id', (req, res) => {
     const data = loadDB('incentivos') || [];
     const filtrado = data.filter(r => r.id !== req.params.id);
     if (filtrado.length === data.length) return res.status(404).json({ error: 'Registro no encontrado' });
-    saveDB('incentivos', filtrado);
+    if (!saveDB('incentivos', filtrado)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -1186,13 +1211,13 @@ app.delete('/api/incentivos', (req, res) => {
   try {
     const data = loadDB('incentivos') || [];
     if (req.query.all === '1' || req.query.all === 'true') {
-      saveDB('incentivos', []);
+      if (!saveDB('incentivos', [])) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
       return res.json({ ok: true, eliminados: data.length });
     }
     const mes = req.query.mes != null ? normMes(req.query.mes) : null;
     if (!mes) return res.status(400).json({ error: 'Falta parámetro mes o all=1' });
     const filtrado = data.filter(r => normMes(r.mes) !== mes);
-    saveDB('incentivos', filtrado);
+    if (!saveDB('incentivos', filtrado)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
     res.json({ ok: true, eliminados: data.length - filtrado.length });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -1204,7 +1229,9 @@ app.get('/api/incentivos-disponibilidad', (req, res) => {
 });
 app.post('/api/incentivos-disponibilidad', (req, res) => {
   try {
-    writeJSON(FILES.incentivos_disp, req.body);
+    if (!writeJSON(FILES.incentivos_disp, req.body)) {
+      return res.status(500).json({ ok: false, error: 'No se pudo guardar. Intenta de nuevo.' });
+    }
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ ok: false, error: e.message }); }
 });
@@ -1247,7 +1274,9 @@ app.post('/api/buscar-contrato', (req, res) => {
       encontrado:      !!match,
       fecha:           new Date().toISOString(),
     });
-    writeJSONSync(FILES.consultas_contrato, lista);
+    if (!writeJSONSync(FILES.consultas_contrato, lista)) {
+      return res.status(500).json({ ok: false, error: 'No se pudo guardar. Intenta de nuevo.' });
+    }
 
     if (!match) return res.json({ ok: true, estado: 'sin_incentivos' });
     return res.json({ ok: true, estado: 'ok', contrato: match.contrato, nombre: match.nombre });
@@ -1284,7 +1313,9 @@ app.put('/api/buscar-contrato/:id', (req, res) => {
       contrato:        match ? (match.contrato || '') : '',
       encontrado:      !!match,
     };
-    writeJSONSync(FILES.consultas_contrato, lista);
+    if (!writeJSONSync(FILES.consultas_contrato, lista)) {
+      return res.status(500).json({ ok: false, error: 'No se pudo guardar. Intenta de nuevo.' });
+    }
     res.json({ ok: true, registro: lista[idx] });
   } catch(e) { res.status(500).json({ ok: false, error: e.message }); }
 });
@@ -1294,7 +1325,9 @@ app.delete('/api/buscar-contrato/:id', (req, res) => {
     const lista = readJSON(FILES.consultas_contrato, []);
     const nueva = lista.filter(s => s.id !== req.params.id);
     if (nueva.length === lista.length) return res.status(404).json({ ok: false });
-    writeJSONSync(FILES.consultas_contrato, nueva);
+    if (!writeJSONSync(FILES.consultas_contrato, nueva)) {
+      return res.status(500).json({ ok: false, error: 'No se pudo guardar. Intenta de nuevo.' });
+    }
     res.json({ ok: true });
   } catch(e) { res.status(500).json({ ok: false, error: e.message }); }
 });
@@ -1535,7 +1568,7 @@ app.post(
         hora:      ahora.toTimeString().slice(0, 8)
       };
       data.push(nuevo);
-      saveDB('alistamientos', data);
+      if (!saveDB('alistamientos', data)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
       if (nuevo.pruebaCostura === 'Rechazada') {
         const alertas = loadDB('alertas');
         alertas.push({
@@ -1552,7 +1585,7 @@ app.post(
 
 app.delete('/alistamiento/api/alistamientos/:id', (req, res) => {
   const data = loadDB('alistamientos').filter(r => r.id !== req.params.id);
-  saveDB('alistamientos', data);
+  if (!saveDB('alistamientos', data)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
   res.json({ success: true });
 });
 
@@ -1576,7 +1609,7 @@ app.put(
         fotos,
         updatedAt: ahora.toISOString()
       };
-      saveDB('alistamientos', data);
+      if (!saveDB('alistamientos', data)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
       res.json({ success: true, data: data[idx] });
     } catch(e) { res.status(500).json({ error: e.message }); }
   }
@@ -1603,7 +1636,7 @@ app.post('/alistamiento/api/multitareas', (req, res) => {
       hora:      ahora.toTimeString().slice(0, 8)
     };
     data.push(nuevo);
-    saveDB('multitareas', data);
+    if (!saveDB('multitareas', data)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
     res.json({ success: true, data: nuevo });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -1613,13 +1646,13 @@ app.put('/alistamiento/api/multitareas/:id', (req, res) => {
     const idx  = data.findIndex(r => r.id === req.params.id);
     if (idx === -1) return res.status(404).json({ error: 'No encontrado' });
     data[idx] = { ...data[idx], ...req.body, id: data[idx].id };
-    saveDB('multitareas', data);
+    if (!saveDB('multitareas', data)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
     res.json({ success: true, data: data[idx] });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 app.delete('/alistamiento/api/multitareas/:id', (req, res) => {
   const data = loadDB('multitareas').filter(r => r.id !== req.params.id);
-  saveDB('multitareas', data);
+  if (!saveDB('multitareas', data)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
   res.json({ success: true });
 });
 
@@ -1652,7 +1685,7 @@ app.post('/alistamiento/api/tareas', (req, res) => {
       asignadoPor:    req.body.asignadoPor || 'ADMINISTRADOR'
     };
     data.push(nueva);
-    writeJSON(FILES.tareas, data);
+    if (!writeJSON(FILES.tareas, data)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
     res.json({ success: true, data: nueva });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -1667,14 +1700,14 @@ app.put('/alistamiento/api/tareas/:id', (req, res) => {
       data[idx].fechaInicio = new Date().toISOString();
     if (req.body.estado === 'finalizada' && !data[idx].fechaFinalizada)
       data[idx].fechaFinalizada = new Date().toISOString();
-    writeJSON(FILES.tareas, data);
+    if (!writeJSON(FILES.tareas, data)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
     res.json({ success: true, data: data[idx] });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 app.delete('/alistamiento/api/tareas/:id', (req, res) => {
   try {
     const data = readJSON(FILES.tareas, []).filter(r => r.id !== req.params.id);
-    writeJSON(FILES.tareas, data);
+    if (!writeJSON(FILES.tareas, data)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
     res.json({ success: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -1707,7 +1740,7 @@ app.post(
         hora:      ahora.toTimeString().slice(0, 8)
       };
       data.push(nuevo);
-      saveDB('mantenimientos', data);
+      if (!saveDB('mantenimientos', data)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
       if (nuevo.tipoMantenimiento === 'Correctivo') {
         const alertas = loadDB('alertas');
         alertas.push({
@@ -1724,7 +1757,7 @@ app.post(
 
 app.delete('/alistamiento/api/mantenimientos/:id', (req, res) => {
   const data = loadDB('mantenimientos').filter(r => r.id !== req.params.id);
-  saveDB('mantenimientos', data);
+  if (!saveDB('mantenimientos', data)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
   res.json({ success: true });
 });
 
@@ -1747,7 +1780,7 @@ app.put(
         fotos,
         updatedAt: ahora.toISOString()
       };
-      saveDB('mantenimientos', data);
+      if (!saveDB('mantenimientos', data)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
       res.json({ success: true, data: data[idx] });
     } catch(e) { res.status(500).json({ error: e.message }); }
   }
@@ -1763,13 +1796,13 @@ app.put('/alistamiento/api/alertas/:id/leer', (req, res) => {
   const data = loadDB('alertas');
   const a = data.find(x => x.id === req.params.id);
   if (a) a.leida = true;
-  saveDB('alertas', data);
+  if (!saveDB('alertas', data)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
   res.json({ success: true });
 });
 
 app.put('/alistamiento/api/alertas/leer-todas', (req, res) => {
   const data = loadDB('alertas').map(a => ({ ...a, leida: true }));
-  saveDB('alertas', data);
+  if (!saveDB('alertas', data)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
   res.json({ success: true });
 });
 
@@ -1874,7 +1907,7 @@ app.post('/api/app-config', (req, res) => {
         return rest;
       });
     }
-    writeJSON(FILES.app_config, merged);
+    if (!writeJSON(FILES.app_config, merged)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
     res.json({ success: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -1970,7 +2003,9 @@ app.post('/api/mi-perfil', rateLimit(20, 60 * 1000), (req, res) => {
 
     store.users[payload.user] = u;
     store.updatedAt = new Date().toISOString();
-    writeJSONSync(FILES.users, store);
+    if (!writeJSONSync(FILES.users, store)) {
+      return res.status(500).json({ ok: false, error: 'No se pudo guardar. Intenta de nuevo.' });
+    }
     res.json({ ok: true, user: payload.user, displayName: u.displayName || '', email: u.email || '' });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
@@ -2081,7 +2116,9 @@ app.get('/api/supervisoras', (req, res) => {
 app.get('/api/novedades',  (req, res) => res.json(readJSON(FILES.novedades, [])));
 app.post('/api/novedades', (req, res) => {
   try {
-    writeJSON(FILES.novedades, Array.isArray(req.body) ? req.body : []);
+    if (!writeJSON(FILES.novedades, Array.isArray(req.body) ? req.body : [])) {
+      return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
+    }
     res.json({ success: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -2091,21 +2128,30 @@ app.post('/api/novedades', (req, res) => {
 // Maquinaria
 app.get('/api/maquinaria',  (req, res) => res.json(readJSON(FILES.maquinaria, [])));
 app.post('/api/maquinaria', (req, res) => {
-  try { writeJSON(FILES.maquinaria, req.body); res.json({ success: true }); }
+  try {
+    if (!writeJSON(FILES.maquinaria, req.body)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
+    res.json({ success: true });
+  }
   catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 // Guías
 app.get('/api/guias',  (req, res) => res.json(readJSON(FILES.guias, [])));
 app.post('/api/guias', (req, res) => {
-  try { writeJSON(FILES.guias, req.body); res.json({ success: true }); }
+  try {
+    if (!writeJSON(FILES.guias, req.body)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
+    res.json({ success: true });
+  }
   catch(e) { res.status(500).json({ error: e.message }); }
 });
 
 // Turnos
 app.get('/api/turnos',  (req, res) => res.json(readJSON(FILES.turnos, [])));
 app.post('/api/turnos', (req, res) => {
-  try { writeJSON(FILES.turnos, req.body); res.json({ success: true }); }
+  try {
+    if (!writeJSON(FILES.turnos, req.body)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
+    res.json({ success: true });
+  }
   catch(e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -2125,7 +2171,7 @@ app.post('/api/turnos-asignados', (req, res) => {
       fechaAsignado: new Date().toISOString().split('T')[0]
     };
     data.push(nueva);
-    writeJSON(FILES.turnos_asignados, data);
+    if (!writeJSON(FILES.turnos_asignados, data)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
     res.json({ ok: true, asignacion: nueva });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -2139,7 +2185,7 @@ app.put('/api/turnos-asignados/:id', (req, res) => {
     if (turno !== undefined) data[idx].turno = turno;
     if (desde !== undefined) data[idx].desde = desde;
     if (hasta !== undefined) data[idx].hasta = hasta;
-    writeJSON(FILES.turnos_asignados, data);
+    if (!writeJSON(FILES.turnos_asignados, data)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
     res.json({ ok: true, asignacion: data[idx] });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
@@ -2203,7 +2249,7 @@ app.delete('/api/historial/:idx', (req, res) => {
     const ciRequestId = registro ? registro.ciRequestId : null;
     
     h.splice(idx, 1);
-    writeJSON(FILES.historial, h);
+    if (!writeJSON(FILES.historial, h)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
 
     // Si tiene ciRequestId, eliminar también de ci_requests
     if(ciRequestId){
@@ -2225,7 +2271,7 @@ app.patch('/api/historial/:idx', (req, res) => {
     if(isNaN(idx) || idx < 0 || idx >= h.length) return res.status(404).json({ error: 'índice inválido' });
     const campos = ['modulo','empleada','horaInicio','hora','mecanico'];
     campos.forEach(c => { if(req.body[c] !== undefined) h[idx][c] = req.body[c]; });
-    writeJSON(FILES.historial, h);
+    if (!writeJSON(FILES.historial, h)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
     res.json({ success: true });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
