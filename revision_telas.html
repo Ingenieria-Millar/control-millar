@@ -469,6 +469,13 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
   border-radius:10px;font-size:13px;font-weight:600;z-index:9999;transform:translateY(80px);
   opacity:0;transition:all .3s;pointer-events:none;}
 .toast.show{transform:translateY(0);opacity:1;}
+.toast.error{background:#dc2626;}
+
+/* Aviso persistente de guardado pendiente/fallido */
+#rt-sync-warning{display:none;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;
+  background:#fef2f2;border:1.5px solid #fca5a5;color:#dc2626;font-family:'Barlow Condensed',sans-serif;
+  font-size:12px;font-weight:700;letter-spacing:.3px;animation:rt-pulse 1.4s ease-in-out infinite;}
+@keyframes rt-pulse{0%,100%{opacity:1;}50%{opacity:.55;}}
 
 /* Pantalla CFG */
 #rt-cfg-screen{display:none;position:fixed;inset:0;z-index:500;background:#f1f5f9;flex-direction:column;}
@@ -605,6 +612,7 @@ input[type=number]{-moz-appearance:textfield;}
   <div data-millar-nav id="millar-nav-wrap"></div>
   <div class="hd-right">
     <div id="rt-admin-btns" style="display:none;"></div>
+    <div id="rt-sync-warning"></div>
     <div id="rt-user-badge" style="display:none;align-items:center;gap:0;border:1.5px solid #cbd5e1;border-radius:8px;overflow:hidden;background:#fff;">
       <span style="padding:6px 12px;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:#475569;letter-spacing:.5px;display:flex;align-items:center;gap:5px;">
         👤 <span id="rt-user-name" style="text-transform:uppercase;letter-spacing:1px;"></span>
@@ -1394,6 +1402,7 @@ async function syncPoll(){
       const serverIds=new Set(serverRegs.map(r=>r.id));
       // El servidor ya confirmó estos ids → dejan de estar pendientes
       _pendingIds.forEach(id=>{ if(serverIds.has(id)) _pendingIds.delete(id); });
+      actualizarIndicadorPendientes();
       // Conservar SIEMPRE los locales pendientes que el servidor aún no tiene
       const localPending=_registros.filter(r=>_pendingIds.has(r.id)&&!serverIds.has(r.id));
       // Si quedan pendientes sin confirmar, reintentar el guardado (auto-recuperación)
@@ -1430,6 +1439,7 @@ function connectWS(){
         const serverRegs=msg.registros||[];
         const serverIds=new Set(serverRegs.map(r=>r.id));
         _pendingIds.forEach(id=>{ if(serverIds.has(id)) _pendingIds.delete(id); });
+      actualizarIndicadorPendientes();
         const localPending=_registros.filter(r=>_pendingIds.has(r.id)&&!serverIds.has(r.id));
         _registros=[...serverRegs,...localPending];
         _cfgDefectos=msg.defectos||_cfgDefectos;
@@ -1562,6 +1572,20 @@ function verHistorial(){
 }
 let _lastSaveTime=0;
 let _deletedIds=[]; // ids eliminados pendientes de confirmar en el servidor (para que el borrado se propague con el merge)
+let _saveFailing=false, _saveFailCount=0, _saveRetryTimer=null;
+function actualizarIndicadorPendientes(){
+  const el=document.getElementById('rt-sync-warning');
+  if(!el)return;
+  if(_saveFailing){
+    el.style.display='flex';
+    el.textContent='⚠️ Sin conexión — reintentando…';
+  } else if(_pendingIds.size>0){
+    el.style.display='flex';
+    el.textContent='⏳ Guardando '+_pendingIds.size+'…';
+  } else {
+    el.style.display='none';
+  }
+}
 async function guardarEnServidor(){
   _lastSaveTime=Date.now();
   const sentDeleted=_deletedIds.slice();
@@ -1570,10 +1594,26 @@ async function guardarEnServidor(){
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({registros:_registros,defectos:_cfgDefectos,referencias:_cfgReferencias,colores:_cfgColores,proveedores:_cfgProveedores,proveedoresTerceros:_cfgProveedoresTerceros,tareas:_cfgTareas,deletedIds:sentDeleted})
     });
-    if(res&&res.ok&&sentDeleted.length){
+    if(!res||!res.ok) throw new Error('HTTP '+(res?res.status:'sin respuesta'));
+    if(sentDeleted.length){
       _deletedIds=_deletedIds.filter(id=>!sentDeleted.includes(id));
     }
-  }catch(e){console.warn(e);}
+    if(_saveFailing){
+      _saveFailing=false;_saveFailCount=0;clearTimeout(_saveRetryTimer);
+      showToast('✅ Conexión recuperada — guardado al día');
+    }
+    actualizarIndicadorPendientes();
+  }catch(e){
+    console.warn('[RT] Error guardando:',e);
+    _saveFailCount++;
+    if(!_saveFailing){
+      _saveFailing=true;
+      showToast('⚠️ No se pudo guardar. Verifica tu conexión — reintentando…','error');
+    }
+    actualizarIndicadorPendientes();
+    clearTimeout(_saveRetryTimer);
+    _saveRetryTimer=setTimeout(guardarEnServidor,Math.min(3000*_saveFailCount,30000));
+  }
 }
 
 // ── Helpers ────────────────────────────────────────────────────────
@@ -2122,7 +2162,7 @@ function guardarRegistro(){
     hora_inicio:horaActual(),hora_fin:'',tiempo:'',metros:'',defectos:[],resultado:'',observaciones:'',finalizado:false,
     ...resolverTurnoFinal(revisador, horaActual(), fecha)
   };
-  _registros.push(registro);_pendingIds.add(registro.id);registrarHistorial('CREADO',registro,'Rollo '+registro.rollo+' — '+registro.lote);
+  _registros.push(registro);_pendingIds.add(registro.id);actualizarIndicadorPendientes();registrarHistorial('CREADO',registro,'Rollo '+registro.rollo+' — '+registro.lote);
   aplicarFiltros();closeRegistroModal();
   guardarEnServidor();
   openRevisionActiva(registro.id);
@@ -3108,7 +3148,7 @@ function filtrarTabla(colIdx,val){
 
 // ── Toast ──────────────────────────────────────────────────────────
 let _toastTimer=null;
-function showToast(msg){const t=document.getElementById('rt-toast');t.textContent=msg;t.classList.add('show');clearTimeout(_toastTimer);_toastTimer=setTimeout(()=>t.classList.remove('show'),2500);}
+function showToast(msg,type){const t=document.getElementById('rt-toast');t.textContent=msg;t.classList.toggle('error',type==='error');t.classList.add('show');clearTimeout(_toastTimer);_toastTimer=setTimeout(()=>t.classList.remove('show'),type==='error'?4500:2500);}
 
 // ── Tipo Registro (menú selección) ─────────────────────────────────
 function openTipoRegistroModal(){
@@ -3162,7 +3202,7 @@ function iniciarMultitarea(){
     ...resolverTurnoFinal(revisador, horaActual(), fechaHoy())
   };
   _registros.push(reg);
-  _pendingIds.add(reg.id);
+  _pendingIds.add(reg.id);actualizarIndicadorPendientes();
   registrarHistorial('CREADO',reg,'Multitarea: '+tarea);
   closeMultitareaModal();
   guardarEnServidor();
