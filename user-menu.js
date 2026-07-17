@@ -1,9 +1,13 @@
 /* ═══════════════════════════════════════════════════════════════════
    Menú de usuario compartido — Confecciones Millar
    Se incluye con <script src="/user-menu.js"></script> en cada pantalla.
-   Muestra ícono + nombre (arriba a la derecha) con un menú:
+   Muestra ícono + nombre con un menú:
      • Mi perfil  → editar nombre visible, correo y contraseña
      • Cerrar sesión
+   Se inserta como un botón más dentro del contenedor derecho del header
+   de cada pantalla (para no montarse encima de otros botones). Si la
+   pantalla no tiene ninguno de los contenedores conocidos, cae de vuelta
+   a flotar arriba a la derecha (comportamiento anterior).
    Aislado: no depende de funciones de la página; usa su propio token
    de sesión y su propio cierre de sesión. Se auto-oculta si no hay sesión.
    ═══════════════════════════════════════════════════════════════════ */
@@ -25,7 +29,8 @@
   // ── Estilos (prefijo cmum- para no chocar con la página) ──
   var css = document.createElement('style');
   css.textContent =
-  '#cmum-wrap{position:fixed;top:10px;right:14px;z-index:9000;font-family:"Nunito",system-ui,sans-serif;}' +
+  '#cmum-wrap{position:relative;z-index:20;font-family:"Nunito",system-ui,sans-serif;}' +
+  '#cmum-wrap.cmum-fixed{position:fixed;top:10px;right:14px;z-index:9000;}' +
   '#cmum-btn{display:flex;align-items:center;gap:7px;background:#fff;border:1px solid #e2e8f0;border-radius:22px;padding:6px 12px;cursor:pointer;color:#0f172a;font-size:13px;font-weight:700;box-shadow:0 2px 8px rgba(15,23,42,.10);}' +
   '#cmum-btn:hover{background:#f8fafc;border-color:#cbd5e1;}' +
   '#cmum-btn .cmum-ico{color:#2563eb;flex-shrink:0;}' +
@@ -180,8 +185,22 @@
     document.addEventListener('click', closeDD);
   }
 
+  // Contenedores conocidos del lado derecho del header, por pantalla.
+  // Si ninguno existe, se cae de vuelta a flotar fijo (comportamiento anterior).
+  var HEADER_SELECTORS = ['.hd-right', '.ia-header-right', '.ci-tb-right', '.topbar-right'];
+
   function mount() {
-    document.body.appendChild(wrap);
+    var target = null;
+    for (var i = 0; i < HEADER_SELECTORS.length; i++) {
+      target = document.querySelector(HEADER_SELECTORS[i]);
+      if (target) break;
+    }
+    if (target) {
+      target.appendChild(wrap);
+    } else {
+      wrap.classList.add('cmum-fixed');
+      document.body.appendChild(wrap);
+    }
     document.body.appendChild(modal);
     wire();
     refresh();
