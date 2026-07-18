@@ -32,19 +32,6 @@
 var F=window.fetch;window.fetch=function(u,o){o=o||{};var t=T();if(t){var h=new Headers(o.headers||{});if(!h.has('Authorization'))h.set('Authorization','Bearer '+t);o.headers=h;}return F.call(this,u,o);};
 var W=window.WebSocket;function MW(u,p){try{var t=T();if(t&&typeof u==='string'&&u.indexOf('token=')<0){u+=(u.indexOf('?')<0?'?':'&')+'token='+encodeURIComponent(t);}}catch(e){}return p!==undefined?new W(u,p):new W(u);}MW.prototype=W.prototype;MW.CONNECTING=W.CONNECTING;MW.OPEN=W.OPEN;MW.CLOSING=W.CLOSING;MW.CLOSED=W.CLOSED;window.WebSocket=MW;})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<script>/* Botón flotante "Descargar respaldo" — solo visible para el Programador. Aislado, no toca nada más. */
-window.addEventListener('load', function(){
-  try{
-    var s=JSON.parse(localStorage.getItem('cm_session')||'{}');
-    if(!s || s.user!=='Programador' || document.getElementById('millar-backup-btn')) return;
-    var b=document.createElement('a');
-    b.id='millar-backup-btn'; b.href='/admin/backup'; b.target='_blank';
-    b.textContent='📥 Respaldo';
-    b.style.cssText='position:fixed;bottom:14px;left:14px;z-index:99999;background:#1e3a8a;color:#fff;font:700 12px system-ui,sans-serif;padding:8px 12px;border-radius:20px;text-decoration:none;box-shadow:0 3px 12px rgba(0,0,0,.25);opacity:.85';
-    b.onmouseover=function(){b.style.opacity='1';}; b.onmouseout=function(){b.style.opacity='.85';};
-    document.body.appendChild(b);
-  }catch(e){}
-});</script>
 <title>MES — Millar</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <!-- Screen & Session Persistence -->
@@ -590,6 +577,8 @@ select.lp-ctrl{background-color:#fff;
   color:#fca5a5;
 }
 .sp-user-btn-logout:hover{background:rgba(239,68,68,.3);border-color:#ef4444;color:#fecaca;}
+.sp-user-btn-perfil{border-color:rgba(96,165,250,.5);background:rgba(37,99,235,.18);color:#bfdbfe;}
+.sp-user-btn-perfil:hover{background:rgba(37,99,235,.32);border-color:#60a5fa;color:#fff;}
 .sp-left-foot{position:absolute;bottom:20px;left:0;right:0;text-align:center;z-index:5;
   font-family:'Nunito',sans-serif;font-size:11px;font-weight:600;letter-spacing:1.5px;color:rgba(255,255,255,.3);}
 /* En móvil vertical, el reloj queda debajo de los botones — lo movemos al flujo normal */
@@ -1051,18 +1040,7 @@ body { overflow-x: hidden; max-width: 100vw; }
     <span id="live-dot" class="live-dot" style="display:none;"></span>
     <span id="conn-label" class="conn-label" style="display:none;"></span>
     <span id="clock" class="clock" style="display:none;"></span>
-    <!-- Menú de usuario: ícono + nombre → Mi perfil / Cerrar sesión -->
-    <div id="hd-user-menu" style="display:none;position:relative;">
-      <button id="hd-user-btn" type="button" onclick="toggleUserMenu(event)">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-6 8-6s8 2 8 6"/></svg>
-        <span id="hd-user-menu-name"></span>
-        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-      </button>
-      <div id="hd-user-dd">
-        <button type="button" onclick="abrirMiPerfil()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-6 8-6s8 2 8 6"/></svg> Mi perfil</button>
-        <button type="button" onclick="volverLogin()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg> Cerrar sesión</button>
-      </div>
-    </div>
+    <!-- (El menú de usuario se movió al panel de bienvenida — botón "Mi perfil") -->
     <div id="hd-tablero-right" style="display:none;align-items:center;gap:.7rem;">
       <div class="hd-user-badge" style="display:none;"><span class="hd-user-dot"></span><span id="hd-user-name"></span></div>
       <button class="hd-back-btn" onclick="atrasDesdeTablero()">← Volver</button>
@@ -1283,6 +1261,7 @@ body { overflow-x: hidden; max-width: 100vw; }
         <div id="sp-back-wrap" style="display:none;width:100%;">
           <button class="sp-user-btn" style="width:100%;justify-content:center;" onclick="mostrarAreaScreen()">← Atrás</button>
         </div>
+        <button class="sp-user-btn sp-user-btn-perfil" style="width:100%;justify-content:center;" onclick="abrirMiPerfil()">👤 Mi perfil</button>
         <button class="sp-user-btn sp-user-btn-logout" style="width:100%;justify-content:center;" onclick="volverLogin()">✕ Salir</button>
       </div>
     </div>
@@ -1831,6 +1810,10 @@ function connectWS(){
           else if(at==='config'&&typeof iaRenderConfig==='function')iaRenderConfig();
           else{if(typeof iaRenderTodayChips==='function')iaRenderTodayChips();if(typeof iaUpdateStats==='function')iaUpdateStats();}
         }
+
+      } else if(msg.type==='save_error'){
+        // El servidor no pudo guardar en la base de datos → avisar fuerte.
+        mostrarErrorGuardado(msg.area||'');
       }
 
     }catch(err){ console.error('WS error:', err); }
@@ -1847,6 +1830,27 @@ function connectWS(){
   };
 
   ws.onerror=()=>{ ws.close(); };
+}
+
+// Banner rojo fijo cuando el servidor NO pudo guardar (disco lleno, BD bloqueada…)
+function mostrarErrorGuardado(area){
+  let b=document.getElementById('save-error-banner');
+  if(!b){
+    b=document.createElement('div');
+    b.id='save-error-banner';
+    b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#dc2626;color:#fff;'
+      +'font-family:system-ui,sans-serif;font-size:14px;font-weight:700;text-align:center;padding:12px 44px;'
+      +'box-shadow:0 3px 12px rgba(0,0,0,.3);cursor:default;';
+    b.innerHTML='<span id="save-error-text"></span>'
+      +'<button onclick="this.parentNode.remove()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);'
+      +'background:rgba(255,255,255,.25);border:none;color:#fff;font-size:16px;font-weight:700;width:26px;height:26px;'
+      +'border-radius:6px;cursor:pointer;">✕</button>';
+    document.body.appendChild(b);
+  }
+  const t=b.querySelector('#save-error-text');
+  if(t) t.textContent='⚠️ ATENCIÓN: el servidor no pudo guardar'+(area?(' ('+area+')'):'')
+    +'. Tu último cambio podría NO haberse guardado. Avisa al administrador y verifica en unos minutos.';
+  b.style.display='block';
 }
 
 function setConnStatus(online){
@@ -4779,6 +4783,7 @@ setInterval(()=>{const n=new Date();document.getElementById('clock').textContent
       <div class="cfg-nav-item" id="cfgn-modulos" onclick="cfgSwitchTab('modulos',this)"><span>🏭</span> Módulos</div>
 
       <div class="cfg-nav-item" id="cfgn-novedades" onclick="cfgSwitchTab('novedades',this)"><span>📋</span> Novedades</div>
+      <div class="cfg-nav-item" id="cfgn-respaldo" style="display:none;" onclick="window.open('/admin/backup','_blank')"><span>💾</span> Respaldo</div>
     </div>
 
     <!-- MAIN AREA -->
@@ -4826,6 +4831,9 @@ function openCfgScreen(){
   // Mostrar botón reset solo para Programador
   const btnReset = document.getElementById('cfgn-reset-local');
   if(btnReset) btnReset.style.display = (currentUser==='Programador') ? '' : 'none';
+  // Mostrar Respaldo solo para Programador
+  const btnResp = document.getElementById('cfgn-respaldo');
+  if(btnResp) btnResp.style.display = (currentUser==='Programador') ? '' : 'none';
 }
 
 async function cfgResetLocalStorage(){
@@ -9370,8 +9378,8 @@ function cfgSavePerfilModal(){
     <h3><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#2563eb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-6 8-6s8 2 8 6"/></svg> Mi perfil</h3>
     <p class="mp-sub">Actualiza tu información. Los cambios se guardan al instante.</p>
     <div class="mp-field"><label>Usuario</label><input id="mp-usuario" type="text" disabled></div>
-    <div class="mp-field"><label>Nombre visible</label><input id="mp-nombre" type="text" maxlength="80" placeholder="Ej: Steven Palacio"></div>
-    <div class="mp-field"><label>Correo electrónico</label><input id="mp-correo" type="email" maxlength="120" placeholder="correo@cmillar.co"></div>
+    <div class="mp-field"><label>Nombre visible</label><input id="mp-nombre" type="text" maxlength="80" placeholder=""></div>
+    <div class="mp-field"><label>Correo electrónico</label><input id="mp-correo" type="email" maxlength="120" placeholder=""></div>
     <div class="mp-divider">
       <div class="mp-divider-title">Cambiar contraseña</div>
       <p class="mp-hint">Déjalo en blanco si no quieres cambiarla.</p>

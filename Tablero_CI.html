@@ -821,10 +821,34 @@ function connectWS(){
         if(msg.elasticoList)   ciConfig.elasticoList   = msg.elasticoList;
         if(msg.moduleList)     ciConfig.moduleList     = msg.moduleList;
         if(msg.obsList)        ciConfig.obsList        = msg.obsList;
-            }
+
+      } else if(msg.type === 'save_error'){
+        mostrarErrorGuardado(msg.area || '');
+      }
 
     } catch(err){ dbg('Error parseando: ' + err.message); }
   };
+
+// Banner rojo fijo cuando el servidor NO pudo guardar
+function mostrarErrorGuardado(area){
+  let b=document.getElementById('save-error-banner');
+  if(!b){
+    b=document.createElement('div');
+    b.id='save-error-banner';
+    b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#dc2626;color:#fff;'
+      +'font-family:system-ui,sans-serif;font-size:14px;font-weight:700;text-align:center;padding:12px 44px;'
+      +'box-shadow:0 3px 12px rgba(0,0,0,.3);';
+    b.innerHTML='<span id="save-error-text"></span>'
+      +'<button onclick="this.parentNode.remove()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);'
+      +'background:rgba(255,255,255,.25);border:none;color:#fff;font-size:16px;font-weight:700;width:26px;height:26px;'
+      +'border-radius:6px;cursor:pointer;">✕</button>';
+    document.body.appendChild(b);
+  }
+  const t=b.querySelector('#save-error-text');
+  if(t) t.textContent='⚠️ ATENCIÓN: el servidor no pudo guardar'+(area?(' ('+area+')'):'')
+    +'. Tu último cambio podría NO haberse guardado. Avisa al administrador y verifica en unos minutos.';
+  b.style.display='block';
+}
 
   ws.onclose = () => {
     wsReady = false;

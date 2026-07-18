@@ -220,7 +220,9 @@ if (USE_SQLITE) {
   try {
     const Database = require('better-sqlite3');
     _sqlite = new Database(DB_PATH);
-    _sqlite.pragma('journal_mode = WAL');   // más resistente ante cortes
+    _sqlite.pragma('journal_mode = WAL');    // más resistente ante cortes
+    _sqlite.pragma('synchronous = FULL');    // cada guardado se graba en disco de inmediato (máxima durabilidad, nada se queda "en borrador")
+    _sqlite.pragma('busy_timeout = 5000');   // si la BD está ocupada, espera hasta 5s en vez de fallar al instante (evita fallos falsos por choques)
     _sqlite.exec('CREATE TABLE IF NOT EXISTS store (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at INTEGER)');
     _stmtGet = _sqlite.prepare('SELECT value FROM store WHERE key = ?');
     _stmtSet = _sqlite.prepare('INSERT INTO store (key, value, updated_at) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at');
@@ -371,9 +373,9 @@ if (!iaState) {
 }
 writeJSON(FILES.ia_state, iaState);
 
-function saveIaState()       { writeJSON(FILES.ia_state,       iaState);       }
-function saveIaRecords()     { writeJSON(FILES.ia_records,     iaRecords);     }
-function saveModulesConfig() { writeJSON(FILES.modules_config, modulesConfig); }
+function saveIaState()       { const ok = writeJSON(FILES.ia_state,       iaState);       if (!ok) notifySaveError('Control de Asistencia'); return ok; }
+function saveIaRecords()     { const ok = writeJSON(FILES.ia_records,     iaRecords);     if (!ok) notifySaveError('Control de Asistencia'); return ok; }
+function saveModulesConfig() { const ok = writeJSON(FILES.modules_config, modulesConfig); if (!ok) notifySaveError('Configuración de módulos'); return ok; }
 
 // ── Estado Control de Piso ─────────────────────────────────────────
 const MODULES = [
@@ -486,7 +488,7 @@ function logHistorial(id, prevState, newState, mecanico, empleada) {
     empleada:  empleadaFinal
   };
   historial.push(registro);
-  if (historial.length > 10000) historial = historial.slice(-10000);
+  if (historial.length > HISTORIAL_MAX) historial = historial.slice(-HISTORIAL_MAX);
   writeJSON(FILES.historial, historial);
 }
 
@@ -507,7 +509,9 @@ MODULES.forEach(id => {
 });
 
 function saveFloorState() {
-  return writeJSON(FILES.floor_state, { states, lastMec, stateTimes, lastEmpleada, multiImps });
+  const ok = writeJSON(FILES.floor_state, { states, lastMec, stateTimes, lastEmpleada, multiImps });
+  if (!ok) notifySaveError('Tablero de Piso');
+  return ok;
 }
 
 // ── Estado Tablero CI ──────────────────────────────────────────────
@@ -529,8 +533,8 @@ const CI_CONFIG_DEFAULT = {
 let ciRequests = readJSON(FILES.ci_requests, []);
 let ciConfig   = readJSON(FILES.ci_config, CI_CONFIG_DEFAULT);
 
-function saveCiRequests() { writeJSON(FILES.ci_requests, ciRequests); }
-function saveCiConfig()   { writeJSON(FILES.ci_config,   ciConfig);   }
+function saveCiRequests() { const ok = writeJSON(FILES.ci_requests, ciRequests); if (!ok) notifySaveError('Tablero CI'); return ok; }
+function saveCiConfig()   { const ok = writeJSON(FILES.ci_config,   ciConfig);   if (!ok) notifySaveError('Tablero CI'); return ok; }
 
 // ── Datos estáticos Alistamiento ───────────────────────────────────────
 const SUPERVISORAS_BIT = []; // se gestionan desde la app
@@ -708,6 +712,13 @@ const BACKUP_DIR     = process.env.BACKUP_DIR   || path.join(DATA_DIR, '_backups
 const BACKUP_KEEP    = parseInt(process.env.BACKUP_KEEP    || '6',  10); // cuántas conservar (6 = 1.5 días con copias cada 6h — evita llenar discos pequeños)
 const BACKUP_EVERY_H = parseInt(process.env.BACKUP_EVERY_H || '6',  10); // cada cuántas horas
 
+// ── Topes máximos de registros (rotación en memoria) ───────────────
+// Cuando una lista supera el tope, se descartan los más antiguos para no
+// crecer sin fin. Se subieron 10x respecto a los valores originales y son
+// configurables por variable de entorno si algún día se necesita más.
+const HISTORIAL_MAX = parseInt(process.env.HISTORIAL_MAX || '100000', 10); // improductivos (antes 10.000)
+const CI_MAX        = parseInt(process.env.CI_MAX        || '100000', 10); // solicitudes CI (antes 50.000)
+
 let _lastBackup = { ts: null, ok: false, files: 0, error: null };
 function hacerBackup() {
   try {
@@ -764,8 +775,8 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // ── Saneamiento anti-XSS de toda entrada (Paso 1) ─────────────────
 // Limpia contenido peligroso (scripts, etiquetas activas, manejadores de
@@ -1512,6 +1523,20 @@ function broadcast(payload, excludeWs = null) {
     if (topic && c.topics && c.topics.size > 0 && !c.topics.has(topic)) return;
     c.send(str);
   });
+}
+
+// ── Aviso de fallo de guardado (tiempo real) ───────────────────────
+// Cuando un guardado por WebSocket falla (disco lleno, BD bloqueada…),
+// avisa a TODAS las pantallas conectadas para que muestren una alerta
+// visible. Antes esto se tragaba en silencio: el cambio se veía en
+// pantalla pero nunca quedaba guardado. Throttled para no saturar.
+let _lastSaveErrorTs = 0;
+function notifySaveError(area) {
+  console.error(`[GUARDADO] FALLÓ el guardado de "${area}" — avisando a las pantallas.`);
+  const now = Date.now();
+  if (now - _lastSaveErrorTs < 1500) return; // evitar avalancha de avisos
+  _lastSaveErrorTs = now;
+  try { broadcast({ type: 'save_error', area: area || '', ts: now }); } catch (e) {}
 }
 
 // Debounce para prod_update: evita floods si varios cambios llegan en <300ms
@@ -2606,7 +2631,7 @@ wss.on('connection', (ws, req) => {
           }
           
           ciRequests.unshift(msg.request);
-          if (ciRequests.length > 50000) ciRequests = ciRequests.slice(0, 50000);
+          if (ciRequests.length > CI_MAX) ciRequests = ciRequests.slice(0, CI_MAX);
           saveCiRequests();
         }
         broadcastLocal({ type:'ci_new_request', request:msg.request });
@@ -2682,7 +2707,7 @@ wss.on('connection', (ws, req) => {
                   durMinutos: parseFloat((durMs/60000).toFixed(2)),
                   mecanico: imp.mecanico||'', empleada: imp.empleada||'', ciRequestId: reqId
                 });
-                if (historial.length > 10000) historial = historial.slice(-10000);
+                if (historial.length > HISTORIAL_MAX) historial = historial.slice(-HISTORIAL_MAX);
                 writeJSON(FILES.historial, historial);
               }
               multiImps[modId].splice(idx, 1);
@@ -2804,7 +2829,7 @@ wss.on('connection', (ws, req) => {
                 empleada:       imp.empleada || '',
                 ciRequestId:    imp.ciRequestId || undefined
               });
-              if (historial.length > 10000) historial = historial.slice(-10000);
+              if (historial.length > HISTORIAL_MAX) historial = historial.slice(-HISTORIAL_MAX);
               writeJSON(FILES.historial, historial);
             }
           }
@@ -2908,6 +2933,28 @@ app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
   console.error('Error no capturado:', err.message);
   res.status(500).json({ error: 'Error interno del servidor.' });
 });
+
+// ── Cierre limpio ──────────────────────────────────────────────────
+// Render envía SIGTERM en cada deploy/reinicio. Antes de apagar, se
+// vuelca el WAL a la base principal y se cierra la BD ordenadamente, para
+// que NINGÚN guardado reciente se quede "en borrador" y se pierda.
+let _cerrando = false;
+function cierreLimpio(sig) {
+  if (_cerrando) return;
+  _cerrando = true;
+  console.log(`[SHUTDOWN] Señal ${sig} recibida — guardando y cerrando…`);
+  try {
+    if (SQLITE_ON && _sqlite) {
+      try { _sqlite.pragma('wal_checkpoint(TRUNCATE)'); } catch (e) { console.error('[SHUTDOWN] checkpoint:', e.message); }
+      try { _sqlite.close(); } catch (e) { console.error('[SHUTDOWN] close:', e.message); }
+    }
+  } catch (e) { console.error('[SHUTDOWN] error:', e.message); }
+  // Cerrar el servidor y salir; forzar salida si algo se cuelga.
+  try { server.close(() => process.exit(0)); } catch (e) { process.exit(0); }
+  setTimeout(() => process.exit(0), 3000).unref();
+}
+process.on('SIGTERM', () => cierreLimpio('SIGTERM'));
+process.on('SIGINT',  () => cierreLimpio('SIGINT'));
 
 // ── Iniciar servidor ───────────────────────────────────────────────
 server.listen(PORT, () => {

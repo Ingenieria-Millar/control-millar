@@ -83,8 +83,8 @@
       '<h3>' + IC_USER + ' Mi perfil</h3>' +
       '<p class="cmum-sub">Actualiza tu información. Los cambios se guardan al instante.</p>' +
       '<div class="cmum-field"><label>Usuario</label><input id="cmum-usuario" type="text" disabled></div>' +
-      '<div class="cmum-field"><label>Nombre visible</label><input id="cmum-nombre" type="text" maxlength="80" placeholder="Ej: Steven Palacio"></div>' +
-      '<div class="cmum-field"><label>Correo electrónico</label><input id="cmum-correo" type="email" maxlength="120" placeholder="correo@cmillar.co"></div>' +
+      '<div class="cmum-field"><label>Nombre visible</label><input id="cmum-nombre" type="text" maxlength="80" placeholder=""></div>' +
+      '<div class="cmum-field"><label>Correo electrónico</label><input id="cmum-correo" type="email" maxlength="120" placeholder=""></div>' +
       '<div class="cmum-divider"><div class="cmum-dtitle">Cambiar contraseña</div><p class="cmum-hint">Déjalo en blanco si no quieres cambiarla.</p>' +
         '<div class="cmum-field"><label>Contraseña actual</label><input id="cmum-pass-act" type="password" maxlength="60" placeholder="••••••••" autocomplete="off"></div>' +
         '<div class="cmum-field"><label>Nueva contraseña</label><input id="cmum-pass-new" type="password" maxlength="60" placeholder="••••••••" autocomplete="off"></div>' +
