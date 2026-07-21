@@ -295,17 +295,10 @@ function agregarDefectoRowActiva(){
 body{font-family:'Nunito',sans-serif;background:#f1f5f9;height:100vh;overflow:hidden;display:flex;flex-direction:column;}
 
 /* ── Menú lateral (solo Administrador) ── */
-.rt-sidebar{display:none;position:fixed;top:65px;left:0;bottom:0;width:224px;z-index:600;
+.rt-sidebar{display:none;position:fixed;top:0;left:0;bottom:0;width:224px;z-index:600;
   background:#101a33;color:#c7d0e8;padding:16px 10px;flex-direction:column;gap:2px;overflow-y:auto;
   font-family:'Nunito',sans-serif;}
 .rt-sidebar.show{display:flex;}
-.rts-brand{display:flex;align-items:center;gap:10px;padding:6px 8px 16px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:12px;}
-.rts-brand .rts-mark{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#2563eb,#7ba3f7);
-  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:#fff;flex-shrink:0;
-  font-family:'Barlow Condensed',sans-serif;letter-spacing:.5px;}
-.rts-brand .rts-txt{display:flex;flex-direction:column;line-height:1.15;}
-.rts-brand .rts-txt b{font-family:'Barlow Condensed',sans-serif;font-size:14px;letter-spacing:.5px;color:#fff;text-transform:uppercase;}
-.rts-brand .rts-txt span{font-size:10px;color:#7c88a8;letter-spacing:.4px;}
 .rts-group-label{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:#7c88a8;padding:12px 10px 5px;font-weight:700;}
 .rts-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;cursor:pointer;
   font-size:12.5px;font-weight:700;color:#c7d0e8;border:none;background:none;width:100%;text-align:left;font-family:inherit;}
@@ -627,7 +620,6 @@ input[type=number]{-moz-appearance:textfield;}
 
 <!-- Menú lateral — solo visible para el perfil Administrador -->
 <aside class="rt-sidebar" id="rt-sidebar">
-  <div class="rts-brand"><div class="rts-mark">CM</div><div class="rts-txt"><b>Millar</b><span>Confecciones</span></div></div>
   <button class="rts-item active" id="rts-nav-registros" onclick="rtsNavRegistros(this)"><span class="rts-ico">📋</span> Registros</button>
   <button class="rts-item" onclick="rtsNavDashboard(this)"><span class="rts-ico">📈</span> Dashboard</button>
   <button class="rts-item" onclick="rtsNavInforme(this)"><span class="rts-ico">📄</span> Informe Gerencial</button>
@@ -1723,6 +1715,7 @@ function rtEntrarApp(){
   const sidebar=document.getElementById('rt-sidebar');
   if(sidebar)sidebar.classList.toggle('show',_rtIsAdmin);
   document.body.classList.toggle('rt-has-sidenav',_rtIsAdmin);
+  if(_rtIsAdmin) rtsAjustarTopMenu();
   const revField=document.getElementById('f-revisador-field');
   if(revField)revField.style.display=_rtIsAdmin?'':'none';
   const nuevoBtn=document.getElementById('rt-nuevo-btn');
@@ -2948,6 +2941,15 @@ function barChart(data,colorFn,showDisplay){
 
 
 // ── Menú lateral (solo Administrador) ───────────────────────────────
+// Mide la altura REAL de la barra superior (varía según el tamaño de pantalla)
+// y ubica el menú justo debajo — sin usar un número fijo que se desajuste.
+function rtsAjustarTopMenu(){
+  const header=document.querySelector('header');
+  const sidebar=document.getElementById('rt-sidebar');
+  if(!header||!sidebar)return;
+  sidebar.style.top=header.getBoundingClientRect().height+'px';
+}
+window.addEventListener('resize',()=>{ if(_rtIsAdmin) rtsAjustarTopMenu(); });
 function rtsSetActive(btn){
   document.querySelectorAll('.rts-item').forEach(function(b){ b.classList.remove('active'); });
   if(btn) btn.classList.add('active');
