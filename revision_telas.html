@@ -2670,6 +2670,7 @@ function abrirDashboard(){
   actualizarLabelDashFecha();
   renderDashboard();
   document.getElementById('rt-dashboard-screen').style.display='flex';
+  if(_rtIsAdmin)rtsAjustarTopMenu();
 }
 // Cerrar panel fecha dashboard al click fuera
 document.addEventListener('click',e=>{
@@ -2715,6 +2716,10 @@ function renderDashboard(){
     const minRep=rList.filter(r=>r.finalizado).reduce((s,r)=>s+parseMins(r.tiempo),0);
     const minTela=rList.filter(r=>r.finalizado&&r.tipo!=='multitarea').reduce((s,r)=>s+parseMins(r.tiempo),0);
     const revs=new Set(rList.map(r=>r.revisador||'—')).size;
+    const finalizadosTela=rList.filter(r=>r.finalizado&&r.tipo!=='multitarea');
+    const rechazados=finalizadosTela.filter(r=>r.resultado==='rechazado').length;
+    const rechPct=finalizadosTela.length>0?Math.round(rechazados/finalizadosTela.length*100):0;
+    const rechColor=rechPct===0?'#15803d':rechPct<=10?'#b45309':'#dc2626';
     const efPct=revs>0&&minTurno>0?Math.min(Math.round(minRep/(revs*minTurno)*100),999):0;
     const prodPct=revs>0&&minTurno>0?Math.min(Math.round(minTela/(revs*minTurno)*100),999):0;
     const efColor=efPct>=80?'#15803d':efPct>=50?'#b45309':'#dc2626';
@@ -2728,6 +2733,7 @@ function renderDashboard(){
         <div><div style="font-size:22px;font-weight:800;color:${color};">${metros.toFixed(1)}m</div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">Metros</div></div>
         <div><div style="font-size:22px;font-weight:800;color:${efColor};">${efPct}%</div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">Eficiencia</div></div>
         <div><div style="font-size:22px;font-weight:800;color:${prodColor};">${prodPct}%</div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">Productividad</div></div>
+        <div><div style="font-size:22px;font-weight:800;color:${rechColor};">${rechPct}%</div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">% Rechazo</div></div>
       </div>
     </div>`;
   };
@@ -2939,9 +2945,16 @@ function barChart(data,colorFn,showDisplay){
 // y ubica el menú justo debajo — sin usar un número fijo que se desajuste.
 function rtsAjustarTopMenu(){
   const header=document.querySelector('header');
+  if(!header)return;
+  const h=header.getBoundingClientRect().height+'px';
   const sidebar=document.getElementById('rt-sidebar');
-  if(!header||!sidebar)return;
-  sidebar.style.top=header.getBoundingClientRect().height+'px';
+  if(sidebar)sidebar.style.top=h;
+  // Dashboard y Configuraciones también deben empezar debajo de la barra superior,
+  // no solo a la derecha del menú — si no, su contenido choca con el título/fecha/hora.
+  const dash=document.getElementById('rt-dashboard-screen');
+  if(dash)dash.style.top=h;
+  const cfg=document.getElementById('rt-cfg-screen');
+  if(cfg)cfg.style.top=h;
 }
 window.addEventListener('resize',()=>{ if(_rtIsAdmin) rtsAjustarTopMenu(); });
 function rtsSetActive(btn){
@@ -2976,7 +2989,8 @@ let _cfgUnlocked=false;
 function rtsNavCfg(tabNum, btn){
   cerrarDashboard();
   if(_cfgUnlocked){
-    abrirCfgScreen();
+    // Ya está abierta: solo cambiar de pestaña, SIN volver a "abrir" (eso
+    // borraba la caché de dibujado y hacía que cada clic se sintiera lento).
     switchCfgTab(tabNum);
     rtsSetActive(btn);
     return;
@@ -2995,6 +3009,7 @@ function abrirCfgScreen(){
   const logo=document.querySelector('.hd-logo img')?.src||'';
   const cl=document.getElementById('cfg-logo');if(cl&&logo)cl.src=logo;
   document.getElementById('rt-cfg-screen').style.display='flex';
+  if(_rtIsAdmin)rtsAjustarTopMenu();
   _cfgRendered = {};       // cada vez que se abre Configuraciones, se dibuja fresco
   renderTareasList();
   switchCfgTab(1);
