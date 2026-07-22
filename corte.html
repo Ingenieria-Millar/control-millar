@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<script>/* millar-auth: adjunta token de sesión a fetch y WebSocket (transparente si no hay token) */
+(function(){function T(){try{var s=JSON.parse(localStorage.getItem('cm_session')||'{}');return s&&s.token||'';}catch(e){return '';}}
+var F=window.fetch;window.fetch=function(u,o){o=o||{};var t=T();if(t){var h=new Headers(o.headers||{});if(!h.has('Authorization'))h.set('Authorization','Bearer '+t);o.headers=h;}return F.call(this,u,o);};
+var W=window.WebSocket;function MW(u,p){try{var t=T();if(t&&typeof u==='string'&&u.indexOf('token=')<0){u+=(u.indexOf('?')<0?'?':'&')+'token='+encodeURIComponent(t);}}catch(e){}return p!==undefined?new W(u,p):new W(u);}MW.prototype=W.prototype;MW.CONNECTING=W.CONNECTING;MW.OPEN=W.OPEN;MW.CLOSING=W.CLOSING;MW.CLOSED=W.CLOSED;window.WebSocket=MW;})();</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Corte — MES | Millar</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Nunito:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;}
+body{margin:0;font-family:'Nunito',sans-serif;background:#f1f5f9;color:#0f172a;}
+header{background:#fff;border-bottom:1px solid #e2e8f0;box-shadow:0 1px 6px rgba(0,0,0,.06);padding:0 clamp(12px,2.5vw,24px);min-height:64px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:relative;}
+header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);}
+.hd-brand{display:flex;align-items:center;gap:12px;}
+.hd-logo{width:42px;height:42px;border-radius:8px;background:#1e3a8a;color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.hd-title{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;letter-spacing:.5px;color:#0f172a;}
+.hd-sub{font-size:11px;color:#64748b;font-weight:600;margin-top:1px;}
+.hd-right{display:flex;align-items:center;gap:14px;}
+.hd-user{font-size:13px;color:#334155;font-weight:700;}
+.hd-back{padding:8px 16px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#475569;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;}
+.hd-back:hover{background:#f8fafc;}
+
+.wrap{max-width:900px;margin:0 auto;padding:24px clamp(12px,2.5vw,24px);}
+.tabs{display:flex;gap:4px;background:#e2e8f0;border-radius:10px;padding:4px;margin-bottom:20px;width:fit-content;}
+.tab-btn{padding:9px 20px;border:none;background:transparent;border-radius:7px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:.3px;color:#64748b;cursor:pointer;}
+.tab-btn.active{background:#fff;color:#1e3a8a;box-shadow:0 1px 3px rgba(0,0,0,.1);}
+
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:22px;}
+.field{margin-bottom:16px;}
+.field label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;display:block;margin-bottom:6px;}
+.field input,.field select{width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;font-family:'Nunito',sans-serif;outline:none;}
+.field input:focus,.field select:focus{border-color:#2563eb;}
+.row{display:flex;gap:12px;align-items:flex-end;}
+.row .field{flex:1;margin-bottom:0;}
+.btn{padding:10px 18px;border-radius:8px;border:none;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:.3px;}
+.btn-primary{background:#1e3a8a;color:#fff;}
+.btn-primary:hover{background:#1e40af;}
+.btn-primary:disabled{background:#cbd5e1;cursor:not-allowed;}
+.btn-outline{background:#fff;border:1.5px solid #e2e8f0;color:#475569;}
+.btn-outline:hover{background:#f8fafc;}
+.hint{font-size:12px;color:#94a3b8;margin-top:6px;}
+.rollos-list{margin-top:8px;display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto;}
+.rollo-opt{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:8px;cursor:pointer;font-size:13px;}
+.rollo-opt:hover{border-color:#93c5fd;background:#eff6ff;}
+.rollo-opt.sel{border-color:#2563eb;background:#eff6ff;}
+.rollo-opt b{color:#1e3a8a;}
+.rollo-opt span{color:#64748b;font-size:12px;}
+
+.sol-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px 18px;margin-bottom:10px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.sol-main{flex:1;min-width:200px;}
+.sol-lote{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;color:#0f172a;}
+.sol-meta{font-size:12px;color:#64748b;margin-top:2px;}
+.badge{display:inline-flex;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;}
+.badge.pendiente{background:#fef3c7;color:#92400e;}
+.badge.entregada{background:#dbeafe;color:#1d4ed8;}
+.badge.aceptada{background:#dcfce7;color:#15803d;}
+.empty{color:#94a3b8;font-size:13px;text-align:center;padding:40px;}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#0f172a;color:#fff;padding:12px 22px;border-radius:10px;font-size:13px;font-weight:600;z-index:999;opacity:0;transition:opacity .25s;pointer-events:none;}
+.toast.show{opacity:1;}
+.toast.error{background:#dc2626;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hd-brand">
+    <div class="hd-logo">✂️</div>
+    <div><div class="hd-title">Corte</div><div class="hd-sub">Solicitud de telas a Revisión de Telas</div></div>
+  </div>
+  <div class="hd-right">
+    <div class="hd-user" id="hd-user">—</div>
+    <a class="hd-back" href="/">← Volver</a>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="tabs">
+    <button class="tab-btn active" id="tab-btn-nueva" onclick="corteSwitchTab('nueva')">➕ Nueva Solicitud</button>
+    <button class="tab-btn" id="tab-btn-mias" onclick="corteSwitchTab('mias')">📋 Mis Solicitudes</button>
+  </div>
+
+  <div id="panel-nueva">
+    <div class="card">
+      <div class="row" style="margin-bottom:6px;">
+        <div class="field">
+          <label>N° de Lote</label>
+          <input type="text" id="c-lote" placeholder="Ej: TL26467" onkeydown="if(event.key==='Enter')corteBuscarLote()">
+        </div>
+        <button class="btn btn-outline" onclick="corteBuscarLote()">🔍 Buscar</button>
+      </div>
+      <div id="c-lote-msg" class="hint"></div>
+      <div id="c-rollos" class="rollos-list"></div>
+
+      <div id="c-form-final" style="display:none;margin-top:18px;padding-top:18px;border-top:1px solid #f1f5f9;">
+        <div class="field">
+          <label>Rollo seleccionado</label>
+          <div id="c-rollo-sel-lbl" style="font-size:14px;font-weight:700;color:#1e3a8a;"></div>
+        </div>
+        <div class="field">
+          <label>Metros que necesita</label>
+          <input type="number" id="c-metros" min="0" step="0.1" placeholder="Ej: 20">
+        </div>
+        <button class="btn btn-primary" id="c-btn-enviar" onclick="corteEnviarSolicitud()">Enviar Solicitud</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="panel-mias" style="display:none;">
+    <div id="c-mis-list"></div>
+  </div>
+</div>
+
+<div class="toast" id="c-toast"></div>
+
+<script>
+let _cUser='', _cRollos=[], _cRolloSel=null, ws=null;
+
+function corteToast(msg,type){
+  const t=document.getElementById('c-toast');
+  t.textContent=msg; t.className='toast show'+(type==='error'?' error':'');
+  clearTimeout(t._tm); t._tm=setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+function corteInit(){
+  try{
+    const ses=JSON.parse(localStorage.getItem('cm_session')||'{}');
+    _cUser=ses.user||'';
+  }catch(e){}
+  if(!_cUser){ window.location.href='/'; return; }
+  document.getElementById('hd-user').textContent=_cUser;
+  corteCargarMias();
+  corteConnectWS();
+}
+
+function corteSwitchTab(tab){
+  document.getElementById('panel-nueva').style.display=tab==='nueva'?'block':'none';
+  document.getElementById('panel-mias').style.display=tab==='mias'?'block':'none';
+  document.getElementById('tab-btn-nueva').classList.toggle('active',tab==='nueva');
+  document.getElementById('tab-btn-mias').classList.toggle('active',tab==='mias');
+  if(tab==='mias') corteCargarMias();
+}
+
+async function corteBuscarLote(){
+  const lote=(document.getElementById('c-lote').value||'').trim();
+  const msgEl=document.getElementById('c-lote-msg');
+  const listEl=document.getElementById('c-rollos');
+  document.getElementById('c-form-final').style.display='none';
+  _cRolloSel=null;
+  listEl.innerHTML='';
+  if(!lote){ msgEl.textContent='Escribe un número de lote.'; return; }
+  msgEl.textContent='Buscando…';
+  try{
+    const res=await fetch('/api/revision-telas');
+    const d=await res.json();
+    const regs=(d.registros||[]).filter(r=>
+      r.lote===lote && r.finalizado && r.resultado==='aprobado' && r.tipo!=='multitarea'
+    );
+    if(!regs.length){ msgEl.textContent='No se encontraron rollos aprobados para ese lote.'; return; }
+    msgEl.textContent=regs.length+' rollo(s) encontrados para el lote '+lote+':';
+    _cRollos=regs;
+    listEl.innerHTML=regs.map((r,i)=>`
+      <div class="rollo-opt" data-i="${i}" onclick="corteSeleccionarRollo(${i})">
+        <span>Rollo <b>#${r.rollo||'—'}</b> — ${r.referencia||'Sin referencia'}</span>
+        <span>${r.metros||'—'} m disponibles</span>
+      </div>`).join('');
+  }catch(e){
+    msgEl.textContent='Error buscando el lote. Intenta de nuevo.';
+  }
+}
+
+function corteSeleccionarRollo(i){
+  _cRolloSel=_cRollos[i];
+  document.querySelectorAll('.rollo-opt').forEach(el=>el.classList.toggle('sel',el.dataset.i==i));
+  document.getElementById('c-rollo-sel-lbl').textContent=
+    'Lote '+_cRolloSel.lote+' — Rollo #'+(_cRolloSel.rollo||'—')+' — '+(_cRolloSel.referencia||'Sin referencia')+' ('+(_cRolloSel.metros||'—')+' m disponibles)';
+  document.getElementById('c-form-final').style.display='block';
+  document.getElementById('c-metros').focus();
+}
+
+async function corteEnviarSolicitud(){
+  if(!_cRolloSel){ corteToast('Selecciona un rollo primero','error'); return; }
+  const metros=(document.getElementById('c-metros').value||'').trim();
+  if(!metros||parseFloat(metros)<=0){ corteToast('Escribe cuántos metros necesitas','error'); return; }
+  const btn=document.getElementById('c-btn-enviar');
+  btn.disabled=true;
+  try{
+    const res=await fetch('/api/corte-solicitudes',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({lote:_cRolloSel.lote,rollo:_cRolloSel.rollo,metros,solicitadoPor:_cUser})});
+    if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e.error||'Error al enviar'); }
+    corteToast('✅ Solicitud enviada a Revisión de Telas');
+    document.getElementById('c-lote').value='';
+    document.getElementById('c-lote-msg').textContent='';
+    document.getElementById('c-rollos').innerHTML='';
+    document.getElementById('c-form-final').style.display='none';
+    document.getElementById('c-metros').value='';
+    _cRolloSel=null;
+  }catch(e){
+    corteToast('⚠️ '+e.message,'error');
+  }finally{
+    btn.disabled=false;
+  }
+}
+
+async function corteCargarMias(){
+  const el=document.getElementById('c-mis-list');
+  try{
+    const res=await fetch('/api/corte-solicitudes?solicitadoPor='+encodeURIComponent(_cUser));
+    const data=await res.json();
+    if(!data.length){ el.innerHTML='<div class="empty">Aún no has hecho ninguna solicitud.</div>'; return; }
+    el.innerHTML=data.map(s=>{
+      const badge=`<span class="badge ${s.estado}">${s.estado}</span>`;
+      const accion=s.estado==='entregada'
+        ?`<button class="btn btn-primary" onclick="corteAceptar('${s.id}')">✔ Aceptar</button>`
+        :'';
+      return `<div class="sol-card">
+        <div class="sol-main">
+          <div class="sol-lote">Lote ${s.lote} — Rollo #${s.rollo}</div>
+          <div class="sol-meta">${s.metros} m solicitados · ${s.fecha} ${s.hora||''}</div>
+        </div>
+        ${badge}
+        ${accion}
+      </div>`;
+    }).join('');
+  }catch(e){
+    el.innerHTML='<div class="empty">No se pudieron cargar tus solicitudes.</div>';
+  }
+}
+
+async function corteAceptar(id){
+  try{
+    const res=await fetch('/api/corte-solicitudes/'+id+'/aceptar',{method:'POST'});
+    if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e.error||'Error'); }
+    corteToast('✅ Solicitud aceptada');
+    corteCargarMias();
+  }catch(e){
+    corteToast('⚠️ '+e.message,'error');
+  }
+}
+
+function corteConnectWS(){
+  if(!location.host) return;
+  const proto=location.protocol==='https:'?'wss':'ws';
+  ws=new WebSocket(proto+'://'+location.host);
+  ws.onopen=()=>{ ws.send(JSON.stringify({type:'subscribe',topics:['corte']})); };
+  ws.onmessage=e=>{
+    try{
+      const msg=JSON.parse(e.data);
+      if((msg.type==='corte_new_request'||msg.type==='corte_update_request') && msg.solicitud && msg.solicitud.solicitadoPor===_cUser){
+        corteCargarMias();
+        if(msg.type==='corte_update_request'&&msg.solicitud.estado==='entregada'){
+          corteToast('📦 Tu solicitud del lote '+msg.solicitud.lote+' fue marcada como entregada');
+        }
+      }
+    }catch(err){}
+  };
+  ws.onclose=()=>{ setTimeout(corteConnectWS,4000); };
+  ws.onerror=()=>ws.close();
+}
+
+corteInit();
+</script>
+</body>
+</html>

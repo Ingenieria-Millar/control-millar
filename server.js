@@ -199,6 +199,7 @@ const FILES = {
   visitantes:     path.join(DATA_DIR, 'visitantes.json'),
   turnos_asignados: path.join(DATA_DIR, 'turnos_asignados.json'),
   consultas_contrato: path.join(DATA_DIR, 'consultas_contrato.json'),
+  corte_solicitudes: path.join(DATA_DIR, 'corte_solicitudes.json'),
 };
 
 // ══════════════════════════════════════════════════════════════════
@@ -900,6 +901,9 @@ app.get('/produccion', (req, res) =>
 app.get('/revision-telas', (req, res) =>
   res.sendFile(path.join(__dirname, 'revision_telas.html'))
 );
+app.get('/corte', (req, res) =>
+  res.sendFile(path.join(__dirname, 'corte.html'))
+);
 
 app.get('/incentivos', (req, res) =>
   res.sendFile(path.join(__dirname, 'incentivos.html'))
@@ -1026,6 +1030,66 @@ app.delete('/api/recogedores/:id', (req, res) => {
     if (data.length === len) return res.status(404).json({ error: 'No encontrado' });
     if (!writeJSON(FILES.recogedores, data)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
     res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── API Corte — solicitudes de tela a Revisión de Telas ────────────
+app.get('/api/corte-solicitudes', (req, res) => {
+  let data = readJSON(FILES.corte_solicitudes, []);
+  const { solicitadoPor, estado } = req.query;
+  if (solicitadoPor) data = data.filter(s => s.solicitadoPor === solicitadoPor);
+  if (estado)        data = data.filter(s => s.estado === estado);
+  res.json(data);
+});
+
+app.post('/api/corte-solicitudes', (req, res) => {
+  try {
+    const { lote, rollo, metros, solicitadoPor } = req.body || {};
+    if (!lote || !rollo || !metros || !solicitadoPor) {
+      return res.status(400).json({ error: 'Faltan campos requeridos' });
+    }
+    const sol = {
+      id: Date.now() + '-' + Math.random().toString(36).slice(2),
+      lote, rollo, metros,
+      solicitadoPor,
+      estado: 'pendiente',
+      fecha: new Date().toISOString().slice(0, 10),
+      hora: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true })
+    };
+    const data = readJSON(FILES.corte_solicitudes, []);
+    data.unshift(sol);
+    if (!writeJSON(FILES.corte_solicitudes, data)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
+    broadcast({ type: 'corte_new_request', solicitud: sol });
+    res.json({ ok: true, solicitud: sol });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/corte-solicitudes/:id/entregar', (req, res) => {
+  try {
+    const data = readJSON(FILES.corte_solicitudes, []);
+    const idx = data.findIndex(s => s.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'No encontrada' });
+    if (data[idx].estado !== 'pendiente') return res.status(400).json({ error: 'Esta solicitud ya fue procesada' });
+    data[idx].estado = 'entregada';
+    data[idx].entregadoPor = (req.body && req.body.entregadoPor) || '';
+    data[idx].fechaEntrega = new Date().toISOString().slice(0, 10);
+    if (!writeJSON(FILES.corte_solicitudes, data)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
+    broadcast({ type: 'corte_update_request', solicitud: data[idx] });
+    res.json({ ok: true, solicitud: data[idx] });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/corte-solicitudes/:id/aceptar', (req, res) => {
+  try {
+    const data = readJSON(FILES.corte_solicitudes, []);
+    const idx = data.findIndex(s => s.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'No encontrada' });
+    if (data[idx].estado !== 'entregada') return res.status(400).json({ error: 'Aún no ha sido entregada' });
+    data[idx].estado = 'aceptada';
+    data[idx].fechaAceptada = new Date().toISOString().slice(0, 10);
+    if (!writeJSON(FILES.corte_solicitudes, data)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
+    broadcast({ type: 'corte_update_request', solicitud: data[idx] });
+    res.json({ ok: true, solicitud: data[idx] });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -1531,6 +1595,8 @@ const MSG_TOPICS = {
   'ci_cumplido_request': 'ci',
   'ci_config_sync':      'ci',
   'ci_reactivar_alerta': 'ci',
+  'corte_new_request':   'corte',
+  'corte_update_request':'corte',
   'ia_add_record':       'ia',
   'ia_delete_record':    'ia',
   'ia_edit_record':      'ia',

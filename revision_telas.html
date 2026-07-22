@@ -312,6 +312,13 @@ body.rt-has-sidenav .main{margin-left:224px;width:calc(100% - 224px);}
 body.rt-has-sidenav #rt-cfg-screen{left:224px!important;}
 body.rt-has-sidenav #rt-dashboard-screen{left:224px!important;}
 body.rt-has-sidenav #rt-informe-screen{left:224px!important;}
+body.rt-has-sidenav #rt-corte-screen{left:224px!important;}
+.rt-corte-filtro-btn{padding:7px 14px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;cursor:pointer;}
+.rt-corte-filtro-btn.active{background:#1e3a8a;color:#fff;border-color:#1e3a8a;}
+.rt-corte-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:8px;}
+.rt-corte-card.pendiente{border-left:4px solid #f59e0b;}
+.rt-corte-card.entregada{border-left:4px solid #2563eb;}
+.rt-corte-card.aceptada{border-left:4px solid #16a34a;}
 /* La barra superior real ya muestra el logo y el título — se oculta el que traía cada
    pantalla por dentro para que no se vean dos logos "montados" uno junto al otro. */
 body.rt-has-sidenav #cfgscr-hdrow{display:none!important;}
@@ -632,6 +639,7 @@ input[type=number]{-moz-appearance:textfield;}
 <aside class="rt-sidebar" id="rt-sidebar">
   <button class="rts-item active" id="rts-nav-registros" onclick="rtsNavRegistros(this)"><span class="rts-ico">📋</span> Registros</button>
   <button class="rts-item" onclick="rtsNavDashboard(this)"><span class="rts-ico">📈</span> Dashboard</button>
+  <button class="rts-item" id="rts-nav-corte" onclick="rtsNavCorte(this)"><span class="rts-ico">✂️</span> Notificaciones Corte</button>
   <button class="rts-item" onclick="rtsNavInforme(this)"><span class="rts-ico">📄</span> Informe Gerencial</button>
   <div class="rts-group-label">Configuraciones</div>
   <button class="rts-item" onclick="rtsNavCfg(1,this)"><span class="rts-ico">🧵</span> Referencias por Proveedor</button>
@@ -1419,6 +1427,24 @@ input[type=number]{-moz-appearance:textfield;}
   </div>
 </div>
 
+<!-- Pantalla Notificaciones Corte -->
+<div id="rt-corte-screen" style="display:none;position:fixed;inset:0;z-index:500;background:#f1f5f9;flex-direction:column;">
+  <div style="flex:1;overflow-y:auto;padding:24px clamp(12px,2.5vw,24px);">
+    <div style="max-width:1100px;margin:0 auto;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;letter-spacing:1px;color:#0f172a;">✂️ NOTIFICACIONES CORTE</div>
+        <div style="display:flex;gap:6px;">
+          <button class="rt-corte-filtro-btn active" data-f="pendiente" onclick="corteAdminFiltrar('pendiente',this)">Pendientes</button>
+          <button class="rt-corte-filtro-btn" data-f="entregada" onclick="corteAdminFiltrar('entregada',this)">Entregadas</button>
+          <button class="rt-corte-filtro-btn" data-f="aceptada" onclick="corteAdminFiltrar('aceptada',this)">Aceptadas</button>
+          <button class="rt-corte-filtro-btn" data-f="todas" onclick="corteAdminFiltrar('todas',this)">Todas</button>
+        </div>
+      </div>
+      <div id="rt-corte-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;"></div>
+    </div>
+  </div>
+</div>
+
 <!-- Pantalla Informe Gerencial -->
 <div id="rt-informe-screen" style="display:none;position:fixed;inset:0;z-index:500;background:#f1f5f9;flex-direction:column;">
   <div style="flex:1;overflow-y:auto;padding:24px clamp(12px,2.5vw,24px);">
@@ -1500,7 +1526,7 @@ function connectWS(){
   if(!location.host) return;
   const proto=location.protocol==='https:'?'wss':'ws';
   ws=new WebSocket(proto+'://'+location.host);
-  ws.onopen=()=>{wsReady=true;clearTimeout(wsTimer);ws.send(JSON.stringify({type:'subscribe',topics:['rt']}));};
+  ws.onopen=()=>{wsReady=true;clearTimeout(wsTimer);ws.send(JSON.stringify({type:'subscribe',topics:['rt','corte']}));};
   ws.onmessage=e=>{
     try{
       const msg=JSON.parse(e.data);
@@ -1520,6 +1546,14 @@ function connectWS(){
         _cfgTareas=msg.tareas||_cfgTareas;
         _igJustificaciones=msg.igJustificaciones||_igJustificaciones;
         aplicarFiltros();
+      }
+      if(msg.type==='corte_new_request'||msg.type==='corte_update_request'){
+        if(msg.solicitud){
+          const idx=_corteSolicitudes.findIndex(s=>s.id===msg.solicitud.id);
+          if(idx>=0) _corteSolicitudes[idx]=msg.solicitud; else _corteSolicitudes.unshift(msg.solicitud);
+        }
+        if(msg.type==='corte_new_request') mostrarNotifCorteNueva(msg.solicitud);
+        renderCorteCards();
       }
     }catch(err){console.warn('WS:',err);}
   };
@@ -3014,6 +3048,8 @@ function rtsAjustarTopMenu(){
   if(cfg)cfg.style.top=h;
   const inf=document.getElementById('rt-informe-screen');
   if(inf)inf.style.top=h;
+  const corte=document.getElementById('rt-corte-screen');
+  if(corte)corte.style.top=h;
 }
 window.addEventListener('resize',()=>{ if(_rtIsAdmin) rtsAjustarTopMenu(); });
 function rtsSetActive(btn){
@@ -3024,19 +3060,22 @@ function rtsNavRegistros(btn){
   cerrarCfgScreen();
   cerrarDashboard();
   document.getElementById('rt-informe-screen').style.display='none';
+  document.getElementById('rt-corte-screen').style.display='none';
   rtsSetActive(btn || document.getElementById('rts-nav-registros'));
 }
 function rtsNavDashboard(btn){
   cerrarCfgScreen();
   document.getElementById('rt-informe-screen').style.display='none';
+  document.getElementById('rt-corte-screen').style.display='none';
   abrirDashboard();
   rtsSetActive(btn);
 }
 function rtsNavInforme(btn){
+  document.getElementById('rt-corte-screen').style.display='none';
   abrirInformeGerencial();
   rtsSetActive(btn);
 }
-// Regresa un nivel: cierra la pantalla que esté abierta (Dashboard, Configuraciones o Informe)
+// Regresa un nivel: cierra la pantalla que esté abierta (Dashboard, Configuraciones, Informe o Corte)
 // y si no hay ninguna abierta, hace lo que el botón "Volver" siempre hizo (cerrar sesión).
 function rtsVolverInteligente(){
   const dash=document.getElementById('rt-dashboard-screen');
@@ -3045,6 +3084,8 @@ function rtsVolverInteligente(){
   if(cfg&&getComputedStyle(cfg).display!=='none'){ cerrarCfgScreen(); return; }
   const inf=document.getElementById('rt-informe-screen');
   if(inf&&getComputedStyle(inf).display!=='none'){ cerrarInformeGerencial(); return; }
+  const corte=document.getElementById('rt-corte-screen');
+  if(corte&&getComputedStyle(corte).display!=='none'){ cerrarCorteScreen(); return; }
   rtCerrarSesion();
 }
 // Mientras Configuraciones siga abierto, moverse entre sus 5 opciones no debe
@@ -3053,6 +3094,7 @@ let _cfgUnlocked=false;
 function rtsNavCfg(tabNum, btn){
   cerrarDashboard();
   document.getElementById('rt-informe-screen').style.display='none';
+  document.getElementById('rt-corte-screen').style.display='none';
   if(_cfgUnlocked){
     // Ya está abierta: solo cambiar de pestaña, SIN volver a "abrir" (eso
     // borraba la caché de dibujado y hacía que cada clic se sintiera lento).
@@ -3853,6 +3895,67 @@ function verDetalles(id){
   const win = window.open('','_blank','width=900,height=700');
   win.document.write(html);
   win.document.close();
+}
+
+// ── Notificaciones Corte (solicitudes de tela desde el módulo Corte) ─
+let _corteSolicitudes=[], _corteFiltroActual='pendiente';
+function rtsNavCorte(btn){
+  abrirCorteScreen();
+  rtsSetActive(btn);
+}
+function abrirCorteScreen(){
+  cerrarDashboard();cerrarCfgScreen();
+  const inf=document.getElementById('rt-informe-screen');if(inf)inf.style.display='none';
+  document.getElementById('rt-corte-screen').style.display='flex';
+  rtsAjustarTopMenu();
+  cargarCorteSolicitudes();
+}
+function cerrarCorteScreen(){
+  document.getElementById('rt-corte-screen').style.display='none';
+  rtsSetActive(document.getElementById('rts-nav-registros'));
+}
+async function cargarCorteSolicitudes(){
+  try{
+    const res=await fetch('/api/corte-solicitudes');
+    _corteSolicitudes=await res.json();
+    renderCorteCards();
+  }catch(e){console.warn('[Corte] Error cargando solicitudes:',e);}
+}
+function corteAdminFiltrar(f,btn){
+  _corteFiltroActual=f;
+  document.querySelectorAll('.rt-corte-filtro-btn').forEach(b=>b.classList.toggle('active',b===btn));
+  renderCorteCards();
+}
+function renderCorteCards(){
+  const el=document.getElementById('rt-corte-cards');
+  if(!el) return;
+  const lista=_corteFiltroActual==='todas'?_corteSolicitudes:_corteSolicitudes.filter(s=>s.estado===_corteFiltroActual);
+  if(!lista.length){ el.innerHTML='<div style="color:#94a3b8;font-size:13px;text-align:center;padding:40px;grid-column:1/-1;">Sin solicitudes en este filtro.</div>'; return; }
+  const badgeColor={pendiente:'background:#fef3c7;color:#92400e;',entregada:'background:#dbeafe;color:#1d4ed8;',aceptada:'background:#dcfce7;color:#15803d;'};
+  el.innerHTML=lista.map(s=>`
+    <div class="rt-corte-card ${s.estado}">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;color:#0f172a;">Lote ${s.lote}</div>
+        <span style="display:inline-flex;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;${badgeColor[s.estado]||''}">${s.estado}</span>
+      </div>
+      <div style="font-size:13px;color:#334155;">Rollo <b>#${s.rollo}</b> — ${s.metros} m solicitados</div>
+      <div style="font-size:11.5px;color:#64748b;">Solicita: <b>${s.solicitadoPor}</b></div>
+      <div style="font-size:11px;color:#94a3b8;">${s.fecha} ${s.hora||''}</div>
+      ${s.estado==='pendiente'?`<button class="btn btn-primary" style="margin-top:4px;font-size:12px;padding:8px;" onclick="corteAdminEntregar('${s.id}')">📦 Marcar como Entregada</button>`:''}
+      ${s.estado==='entregada'?`<div style="font-size:11px;color:#94a3b8;">Entregada por: ${s.entregadoPor||'—'} — esperando confirmación de Corte</div>`:''}
+    </div>`).join('');
+}
+async function corteAdminEntregar(id){
+  try{
+    const res=await fetch('/api/corte-solicitudes/'+id+'/entregar',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({entregadoPor:_rtCurrentUser||'Admin'})});
+    if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e.error||'Error'); }
+    showToast('✅ Marcada como entregada');
+  }catch(e){ showToast('⚠️ '+e.message,'error'); }
+}
+function mostrarNotifCorteNueva(sol){
+  if(!sol||!_rtIsAdmin) return;
+  showToast('✂️ Nueva solicitud de Corte — Lote '+sol.lote+' (Rollo #'+sol.rollo+')');
 }
 
 // ── Informe Gerencial (por operario y turno) ─────────────────────────
