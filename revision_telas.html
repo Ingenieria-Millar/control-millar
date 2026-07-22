@@ -311,6 +311,12 @@ body.rt-has-sidenav .main{margin-left:224px;width:calc(100% - 224px);}
    y un estilo en línea siempre le gana a una regla de hoja de estilos, sin importar la especificidad. */
 body.rt-has-sidenav #rt-cfg-screen{left:224px!important;}
 body.rt-has-sidenav #rt-dashboard-screen{left:224px!important;}
+/* La barra superior real ya muestra el logo y el título — se oculta el que traía cada
+   pantalla por dentro para que no se vean dos logos "montados" uno junto al otro. */
+body.rt-has-sidenav #cfgscr-brand{display:none!important;}
+body.rt-has-sidenav #dashscr-brand{display:none!important;}
+/* El menú lateral ya lista Referencias/Defectos/Tareas/Historial/Turnos — sobra esta barra de pestañas. */
+body.rt-has-sidenav #cfgscr-tabs{display:none!important;}
 header{position:sticky;top:0;z-index:100;background:#fff;border-bottom:1px solid #e2e8f0;
   box-shadow:0 1px 6px rgba(0,0,0,.07);padding:0 clamp(12px,2.5vw,24px);min-height:64px;
   display:flex;align-items:center;justify-content:space-between;gap:12px;}
@@ -1121,14 +1127,14 @@ input[type=number]{-moz-appearance:textfield;}
 <div id="rt-cfg-screen" style="display:none;position:fixed;inset:0;z-index:500;background:#f1f5f9;flex-direction:column;">
   <div style="background:#fff;border-bottom:1px solid #e2e8f0;box-shadow:0 1px 6px rgba(0,0,0,.07);padding:0 clamp(12px,2.5vw,24px);min-height:64px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:relative;">
     <div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);"></div>
-    <div style="display:flex;align-items:center;gap:12px;">
+    <div id="cfgscr-brand" style="display:flex;align-items:center;gap:12px;">
       <div class="hd-logo"><img id="cfg-logo" src="" style="width:100%;height:100%;object-fit:contain;padding:3px;"></div>
       <div><div class="hd-title">⚙️ <span>Configuraciones</span></div><p style="font-size:11px;color:#64748b;font-weight:600;margin-top:1px;">Revisión de Telas</p></div>
     </div>
     <button class="hd-back-btn" onclick="cerrarCfgScreen()">← Volver</button>
   </div>
-  <!-- Pestañas -->
-  <div style="background:#fff;border-bottom:1px solid #e2e8f0;padding:0 24px;display:flex;gap:0;">
+  <!-- Pestañas (se ocultan cuando el menú lateral ya las muestra — ver body.rt-has-sidenav) -->
+  <div id="cfgscr-tabs" style="background:#fff;border-bottom:1px solid #e2e8f0;padding:0 24px;display:flex;gap:0;">
     <button class="cfg-tab-btn active" id="cfg-tab-btn-1" onclick="switchCfgTab(1)">🧵 Referencias por Proveedor</button>
     <button class="cfg-tab-btn" id="cfg-tab-btn-2" onclick="switchCfgTab(2)">⚠️ Defectos</button>
     <button class="cfg-tab-btn" id="cfg-tab-btn-3" onclick="switchCfgTab(3)">⚡ Tareas</button>
@@ -1315,7 +1321,7 @@ input[type=number]{-moz-appearance:textfield;}
     padding:0 clamp(12px,2.5vw,24px);min-height:64px;display:flex;align-items:center;
     justify-content:space-between;gap:12px;position:relative;">
     <div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);"></div>
-    <div style="display:flex;align-items:center;gap:12px;">
+    <div id="dashscr-brand" style="display:flex;align-items:center;gap:12px;">
       <div class="hd-logo"><img id="dash-logo" src="" style="width:100%;height:100%;object-fit:contain;padding:3px;"></div>
       <div class="hd-title-wrap">
         <h1 style="font-family:'Barlow Condensed',sans-serif;font-size:clamp(16px,2.5vw,22px);font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0f172a;line-height:1.1;margin:0;">DASHBOARD <span style="color:#2563eb;">REVISIÓN TELAS</span></h1>
