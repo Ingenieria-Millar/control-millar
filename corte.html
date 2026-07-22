@@ -103,7 +103,10 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
           <label>Metros que necesita</label>
           <input type="number" id="c-metros" min="0" step="0.1" placeholder="Ej: 20">
         </div>
-        <button class="btn btn-primary" id="c-btn-enviar" onclick="corteEnviarSolicitud()">Enviar Solicitud</button>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-primary" id="c-btn-enviar" onclick="corteEnviarSolicitud()">Solicitar</button>
+          <button class="btn btn-outline" onclick="corteCancelarSeleccion()">Cancelar</button>
+        </div>
       </div>
     </div>
   </div>
@@ -155,10 +158,21 @@ async function corteBuscarLote(){
   try{
     const res=await fetch('/api/revision-telas');
     const d=await res.json();
-    const regs=(d.registros||[]).filter(r=>
+    // Fuente 1: rollos ya revisados y aprobados (dato más confiable, viene de una inspección real)
+    const deRevision=(d.registros||[]).filter(r=>
       r.lote===lote && r.finalizado && r.resultado==='aprobado' && r.tipo!=='multitarea'
-    );
-    if(!regs.length){ msgEl.textContent='No se encontraron rollos aprobados para ese lote.'; return; }
+    ).map(r=>({lote:r.lote,rollo:r.rollo,referencia:r.referencia,metros:r.metros}));
+    // Fuente 2: catálogo de Referencias por Proveedor (puede tener rollos que aún no se han revisado)
+    const deReferencias=[];
+    Object.values(d.referencias||{}).forEach(arr=>(arr||[]).forEach(ref=>{
+      if(typeof ref==='object'&&ref.lote===lote){
+        deReferencias.push({lote:ref.lote,rollo:ref.rollo,referencia:ref.referencia,metros:ref.mts});
+      }
+    }));
+    // Combinar sin duplicar: si un rollo aparece en ambas fuentes, se prefiere el de la revisión ya aprobada.
+    const vistos=new Set(deRevision.map(r=>r.rollo));
+    const regs=[...deRevision, ...deReferencias.filter(r=>!vistos.has(r.rollo))];
+    if(!regs.length){ msgEl.textContent='No se encontraron rollos para ese lote.'; return; }
     msgEl.textContent=regs.length+' rollo(s) encontrados para el lote '+lote+':';
     _cRollos=regs;
     listEl.innerHTML=regs.map((r,i)=>`
@@ -178,6 +192,12 @@ function corteSeleccionarRollo(i){
     'Lote '+_cRolloSel.lote+' — Rollo #'+(_cRolloSel.rollo||'—')+' — '+(_cRolloSel.referencia||'Sin referencia')+' ('+(_cRolloSel.metros||'—')+' m disponibles)';
   document.getElementById('c-form-final').style.display='block';
   document.getElementById('c-metros').focus();
+}
+function corteCancelarSeleccion(){
+  _cRolloSel=null;
+  document.querySelectorAll('.rollo-opt').forEach(el=>el.classList.remove('sel'));
+  document.getElementById('c-form-final').style.display='none';
+  document.getElementById('c-metros').value='';
 }
 
 async function corteEnviarSolicitud(){
