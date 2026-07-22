@@ -753,7 +753,9 @@ input[type=number]{-moz-appearance:textfield;}
       <input placeholder="Filtrar..." oninput="filtrarTabla(4,this.value)" class="tf">
       <input placeholder="Filtrar..." oninput="filtrarTabla(5,this.value)" class="tf">
       <input placeholder="Filtrar..." oninput="filtrarTabla(6,this.value)" class="tf">
-      <div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div>
+      <div></div>
+      <input placeholder="Filtrar..." oninput="filtrarTabla(8,this.value)" class="tf">
+      <div></div><div></div><div></div><div></div><div></div><div></div>
     </div>
     <div class="table-body" id="rt-table-body"></div>
   </div>
@@ -1219,6 +1221,20 @@ input[type=number]{-moz-appearance:textfield;}
             <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">Mts Rollo</div>
             <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">Acciones</div>
           </div>
+          <div style="display:grid;grid-template-columns:0.9fr 0.8fr 1.5fr 2fr 1fr 1fr 0.8fr 1fr 1fr 1fr 1fr auto;gap:0;padding:5px 16px 8px;background:#f8fafc;border-bottom:1px solid #e2e8f0;">
+            <input placeholder="Filtrar..." oninput="filtrarRefsTabla(0,this.value)" class="tf">
+            <input placeholder="Filtrar..." oninput="filtrarRefsTabla(1,this.value)" class="tf">
+            <input placeholder="Filtrar..." oninput="filtrarRefsTabla(2,this.value)" class="tf">
+            <input placeholder="Filtrar..." oninput="filtrarRefsTabla(3,this.value)" class="tf">
+            <input placeholder="Filtrar..." oninput="filtrarRefsTabla(4,this.value)" class="tf">
+            <input placeholder="Filtrar..." oninput="filtrarRefsTabla(5,this.value)" class="tf">
+            <input placeholder="Filtrar..." oninput="filtrarRefsTabla(6,this.value)" class="tf">
+            <input placeholder="Filtrar..." oninput="filtrarRefsTabla(7,this.value)" class="tf">
+            <input placeholder="Filtrar..." oninput="filtrarRefsTabla(8,this.value)" class="tf">
+            <input placeholder="Filtrar..." oninput="filtrarRefsTabla(9,this.value)" class="tf">
+            <input placeholder="Filtrar..." oninput="filtrarRefsTabla(10,this.value)" class="tf">
+            <div></div>
+          </div>
           <div id="cfg-refs-content"><div style="color:#94a3b8;font-size:13px;text-align:center;padding:30px;">Sin datos. Importa una plantilla o crea una nueva.</div></div>
         </div>
       </div>
@@ -1409,6 +1425,7 @@ let _cfgDefectos=[], _cfgReferencias={}, _cfgColores=[], _cfgProveedores=[], _cf
 let ws=null, wsReady=false, wsTimer=null;
 let _filtroDesde='', _filtroHasta='';
 let _filtroResultado=null;
+let _statsBase=[];
 let _rtCurrentUser=null, _rtIsAdmin=false, _rtMembersData=[], _revisadores=[];
 let _turnosAsignados=[], _taEditId='';
 
@@ -1824,7 +1841,7 @@ function actualizarFooter(){
   if(el('footer-rechazados'))el('footer-rechazados').textContent=rechazados;
 }
 function aplicarFiltros(){
-  _filtrados=_registros.filter(r=>{
+  _statsBase=_registros.filter(r=>{
     const _hoyF=fechaHoy();
     const _desde=_filtroDesde||_hoyF;
     const _hasta=_filtroHasta||_hoyF;
@@ -1832,6 +1849,9 @@ function aplicarFiltros(){
     if(_fechaFiltro<_desde)return false;
     if(_fechaFiltro>_hasta)return false;
     if(_rtCurrentUser&&!_rtIsAdmin&&r.revisador!==_rtCurrentUser)return false;
+    return true;
+  });
+  _filtrados=_statsBase.filter(r=>{
     if(_filtroResultado==='aprobado'&&r.resultado!=='aprobado')return false;
     if(_filtroResultado==='rechazado'&&r.resultado!=='rechazado')return false;
     if(_filtroResultado==='revision'&&r.finalizado)return false;
@@ -1856,10 +1876,10 @@ function filtrarPorResultado(tipo){
 }
 
 function renderStats(){
-  const total=_filtrados.length,
-    aprobados=_filtrados.filter(r=>r.resultado==='aprobado').length,
-    rechazados=_filtrados.filter(r=>r.resultado==='rechazado').length,
-    pendientes=_filtrados.filter(r=>!r.finalizado).length;
+  const total=_statsBase.length,
+    aprobados=_statsBase.filter(r=>r.resultado==='aprobado').length,
+    rechazados=_statsBase.filter(r=>r.resultado==='rechazado').length,
+    pendientes=_statsBase.filter(r=>!r.finalizado).length;
   const selRing=(color)=>`box-shadow:0 0 0 3px ${color};transform:translateY(-1px);`;
   const base='cursor:pointer;transition:transform .15s,box-shadow .15s;';
   document.getElementById('rt-stats').innerHTML=`
@@ -3124,12 +3144,25 @@ function renderTurnosPanel(){
     }).join('')
     +'</tbody></table>';
 }
+let _refsFiltros=['','','','','','','','','','',''];
+function filtrarRefsTabla(colIdx,val){
+  _refsFiltros[colIdx]=(val||'').toLowerCase();
+  renderRefsTable();
+}
 function renderRefsTable(){
   const el=document.getElementById('cfg-refs-content');
   const provs=Object.keys(_cfgReferencias);
   if(!provs.length){el.innerHTML='<div style="color:#94a3b8;font-size:13px;text-align:center;padding:30px;">Sin datos. Importa una plantilla o crea una nueva.</div>';return;}
-  const rows=[];
+  let rows=[];
   provs.sort().forEach(prov=>{(_cfgReferencias[prov]||[]).forEach((ref,ri)=>rows.push({prov,ref,ri}));});
+  if(_refsFiltros.some(f=>f)){
+    rows=rows.filter(({prov,ref})=>{
+      const r=typeof ref==='object'?ref:{referencia:String(ref||'')};
+      const vals=[r.fecha?fechaDisplay(r.fecha):'',prov,r.factura,r.referencia,r.color,r.lote,r.rollo,r.ancho,r.lote_prov,r.peso,r.mts];
+      return _refsFiltros.every((f,j)=>!f||(vals[j]||'').toString().toLowerCase().includes(f));
+    });
+  }
+  if(!rows.length){el.innerHTML='<div style="color:#94a3b8;font-size:13px;text-align:center;padding:30px;">Sin resultados para el filtro aplicado.</div>';return;}
   const GR='display:grid;grid-template-columns:0.9fr 0.8fr 1.5fr 2fr 1fr 1fr 0.8fr 1fr 1fr 1fr 1fr auto;gap:0;padding:9px 16px;border-bottom:1px solid #f1f5f9;align-items:center;';
   const TD='font-size:12px;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:8px;';
   el.innerHTML=rows.map(({prov,ref,ri},i)=>{
@@ -3173,6 +3206,7 @@ function importarReferencias(){
     // Col 7: Lote Proveedor, Col 8: Peso Rollo, Col 9: Mts Rollo
     const g=(row,idx)=>(row[idx]!==undefined&&row[idx]!==null?row[idx].toString().trim():'');
     const nr={};
+    Object.keys(_cfgReferencias).forEach(prov=>{ nr[prov]=[..._cfgReferencias[prov]]; });
     let count=0;
     rows.forEach((row,i)=>{
       if(i<inicio)return;
@@ -3272,7 +3306,7 @@ function importarProvTerceros(){const inp=document.createElement('input');inp.ty
 function plantillaProvTerceros(){const ws=XLSX.utils.aoa_to_sheet([['Proveedor'],['Textiles S.A.'],['Confecciones XYZ']]);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Proveedores');XLSX.writeFile(wb,'plantilla_proveedores_terceros.xlsx');}
 
 // ── Filtros columna ────────────────────────────────────────────────
-let _colFilters=['','','','','','',''];
+let _colFilters=['','','','','','','','',''];
 function filtrarTabla(colIdx,val){
   _colFilters[colIdx]=val.toLowerCase();
   const visibles=[];
