@@ -311,6 +311,7 @@ body.rt-has-sidenav .main{margin-left:224px;width:calc(100% - 224px);}
    y un estilo en línea siempre le gana a una regla de hoja de estilos, sin importar la especificidad. */
 body.rt-has-sidenav #rt-cfg-screen{left:224px!important;}
 body.rt-has-sidenav #rt-dashboard-screen{left:224px!important;}
+body.rt-has-sidenav #rt-informe-screen{left:224px!important;}
 /* La barra superior real ya muestra el logo y el título — se oculta el que traía cada
    pantalla por dentro para que no se vean dos logos "montados" uno junto al otro. */
 body.rt-has-sidenav #cfgscr-hdrow{display:none!important;}
@@ -398,14 +399,18 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
 .table-header{display:grid;grid-template-columns:80px 80px 70px 2fr 80px 80px 2fr 80px 100px 70px 80px 50px 75px 50px 120px;min-width:1130px;
   gap:0;padding:10px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;flex-shrink:0;}
 .th{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;
-  text-transform:uppercase;color:#0f172a;display:flex;align-items:center;gap:4px;cursor:pointer;user-select:none;}
+  text-transform:uppercase;color:#0f172a;display:flex;align-items:center;justify-content:center;gap:4px;cursor:pointer;user-select:none;border-right:1px solid #e2e8f0;}
+.th:last-child{border-right:none;}
 .th:hover{color:#1e40af;}
 .table-filters{display:grid;grid-template-columns:80px 80px 70px 2fr 80px 80px 2fr 80px 100px 70px 80px 50px 75px 50px 120px;gap:0;padding:5px 16px 8px;background:#f8fafc;border-bottom:1px solid #e2e8f0;flex-shrink:0;}
+.table-filters>*{border-right:1px solid #e2e8f0;padding-right:6px;}
+.table-filters>*:last-child{border-right:none;}
 .table-body{overflow-y:auto;overflow-x:auto;flex:1;}
 .table-row{display:grid;grid-template-columns:80px 80px 70px 2fr 80px 80px 2fr 80px 100px 70px 80px 50px 75px 50px 120px;min-width:1130px;
   gap:0;padding:11px 16px;border-bottom:1px solid #f8fafc;transition:background .12s;align-items:center;}
 .table-row:hover{background:#f8fafc;}
-.td{font-size:12px;color:#334155;font-family:'Nunito',sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.td{font-size:12px;color:#334155;font-family:'Nunito',sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;border-right:1px solid #e2e8f0;padding-right:4px;}
+.td:last-child{border-right:none;}
 
 /* Footer barra */
 .rt-footer{height:38px;background:#fff;border-top:1px solid #e2e8f0;display:flex;align-items:center;
@@ -423,7 +428,7 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
 .btn-action{width:28px;height:28px;border-radius:6px;border:1.5px solid #e2e8f0;background:#fff;
   cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .15s;}
 .btn-action:hover{background:#f1f5f9;}
-.td-actions{display:flex;gap:4px;align-items:center;}
+.td-actions{display:flex;gap:4px;align-items:center;justify-content:center;}
 .tiempo-badge{display:inline-flex;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;
   background:#f0fdf4;color:#15803d;border:1px solid #86efac;}
 .empty-state{padding:60px 20px;text-align:center;color:#94a3b8;}
@@ -1207,8 +1212,9 @@ input[type=number]{-moz-appearance:textfield;}
         </div>
         <!-- Tabla de referencias -->
         <div style="max-height:500px;overflow-y:auto;">
-          <div style="display:grid;grid-template-columns:0.9fr 0.8fr 1.5fr 2fr 1fr 1fr 0.8fr 1fr 1fr 1fr 1fr auto;gap:0;padding:8px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;">
+          <div style="display:grid;grid-template-columns:0.9fr 0.7fr 0.8fr 1.5fr 2fr 1fr 1fr 0.8fr 1fr 1fr 1fr 1fr auto;gap:0;padding:8px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;">
             <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">Fecha</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">Hora</div>
             <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">Proveedor</div>
             <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">Factura</div>
             <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">Referencia</div>
@@ -1221,7 +1227,7 @@ input[type=number]{-moz-appearance:textfield;}
             <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">Mts Rollo</div>
             <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">Acciones</div>
           </div>
-          <div style="display:grid;grid-template-columns:0.9fr 0.8fr 1.5fr 2fr 1fr 1fr 0.8fr 1fr 1fr 1fr 1fr auto;gap:0;padding:5px 16px 8px;background:#f8fafc;border-bottom:1px solid #e2e8f0;">
+          <div style="display:grid;grid-template-columns:0.9fr 0.7fr 0.8fr 1.5fr 2fr 1fr 1fr 0.8fr 1fr 1fr 1fr 1fr auto;gap:0;padding:5px 16px 8px;background:#f8fafc;border-bottom:1px solid #e2e8f0;">
             <input placeholder="Filtrar..." oninput="filtrarRefsTabla(0,this.value)" class="tf">
             <input placeholder="Filtrar..." oninput="filtrarRefsTabla(1,this.value)" class="tf">
             <input placeholder="Filtrar..." oninput="filtrarRefsTabla(2,this.value)" class="tf">
@@ -1233,6 +1239,7 @@ input[type=number]{-moz-appearance:textfield;}
             <input placeholder="Filtrar..." oninput="filtrarRefsTabla(8,this.value)" class="tf">
             <input placeholder="Filtrar..." oninput="filtrarRefsTabla(9,this.value)" class="tf">
             <input placeholder="Filtrar..." oninput="filtrarRefsTabla(10,this.value)" class="tf">
+            <input placeholder="Filtrar..." oninput="filtrarRefsTabla(11,this.value)" class="tf">
             <div></div>
           </div>
           <div id="cfg-refs-content"><div style="color:#94a3b8;font-size:13px;text-align:center;padding:30px;">Sin datos. Importa una plantilla o crea una nueva.</div></div>
@@ -1251,12 +1258,12 @@ input[type=number]{-moz-appearance:textfield;}
             <button class="btn btn-danger" style="font-size:12px;padding:7px 12px;" onclick="limpiarDefectos()">🗑 Limpiar</button>
           </div>
         </div>
-        <div style="padding:12px 16px;max-height:400px;overflow-y:auto;" id="cfg-defectos-list"></div>
-        <div style="padding:12px 16px;border-top:1px solid #f1f5f9;display:flex;gap:8px;">
+        <div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;display:flex;gap:8px;">
           <input class="cfg-add-input" id="cfg-add-codigo" placeholder="Código (ej: 01)" style="max-width:100px;flex:none;">
           <input class="cfg-add-input" id="cfg-add-defecto-nombre" placeholder="Nombre del defecto..." onkeydown="if(event.key==='Enter')agregarDefectoManual()">
           <button class="btn btn-primary" style="padding:7px 12px;" onclick="agregarDefectoManual()">+ Agregar</button>
         </div>
+        <div style="padding:12px 16px;max-height:400px;overflow-y:auto;" id="cfg-defectos-list"></div>
       </div>
     </div>
     <!-- Pestaña 3: Tareas -->
@@ -1411,6 +1418,27 @@ input[type=number]{-moz-appearance:textfield;}
     </div>
   </div>
 </div>
+
+<!-- Pantalla Informe Gerencial -->
+<div id="rt-informe-screen" style="display:none;position:fixed;inset:0;z-index:500;background:#f1f5f9;flex-direction:column;">
+  <div style="flex:1;overflow-y:auto;padding:24px clamp(12px,2.5vw,24px);">
+    <div style="max-width:900px;margin:0 auto;">
+      <div id="ig-selector" style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:20px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px 20px;">
+        <div>
+          <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;display:block;margin-bottom:5px;">Operario</label>
+          <select id="ig-persona" style="padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:'Nunito',sans-serif;outline:none;min-width:220px;"></select>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;display:block;margin-bottom:5px;">Fecha</label>
+          <input type="date" id="ig-fecha" style="padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:'Nunito',sans-serif;outline:none;">
+        </div>
+        <button onclick="igCargar()" style="padding:9px 18px;border-radius:8px;border:none;background:#1e3a8a;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Cargar</button>
+        <button id="ig-btn-pdf" onclick="igGenerarPDF()" style="display:none;padding:9px 18px;border-radius:8px;border:none;background:#4338ca;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;cursor:pointer;letter-spacing:.5px;margin-left:auto;">📄 Generar PDF</button>
+      </div>
+      <div id="ig-content" style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:24px;"></div>
+    </div>
+  </div>
+</div>
 </body>
 </html>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -1428,6 +1456,7 @@ let _filtroResultado=null;
 let _statsBase=[];
 let _rtCurrentUser=null, _rtIsAdmin=false, _rtMembersData=[], _revisadores=[];
 let _turnosAsignados=[], _taEditId='';
+let _igData=null, _igJustificaciones={};
 
 // ── WebSocket ──────────────────────────────────────────────────────
 // ── Polling fallback para sincronización ──────────────────────────
@@ -1451,13 +1480,13 @@ async function syncPoll(){
       const prevHash=_registros.map(r=>r.id+'|'+r.finalizado+'|'+r.resultado).join(',');
       const newHash=merged.map(r=>r.id+'|'+r.finalizado+'|'+r.resultado).join(',');
       if(newHash===prevHash) return; // sin cambios, no tocar nada
-      const raw=d.referencias||{};
-      Object.keys(raw).forEach(prov=>{raw[prov]=(raw[prov]||[]).map(r=>typeof r==='object'?r:{referencia:String(r||'')});});
+      const raw=normalizarReferencias(d.referencias);
       _registros=merged;
       _cfgDefectos=d.defectos||_cfgDefectos;
       _cfgReferencias=raw;
       _cfgColores=d.colores||_cfgColores;
       _cfgProveedores=d.proveedores||_cfgProveedores;
+      _igJustificaciones=d.igJustificaciones||_igJustificaciones;
       aplicarFiltros();
     }
   }catch(e){}
@@ -1483,15 +1512,13 @@ function connectWS(){
         const localPending=_registros.filter(r=>_pendingIds.has(r.id)&&!serverIds.has(r.id));
         _registros=[...serverRegs,...localPending];
         _cfgDefectos=msg.defectos||_cfgDefectos;
-        const raw=msg.referencias||_cfgReferencias;
-        Object.keys(raw).forEach(prov=>{
-          raw[prov]=(raw[prov]||[]).map(r=>typeof r==='object'?r:{referencia:String(r||'')});
-        });
+        const raw=normalizarReferencias(msg.referencias||_cfgReferencias);
         _cfgReferencias=raw;
         _cfgColores=msg.colores||_cfgColores;
         _cfgProveedores=msg.proveedores||_cfgProveedores;
         _cfgProveedoresTerceros=msg.proveedoresTerceros||_cfgProveedoresTerceros;
         _cfgTareas=msg.tareas||_cfgTareas;
+        _igJustificaciones=msg.igJustificaciones||_igJustificaciones;
         aplicarFiltros();
       }
     }catch(err){console.warn('WS:',err);}
@@ -1510,16 +1537,12 @@ async function cargarDatos(){
       migrarTurnos();
       migrarFechaTurno();
       _cfgDefectos=d.defectos||[];
-      // Normalizar referencias: strings viejos → objetos nuevos
-      const raw=d.referencias||{};
-      Object.keys(raw).forEach(prov=>{
-        raw[prov]=(raw[prov]||[]).map(r=>typeof r==='object'?r:{referencia:String(r||'')});
-      });
-      _cfgReferencias=raw;
+      _cfgReferencias=normalizarReferencias(d.referencias);
       _cfgColores=d.colores||[];
       _cfgProveedores=d.proveedores||[];
       _cfgProveedoresTerceros=d.proveedoresTerceros||[];
       _cfgTareas=d.tareas||[];
+      _igJustificaciones=d.igJustificaciones||{};
     }
   }catch(e){console.warn(e);}
   try{
@@ -1632,7 +1655,7 @@ async function guardarEnServidor(){
   try{
     const res=await fetch('/api/revision-telas',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({registros:_registros,defectos:_cfgDefectos,referencias:_cfgReferencias,colores:_cfgColores,proveedores:_cfgProveedores,proveedoresTerceros:_cfgProveedoresTerceros,tareas:_cfgTareas,deletedIds:sentDeleted})
+      body:JSON.stringify({registros:_registros,defectos:_cfgDefectos,referencias:_cfgReferencias,colores:_cfgColores,proveedores:_cfgProveedores,proveedoresTerceros:_cfgProveedoresTerceros,tareas:_cfgTareas,igJustificaciones:_igJustificaciones,deletedIds:sentDeleted})
     });
     if(!res||!res.ok) throw new Error('HTTP '+(res?res.status:'sin respuesta'));
     if(sentDeleted.length){
@@ -1658,6 +1681,20 @@ async function guardarEnServidor(){
 
 // ── Helpers ────────────────────────────────────────────────────────
 function horaActual(){const n=new Date();let h=n.getHours(),m=n.getMinutes();const ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+String(m).padStart(2,'0')+' '+ap;}
+function genRefId(){return 'ref_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);}
+// Normaliza referencias (strings viejos → objetos, y asigna id si falta) para que el
+// guardado por fusión en el servidor pueda identificar cada fila de forma única.
+function normalizarReferencias(raw){
+  raw=raw||{};
+  Object.keys(raw).forEach(prov=>{
+    raw[prov]=(raw[prov]||[]).map(r=>{
+      if(typeof r!=='object'||r===null) r={referencia:String(r||'')};
+      if(!r.id) r.id=genRefId();
+      return r;
+    });
+  });
+  return raw;
+}
 function fechaHoy(){return new Date().toISOString().split('T')[0];}
 function fechaDisplay(iso){if(!iso)return '';const[y,m,d]=iso.split('-');return d+'/'+m+'/'+y;}
 function calcTiempo(inicio,fin){
@@ -1930,7 +1967,7 @@ function renderTabla(){
       <div class="td" data-label="Tono"><span id="tono-val-${r.id}" onclick="editarTono('${r.id}')" style="display:inline-block;min-width:40px;padding:3px 8px;border-radius:6px;background:${r.tono?'#fef9c3':'#f8fafc'};border:1.5px solid ${r.tono?'#fde047':'#e2e8f0'};font-size:12px;font-weight:700;color:${r.tono?'#854d0e':'#94a3b8'};cursor:${r.tono&&!_rtIsAdmin?'default':'pointer'};" title="${r.tono&&!_rtIsAdmin?'Solo el administrador puede modificar el tono':'Clic para editar tono'}">${r.tono||'—'}</span><input id="tono-inp-${r.id}" type="number" min="1" value="${r.tono||''}" onblur="guardarTono('${r.id}')" onkeydown="if(event.key==='Enter')guardarTono('${r.id}');if(event.key==='Escape')cancelarTono('${r.id}')" style="display:none;width:70px;padding:3px 6px;border:1.5px solid #7c3aed;border-radius:6px;font-size:12px;outline:none;"></div>
       <div class="td" data-label="Observ.">${r.observaciones?'<button onclick="verObservacion(\''+r.id+'\')" style="width:28px;height:28px;border-radius:6px;border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;font-size:14px;">💬</button>':'—'}</div>
       <div class="td" data-label="Tiempo">${r.tiempo?'<span class="tiempo-badge">'+r.tiempo+'</span>':'—'}</div>
-      <div class="td" data-label="Detalle" style="display:flex;align-items:center;">
+      <div class="td" data-label="Detalle" style="display:flex;align-items:center;justify-content:center;">
         <button title="Ver detalles" onclick="verDetalles('${r.id}')" style="width:28px;height:28px;border-radius:6px;border:1.5px solid #bfdbfe;background:#eff6ff;color:#1d4ed8;cursor:pointer;font-size:13px;">🔍</button>
       </div>
       <div class="td td-actions">
@@ -2975,6 +3012,8 @@ function rtsAjustarTopMenu(){
   if(dash)dash.style.top=h;
   const cfg=document.getElementById('rt-cfg-screen');
   if(cfg)cfg.style.top=h;
+  const inf=document.getElementById('rt-informe-screen');
+  if(inf)inf.style.top=h;
 }
 window.addEventListener('resize',()=>{ if(_rtIsAdmin) rtsAjustarTopMenu(); });
 function rtsSetActive(btn){
@@ -2984,23 +3023,28 @@ function rtsSetActive(btn){
 function rtsNavRegistros(btn){
   cerrarCfgScreen();
   cerrarDashboard();
+  document.getElementById('rt-informe-screen').style.display='none';
   rtsSetActive(btn || document.getElementById('rts-nav-registros'));
 }
 function rtsNavDashboard(btn){
   cerrarCfgScreen();
+  document.getElementById('rt-informe-screen').style.display='none';
   abrirDashboard();
   rtsSetActive(btn);
 }
 function rtsNavInforme(btn){
   abrirInformeGerencial();
+  rtsSetActive(btn);
 }
-// Regresa un nivel: cierra la pantalla que esté abierta (Dashboard o Configuraciones)
+// Regresa un nivel: cierra la pantalla que esté abierta (Dashboard, Configuraciones o Informe)
 // y si no hay ninguna abierta, hace lo que el botón "Volver" siempre hizo (cerrar sesión).
 function rtsVolverInteligente(){
   const dash=document.getElementById('rt-dashboard-screen');
   if(dash&&getComputedStyle(dash).display!=='none'){ cerrarDashboard(); return; }
   const cfg=document.getElementById('rt-cfg-screen');
   if(cfg&&getComputedStyle(cfg).display!=='none'){ cerrarCfgScreen(); return; }
+  const inf=document.getElementById('rt-informe-screen');
+  if(inf&&getComputedStyle(inf).display!=='none'){ cerrarInformeGerencial(); return; }
   rtCerrarSesion();
 }
 // Mientras Configuraciones siga abierto, moverse entre sus 5 opciones no debe
@@ -3008,6 +3052,7 @@ function rtsVolverInteligente(){
 let _cfgUnlocked=false;
 function rtsNavCfg(tabNum, btn){
   cerrarDashboard();
+  document.getElementById('rt-informe-screen').style.display='none';
   if(_cfgUnlocked){
     // Ya está abierta: solo cambiar de pestaña, SIN volver a "abrir" (eso
     // borraba la caché de dibujado y hacía que cada clic se sintiera lento).
@@ -3144,7 +3189,7 @@ function renderTurnosPanel(){
     }).join('')
     +'</tbody></table>';
 }
-let _refsFiltros=['','','','','','','','','','',''];
+let _refsFiltros=['','','','','','','','','','','',''];
 function filtrarRefsTabla(colIdx,val){
   _refsFiltros[colIdx]=(val||'').toLowerCase();
   renderRefsTable();
@@ -3158,12 +3203,12 @@ function renderRefsTable(){
   if(_refsFiltros.some(f=>f)){
     rows=rows.filter(({prov,ref})=>{
       const r=typeof ref==='object'?ref:{referencia:String(ref||'')};
-      const vals=[r.fecha?fechaDisplay(r.fecha):'',prov,r.factura,r.referencia,r.color,r.lote,r.rollo,r.ancho,r.lote_prov,r.peso,r.mts];
+      const vals=[r.fecha?fechaDisplay(r.fecha):'',r.hora,prov,r.factura,r.referencia,r.color,r.lote,r.rollo,r.ancho,r.lote_prov,r.peso,r.mts];
       return _refsFiltros.every((f,j)=>!f||(vals[j]||'').toString().toLowerCase().includes(f));
     });
   }
   if(!rows.length){el.innerHTML='<div style="color:#94a3b8;font-size:13px;text-align:center;padding:30px;">Sin resultados para el filtro aplicado.</div>';return;}
-  const GR='display:grid;grid-template-columns:0.9fr 0.8fr 1.5fr 2fr 1fr 1fr 0.8fr 1fr 1fr 1fr 1fr auto;gap:0;padding:9px 16px;border-bottom:1px solid #f1f5f9;align-items:center;';
+  const GR='display:grid;grid-template-columns:0.9fr 0.7fr 0.8fr 1.5fr 2fr 1fr 1fr 0.8fr 1fr 1fr 1fr 1fr auto;gap:0;padding:9px 16px;border-bottom:1px solid #f1f5f9;align-items:center;';
   const TD='font-size:12px;color:#0f172a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:8px;';
   el.innerHTML=rows.map(({prov,ref,ri},i)=>{
     // Normalizar: puede venir como string (datos viejos) o como objeto (datos nuevos)
@@ -3171,6 +3216,7 @@ function renderRefsTable(){
     const esc=s=>(s||'').toString().replace(/'/g,"\'");
     return `<div style="${GR}" id="cfg-ref-row-${i}">
       <div style="${TD}color:#64748b;">${r.fecha?fechaDisplay(r.fecha):'—'}</div>
+      <div style="${TD}color:#64748b;">${r.hora||'—'}</div>
       <div style="${TD}font-weight:600;color:#1e3a8a;">${prov}</div>
       <div style="${TD}">${r.factura||'—'}</div>
       <div style="${TD}font-weight:600;" id="cfg-ref-text-${i}">${r.referencia||''}</div>
@@ -3224,7 +3270,9 @@ function importarReferencias(){
       );
       if(esDuplicado)return;
       nr[provKey].push({
+        id:         genRefId(),
         fecha:      fechaHoy(),
+        hora:       horaActual(),
         factura:    factura,
         referencia: ref,
         color:      g(row,3),
@@ -3280,7 +3328,11 @@ function exportarReferencias(){
   XLSX.writeFile(wb,'referencias_proveedor_'+fechaHoy()+'.xlsx');
   showToast('📊 Excel exportado ('+rows.length+' filas)');
 }
-function limpiarReferencias(){if(!confirm('¿Limpiar todas las referencias?'))return;_cfgReferencias={};_cfgProveedores=[];guardarEnServidor();renderRefsTable();showToast('🗑 Limpiado');}
+function limpiarReferencias(){
+  if(!confirm('¿Limpiar todas las referencias?'))return;
+  Object.values(_cfgReferencias).forEach(arr=>(arr||[]).forEach(r=>{if(r&&typeof r==='object'&&r.id)_deletedIds.push(r.id);}));
+  _cfgReferencias={};_cfgProveedores=[];guardarEnServidor();renderRefsTable();showToast('🗑 Limpiado');
+}
 function getDefectoOptions(){return _cfgDefectos.map(d=>{const l=typeof d==='object'?d.codigo+' - '+d.nombre:d;return '<option value="'+l+'">'+l+'</option>';}).join('');}
 function renderDefectosList(){
   const el=document.getElementById('cfg-defectos-list');
@@ -3534,7 +3586,9 @@ function guardarNuevaRef(){
   if(existe){showToast('⚠️ Ya existe esa referencia para este proveedor');return;}
   const g=id=>( document.getElementById(id)?.value||'').trim();
   _cfgReferencias[prov].push({
+    id:genRefId(),
     fecha:fechaHoy(),
+    hora:horaActual(),
     factura:g('cfg-ref-new-factura'),
     referencia:ref,
     color:g('cfg-ref-new-color'),
@@ -3564,6 +3618,7 @@ function editarRef(rowIdx,prov,ri){
   old.style.background='#fffbeb';
   old.innerHTML=`
     <div style="font-size:12px;color:#64748b;padding-right:8px;">${r.fecha?fechaDisplay(r.fecha):'—'}</div>
+    <div style="font-size:12px;color:#64748b;padding-right:8px;">${r.hora||'—'}</div>
     <div style="font-size:12px;font-weight:600;color:#1e3a8a;padding-right:8px;">${prov}</div>
     ${COLS.map(c=>`<input id="eref-${rowIdx}-${c.key}" value="${c.val.replace(/"/g,'&quot;')}"
       style="padding:4px 7px;border:1.5px solid #93c5fd;border-radius:6px;font-size:12px;outline:none;width:100%;">`).join('')}
@@ -3580,8 +3635,9 @@ function guardarEditRef(rowIdx,prov,ri){
   if(_cfgReferencias[prov]&&_cfgReferencias[prov][ri]!==undefined){
     const anterior=_cfgReferencias[prov][ri];
     const fechaPrevia=(typeof anterior==='object'&&anterior.fecha)?anterior.fecha:fechaHoy();
+    const horaPrevia=(typeof anterior==='object'&&anterior.hora)?anterior.hora:horaActual();
     _cfgReferencias[prov][ri]={
-      fecha:fechaPrevia,
+      fecha:fechaPrevia,hora:horaPrevia,
       factura:g('factura'),referencia:newRef,color:g('color'),lote:g('lote'),rollo:g('rollo'),
       ancho:g('ancho'),lote_prov:g('lote_prov'),peso:g('peso'),mts:g('mts')
     };
@@ -3590,6 +3646,8 @@ function guardarEditRef(rowIdx,prov,ri){
 }
 function eliminarRef(prov,ri){
   if(!_cfgReferencias[prov])return;
+  const borrado=_cfgReferencias[prov][ri];
+  if(borrado&&typeof borrado==='object'&&borrado.id) _deletedIds.push(borrado.id);
   _cfgReferencias[prov].splice(ri,1);
   if(!_cfgReferencias[prov].length){delete _cfgReferencias[prov];_cfgProveedores=_cfgProveedores.filter(p=>p!==prov);}
   guardarEnServidor();renderRefsTable();showToast('🗑 Referencia eliminada');
@@ -3605,7 +3663,8 @@ function renderDefectosList(){
     return `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0;margin-bottom:5px;">
       <span style="font-size:12px;font-weight:800;color:#64748b;min-width:36px;" id="def-cod-${i}">${cod}</span>
       <span style="flex:1;font-size:13px;font-weight:600;color:#0f172a;" id="def-nom-${i}">${nom}</span>
-      <button onclick="editarDefecto(${i})" style="width:28px;height:28px;border-radius:6px;border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;font-size:12px;">✏️</button>
+      <button id="def-btn-edit-${i}" onclick="editarDefecto(${i})" style="width:28px;height:28px;border-radius:6px;border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;font-size:12px;">✏️</button>
+      <button id="def-btn-save-${i}" onclick="guardarEditDefecto(${i})" style="display:none;padding:4px 10px;border-radius:6px;border:none;background:#2563eb;color:#fff;font-size:12px;font-weight:700;cursor:pointer;">✔</button>
       <button onclick="eliminarDefecto(${i})" style="width:28px;height:28px;border-radius:6px;border:1.5px solid #fca5a5;background:#fef2f2;color:#dc2626;cursor:pointer;font-size:12px;">🗑</button>
     </div>`;
   }).join('');
@@ -3614,8 +3673,10 @@ function editarDefecto(i){
   const d=_cfgDefectos[i];
   const cod=typeof d==='object'?d.codigo:'';
   const nom=typeof d==='object'?d.nombre:d;
-  document.getElementById('def-cod-'+i).innerHTML=`<input id="edit-def-cod-${i}" value="${cod}" style="width:44px;padding:4px 6px;border:1.5px solid #2563eb;border-radius:6px;font-size:12px;outline:none;">`;
+  document.getElementById('def-cod-'+i).innerHTML=`<input id="edit-def-cod-${i}" value="${cod}" style="width:44px;padding:4px 6px;border:1.5px solid #2563eb;border-radius:6px;font-size:12px;outline:none;" onkeydown="if(event.key==='Enter')guardarEditDefecto(${i})">`;
   document.getElementById('def-nom-'+i).innerHTML=`<input id="edit-def-nom-${i}" value="${nom}" style="width:100%;padding:4px 8px;border:1.5px solid #2563eb;border-radius:6px;font-size:13px;outline:none;" onkeydown="if(event.key==='Enter')guardarEditDefecto(${i})">`;
+  document.getElementById('def-btn-edit-'+i).style.display='none';
+  document.getElementById('def-btn-save-'+i).style.display='inline-block';
   document.getElementById('edit-def-nom-'+i).focus();
 }
 function guardarEditDefecto(i){
@@ -3794,154 +3855,244 @@ function verDetalles(id){
   win.document.close();
 }
 
-// ── Informe Gerencial ───────────────────────────────────────────────
+// ── Informe Gerencial (por operario y turno) ─────────────────────────
+const IG_TURNOS={ dia:{inicio:5*60+15,fin:17*60+45}, noche:{inicio:17*60+45,fin:5*60+15} };
+function igMinutosATexto(mins){ mins=((mins%1440)+1440)%1440; let h=Math.floor(mins/60),m=mins%60; const ap=h>=12?'PM':'AM'; let h12=h%12||12; return h12+':'+String(m).padStart(2,'0')+' '+ap; }
+function igHoraCorta(h){ h=((h%24)+24)%24; const ap=h>=12?'PM':'AM'; let h12=h%12||12; return h12+ap; }
+function igElapsed(horaStr,turno){ const b=IG_TURNOS[turno]; const mins=horaA24(horaStr); return turno==='noche' ? ((mins-b.inicio+1440)%1440) : (mins-b.inicio); }
+function igDuracionTurno(turno){ const b=IG_TURNOS[turno]; return turno==='noche' ? (1440-b.inicio+b.fin) : (b.fin-b.inicio); }
+function igEtiquetaTarea(r){ return r.tipo==='multitarea' ? ('Multitarea – '+(r.tarea||'').toString().toUpperCase()) : ('Revisión de tela – '+(r.referencia||r.factura||'—')); }
+
 function abrirInformeGerencial(){
-  let m=document.getElementById('modal-informe-ger');
-  if(!m){
-    m=document.createElement('div');
-    m.id='modal-informe-ger';
-    m.style.cssText='display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:2000;align-items:center;justify-content:center;padding:16px;';
-    m.onclick=e=>{if(e.target===m)m.style.display='none';};
-    const hoy=fechaHoy();
-    const primerDiaMes=hoy.slice(0,7)+'-01';
-    m.innerHTML=`<div style="background:#fff;border-radius:14px;width:100%;max-width:420px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.25);font-family:'Nunito',sans-serif;">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;letter-spacing:1px;color:#0f172a;margin-bottom:4px;">📋 INFORME GERENCIAL</div>
-      <div style="font-size:12px;color:#64748b;margin-bottom:18px;">Control de Revisión de Telas — Millar</div>
-      <div style="margin-bottom:12px;">
-        <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;display:block;margin-bottom:5px;">PERÍODO DESDE</label>
-        <input type="date" id="ig-desde" value="${primerDiaMes}" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;font-family:'Nunito',sans-serif;outline:none;">
-      </div>
-      <div style="margin-bottom:22px;">
-        <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;display:block;margin-bottom:5px;">PERÍODO HASTA</label>
-        <input type="date" id="ig-hasta" value="${hoy}" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;font-family:'Nunito',sans-serif;outline:none;">
-      </div>
-      <div style="display:flex;gap:8px;">
-        <button onclick="document.getElementById('modal-informe-ger').style.display='none'" style="flex:1;padding:10px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">Cancelar</button>
-        <button onclick="generarInformeGerencial()" style="flex:2;padding:10px;border-radius:8px;border:none;background:#4338ca;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;cursor:pointer;letter-spacing:.5px;">📄 GENERAR PDF</button>
-      </div>
-    </div>`;
-    document.body.appendChild(m);
-  }
-  m.style.display='flex';
+  cerrarDashboard();cerrarCfgScreen();
+  document.getElementById('rt-informe-screen').style.display='flex';
+  document.getElementById('ig-content').innerHTML='';
+  _igData=null;
+  document.getElementById('ig-btn-pdf').style.display='none';
+  const sel=document.getElementById('ig-persona');
+  sel.innerHTML='<option value="">Selecciona un operario…</option>'+[..._revisadores].sort().map(n=>`<option value="${n.replace(/"/g,'&quot;')}">${n}</option>`).join('');
+  document.getElementById('ig-fecha').value=fechaHoy();
+  rtsAjustarTopMenu();
+}
+function cerrarInformeGerencial(){
+  document.getElementById('rt-informe-screen').style.display='none';
+  rtsSetActive(document.getElementById('rts-nav-registros'));
 }
 
-function generarInformeGerencial(){
-  const desde=document.getElementById('ig-desde').value;
-  const hasta=document.getElementById('ig-hasta').value;
-  if(!desde||!hasta){showToast('Selecciona las fechas','error');return;}
-  if(desde>hasta){showToast('La fecha "desde" debe ser anterior a "hasta"','error');return;}
-  document.getElementById('modal-informe-ger').style.display='none';
+function calcularInformeTurno(persona,fecha){
+  const regsTurno=_registros.filter(r=>r.revisador===persona && r.fechaTurno===fecha);
+  if(!regsTurno.length) return null;
+  const turno=regsTurno[0].turno==='noche'?'noche':'dia';
+  const finalizados=regsTurno.filter(r=>r.finalizado&&r.hora_inicio&&r.hora_fin)
+    .map(r=>({...r,_ei:igElapsed(r.hora_inicio,turno),_ef:igElapsed(r.hora_fin,turno)}))
+    .sort((a,b)=>a._ei-b._ei);
+  const duracionTurno=igDuracionTurno(turno);
+  const b=IG_TURNOS[turno];
+  const horaOficialInicio=igMinutosATexto(b.inicio), horaOficialFin=igMinutosATexto(b.fin);
 
-  const regs=_registros.filter(r=>r.finalizado&&r.tipo!=='multitarea'&&r.fecha>=desde&&r.fecha<=hasta);
-  if(!regs.length){showToast('Sin registros finalizados en ese período','error');return;}
-
-  const totalRollos=regs.length;
-  const totalMetros=regs.reduce((s,r)=>s+parseFloat(r.metros||0),0);
-  const aprobados=regs.filter(r=>r.resultado==='aprobado');
-  const rechazados=regs.filter(r=>r.resultado==='rechazado');
-  const pctAprob=Math.round(aprobados.length/totalRollos*100);
-  const pctRech=Math.round(rechazados.length/totalRollos*100);
-
-  const byProv={};
-  regs.forEach(r=>{
-    const p=r.proveedor||'Sin proveedor';
-    if(!byProv[p])byProv[p]={rollos:0,metros:0,aprobados:0,rechazados:0};
-    byProv[p].rollos++;
-    byProv[p].metros+=parseFloat(r.metros||0);
-    if(r.resultado==='aprobado')byProv[p].aprobados++;
-    if(r.resultado==='rechazado')byProv[p].rechazados++;
+  const baches=[];
+  let cursor=0, anterior=null;
+  finalizados.forEach(r=>{
+    baches.push({
+      tareaAnterior: anterior?igEtiquetaTarea(anterior):'Inicio de turno',
+      horaFin: anterior?anterior.hora_fin:horaOficialInicio,
+      tareaSiguiente: igEtiquetaTarea(r),
+      horaInicio: r.hora_inicio,
+      minutos: r._ei-cursor,
+      key: (anterior?anterior.id:'INICIO')+'__'+r.id
+    });
+    cursor=r._ef; anterior=r;
+  });
+  baches.push({
+    tareaAnterior: anterior?igEtiquetaTarea(anterior):'Inicio de turno',
+    horaFin: anterior?anterior.hora_fin:horaOficialInicio,
+    tareaSiguiente:'Fin de turno',
+    horaInicio: horaOficialFin,
+    minutos: duracionTurno-cursor,
+    key:(anterior?anterior.id:'INICIO')+'__FIN'
   });
 
-  const defCount={};
-  regs.forEach(r=>(r.defectos||[]).forEach(d=>{
-    const n=d.tipo||'Sin nombre';
-    defCount[n]=(defCount[n]||0)+parseInt(d.cantidad||1);
-  }));
-  const topDef=Object.entries(defCount).sort((a,b)=>b[1]-a[1]).slice(0,10);
-  const totalDefTotal=Object.values(defCount).reduce((s,v)=>s+v,0);
+  const revision=finalizados.filter(r=>r.tipo!=='multitarea');
+  const multitarea=finalizados.filter(r=>r.tipo==='multitarea');
+  const tiempoRevisionMin=revision.reduce((s,r)=>s+(r._ef-r._ei),0);
+  const tiempoMultitareaMin=multitarea.reduce((s,r)=>s+(r._ef-r._ei),0);
+  const tiempoReportadoMin=tiempoRevisionMin+tiempoMultitareaMin;
+  const tiempoBachesMin=duracionTurno-tiempoReportadoMin;
 
-  const fmtD=s=>{if(!s)return '—';const[y,mo,d]=s.split('-');return `${d}/${mo}/${y}`;};
+  const rollosRevisados=revision.length;
+  const metrosRevisados=revision.reduce((s,r)=>s+parseFloat(r.metros||0),0);
+  const rechazados=revision.filter(r=>r.resultado==='rechazado').length;
+  const pctRechazo=rollosRevisados?Math.round(rechazados/rollosRevisados*100):0;
+  const eficienciaPct=duracionTurno?Math.round(tiempoReportadoMin/duracionTurno*100):0;
+  const productividadPct=duracionTurno?Math.round(tiempoRevisionMin/duracionTurno*100):0;
+
+  const mtGrupos={};
+  multitarea.forEach(r=>{
+    const n=(r.tarea||'—').toString();
+    if(!mtGrupos[n])mtGrupos[n]={veces:0,minutos:0};
+    mtGrupos[n].veces++; mtGrupos[n].minutos+=(r._ef-r._ei);
+  });
+  const multitareaLista=Object.entries(mtGrupos).map(([nombre,d])=>({nombre,...d})).sort((a,b)=>b.minutos-a.minutos);
+
+  const hIni=Math.floor(b.inicio/60);
+  const totalHoras=Math.ceil(duracionTurno/60)+1;
+  const porHora=[];
+  for(let i=0;i<totalHoras;i++){ const h=(hIni+i)%24; porHora.push({hora:h,minutos:0}); }
+  baches.forEach(bh=>{
+    if(bh.minutos<=0) return;
+    const h=Math.floor(horaA24(bh.horaFin)/60)%24;
+    const slot=porHora.find(p=>p.hora===h);
+    if(slot) slot.minutos+=bh.minutos;
+  });
+  let horaPico=porHora[0];
+  porHora.forEach(p=>{if(p.minutos>horaPico.minutos)horaPico=p;});
+  const horasConBache=porHora.filter(p=>p.minutos>0).length;
+  const promedioHoraBache=horasConBache?Math.round(tiempoBachesMin/horasConBache*10)/10:0;
+
+  return {
+    persona,fecha,turno,horaOficialInicio,horaOficialFin,duracionTurno,
+    baches,revision,multitarea,multitareaLista,
+    tiempoRevisionMin,tiempoMultitareaMin,tiempoReportadoMin,tiempoBachesMin,
+    rollosRevisados,metrosRevisados,rechazados,pctRechazo,eficienciaPct,productividadPct,
+    porHora,horaPico,promedioHoraBache
+  };
+}
+
+function igCargar(){
+  const persona=document.getElementById('ig-persona').value;
+  const fecha=document.getElementById('ig-fecha').value;
+  if(!persona||!fecha){showToast('Selecciona operario y fecha','error');return;}
+  const data=calcularInformeTurno(persona,fecha);
+  if(!data){
+    document.getElementById('ig-content').innerHTML='<div style="color:#94a3b8;font-size:13px;text-align:center;padding:40px;">Sin registros de ese operario en esa fecha.</div>';
+    document.getElementById('ig-btn-pdf').style.display='none';
+    _igData=null;
+    return;
+  }
+  _igData=data;
+  document.getElementById('ig-content').innerHTML=igRenderSecciones(data,true);
+  document.getElementById('ig-btn-pdf').style.display='inline-block';
+}
+
+// Genera el HTML de todas las secciones del informe. editable=true → celdas de
+// Justificación como <input> (vista dentro del sistema); false → texto plano (PDF).
+function igRenderSecciones(d,editable){
+  const KPI1='border-radius:12px;padding:20px 14px;text-align:center;';
+  const donutBg=`conic-gradient(#4338ca 0% ${d.productividadPct}%, #38bdf8 ${d.productividadPct}% ${Math.min(100,Math.round(d.tiempoReportadoMin/d.duracionTurno*100))}%, #fca5a5 ${Math.min(100,Math.round(d.tiempoReportadoMin/d.duracionTurno*100))}% 100%)`;
+  const maxHora=Math.max(1,d.horaPico.minutos);
+  const horasHTML=d.porHora.map(p=>`
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;">
+      <div style="font-size:9.5px;font-weight:700;color:#334155;margin-bottom:3px;">${p.minutos||0}</div>
+      <div style="width:100%;max-width:34px;border-radius:4px 4px 0 0;height:${Math.max(2,Math.round(p.minutos/maxHora*100))}%;background:${p.hora===d.horaPico.hora&&p.minutos>0?'#4338ca':'#c7d2fe'};"></div>
+      <div style="font-size:9px;color:#94a3b8;margin-top:5px;">${igHoraCorta(p.hora)}</div>
+    </div>`).join('');
+  const mtHTML=d.multitareaLista.length?d.multitareaLista.map((m,i)=>`
+    <tr style="${i===0?'background:#eef2ff;':''}">
+      <td style="padding:6.5px 10px;border-bottom:1px solid #f1f5f9;font-size:11.5px;">${m.nombre}${i===0?'<span style="display:inline-block;background:#4338ca;color:#fff;font-size:9px;font-weight:800;padding:2px 7px;border-radius:20px;margin-left:6px;">MAYOR TIEMPO</span>':''}</td>
+      <td style="padding:6.5px 10px;border-bottom:1px solid #f1f5f9;font-size:11.5px;text-align:center;">${m.veces}</td>
+      <td style="padding:6.5px 10px;border-bottom:1px solid #f1f5f9;font-size:11.5px;text-align:right;">${m.minutos} min</td>
+    </tr>`).join(''):'<tr><td colspan="3" style="text-align:center;color:#94a3b8;padding:16px;">Sin actividades de multitarea</td></tr>';
+  const bachesHTML=d.baches.map(bh=>{
+    const rowBg=bh.minutos<0?'background:#fef2f2;':bh.minutos>=10?'background:#fff7ed;':'';
+    const badgeStyle=bh.minutos<0?'background:#fecaca;color:#991b1b;':bh.minutos>=10?'background:#fed7aa;color:#9a3412;':'background:#f1f5f9;color:#64748b;';
+    const just=(_igJustificaciones[bh.key]||'').toString();
+    const justCell=editable
+      ? `<input class="ig-just" data-key="${bh.key}" value="${just.replace(/"/g,'&quot;')}" placeholder="Sin justificación" style="width:100%;min-width:150px;border:1.5px dashed #cbd5e1;border-radius:6px;padding:4px 7px;font-size:11px;font-family:inherit;color:#334155;">`
+      : `<span style="font-size:11px;color:${just?'#312e81':'#cbd5e1'};">${just||'—'}</span>`;
+    return `<tr style="${rowBg}">
+      <td style="padding:6.5px 10px;border-bottom:1px solid #f1f5f9;font-size:11.5px;">${bh.tareaAnterior}</td>
+      <td style="padding:6.5px 10px;border-bottom:1px solid #f1f5f9;font-size:11.5px;">${bh.horaFin}</td>
+      <td style="padding:6.5px 10px;border-bottom:1px solid #f1f5f9;font-size:11.5px;">${bh.tareaSiguiente}</td>
+      <td style="padding:6.5px 10px;border-bottom:1px solid #f1f5f9;font-size:11.5px;">${bh.horaInicio}</td>
+      <td style="padding:6.5px 10px;border-bottom:1px solid #f1f5f9;font-size:11.5px;text-align:center;"><span style="display:inline-flex;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:800;${badgeStyle}">${bh.minutos} min</span></td>
+      <td style="padding:6.5px 10px;border-bottom:1px solid #f1f5f9;font-size:11.5px;min-width:200px;">${justCell}</td>
+    </tr>`;
+  }).join('');
+
+  return `
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px;">
+    <div style="${KPI1}background:#eef2ff;border:1.5px solid #c7d2fe;"><div style="font-size:34px;font-weight:800;color:#4338ca;line-height:1;">${d.eficienciaPct}%</div><div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-top:6px;">Eficiencia</div><div style="font-size:9.5px;color:#94a3b8;margin-top:3px;">${d.tiempoReportadoMin} de ${d.duracionTurno} min del turno reportados</div></div>
+    <div style="${KPI1}background:#eff6ff;border:1.5px solid #bfdbfe;"><div style="font-size:34px;font-weight:800;color:#1d4ed8;line-height:1;">${d.productividadPct}%</div><div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-top:6px;">Productividad</div><div style="font-size:9.5px;color:#94a3b8;margin-top:3px;">${d.tiempoRevisionMin} de ${d.duracionTurno} min en revisión de tela</div></div>
+    <div style="${KPI1}background:#fef2f2;border:1.5px solid #fca5a5;"><div style="font-size:34px;font-weight:800;color:#dc2626;line-height:1;">${d.pctRechazo}%</div><div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-top:6px;">% Rechazo</div><div style="font-size:9.5px;color:#94a3b8;margin-top:3px;">${d.rechazados} de ${d.rollosRevisados} rollos</div></div>
+  </div>
+  <div style="display:flex;gap:12px;margin-bottom:26px;">
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:9px;padding:9px 12px;"><span style="font-size:16px;font-weight:800;color:#0f172a;">${d.rollosRevisados}</span><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#64748b;">Rollos revisados</span></div>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:9px;padding:9px 12px;"><span style="font-size:16px;font-weight:800;color:#0f172a;">${d.metrosRevisados.toFixed(1)} m</span><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#64748b;">Metros revisados</span></div>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:9px;padding:9px 12px;"><span style="font-size:16px;font-weight:800;color:#0f172a;">${Math.floor(d.tiempoRevisionMin/60)}h ${d.tiempoRevisionMin%60}m</span><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#64748b;">Tiempo en revisión de tela</span></div>
+  </div>
+
+  <div style="margin-bottom:26px;">
+    <div style="font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#1e3a8a;border-bottom:2px solid #e2e8f0;padding-bottom:6px;margin-bottom:14px;">Distribución del Turno</div>
+    <div style="display:flex;gap:28px;align-items:center;">
+      <div style="width:118px;height:118px;border-radius:50%;flex-shrink:0;position:relative;background:${donutBg};"><div style="position:absolute;inset:16px;background:#fff;border-radius:50%;"></div></div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;align-items:center;gap:10px;"><span style="width:11px;height:11px;border-radius:3px;background:#4338ca;flex-shrink:0;"></span><span style="font-size:12.5px;color:#334155;"><b style="color:#0f172a;">${d.tiempoRevisionMin} min</b> revisión de tela</span><span style="font-size:10.5px;color:#94a3b8;margin-left:auto;">${d.productividadPct}%</span></div>
+        <div style="display:flex;align-items:center;gap:10px;"><span style="width:11px;height:11px;border-radius:3px;background:#38bdf8;flex-shrink:0;"></span><span style="font-size:12.5px;color:#334155;"><b style="color:#0f172a;">${d.tiempoMultitareaMin} min</b> multitareas</span><span style="font-size:10.5px;color:#94a3b8;margin-left:auto;">${Math.round(d.tiempoMultitareaMin/d.duracionTurno*100)}%</span></div>
+        <div style="display:flex;align-items:center;gap:10px;"><span style="width:11px;height:11px;border-radius:3px;background:#fca5a5;flex-shrink:0;"></span><span style="font-size:12.5px;color:#334155;"><b style="color:#0f172a;">${d.tiempoBachesMin} min</b> sin reportar (baches)</span><span style="font-size:10.5px;color:#94a3b8;margin-left:auto;">${Math.round(d.tiempoBachesMin/d.duracionTurno*100)}%</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-bottom:26px;">
+    <div style="font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#1e3a8a;border-bottom:2px solid #e2e8f0;padding-bottom:6px;margin-bottom:14px;">Total de Baches por Hora</div>
+    <div style="display:flex;align-items:flex-end;gap:6px;height:120px;padding:0 4px;">${horasHTML}</div>
+    <div style="font-size:10.5px;color:#94a3b8;margin-top:10px;">Hora pico: <b style="color:#334155;">${igHoraCorta(d.horaPico.hora)==='—'?'—':igMinutosATexto(d.horaPico.hora*60)} (${d.horaPico.minutos} min)</b> · Promedio por hora con baches: <b style="color:#334155;">${d.promedioHoraBache} min</b></div>
+  </div>
+
+  <div style="margin-bottom:26px;">
+    <div style="font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#1e3a8a;border-bottom:2px solid #e2e8f0;padding-bottom:6px;margin-bottom:14px;">Actividades de Multitarea</div>
+    <table style="width:100%;border-collapse:collapse;">
+      <thead><tr><th style="background:#1e3a8a;color:#fff;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;text-align:left;">Actividad</th><th style="background:#1e3a8a;color:#fff;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;text-align:center;width:90px;">N° veces</th><th style="background:#1e3a8a;color:#fff;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;text-align:right;width:110px;">Tiempo total</th></tr></thead>
+      <tbody>${mtHTML}</tbody>
+    </table>
+  </div>
+
+  <div>
+    <div style="font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#1e3a8a;border-bottom:2px solid #e2e8f0;padding-bottom:6px;margin-bottom:6px;">Detalle de Baches — Turno Completo</div>
+    <div style="font-size:10.5px;color:#94a3b8;margin-bottom:10px;">Naranja: bache ≥10 min · Rojo: valor negativo detectado (revisar sistema)</div>
+    <table style="width:100%;border-collapse:collapse;">
+      <thead><tr>
+        <th style="background:#1e3a8a;color:#fff;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;text-align:left;">Tarea anterior</th>
+        <th style="background:#1e3a8a;color:#fff;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;text-align:left;">Hora fin</th>
+        <th style="background:#1e3a8a;color:#fff;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;text-align:left;">Tarea siguiente</th>
+        <th style="background:#1e3a8a;color:#fff;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;text-align:left;">Hora inicio</th>
+        <th style="background:#1e3a8a;color:#fff;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;text-align:center;width:70px;">Bache</th>
+        <th style="background:#1e3a8a;color:#fff;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;text-align:left;width:200px;">Justificación</th>
+      </tr></thead>
+      <tbody>${bachesHTML}</tbody>
+    </table>
+  </div>`;
+}
+
+function igGenerarPDF(){
+  if(!_igData){showToast('Primero carga un informe','error');return;}
+  document.querySelectorAll('.ig-just').forEach(inp=>{
+    const key=inp.dataset.key, val=(inp.value||'').trim();
+    if(val) _igJustificaciones[key]=val; else delete _igJustificaciones[key];
+  });
+  guardarEnServidor();
+  const d=_igData;
   const genEn=new Date().toLocaleString('es-CO',{dateStyle:'long',timeStyle:'short'});
-
-  const TH=`background:#1e3a8a;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:9px 11px;text-align:left;`;
-  const TD=`padding:7px 11px;border-bottom:1px solid #f1f5f9;font-size:12px;`;
-  const TDC=TD+`text-align:center;`;
-  const TDR=TD+`text-align:right;`;
-
-  const provRows=Object.entries(byProv).sort((a,b)=>b[1].rechazados-a[1].rechazados).map(([prov,d])=>{
-    const pR=d.rollos?Math.round(d.rechazados/d.rollos*100):0;
-    const cR=pR>=30?'#dc2626':pR>=15?'#b45309':'#15803d';
-    return `<tr style="background:inherit;">
-      <td style="${TD}">${prov}</td>
-      <td style="${TDC}">${d.rollos}</td>
-      <td style="${TDR}">${d.metros.toFixed(1)} m</td>
-      <td style="${TDC}color:#15803d;font-weight:700;">${d.aprobados}</td>
-      <td style="${TDC}color:#dc2626;font-weight:700;">${d.rechazados}</td>
-      <td style="${TDC}font-weight:700;color:${cR};">${pR}%</td>
-    </tr>`;
-  }).join('');
-
-  const defRows=topDef.map(([nombre,cant],i)=>{
-    const pct=totalDefTotal?Math.round(cant/totalDefTotal*100):0;
-    return `<tr style="background:inherit;">
-      <td style="${TDC}color:#94a3b8;">${i+1}</td>
-      <td style="${TD}">${nombre}</td>
-      <td style="${TDC}font-weight:700;">${cant}</td>
-      <td style="${TD}">
-        <div style="display:flex;align-items:center;gap:6px;">
-          <div style="flex:1;height:7px;background:#f1f5f9;border-radius:4px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:#4338ca;border-radius:4px;"></div></div>
-          <span style="font-size:10px;color:#64748b;min-width:28px;">${pct}%</span>
-        </div>
-      </td>
-    </tr>`;
-  }).join('');
-
-  const rechRows=rechazados.map(r=>{
-    const defs=(r.defectos||[]).map(d=>(d.tipo||'—')+(d.cantidad?` (${d.cantidad})`:`m${d.metro||''}`)).join(', ')||'—';
-    return `<tr style="background:inherit;">
-      <td style="${TD}">${fmtD(r.fecha)}</td>
-      <td style="${TD}">${r.factura||r.lote||'—'}</td>
-      <td style="${TDC}">${r.rollo||'—'}</td>
-      <td style="${TD}">${r.proveedor||'—'}</td>
-      <td style="${TD}">${r.referencia||'—'}</td>
-      <td style="${TDR}">${r.metros?r.metros+' m':'—'}</td>
-      <td style="${TD}font-size:11px;color:#dc2626;">${defs}</td>
-    </tr>`;
-  }).join('');
-
+  const turnoLabel=d.turno==='noche'?'Noche':'Día';
   const html=`<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Informe Gerencial — Revisión de Telas</title>
+<title>Informe Gerencial — ${d.persona}</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;font-size:12px;}
 .page{max-width:900px;margin:0 auto;padding:32px;}
-.header{display:flex;align-items:flex-start;justify-content:space-between;border-bottom:3px solid #1e3a8a;padding-bottom:16px;margin-bottom:24px;}
-.co-name{font-size:20px;font-weight:800;color:#1e3a8a;letter-spacing:1px;font-family:'Segoe UI',Arial,sans-serif;}
+.header{display:flex;align-items:flex-start;justify-content:space-between;border-bottom:3px solid #1e3a8a;padding-bottom:16px;margin-bottom:22px;}
+.co-name{font-size:20px;font-weight:800;color:#1e3a8a;letter-spacing:1px;}
 .co-sub{font-size:11px;color:#64748b;margin-top:3px;}
 .hd-right{text-align:right;}
 .hd-title{font-size:13px;font-weight:800;color:#1e3a8a;text-transform:uppercase;letter-spacing:1px;}
-.hd-period{font-size:14px;font-weight:700;color:#0f172a;margin-top:3px;}
-.hd-gen{font-size:10px;color:#94a3b8;margin-top:4px;}
-.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px;}
-.kpi{border-radius:10px;padding:14px 16px;}
-.kpi.t{background:#f8fafc;border:1.5px solid #e2e8f0;}
-.kpi.m{background:#eff6ff;border:1.5px solid #bfdbfe;}
-.kpi.a{background:#f0fdf4;border:1.5px solid #86efac;}
-.kpi.r{background:#fef2f2;border:1.5px solid #fca5a5;}
-.kpi-n{font-size:30px;font-weight:800;line-height:1;font-family:'Segoe UI',Arial,sans-serif;}
-.kpi.t .kpi-n{color:#0f172a;} .kpi.m .kpi-n{color:#1d4ed8;} .kpi.a .kpi-n{color:#15803d;} .kpi.r .kpi-n{color:#dc2626;}
-.kpi-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-top:5px;}
-.kpi-pct{font-size:11px;font-weight:600;margin-top:2px;}
-.kpi.a .kpi-pct{color:#15803d;} .kpi.r .kpi-pct{color:#dc2626;}
-.sec{margin-bottom:26px;}
-.sec-title{font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#1e3a8a;border-bottom:2px solid #e2e8f0;padding-bottom:6px;margin-bottom:12px;}
-table{width:100%;border-collapse:collapse;}
-thead th{${TH}}
-tbody tr:nth-child(even){background:#f8fafc;}
-.footer{margin-top:28px;padding-top:10px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;}
+.hd-sub2{font-size:11px;color:#64748b;font-weight:600;margin-top:2px;}
+.hd-op{font-size:15px;font-weight:800;color:#0f172a;margin-top:6px;}
+.hd-meta{font-size:11.5px;color:#334155;margin-top:2px;}
+.hd-gen{font-size:9.5px;color:#94a3b8;margin-top:4px;}
+.footer{margin-top:26px;padding-top:10px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;}
 .footer span{font-size:10px;color:#94a3b8;}
 .no-print{text-align:center;margin-top:20px;}
 @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}.page{padding:20px;}.no-print{display:none;}}
@@ -3956,66 +4107,16 @@ tbody tr:nth-child(even){background:#f8fafc;}
     </div>
     <div class="hd-right">
       <div class="hd-title">Informe Gerencial</div>
-      <div class="hd-title" style="font-size:11px;color:#64748b;font-weight:600;">Control de Revisión de Telas</div>
-      <div class="hd-period">${fmtD(desde)} — ${fmtD(hasta)}</div>
+      <div class="hd-sub2">Control de Revisión de Telas</div>
+      <div class="hd-op">${d.persona}</div>
+      <div class="hd-meta">Turno ${turnoLabel} · ${d.horaOficialInicio} – ${d.horaOficialFin} · ${fechaDisplay(d.fecha)}</div>
       <div class="hd-gen">Generado: ${genEn}</div>
     </div>
   </div>
-
-  <div class="kpi-grid">
-    <div class="kpi t"><div class="kpi-n">${totalRollos}</div><div class="kpi-lbl">Rollos revisados</div></div>
-    <div class="kpi m"><div class="kpi-n">${totalMetros.toFixed(1)}</div><div class="kpi-lbl">Metros revisados</div></div>
-    <div class="kpi a"><div class="kpi-n">${aprobados.length}</div><div class="kpi-lbl">Aprobados</div><div class="kpi-pct">${pctAprob}% del total</div></div>
-    <div class="kpi r"><div class="kpi-n">${rechazados.length}</div><div class="kpi-lbl">Rechazados</div><div class="kpi-pct">${pctRech}% del total</div></div>
-  </div>
-
-  <div class="sec">
-    <div class="sec-title">Análisis por Proveedor</div>
-    <table>
-      <thead><tr>
-        <th>Proveedor</th>
-        <th style="text-align:center;">Rollos</th>
-        <th style="text-align:right;">Metros</th>
-        <th style="text-align:center;">Aprobados</th>
-        <th style="text-align:center;">Rechazados</th>
-        <th style="text-align:center;">% Rechazo</th>
-      </tr></thead>
-      <tbody>${provRows||`<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:16px;">Sin datos de proveedor</td></tr>`}</tbody>
-    </table>
-  </div>
-
-  ${topDef.length?`<div class="sec">
-    <div class="sec-title">Defectos más Frecuentes</div>
-    <table>
-      <thead><tr>
-        <th style="text-align:center;width:36px;">#</th>
-        <th>Tipo de defecto</th>
-        <th style="text-align:center;">Hallazgos</th>
-        <th style="width:180px;">Proporción</th>
-      </tr></thead>
-      <tbody>${defRows}</tbody>
-    </table>
-  </div>`:''}
-
-  ${rechazados.length?`<div class="sec">
-    <div class="sec-title">Detalle de Rollos Rechazados (${rechazados.length})</div>
-    <table>
-      <thead><tr>
-        <th>Fecha</th>
-        <th>Factura</th>
-        <th style="text-align:center;">Rollo</th>
-        <th>Proveedor</th>
-        <th>Referencia</th>
-        <th style="text-align:right;">Metros</th>
-        <th>Defectos</th>
-      </tr></thead>
-      <tbody>${rechRows}</tbody>
-    </table>
-  </div>`:''}
-
+  ${igRenderSecciones(d,false)}
   <div class="footer">
-    <span>Confecciones Millar S.A.S. · Sistema de Control de Piso</span>
-    <span>Documento generado electrónicamente · ${genEn}</span>
+    <span>Confecciones Millar S.A.S. — Documento interno de uso gerencial</span>
+    <span>Página 1 de 1</span>
   </div>
 </div>
 <div class="no-print">

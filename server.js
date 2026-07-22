@@ -1062,6 +1062,7 @@ app.post('/api/revision-telas', (req, res) => {
     const proveedores        = req.body.proveedores        || [];
     const proveedoresTerceros= req.body.proveedoresTerceros|| [];
     const tareas             = req.body.tareas             || [];
+    const igJustificaciones  = req.body.igJustificaciones  || {};
     const deletedIds         = Array.isArray(req.body.deletedIds) ? req.body.deletedIds : [];
 
     const prev = loadDB('revision_telas') || {};
@@ -1073,14 +1074,39 @@ app.post('/api/revision-telas', (req, res) => {
     deletedIds.forEach(id => byId.delete(id));
     const mergedRegistros = [...byId.values()];
 
+    // ── Referencias: merge por id (igual que registros) — así ningún
+    // navegador con datos desactualizados puede borrar lo que otro acaba
+    // de agregar; solo se pierde una referencia si se borra explícitamente.
+    const flattenRefs = (obj) => {
+      const map = new Map();
+      Object.keys(obj || {}).forEach(prov => {
+        (Array.isArray(obj[prov]) ? obj[prov] : []).forEach(r => {
+          if (r && typeof r === 'object' && r.id != null) map.set(r.id, { ...r, _prov: prov });
+        });
+      });
+      return map;
+    };
+    const refsById = flattenRefs(prev.referencias);
+    flattenRefs(referencias).forEach((r, id) => refsById.set(id, r));
+    deletedIds.forEach(id => refsById.delete(id));
+    const mergedReferencias = {};
+    refsById.forEach(r => {
+      const { _prov, ...entry } = r;
+      const prov = _prov || 'Sin proveedor';
+      if (!mergedReferencias[prov]) mergedReferencias[prov] = [];
+      mergedReferencias[prov].push(entry);
+    });
+
     // ── Config arrays: conservar lo que ya hay si el cliente envía vacío ──
     // Nunca se pierde información por un deploy o recarga parcial.
     const mergedDefectos          = defectos           && defectos.length           ? defectos            : (Array.isArray(prev.defectos)            ? prev.defectos            : []);
-    const mergedReferencias        = referencias        && Object.keys(referencias||{}).length > 0 ? referencias : (prev.referencias        && typeof prev.referencias==='object'  ? prev.referencias        : {});
     const mergedColores            = colores            && colores.length            ? colores             : (Array.isArray(prev.colores)             ? prev.colores             : []);
     const mergedProveedores        = proveedores        && proveedores.length        ? proveedores         : (Array.isArray(prev.proveedores)         ? prev.proveedores         : []);
     const mergedProvTerceros       = proveedoresTerceros && proveedoresTerceros.length ? proveedoresTerceros: (Array.isArray(prev.proveedoresTerceros)  ? prev.proveedoresTerceros  : []);
     const mergedTareas             = tareas             && tareas.length             ? tareas              : (Array.isArray(prev.tareas)              ? prev.tareas              : []);
+    // Justificaciones de baches (Informe Gerencial): unión simple por clave —
+    // nunca se reemplaza todo el objeto, solo se agregan/actualizan las claves enviadas.
+    const mergedIgJustificaciones = { ...(prev.igJustificaciones && typeof prev.igJustificaciones==='object' ? prev.igJustificaciones : {}), ...igJustificaciones };
 
     const data = {
       registros: mergedRegistros,
@@ -1089,6 +1115,7 @@ app.post('/api/revision-telas', (req, res) => {
       colores:   mergedColores,
       proveedores: mergedProveedores,
       proveedoresTerceros: mergedProvTerceros,
+      igJustificaciones: mergedIgJustificaciones,
       tareas:    mergedTareas
     };
 
