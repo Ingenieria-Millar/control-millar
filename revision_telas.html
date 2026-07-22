@@ -319,6 +319,10 @@ body.rt-has-sidenav #rt-corte-screen{left:224px!important;}
 .rt-corte-card.pendiente{border-left:4px solid #f59e0b;}
 .rt-corte-card.entregada{border-left:4px solid #2563eb;}
 .rt-corte-card.aceptada{border-left:4px solid #16a34a;}
+/* Tabla de Referencias — líneas grises entre columnas y encabezados alineados con el contenido, estilo Excel. */
+.rt-refs-grid{align-items:center;}
+.rt-refs-grid>*{border-right:1px solid #e2e8f0;text-align:center;padding-right:6px;box-sizing:border-box;}
+.rt-refs-grid>*:last-child{border-right:none;padding-right:0;}
 /* La barra superior real ya muestra el logo y el título — se oculta el que traía cada
    pantalla por dentro para que no se vean dos logos "montados" uno junto al otro. */
 body.rt-has-sidenav #cfgscr-hdrow{display:none!important;}
@@ -1220,7 +1224,7 @@ input[type=number]{-moz-appearance:textfield;}
         </div>
         <!-- Tabla de referencias -->
         <div style="max-height:500px;overflow-y:auto;">
-          <div style="display:grid;grid-template-columns:0.9fr 0.7fr 0.8fr 1.5fr 2fr 1fr 1fr 0.8fr 1fr 1fr 1fr 1fr auto;gap:0;padding:8px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;">
+          <div class="rt-refs-grid" style="display:grid;grid-template-columns:0.9fr 0.7fr 0.8fr 1.5fr 2fr 1fr 1fr 0.8fr 1fr 1fr 1fr 1fr auto;gap:0;padding:8px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;">
             <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">Fecha</div>
             <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">Hora</div>
             <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">Proveedor</div>
@@ -1235,7 +1239,7 @@ input[type=number]{-moz-appearance:textfield;}
             <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">Mts Rollo</div>
             <div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">Acciones</div>
           </div>
-          <div style="display:grid;grid-template-columns:0.9fr 0.7fr 0.8fr 1.5fr 2fr 1fr 1fr 0.8fr 1fr 1fr 1fr 1fr auto;gap:0;padding:5px 16px 8px;background:#f8fafc;border-bottom:1px solid #e2e8f0;">
+          <div class="rt-refs-grid" style="display:grid;grid-template-columns:0.9fr 0.7fr 0.8fr 1.5fr 2fr 1fr 1fr 0.8fr 1fr 1fr 1fr 1fr auto;gap:0;padding:5px 16px 8px;background:#f8fafc;border-bottom:1px solid #e2e8f0;">
             <input placeholder="Filtrar..." oninput="filtrarRefsTabla(0,this.value)" class="tf">
             <input placeholder="Filtrar..." oninput="filtrarRefsTabla(1,this.value)" class="tf">
             <input placeholder="Filtrar..." oninput="filtrarRefsTabla(2,this.value)" class="tf">
@@ -3256,7 +3260,7 @@ function renderRefsTable(){
     // Normalizar: puede venir como string (datos viejos) o como objeto (datos nuevos)
     const r=typeof ref==='object'?ref:{referencia:String(ref||'')};
     const esc=s=>(s||'').toString().replace(/'/g,"\'");
-    return `<div style="${GR}" id="cfg-ref-row-${i}">
+    return `<div class="rt-refs-grid" style="${GR}" id="cfg-ref-row-${i}">
       <div style="${TD}color:#64748b;">${r.fecha?fechaDisplay(r.fecha):'—'}</div>
       <div style="${TD}color:#64748b;">${r.hora||'—'}</div>
       <div style="${TD}font-weight:600;color:#1e3a8a;">${prov}</div>
@@ -3269,12 +3273,29 @@ function renderRefsTable(){
       <div style="${TD}">${r.lote_prov||'—'}</div>
       <div style="${TD}">${r.peso||'—'}</div>
       <div style="${TD}">${r.mts||'—'}</div>
-      <div style="display:flex;gap:6px;flex-shrink:0;">
+      <div style="display:flex;gap:6px;flex-shrink:0;justify-content:center;">
         <button onclick="editarRef(${i},'${esc(prov)}',${ri})" style="width:28px;height:28px;border-radius:6px;border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;font-size:12px;">✏️</button>
         <button onclick="eliminarRef('${esc(prov)}',${ri})" style="width:28px;height:28px;border-radius:6px;border:1.5px solid #fca5a5;background:#fef2f2;color:#dc2626;cursor:pointer;font-size:12px;">🗑</button>
       </div>
     </div>`;
   }).join('');
+}
+// Reconoce a qué campo pertenece un encabezado de columna, sin importar el
+// orden en que vengan en el Excel. Los más específicos van primero
+// (ej: "Lote Prov." antes que "Lote", "Peso Rollo" antes que "Rollo").
+function igCampoDeEncabezado(h){
+  h=(h||'').toString().toLowerCase().trim();
+  if(h.includes('lote')&&h.includes('prov'))return 'lote_prov';
+  if(h.includes('peso'))return 'peso';
+  if(h.includes('mts')||h.includes('metro'))return 'mts';
+  if(h.includes('ancho'))return 'ancho';
+  if(h.includes('rollo'))return 'rollo';
+  if(h.includes('lote'))return 'lote';
+  if(h.includes('factura'))return 'factura';
+  if(h.includes('referencia')||h==='ref')return 'referencia';
+  if(h.includes('color'))return 'color';
+  if(h.includes('proveedor')||h.includes('cliente'))return 'proveedor';
+  return null;
 }
 function importarReferencias(){
   const inp=document.createElement('input');inp.type='file';inp.accept='.xlsx,.xls,.csv';
@@ -3284,46 +3305,44 @@ function importarReferencias(){
     const ws=wb.Sheets[wb.SheetNames[0]];
     const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
     if(!rows.length){showToast('⚠️ Archivo vacío');return;}
-    // Detectar si la primera fila es encabezado o dato
+    const g=(row,idx)=>(idx!=null&&row[idx]!==undefined&&row[idx]!==null?row[idx].toString().trim():'');
+    // Detectar fila de encabezado y mapear cada columna por su NOMBRE (no por
+    // posición fija) — así el archivo puede traer columnas de más, en blanco
+    // o en otro orden y los datos igual caen en el campo correcto.
     const fila0=(rows[0]||[]).map(h=>(h||'').toString().toLowerCase().trim());
-    const tieneHeader=fila0.some(h=>h.includes('factura')||h.includes('cliente')||h.includes('referencia')||h.includes('ref'));
+    const tieneHeader=fila0.some(h=>h.includes('factura')||h.includes('cliente')||h.includes('referencia')||h.includes('ref')||h.includes('proveedor'));
+    let colIdx;
+    if(tieneHeader){
+      colIdx={};
+      fila0.forEach((h,idx)=>{ const campo=igCampoDeEncabezado(h); if(campo&&colIdx[campo]===undefined) colIdx[campo]=idx; });
+    }else{
+      // Sin encabezado: mantener el orden posicional de la plantilla como respaldo.
+      colIdx={proveedor:0,factura:1,referencia:2,color:3,lote:4,rollo:5,ancho:6,lote_prov:7,peso:8,mts:9};
+    }
     const inicio=tieneHeader?1:0;
-    // Mapeo de columnas por posición según formato real:
-    // Col 0: Factura, Col 1: Cliente, Col 2: Referencia, Col 3: Color,
-    // Col 4: No. Lote, Col 5: No. Rollo, Col 6: Ancho Tela,
-    // Col 7: Lote Proveedor, Col 8: Peso Rollo, Col 9: Mts Rollo
-    const g=(row,idx)=>(row[idx]!==undefined&&row[idx]!==null?row[idx].toString().trim():'');
     const nr={};
     Object.keys(_cfgReferencias).forEach(prov=>{ nr[prov]=[..._cfgReferencias[prov]]; });
     let count=0;
     rows.forEach((row,i)=>{
       if(i<inicio)return;
-      const prov=g(row,0);       // Col 0: Proveedor
-      const factura=g(row,1);    // Col 1: Factura
-      const ref=g(row,2);        // Col 2: Referencia
+      const prov=g(row,colIdx.proveedor);
+      const factura=g(row,colIdx.factura);
+      const ref=g(row,colIdx.referencia);
       if(!prov&&!ref)return;
       const provKey=prov||'Sin proveedor';
       if(!nr[provKey])nr[provKey]=[];
+      const color=g(row,colIdx.color),lote=g(row,colIdx.lote),rollo=g(row,colIdx.rollo),
+            ancho=g(row,colIdx.ancho),lote_prov=g(row,colIdx.lote_prov),peso=g(row,colIdx.peso),mts=g(row,colIdx.mts);
       // Validar duplicado exacto
       const esDuplicado=nr[provKey].some(x=>
-        x.factura===factura&&x.referencia===g(row,2)&&x.color===g(row,3)&&
-        x.lote===g(row,4)&&x.rollo===g(row,5)&&x.ancho===g(row,6)&&
-        x.lote_prov===g(row,7)&&x.peso===g(row,8)&&x.mts===g(row,9)
+        x.factura===factura&&x.referencia===ref&&x.color===color&&
+        x.lote===lote&&x.rollo===rollo&&x.ancho===ancho&&
+        x.lote_prov===lote_prov&&x.peso===peso&&x.mts===mts
       );
       if(esDuplicado)return;
       nr[provKey].push({
-        id:         genRefId(),
-        fecha:      fechaHoy(),
-        hora:       horaActual(),
-        factura:    factura,
-        referencia: ref,
-        color:      g(row,3),
-        lote:       g(row,4),
-        rollo:      g(row,5),
-        ancho:      g(row,6),
-        lote_prov:  g(row,7),
-        peso:       g(row,8),
-        mts:        g(row,9)
+        id:genRefId(),fecha:fechaHoy(),hora:horaActual(),
+        factura,referencia:ref,color,lote,rollo,ancho,lote_prov,peso,mts
       });
       count++;
     });
