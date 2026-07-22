@@ -313,8 +313,7 @@ body.rt-has-sidenav #rt-cfg-screen{left:224px!important;}
 body.rt-has-sidenav #rt-dashboard-screen{left:224px!important;}
 /* La barra superior real ya muestra el logo y el título — se oculta el que traía cada
    pantalla por dentro para que no se vean dos logos "montados" uno junto al otro. */
-body.rt-has-sidenav #cfgscr-brand{display:none!important;}
-body.rt-has-sidenav #dashscr-brand{display:none!important;}
+body.rt-has-sidenav #cfgscr-hdrow{display:none!important;}
 /* El menú lateral ya lista Referencias/Defectos/Tareas/Historial/Turnos — sobra esta barra de pestañas. */
 body.rt-has-sidenav #cfgscr-tabs{display:none!important;}
 header{position:sticky;top:0;z-index:100;background:#fff;border-bottom:1px solid #e2e8f0;
@@ -655,7 +654,7 @@ input[type=number]{-moz-appearance:textfield;}
         👤 <span id="rt-user-name" style="text-transform:uppercase;letter-spacing:1px;"></span>
       </span>
     </div>
-    <button class="hd-back-btn" onclick="rtCerrarSesion()">← Volver</button>
+    <button class="hd-back-btn" onclick="rtsVolverInteligente()">← Volver</button>
   </div>
 </header>
 
@@ -1125,7 +1124,7 @@ input[type=number]{-moz-appearance:textfield;}
 </div>
 <!-- Pantalla Configuraciones -->
 <div id="rt-cfg-screen" style="display:none;position:fixed;inset:0;z-index:500;background:#f1f5f9;flex-direction:column;">
-  <div style="background:#fff;border-bottom:1px solid #e2e8f0;box-shadow:0 1px 6px rgba(0,0,0,.07);padding:0 clamp(12px,2.5vw,24px);min-height:64px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:relative;">
+  <div id="cfgscr-hdrow" style="background:#fff;border-bottom:1px solid #e2e8f0;box-shadow:0 1px 6px rgba(0,0,0,.07);padding:0 clamp(12px,2.5vw,24px);min-height:64px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:relative;">
     <div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);"></div>
     <div id="cfgscr-brand" style="display:flex;align-items:center;gap:12px;">
       <div class="hd-logo"><img id="cfg-logo" src="" style="width:100%;height:100%;object-fit:contain;padding:3px;"></div>
@@ -1317,42 +1316,30 @@ input[type=number]{-moz-appearance:textfield;}
 
 <!-- Pantalla Dashboard -->
 <div id="rt-dashboard-screen" style="display:none;position:fixed;inset:0;z-index:500;background:#f1f5f9;flex-direction:column;">
-  <div style="background:#fff;border-bottom:1px solid #e2e8f0;box-shadow:0 1px 6px rgba(0,0,0,.07);
-    padding:0 clamp(12px,2.5vw,24px);min-height:64px;display:flex;align-items:center;
-    justify-content:space-between;gap:12px;position:relative;">
-    <div style="position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);"></div>
-    <div id="dashscr-brand" style="display:flex;align-items:center;gap:12px;">
-      <div class="hd-logo"><img id="dash-logo" src="" style="width:100%;height:100%;object-fit:contain;padding:3px;"></div>
-      <div class="hd-title-wrap">
-        <h1 style="font-family:'Barlow Condensed',sans-serif;font-size:clamp(16px,2.5vw,22px);font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0f172a;line-height:1.1;margin:0;">DASHBOARD <span style="color:#2563eb;">REVISIÓN TELAS</span></h1>
-        <p style="font-size:11px;color:#94a3b8;font-weight:600;margin-top:0;font-family:'IBM Plex Mono',monospace;letter-spacing:.5px;" id="dash-clock"></p>
-      </div>
-    </div>
-    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-      <div style="position:relative;">
-        <button onclick="toggleDashFechaPanel()" id="dash-fecha-lbl-btn" style="display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#475569;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">
-          📅 <span id="dash-fecha-lbl">Hoy</span>
-        </button>
-        <div id="dash-fecha-panel" style="display:none;position:absolute;top:110%;right:0;z-index:300;background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:240px;">
-          <div style="margin-bottom:10px;"><label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;margin-bottom:4px;">Desde</label><input type="date" id="dash-filtro-desde" style="width:100%;padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;" oninput="renderDashboard();actualizarLabelDashFecha();"></div>
-          <div style="margin-bottom:14px;"><label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;margin-bottom:4px;">Hasta</label><input type="date" id="dash-filtro-hasta" style="width:100%;padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;" oninput="renderDashboard();actualizarLabelDashFecha();"></div>
-          <div style="display:flex;gap:8px;">
-            <button onclick="aplicarFiltroDash()" style="flex:1;padding:8px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Filtrar</button>
-            <button onclick="dashLimpiarFecha()" style="flex:1;padding:8px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Limpiar</button>
-          </div>
-        </div>
-      </div>
-      <div style="display:flex;gap:4px;background:#f1f5f9;border-radius:8px;padding:3px;">
-        <button id="dash-turno-todos" onclick="setDashTurno('todos')" style="padding:5px 12px;border-radius:6px;border:none;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;cursor:pointer;background:#2563eb;color:#fff;">Todos</button>
-        <button id="dash-turno-dia" onclick="setDashTurno('dia')" style="padding:5px 12px;border-radius:6px;border:none;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;cursor:pointer;background:transparent;color:#64748b;">☀️ Día</button>
-        <button id="dash-turno-noche" onclick="setDashTurno('noche')" style="padding:5px 12px;border-radius:6px;border:none;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;cursor:pointer;background:transparent;color:#64748b;">🌙 Noche</button>
-      </div>
-      <input type="hidden" id="dash-filtro-turno" value="todos">
-      <button class="hd-back-btn" onclick="cerrarDashboard()">← Volver</button>
-    </div>
-  </div>
   <div style="flex:1;overflow-y:auto;padding:24px clamp(12px,2.5vw,24px);" id="rt-dash-content">
     <div style="max-width:1200px;margin:0 auto;">
+      <!-- Filtros (fecha y turno) — antes vivían en una barra propia, ahora son parte del contenido -->
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+        <div style="position:relative;">
+          <button onclick="toggleDashFechaPanel()" id="dash-fecha-lbl-btn" style="display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#475569;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">
+            📅 <span id="dash-fecha-lbl">Hoy</span>
+          </button>
+          <div id="dash-fecha-panel" style="display:none;position:absolute;top:110%;left:0;z-index:300;background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:240px;">
+            <div style="margin-bottom:10px;"><label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;margin-bottom:4px;">Desde</label><input type="date" id="dash-filtro-desde" style="width:100%;padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;" oninput="renderDashboard();actualizarLabelDashFecha();"></div>
+            <div style="margin-bottom:14px;"><label style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;display:block;margin-bottom:4px;">Hasta</label><input type="date" id="dash-filtro-hasta" style="width:100%;padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;outline:none;" oninput="renderDashboard();actualizarLabelDashFecha();"></div>
+            <div style="display:flex;gap:8px;">
+              <button onclick="aplicarFiltroDash()" style="flex:1;padding:8px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Filtrar</button>
+              <button onclick="dashLimpiarFecha()" style="flex:1;padding:8px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Limpiar</button>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:4px;background:#e2e8f0;border-radius:8px;padding:3px;">
+          <button id="dash-turno-todos" onclick="setDashTurno('todos')" style="padding:5px 12px;border-radius:6px;border:none;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;cursor:pointer;background:#2563eb;color:#fff;">Todos</button>
+          <button id="dash-turno-dia" onclick="setDashTurno('dia')" style="padding:5px 12px;border-radius:6px;border:none;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;cursor:pointer;background:transparent;color:#64748b;">☀️ Día</button>
+          <button id="dash-turno-noche" onclick="setDashTurno('noche')" style="padding:5px 12px;border-radius:6px;border:none;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;cursor:pointer;background:transparent;color:#64748b;">🌙 Noche</button>
+        </div>
+        <input type="hidden" id="dash-filtro-turno" value="todos">
+      </div>
       <!-- Turnos DÍA vs NOCHE -->
       <div id="dash-turnos-row" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;"></div>
       <!-- Stats generales -->
@@ -2735,6 +2722,7 @@ function renderDashboard(){
     return `<div style="background:${bg};border:1.5px solid ${border};border-radius:12px;padding:16px 20px;flex:1;min-width:220px;">
       <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:${color};margin-bottom:12px;">${ico} Turno ${label}</div>
       <div style="display:flex;gap:16px;flex-wrap:wrap;">
+        <div><div style="font-size:22px;font-weight:800;color:${color};">${revs}</div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">N° Personas</div></div>
         <div><div style="font-size:22px;font-weight:800;color:${color};">${rList.length}</div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;"># Tareas</div></div>
         <div><div style="font-size:22px;font-weight:800;color:${color};">${rollos}</div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;"># Rollos</div></div>
         <div><div style="font-size:22px;font-weight:800;color:${color};">${metros.toFixed(1)}m</div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">Metros</div></div>
@@ -2966,14 +2954,35 @@ function rtsNavRegistros(btn){
   rtsSetActive(btn || document.getElementById('rts-nav-registros'));
 }
 function rtsNavDashboard(btn){
+  cerrarCfgScreen();
   abrirDashboard();
   rtsSetActive(btn);
 }
 function rtsNavInforme(btn){
   abrirInformeGerencial();
 }
+// Regresa un nivel: cierra la pantalla que esté abierta (Dashboard o Configuraciones)
+// y si no hay ninguna abierta, hace lo que el botón "Volver" siempre hizo (cerrar sesión).
+function rtsVolverInteligente(){
+  const dash=document.getElementById('rt-dashboard-screen');
+  if(dash&&getComputedStyle(dash).display!=='none'){ cerrarDashboard(); return; }
+  const cfg=document.getElementById('rt-cfg-screen');
+  if(cfg&&getComputedStyle(cfg).display!=='none'){ cerrarCfgScreen(); return; }
+  rtCerrarSesion();
+}
+// Mientras Configuraciones siga abierto, moverse entre sus 5 opciones no debe
+// volver a pedir la contraseña — solo la primera vez que se entra.
+let _cfgUnlocked=false;
 function rtsNavCfg(tabNum, btn){
+  cerrarDashboard();
+  if(_cfgUnlocked){
+    abrirCfgScreen();
+    switchCfgTab(tabNum);
+    rtsSetActive(btn);
+    return;
+  }
   pedirPassAccion(function(){
+    _cfgUnlocked=true;
     abrirCfgScreen();
     switchCfgTab(tabNum);
     rtsSetActive(btn);
@@ -2990,7 +2999,7 @@ function abrirCfgScreen(){
   renderTareasList();
   switchCfgTab(1);
 }
-function cerrarCfgScreen(){document.getElementById('rt-cfg-screen').style.display='none';rtsSetActive(document.getElementById('rts-nav-registros'));}
+function cerrarCfgScreen(){document.getElementById('rt-cfg-screen').style.display='none';rtsSetActive(document.getElementById('rts-nav-registros'));_cfgUnlocked=false;}
 function switchCfgTab(n){
   // Mostrar/ocultar paneles (instantáneo) — esto siempre corre
   [1,2,3,4,5].forEach(i=>{document.getElementById('cfg-panel-'+i).style.display=i===n?'block':'none';document.getElementById('cfg-tab-btn-'+i).classList.toggle('active',i===n);});
