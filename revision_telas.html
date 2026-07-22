@@ -305,6 +305,7 @@ body{font-family:'Nunito',sans-serif;background:#f1f5f9;height:100vh;overflow:hi
 .rts-item .rts-ico{width:16px;text-align:center;opacity:.85;font-size:13px;}
 .rts-item:hover{background:rgba(255,255,255,.06);}
 .rts-item.active{background:#1c2c52;color:#fff;}
+.rts-badge{margin-left:auto;background:#dc2626;color:#fff;font-size:10.5px;font-weight:800;line-height:1;padding:3px 7px;border-radius:20px;min-width:10px;text-align:center;}
 /* La barra superior (header) queda de ancho completo, como en SAYA — el menú va debajo, no al lado. */
 body.rt-has-sidenav .main{margin-left:224px;width:calc(100% - 224px);}
 /* !important necesario: estas pantallas traen "inset:0" en línea (position:fixed;inset:0;...),
@@ -643,7 +644,7 @@ input[type=number]{-moz-appearance:textfield;}
 <aside class="rt-sidebar" id="rt-sidebar">
   <button class="rts-item active" id="rts-nav-registros" onclick="rtsNavRegistros(this)"><span class="rts-ico">📋</span> Registros</button>
   <button class="rts-item" onclick="rtsNavDashboard(this)"><span class="rts-ico">📈</span> Dashboard</button>
-  <button class="rts-item" id="rts-nav-corte" onclick="rtsNavCorte(this)"><span class="rts-ico">✂️</span> Notificaciones Corte</button>
+  <button class="rts-item" id="rts-nav-corte" onclick="rtsNavCorte(this)"><span class="rts-ico">✂️</span> Notificaciones Corte<span class="rts-badge" id="rts-corte-badge" style="display:none;">0</span></button>
   <button class="rts-item" onclick="rtsNavInforme(this)"><span class="rts-ico">📄</span> Informe Gerencial</button>
   <div class="rts-group-label">Configuraciones</div>
   <button class="rts-item" onclick="rtsNavCfg(1,this)"><span class="rts-ico">🧵</span> Referencias por Proveedor</button>
@@ -1558,6 +1559,7 @@ function connectWS(){
         }
         if(msg.type==='corte_new_request') mostrarNotifCorteNueva(msg.solicitud);
         renderCorteCards();
+        actualizarBadgeCorte();
       }
     }catch(err){console.warn('WS:',err);}
   };
@@ -1800,7 +1802,7 @@ function rtEntrarApp(){
   const sidebar=document.getElementById('rt-sidebar');
   if(sidebar)sidebar.classList.toggle('show',_rtIsAdmin);
   document.body.classList.toggle('rt-has-sidenav',_rtIsAdmin);
-  if(_rtIsAdmin) rtsAjustarTopMenu();
+  if(_rtIsAdmin){ rtsAjustarTopMenu(); cargarCorteSolicitudes(); }
   const revField=document.getElementById('f-revisador-field');
   if(revField)revField.style.display=_rtIsAdmin?'':'none';
   const nuevoBtn=document.getElementById('rt-nuevo-btn');
@@ -3938,7 +3940,31 @@ async function cargarCorteSolicitudes(){
     const res=await fetch('/api/corte-solicitudes');
     _corteSolicitudes=await res.json();
     renderCorteCards();
+    actualizarBadgeCorte();
   }catch(e){console.warn('[Corte] Error cargando solicitudes:',e);}
+}
+function actualizarBadgeCorte(){
+  const badge=document.getElementById('rts-corte-badge');
+  if(!badge) return;
+  const pendientes=_corteSolicitudes.filter(s=>s.estado==='pendiente').length;
+  badge.textContent=pendientes>99?'99+':pendientes;
+  badge.style.display=pendientes>0?'inline-block':'none';
+}
+// Genera un sonido corto (2 tonos) sin necesidad de un archivo de audio externo.
+function corteSonarNotificacion(){
+  try{
+    const ctx=new (window.AudioContext||window.webkitAudioContext)();
+    [880,660].forEach((freq,i)=>{
+      const osc=ctx.createOscillator(), gain=ctx.createGain();
+      osc.type='sine'; osc.frequency.value=freq;
+      osc.connect(gain); gain.connect(ctx.destination);
+      const start=ctx.currentTime+i*0.16;
+      gain.gain.setValueAtTime(0.0001,start);
+      gain.gain.exponentialRampToValueAtTime(0.25,start+0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001,start+0.18);
+      osc.start(start); osc.stop(start+0.2);
+    });
+  }catch(e){}
 }
 function corteAdminFiltrar(f,btn){
   _corteFiltroActual=f;
@@ -3975,6 +4001,7 @@ async function corteAdminEntregar(id){
 function mostrarNotifCorteNueva(sol){
   if(!sol||!_rtIsAdmin) return;
   showToast('✂️ Nueva solicitud de Corte — Lote '+sol.lote+' (Rollo #'+sol.rollo+')');
+  corteSonarNotificacion();
 }
 
 // ── Informe Gerencial (por operario y turno) ─────────────────────────
