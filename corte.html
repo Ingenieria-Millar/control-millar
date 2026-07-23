@@ -268,7 +268,9 @@ function corteFiltrarEstado(f,btn){
 }
 async function corteCargarMias(){
   try{
-    const res=await fetch('/api/corte-solicitudes?solicitadoPor='+encodeURIComponent(_cUser));
+    // Bandeja compartida: cualquiera con permiso de Corte ve todas las solicitudes
+    // del área, no solo las que él mismo creó.
+    const res=await fetch('/api/corte-solicitudes');
     _cDatos=await res.json();
     corteRenderTarjetas();
   }catch(e){
@@ -288,7 +290,7 @@ function corteRenderTarjetas(){
   if(_cFechaHasta) data=data.filter(s=>s.fecha<=_cFechaHasta);
 
   try{
-    if(!data.length){ el.innerHTML='<div class="empty">'+(_cDatos.length?'No hay solicitudes con este filtro.':'Aún no has hecho ninguna solicitud. Usa "Generar Solicitud" para pedir un rollo.')+'</div>'; return; }
+    if(!data.length){ el.innerHTML='<div class="empty">'+(_cDatos.length?'No hay solicitudes con este filtro.':'Aún no hay solicitudes. Usa "Generar Solicitud" para pedir un rollo.')+'</div>'; return; }
     el.innerHTML=data.map(s=>{
       const statusTxt=s.estado==='pendiente'?'Esperando que Telas entregue el rollo'
         :s.estado==='entregada'?'Telas ya lo entregó — confirma que lo recibiste':'Solicitud cerrada';
@@ -477,10 +479,12 @@ function corteConnectWS(){
   ws.onmessage=e=>{
     try{
       const msg=JSON.parse(e.data);
-      if((msg.type==='corte_new_request'||msg.type==='corte_update_request') && msg.solicitud && msg.solicitud.solicitadoPor===_cUser){
+      if((msg.type==='corte_new_request'||msg.type==='corte_update_request') && msg.solicitud){
         corteCargarMias();
-        if(msg.type==='corte_update_request'&&msg.solicitud.estado==='entregada'){
-          corteToast('📦 Tu solicitud del lote '+msg.solicitud.lote+' fue marcada como entregada');
+        if(msg.type==='corte_new_request'){
+          corteToast('➕ Nueva solicitud — Lote '+msg.solicitud.lote);
+        }else if(msg.solicitud.estado==='entregada'){
+          corteToast('📦 Lote '+msg.solicitud.lote+' fue marcado como entregado');
         }
       }
     }catch(err){}

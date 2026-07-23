@@ -1159,6 +1159,37 @@ app.post('/api/revision-telas', (req, res) => {
     deletedIds.forEach(id => byId.delete(id));
     const mergedRegistros = [...byId.values()];
 
+    // ── Respaldo: un mismo revisador nunca debe tener 2+ actividades abiertas ──
+    // El cliente ya bloquea esto antes de crear una nueva, pero una condición de
+    // carrera entre dos dispositivos podría colarla igual. Si después del merge
+    // aparece más de una sin finalizar para el mismo revisador, se cierran
+    // automáticamente todas menos la más reciente (se detecta por el timestamp
+    // incluido en el id, ej: "rt_1731000000000_ab12").
+    const idTs = id => { const m = String(id).match(/_(\d+)_/); return m ? parseInt(m[1], 10) : 0; };
+    const abiertasPorRevisador = new Map();
+    mergedRegistros.forEach(r => {
+      if (r && !r.finalizado && r.revisador) {
+        if (!abiertasPorRevisador.has(r.revisador)) abiertasPorRevisador.set(r.revisador, []);
+        abiertasPorRevisador.get(r.revisador).push(r);
+      }
+    });
+    abiertasPorRevisador.forEach(lista => {
+      if (lista.length <= 1) return;
+      lista.sort((a, b) => idTs(b.id) - idTs(a.id)); // más reciente primero, se deja abierta
+      for (let i = 1; i < lista.length; i++) {
+        const idx = mergedRegistros.findIndex(r => r.id === lista[i].id);
+        if (idx === -1) continue;
+        const r = mergedRegistros[idx];
+        mergedRegistros[idx] = {
+          ...r,
+          finalizado: true,
+          hora_fin: r.hora_fin || new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true }),
+          observaciones: (r.observaciones ? r.observaciones + ' — ' : '') + 'Cerrado automáticamente: se detectó una segunda actividad abierta para este revisador.',
+          cierreAutomatico: true
+        };
+      }
+    });
+
     // ── Referencias: merge por id (igual que registros) — así ningún
     // navegador con datos desactualizados puede borrar lo que otro acaba
     // de agregar; solo se pierde una referencia si se borra explícitamente.
@@ -1602,6 +1633,61 @@ function ejecutarCierreMedianoche() {
 
 // Iniciar el job al arrancar el servidor
 programarCierreMedianoche();
+
+// ── Job de fin de turno — cierra automáticamente actividades que quedaron
+// abiertas cuando termina el turno (mismos límites que usa el Informe Gerencial:
+// noche 5:45pm–5:15am, día 5:15am–5:45pm). Un revisador no puede seguir "en
+// revisión" después de que su turno ya terminó.
+function programarCierreTurno(horaMin, minMin, turnoQueTermina) {
+  function msHastaProxima() {
+    const ahora = new Date();
+    const target = new Date(ahora);
+    target.setHours(horaMin, minMin, 0, 0);
+    if (target <= ahora) target.setDate(target.getDate() + 1);
+    return target - ahora;
+  }
+  function ejecutar() {
+    cerrarActividadesAbiertasDeTurno(turnoQueTermina);
+    setTimeout(ejecutar, 24 * 60 * 60 * 1000);
+  }
+  const ms = msHastaProxima();
+  setTimeout(ejecutar, ms);
+  console.log(`[SERVER] Cierre de turno "${turnoQueTermina}" programado en ${Math.round(ms / 60000)} minutos`);
+}
+
+function cerrarActividadesAbiertasDeTurno(turno) {
+  try {
+    const data = loadDB('revision_telas') || {};
+    const registros = Array.isArray(data.registros) ? data.registros : [];
+    const horaFinTxt = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true });
+    let cerrados = 0;
+    const nuevos = registros.map(r => {
+      if (r && !r.finalizado && r.turno === turno) {
+        cerrados++;
+        return {
+          ...r,
+          finalizado: true,
+          hora_fin: horaFinTxt,
+          observaciones: (r.observaciones ? r.observaciones + ' — ' : '') + 'Cerrado automáticamente: quedó abierto al terminar el turno.',
+          cierreAutomatico: true
+        };
+      }
+      return r;
+    });
+    if (cerrados > 0) {
+      data.registros = nuevos;
+      if (saveDB('revision_telas', data)) {
+        broadcast({ type: 'rt_update', ...data });
+      }
+    }
+    console.log(`[SERVER] Cierre de turno "${turno}": ${cerrados} actividad(es) cerrada(s) automáticamente`);
+  } catch (e) {
+    console.error('[SERVER] Error en cierre de turno:', e.message);
+  }
+}
+
+programarCierreTurno(17, 45, 'dia');    // 5:45pm → termina el turno día
+programarCierreTurno(5, 15, 'noche');   // 5:15am → termina el turno noche
 
 // Mapa: tipo de mensaje → topic. Sin entry = enviar a todos (init, server_reset, etc.)
 const MSG_TOPICS = {

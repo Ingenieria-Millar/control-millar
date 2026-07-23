@@ -2272,10 +2272,19 @@ function migrarTurnos(){
   if(cambios>0){guardarEnServidor();console.log('[RT] Migración turnos:',cambios,'registros actualizados');}
   return cambios;
 }
+// Revisa los datos reales del sistema (no solo la sesión de este dispositivo) para
+// saber si ese revisador ya tiene una actividad sin finalizar en curso.
+function actividadAbiertaDe(revisador){
+  return _registros.find(r=>r.revisador===revisador&&!r.finalizado);
+}
 function guardarRegistro(){
   if(_revisionActivaId){showToast('Ya tienes un rollo en revisión. Finalízalo primero.','error');return;}
   const fecha=document.getElementById('f-fecha').value;
   const revisador=_rtIsAdmin?document.getElementById('f-revisador').value:_rtCurrentUser;
+  if(revisador){
+    const abierta=actividadAbiertaDe(revisador);
+    if(abierta){showToast(revisador+' ya tiene una actividad en revisión — debe finalizarla antes de iniciar otra.','error');return;}
+  }
   const factura=document.getElementById('f-factura-val').value||document.getElementById('f-factura-input').value.trim();
   const proveedor=document.getElementById('f-proveedor-hidden').value||document.getElementById('f-proveedor-val').value||document.getElementById('f-proveedor-input').value.trim();
   const ref=document.getElementById('f-ref-val').value.trim();
@@ -3486,6 +3495,8 @@ function closeMultitareaModal(){
 }
 function iniciarMultitarea(){
   if(_mtCurrentId){showToast('Ya tienes una multitarea en curso. Finalízala primero.','error');closeMultitareaModal();return;}
+  const abierta=actividadAbiertaDe(_rtCurrentUser);
+  if(abierta){showToast('Ya tienes una actividad en revisión — debe finalizarla antes de iniciar otra.','error');closeMultitareaModal();return;}
   let tarea=document.getElementById('mt-tarea').value;
   const errEl=document.getElementById('mt-error');
   if(!tarea){errEl.textContent='Selecciona una tarea';return;}
