@@ -9,23 +9,27 @@ var W=window.WebSocket;function MW(u,p){try{var t=T();if(t&&typeof u==='string'&
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Corte — MES | Millar</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Nunito:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 *{box-sizing:border-box;}
 body{margin:0;font-family:'Nunito',sans-serif;background:#f1f5f9;color:#0f172a;}
 header{background:#fff;border-bottom:1px solid #e2e8f0;box-shadow:0 1px 6px rgba(0,0,0,.06);padding:0 clamp(12px,2.5vw,24px);min-height:64px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:relative;}
 header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);}
-.hd-brand{display:flex;align-items:center;gap:12px;}
-.hd-logo{width:42px;height:42px;border-radius:8px;background:#1e3a8a;color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
-.hd-title{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;letter-spacing:.5px;color:#0f172a;}
-.hd-sub{font-size:11px;color:#64748b;font-weight:600;margin-top:1px;}
+.hd-left{display:flex;align-items:center;gap:12px;}
+.hd-logo{width:52px;height:52px;border-radius:50%;background:#fff;box-shadow:0 0 0 1.5px #e2e8f0;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;}
+.hd-logo img{width:100%;height:100%;object-fit:contain;padding:3px;}
+.hd-title-wrap h1{font-family:'Barlow Condensed',sans-serif;font-size:clamp(16px,2.5vw,22px);font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0f172a;line-height:1.1;margin:0;}
+.hd-title-wrap p{margin:0;}
+.hd-date{font-size:11px;color:#64748b;font-weight:600;margin-top:1px;}
+.hd-clock{font-size:11px;color:#94a3b8;font-weight:600;font-family:'IBM Plex Mono',monospace;letter-spacing:.5px;}
 .hd-right{display:flex;align-items:center;gap:14px;}
-.hd-user{font-size:13px;color:#334155;font-weight:700;}
+.hd-user-badge{display:flex;align-items:center;gap:5px;border:1.5px solid #cbd5e1;border-radius:8px;padding:6px 12px;background:#fff;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:#475569;letter-spacing:.5px;text-transform:uppercase;}
 .hd-back{padding:8px 16px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#475569;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;}
 .hd-back:hover{background:#f8fafc;}
 
-.wrap{max-width:1000px;margin:0 auto;padding:24px clamp(12px,2.5vw,24px);}
-.toolbar{display:flex;align-items:flex-end;gap:10px;margin-bottom:20px;flex-wrap:wrap;}
-.toolbar .field{margin-bottom:0;}
+.wrap{max-width:1700px;margin:0 auto;padding:24px clamp(12px,2.5vw,24px);}
+.toolbar{display:flex;align-items:center;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+.field{margin-bottom:0;}
 .field label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;display:block;margin-bottom:6px;}
 .field input,.field select{padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;font-family:'Nunito',sans-serif;outline:none;}
 .field input:focus,.field select:focus{border-color:#2563eb;}
@@ -35,7 +39,9 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
 .btn-primary:disabled{background:#cbd5e1;cursor:not-allowed;}
 .btn-outline{background:#fff;border:1.5px solid #e2e8f0;color:#475569;}
 .btn-outline:hover{background:#f8fafc;}
-.btn-gen{background:#4338ca;color:#fff;margin-left:auto;}
+.btn-danger{background:#fef2f2;border:1.5px solid #fca5a5;color:#dc2626;}
+.btn-danger:hover{background:#fee2e2;}
+.btn-gen{background:#4338ca;color:#fff;}
 .btn-gen:hover{background:#3730a3;}
 .hint{font-size:12px;color:#94a3b8;margin-top:6px;}
 .empty{color:#94a3b8;font-size:13px;text-align:center;padding:40px;}
@@ -43,8 +49,25 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
 .toast.show{opacity:1;}
 .toast.error{background:#dc2626;}
 
+/* ── Barra de filtros estilo CI ── */
+.ci-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.ci-pill{display:flex;align-items:center;gap:7px;padding:8px 14px;border-radius:20px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.3px;}
+.ci-pill .ci-count{background:#f1f5f9;color:#475569;border-radius:20px;padding:1px 8px;font-size:11.5px;}
+.ci-pill.active{border-color:#1e3a8a;background:#eef2ff;color:#1e3a8a;}
+.ci-pill.active .ci-count{background:#1e3a8a;color:#fff;}
+.ci-pill.f-pendiente.active{border-color:#f59e0b;background:#fffbeb;color:#92400e;}
+.ci-pill.f-pendiente.active .ci-count{background:#f59e0b;color:#fff;}
+.ci-pill.f-entregado.active{border-color:#16a34a;background:#f0fdf4;color:#15803d;}
+.ci-pill.f-entregado.active .ci-count{background:#16a34a;color:#fff;}
+.ci-spacer{flex:1;}
+.fecha-wrap{position:relative;}
+.fecha-panel{display:none;position:absolute;top:110%;right:0;z-index:300;background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:230px;}
+.fecha-panel.open{display:block;}
+.fecha-panel .field{margin-bottom:10px;}
+.fecha-panel .field input{width:100%;}
+
 /* ── Tarjetas de solicitud, estilo recibo ── */
-.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;}
+.cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;}
 .sc{background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;}
 .sc-top{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid #f1f5f9;}
 .sc-title{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;color:#0f172a;}
@@ -68,7 +91,7 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
 /* ── Modal del asistente ── */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:1000;align-items:center;justify-content:center;padding:16px;}
 .modal-overlay.show{display:flex;}
-.modal-box{background:#fff;border-radius:14px;width:100%;max-width:460px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);}
+.modal-box{background:#fff;border-radius:14px;width:100%;max-width:640px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);}
 .modal-hd{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid #e2e8f0;}
 .modal-hd-title{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;color:#0f172a;}
 .modal-x{border:none;background:none;font-size:18px;color:#94a3b8;cursor:pointer;}
@@ -89,23 +112,38 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
 <body>
 
 <header>
-  <div class="hd-brand">
-    <div class="hd-logo">✂️</div>
-    <div><div class="hd-title">Corte</div><div class="hd-sub">Solicitud de telas a Revisión de Telas</div></div>
+  <div class="hd-left">
+    <div class="hd-logo"><img src="/logo.png"></div>
+    <div class="hd-title-wrap">
+      <h1>CORTE</h1>
+      <p class="hd-date" id="c-date"></p>
+      <p class="hd-clock" id="c-clock"></p>
+    </div>
   </div>
   <div class="hd-right">
-    <div class="hd-user" id="hd-user">—</div>
+    <div class="hd-user-badge">👤 <span id="hd-user">—</span></div>
     <a class="hd-back" href="/">← Volver</a>
   </div>
 </header>
 
 <div class="wrap">
-  <div class="toolbar">
-    <div class="field">
-      <label>Filtrar por fecha</label>
-      <input type="date" id="c-mias-fecha" oninput="corteCargarMias()">
+  <div class="toolbar ci-bar">
+    <button class="ci-pill active" data-f="todas" onclick="corteFiltrarEstado('todas',this)">Todos <span class="ci-count" id="cnt-todas">0</span></button>
+    <button class="ci-pill f-pendiente" data-f="pendiente" onclick="corteFiltrarEstado('pendiente',this)">🔴 Pendientes <span class="ci-count" id="cnt-pendiente">0</span></button>
+    <button class="ci-pill f-entregado" data-f="entregado" onclick="corteFiltrarEstado('entregado',this)">✅ Entregados <span class="ci-count" id="cnt-entregado">0</span></button>
+    <div class="ci-spacer"></div>
+    <div class="fecha-wrap">
+      <button class="btn btn-outline" id="c-fecha-btn" onclick="toggleCorteFechaPanel()">📅 <span id="c-fecha-lbl">Todas las fechas</span></button>
+      <div class="fecha-panel" id="c-fecha-panel">
+        <div class="field"><label>Desde</label><input type="date" id="c-fecha-desde"></div>
+        <div class="field"><label>Hasta</label><input type="date" id="c-fecha-hasta"></div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-primary" style="flex:1;padding:8px;" onclick="corteAplicarFechas()">Filtrar</button>
+          <button class="btn btn-outline" style="flex:1;padding:8px;" onclick="corteLimpiarFechas()">Limpiar</button>
+        </div>
+      </div>
     </div>
-    <button class="btn btn-outline" onclick="document.getElementById('c-mias-fecha').value='';corteCargarMias()">Quitar filtro</button>
+    <button class="btn btn-outline" onclick="corteExportarExcel()">📊 Excel</button>
     <button class="btn btn-gen" onclick="corteAbrirWizard()">➕ Generar Solicitud</button>
   </div>
   <div id="c-mis-list" class="cards-grid"></div>
@@ -169,6 +207,8 @@ let _wDatos=null;        // cache de /api/revision-telas mientras el asistente e
 let _wLote=null;         // lote elegido (string) o null
 let _wRollos=[];         // rollos disponibles del lote elegido
 let _wRolloSel=null;     // rollo elegido (objeto) o null
+let _cDatos=[];          // última lista de solicitudes traída del servidor (sin filtrar)
+let _cFiltroEstado='todas', _cFechaDesde='', _cFechaHasta='';
 
 function corteToast(msg,type){
   const t=document.getElementById('c-toast');
@@ -183,38 +223,77 @@ function corteInit(){
   }catch(e){}
   if(!_cUser){ window.location.href='/'; return; }
   document.getElementById('hd-user').textContent=_cUser;
+  document.getElementById('c-date').textContent=new Date().toLocaleDateString('es-CO',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  (function tick(){
+    document.getElementById('c-clock').textContent=new Date().toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    setTimeout(tick,1000);
+  })();
   corteCargarMias();
   corteConnectWS();
-  setInterval(corteCargarMias,60000); // refresca el contador de tiempo de las tarjetas activas
+  setInterval(corteCargarMias,60000);       // refresca datos del servidor cada minuto
+  setInterval(corteRenderTarjetas,1000);    // el contador de tiempo se ve "en vivo" cada segundo
+  document.addEventListener('click',e=>{
+    if(!e.target.closest('.fecha-wrap')) document.getElementById('c-fecha-panel').classList.remove('open');
+  });
 }
 
 // ── Tarjetas (pantalla principal) ───────────────────────────────────
-function corteFormatDuracion(ms){
-  if(ms<0)ms=0;
-  const totalMin=Math.floor(ms/60000);
-  const h=Math.floor(totalMin/60), m=totalMin%60;
-  if(h>0) return h+'h '+m+'min';
-  if(totalMin>0) return totalMin+' min';
-  return Math.floor(ms/1000)+' seg';
-}
+// Tiempo transcurrido en minutos con decimales, en vivo (ej: "128.76 min").
 function corteContadorTexto(s){
   if(!s.ts) return '—';
   const fin=s.estado==='aceptada'&&s.tsAceptada?s.tsAceptada:Date.now();
-  return corteFormatDuracion(fin-s.ts);
+  const min=(fin-s.ts)/60000;
+  return (min<0?0:min).toFixed(2)+' min';
+}
+function toggleCorteFechaPanel(){ document.getElementById('c-fecha-panel').classList.toggle('open'); }
+function corteAplicarFechas(){
+  _cFechaDesde=document.getElementById('c-fecha-desde').value;
+  _cFechaHasta=document.getElementById('c-fecha-hasta').value;
+  const lbl=document.getElementById('c-fecha-lbl');
+  lbl.textContent=(_cFechaDesde||_cFechaHasta)?((_cFechaDesde||'…')+' – '+(_cFechaHasta||'…')):'Todas las fechas';
+  document.getElementById('c-fecha-panel').classList.remove('open');
+  corteRenderTarjetas();
+}
+function corteLimpiarFechas(){
+  _cFechaDesde=''; _cFechaHasta='';
+  document.getElementById('c-fecha-desde').value=''; document.getElementById('c-fecha-hasta').value='';
+  document.getElementById('c-fecha-lbl').textContent='Todas las fechas';
+  document.getElementById('c-fecha-panel').classList.remove('open');
+  corteRenderTarjetas();
+}
+function corteFiltrarEstado(f,btn){
+  _cFiltroEstado=f;
+  document.querySelectorAll('.ci-pill').forEach(b=>b.classList.toggle('active',b===btn));
+  corteRenderTarjetas();
 }
 async function corteCargarMias(){
-  const el=document.getElementById('c-mis-list');
   try{
     const res=await fetch('/api/corte-solicitudes?solicitadoPor='+encodeURIComponent(_cUser));
-    let data=await res.json();
-    const fechaFiltro=document.getElementById('c-mias-fecha').value;
-    if(fechaFiltro) data=data.filter(s=>s.fecha===fechaFiltro);
-    if(!data.length){ el.innerHTML='<div class="empty">'+(fechaFiltro?'No hay solicitudes en esa fecha.':'Aún no has hecho ninguna solicitud. Usa "Generar Solicitud" para pedir un rollo.')+'</div>'; return; }
+    _cDatos=await res.json();
+    corteRenderTarjetas();
+  }catch(e){
+    document.getElementById('c-mis-list').innerHTML='<div class="empty">No se pudieron cargar tus solicitudes.</div>';
+  }
+}
+function corteRenderTarjetas(){
+  const el=document.getElementById('c-mis-list');
+  document.getElementById('cnt-todas').textContent=_cDatos.length;
+  document.getElementById('cnt-pendiente').textContent=_cDatos.filter(s=>s.estado==='pendiente').length;
+  document.getElementById('cnt-entregado').textContent=_cDatos.filter(s=>s.estado==='entregada'||s.estado==='aceptada').length;
+
+  let data=_cDatos;
+  if(_cFiltroEstado==='pendiente') data=data.filter(s=>s.estado==='pendiente');
+  else if(_cFiltroEstado==='entregado') data=data.filter(s=>s.estado==='entregada'||s.estado==='aceptada');
+  if(_cFechaDesde) data=data.filter(s=>s.fecha>=_cFechaDesde);
+  if(_cFechaHasta) data=data.filter(s=>s.fecha<=_cFechaHasta);
+
+  try{
+    if(!data.length){ el.innerHTML='<div class="empty">'+(_cDatos.length?'No hay solicitudes con este filtro.':'Aún no has hecho ninguna solicitud. Usa "Generar Solicitud" para pedir un rollo.')+'</div>'; return; }
     el.innerHTML=data.map(s=>{
       const statusTxt=s.estado==='pendiente'?'Esperando que Telas entregue el rollo'
         :s.estado==='entregada'?'Telas ya lo entregó — confirma que lo recibiste':'Solicitud cerrada';
       const accion=s.estado==='entregada'
-        ?`<button class="btn btn-primary" onclick="corteAceptar('${s.id}')">✔ Aceptar</button>`:'';
+        ?`<button class="btn btn-primary" onclick="corteAceptar('${s.id}')">✔ Aceptar</button><button class="btn btn-danger" onclick="corteRechazar('${s.id}')">✕ Rechazar</button>`:'';
       return `<div class="sc">
         <div class="sc-top">
           <div class="sc-title">Lote ${s.lote}</div>
@@ -246,6 +325,35 @@ async function corteAceptar(id){
   }catch(e){
     corteToast('⚠️ '+e.message,'error');
   }
+}
+async function corteRechazar(id){
+  if(!confirm('¿Rechazar? Esto significa que en realidad no te entregaron el rollo — la solicitud vuelve a quedar pendiente.'))return;
+  try{
+    const res=await fetch('/api/corte-solicitudes/'+id+'/rechazar',{method:'POST'});
+    if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e.error||'Error'); }
+    corteToast('↩ Solicitud rechazada — vuelve a pendiente');
+    corteCargarMias();
+  }catch(e){
+    corteToast('⚠️ '+e.message,'error');
+  }
+}
+function corteExportarExcel(){
+  let data=_cDatos;
+  if(_cFiltroEstado==='pendiente') data=data.filter(s=>s.estado==='pendiente');
+  else if(_cFiltroEstado==='entregado') data=data.filter(s=>s.estado==='entregada'||s.estado==='aceptada');
+  if(_cFechaDesde) data=data.filter(s=>s.fecha>=_cFechaDesde);
+  if(_cFechaHasta) data=data.filter(s=>s.fecha<=_cFechaHasta);
+  if(!data.length){ corteToast('No hay solicitudes para exportar','error'); return; }
+  const filas=data.map(s=>({
+    Lote:s.lote, Rollo:s.rollo, Metros:s.metros, Estado:s.estado,
+    'Hora Solicitud':s.fecha+' '+(s.hora||''),
+    'Hora Aceptada':s.estado==='aceptada'?(s.fechaAceptada||''):'',
+    'T. Espera (min)':s.ts?(( (s.estado==='aceptada'&&s.tsAceptada?s.tsAceptada:Date.now())-s.ts)/60000).toFixed(2):''
+  }));
+  const ws=XLSX.utils.json_to_sheet(filas);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Solicitudes');
+  XLSX.writeFile(wb,'solicitudes_corte.xlsx');
 }
 
 // ── Asistente de 5 pasos (crear solicitud) ──────────────────────────

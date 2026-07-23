@@ -1054,7 +1054,8 @@ app.post('/api/corte-solicitudes', (req, res) => {
       solicitadoPor,
       estado: 'pendiente',
       fecha: new Date().toISOString().slice(0, 10),
-      hora: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true })
+      hora: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true }),
+      ts: Date.now() // marca exacta para calcular el contador de tiempo en la tarjeta
     };
     const data = readJSON(FILES.corte_solicitudes, []);
     data.unshift(sol);
@@ -1073,6 +1074,7 @@ app.post('/api/corte-solicitudes/:id/entregar', (req, res) => {
     data[idx].estado = 'entregada';
     data[idx].entregadoPor = (req.body && req.body.entregadoPor) || '';
     data[idx].fechaEntrega = new Date().toISOString().slice(0, 10);
+    data[idx].tsEntregada = Date.now();
     if (!writeJSON(FILES.corte_solicitudes, data)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
     broadcast({ type: 'corte_update_request', solicitud: data[idx] });
     res.json({ ok: true, solicitud: data[idx] });
@@ -1087,6 +1089,25 @@ app.post('/api/corte-solicitudes/:id/aceptar', (req, res) => {
     if (data[idx].estado !== 'entregada') return res.status(400).json({ error: 'Aún no ha sido entregada' });
     data[idx].estado = 'aceptada';
     data[idx].fechaAceptada = new Date().toISOString().slice(0, 10);
+    data[idx].tsAceptada = Date.now();
+    if (!writeJSON(FILES.corte_solicitudes, data)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
+    broadcast({ type: 'corte_update_request', solicitud: data[idx] });
+    res.json({ ok: true, solicitud: data[idx] });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Corte rechaza una entrega marcada por Telas (en realidad no le llegó el rollo):
+// la solicitud vuelve a "pendiente" para que Telas la entregue de verdad.
+app.post('/api/corte-solicitudes/:id/rechazar', (req, res) => {
+  try {
+    const data = readJSON(FILES.corte_solicitudes, []);
+    const idx = data.findIndex(s => s.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ error: 'No encontrada' });
+    if (data[idx].estado !== 'entregada') return res.status(400).json({ error: 'Solo se puede rechazar una solicitud entregada' });
+    data[idx].estado = 'pendiente';
+    delete data[idx].entregadoPor;
+    delete data[idx].fechaEntrega;
+    delete data[idx].tsEntregada;
     if (!writeJSON(FILES.corte_solicitudes, data)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
     broadcast({ type: 'corte_update_request', solicitud: data[idx] });
     res.json({ ok: true, solicitud: data[idx] });

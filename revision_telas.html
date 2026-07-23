@@ -3986,25 +3986,19 @@ function corteAdminFiltrar(f,btn){
 }
 // Contador de tiempo de la tarjeta: desde que Corte solicitó hasta que Corte aceptó
 // (o hasta ahora, en vivo, si todavía no ha aceptado).
-function corteFormatDuracion(ms){
-  if(ms<0)ms=0;
-  const totalMin=Math.floor(ms/60000);
-  const h=Math.floor(totalMin/60), m=totalMin%60;
-  if(h>0) return h+'h '+m+'min';
-  if(totalMin>0) return totalMin+' min';
-  return Math.floor(ms/1000)+' seg';
-}
+// Tiempo transcurrido en minutos con decimales, en vivo (ej: "128.76 min") —
+// va desde que Corte solicitó hasta que Corte aceptó (no se pausa al entregar).
 function corteContadorTexto(s){
   if(!s.ts) return '—';
   const fin=s.estado==='aceptada'&&s.tsAceptada?s.tsAceptada:Date.now();
-  const dur=corteFormatDuracion(fin-s.ts);
-  return s.estado==='aceptada'?('Tardó '+dur+' en total'):(dur+' transcurridos');
+  const min=(fin-s.ts)/60000;
+  return (min<0?0:min).toFixed(2)+' min';
 }
-// Refresca las tarjetas cada 30s para que el contador de las activas se vea "en vivo".
+// Refresca las tarjetas cada segundo para que el contador se vea "en vivo".
 setInterval(()=>{
   const scr=document.getElementById('rt-corte-screen');
   if(scr&&getComputedStyle(scr).display!=='none') renderCorteCards();
-},30000);
+},1000);
 function renderCorteCards(){
   const el=document.getElementById('rt-corte-cards');
   if(!el) return;
