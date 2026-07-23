@@ -1439,8 +1439,7 @@ input[type=number]{-moz-appearance:textfield;}
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;letter-spacing:1px;color:#0f172a;">✂️ NOTIFICACIONES CORTE</div>
         <div style="display:flex;gap:6px;">
-          <button class="rt-corte-filtro-btn active" data-f="pendiente" onclick="corteAdminFiltrar('pendiente',this)">Pendientes</button>
-          <button class="rt-corte-filtro-btn" data-f="entregada" onclick="corteAdminFiltrar('entregada',this)">Entregadas</button>
+          <button class="rt-corte-filtro-btn active" data-f="activas" onclick="corteAdminFiltrar('activas',this)">Activas</button>
           <button class="rt-corte-filtro-btn" data-f="aceptada" onclick="corteAdminFiltrar('aceptada',this)">Aceptadas</button>
           <button class="rt-corte-filtro-btn" data-f="todas" onclick="corteAdminFiltrar('todas',this)">Todas</button>
         </div>
@@ -3919,7 +3918,7 @@ function verDetalles(id){
 }
 
 // ── Notificaciones Corte (solicitudes de tela desde el módulo Corte) ─
-let _corteSolicitudes=[], _corteFiltroActual='pendiente';
+let _corteSolicitudes=[], _corteFiltroActual='activas';
 function rtsNavCorte(btn){
   abrirCorteScreen();
   rtsSetActive(btn);
@@ -3943,6 +3942,27 @@ async function cargarCorteSolicitudes(){
     actualizarBadgeCorte();
   }catch(e){console.warn('[Corte] Error cargando solicitudes:',e);}
 }
+// Contador de tiempo de la tarjeta: desde que Corte solicitó hasta que Corte aceptó
+// (o hasta ahora, en vivo, si todavía no ha aceptado).
+function corteFormatDuracion(ms){
+  if(ms<0)ms=0;
+  const totalMin=Math.floor(ms/60000);
+  const h=Math.floor(totalMin/60), m=totalMin%60;
+  if(h>0) return h+'h '+m+'min';
+  if(totalMin>0) return totalMin+' min';
+  return Math.floor(ms/1000)+' seg';
+}
+function corteContadorTexto(s){
+  if(!s.ts) return '—';
+  const fin=s.estado==='aceptada'&&s.tsAceptada?s.tsAceptada:Date.now();
+  const dur=corteFormatDuracion(fin-s.ts);
+  return s.estado==='aceptada'?('Tardó '+dur+' en total'):(dur+' transcurridos');
+}
+// Refresca las tarjetas cada 30s para que el contador de las activas se vea "en vivo".
+setInterval(()=>{
+  const scr=document.getElementById('rt-corte-screen');
+  if(scr&&getComputedStyle(scr).display!=='none') renderCorteCards();
+},30000);
 function actualizarBadgeCorte(){
   const badge=document.getElementById('rts-corte-badge');
   if(!badge) return;
@@ -3974,7 +3994,11 @@ function corteAdminFiltrar(f,btn){
 function renderCorteCards(){
   const el=document.getElementById('rt-corte-cards');
   if(!el) return;
-  const lista=_corteFiltroActual==='todas'?_corteSolicitudes:_corteSolicitudes.filter(s=>s.estado===_corteFiltroActual);
+  // "Activas" agrupa pendiente + entregada: la solicitud sigue visible hasta que
+  // Corte la dé como aceptada — nunca "desaparece" solo porque Telas ya la entregó.
+  const lista=_corteFiltroActual==='todas'?_corteSolicitudes
+    :_corteFiltroActual==='activas'?_corteSolicitudes.filter(s=>s.estado!=='aceptada')
+    :_corteSolicitudes.filter(s=>s.estado===_corteFiltroActual);
   if(!lista.length){ el.innerHTML='<div style="color:#94a3b8;font-size:13px;text-align:center;padding:40px;grid-column:1/-1;">Sin solicitudes en este filtro.</div>'; return; }
   const badgeColor={pendiente:'background:#fef3c7;color:#92400e;',entregada:'background:#dbeafe;color:#1d4ed8;',aceptada:'background:#dcfce7;color:#15803d;'};
   el.innerHTML=lista.map(s=>`
@@ -3986,6 +4010,7 @@ function renderCorteCards(){
       <div style="font-size:13px;color:#334155;">Rollo <b>#${s.rollo}</b> — ${s.metros} m solicitados</div>
       <div style="font-size:11.5px;color:#64748b;">Solicita: <b>${s.solicitadoPor}</b></div>
       <div style="font-size:11px;color:#94a3b8;">${s.fecha} ${s.hora||''}</div>
+      <div style="font-size:11px;color:#64748b;display:flex;align-items:center;gap:4px;">⏱ ${corteContadorTexto(s)}</div>
       ${s.estado==='pendiente'?`<button class="btn btn-primary" style="margin-top:4px;font-size:12px;padding:8px;" onclick="corteAdminEntregar('${s.id}')">📦 Marcar como Entregada</button>`:''}
       ${s.estado==='entregada'?`<div style="font-size:11px;color:#94a3b8;">Entregada por: ${s.entregadoPor||'—'} — esperando confirmación de Corte</div>`:''}
     </div>`).join('');

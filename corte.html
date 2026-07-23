@@ -112,6 +112,13 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
   </div>
 
   <div id="panel-mias" style="display:none;">
+    <div class="row" style="margin-bottom:14px;max-width:260px;">
+      <div class="field">
+        <label>Filtrar por fecha</label>
+        <input type="date" id="c-mias-fecha" oninput="corteCargarMias()">
+      </div>
+      <button class="btn btn-outline" onclick="document.getElementById('c-mias-fecha').value='';corteCargarMias()">Quitar filtro</button>
+    </div>
     <div id="c-mis-list"></div>
   </div>
 </div>
@@ -233,8 +240,10 @@ async function corteCargarMias(){
   const el=document.getElementById('c-mis-list');
   try{
     const res=await fetch('/api/corte-solicitudes?solicitadoPor='+encodeURIComponent(_cUser));
-    const data=await res.json();
-    if(!data.length){ el.innerHTML='<div class="empty">Aún no has hecho ninguna solicitud.</div>'; return; }
+    let data=await res.json();
+    const fechaFiltro=document.getElementById('c-mias-fecha').value;
+    if(fechaFiltro) data=data.filter(s=>s.fecha===fechaFiltro);
+    if(!data.length){ el.innerHTML='<div class="empty">'+(fechaFiltro?'No hay solicitudes en esa fecha.':'Aún no has hecho ninguna solicitud.')+'</div>'; return; }
     el.innerHTML=data.map(s=>{
       const badge=`<span class="badge ${s.estado}">${s.estado}</span>`;
       const accion=s.estado==='entregada'
