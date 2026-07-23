@@ -1114,6 +1114,18 @@ app.post('/api/corte-solicitudes/:id/rechazar', (req, res) => {
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
+app.delete('/api/corte-solicitudes/:id', (req, res) => {
+  try {
+    const data = readJSON(FILES.corte_solicitudes, []);
+    const len = data.length;
+    const restante = data.filter(s => s.id !== req.params.id);
+    if (restante.length === len) return res.status(404).json({ error: 'No encontrada' });
+    if (!writeJSON(FILES.corte_solicitudes, restante)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
+    broadcast({ type: 'corte_delete_request', id: req.params.id });
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── API ia-records (para validar operarias en contador_modulos) ──
 app.get('/api/ia-records', (req, res) => {
   res.json(iaRecords || []);
@@ -1704,6 +1716,7 @@ const MSG_TOPICS = {
   'ci_reactivar_alerta': 'ci',
   'corte_new_request':   'corte',
   'corte_update_request':'corte',
+  'corte_delete_request':'corte',
   'ia_add_record':       'ia',
   'ia_delete_record':    'ia',
   'ia_edit_record':      'ia',

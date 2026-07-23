@@ -85,6 +85,8 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
 .sc-bottom{padding:10px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
 .sc-status-txt{font-size:11.5px;color:#94a3b8;flex:1;font-style:italic;}
 .sc-bottom .btn{flex:1;padding:9px;font-size:12.5px;}
+.sc-del-btn{border:none;background:transparent;color:#cbd5e1;font-size:14px;cursor:pointer;padding:2px;line-height:1;}
+.sc-del-btn:hover{color:#dc2626;}
 
 /* ── Modal del asistente ── */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:1000;align-items:center;justify-content:center;padding:16px;}
@@ -299,7 +301,10 @@ function corteRenderTarjetas(){
       return `<div class="sc">
         <div class="sc-top">
           <div class="sc-title">Lote ${s.lote}</div>
-          <span class="sc-pill ${s.estado}">${s.estado}</span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="sc-pill ${s.estado}">${s.estado}</span>
+            <button class="sc-del-btn" title="Eliminar solicitud" onclick="corteEliminar('${s.id}','${s.lote.replace(/'/g,"\\'")}')">🗑</button>
+          </div>
         </div>
         <table class="sc-table">
           <tr><td>Rollo</td><td>#${s.rollo||'—'}</td></tr>
@@ -335,6 +340,17 @@ async function corteRechazar(id){
     const res=await fetch('/api/corte-solicitudes/'+id+'/rechazar',{method:'POST'});
     if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e.error||'Error'); }
     corteToast('↩ Solicitud rechazada — vuelve a pendiente');
+    corteCargarMias();
+  }catch(e){
+    corteToast('⚠️ '+e.message,'error');
+  }
+}
+async function corteEliminar(id,lote){
+  if(!confirm('¿Eliminar la solicitud del lote '+lote+'? Esta acción no se puede deshacer.'))return;
+  try{
+    const res=await fetch('/api/corte-solicitudes/'+id,{method:'DELETE'});
+    if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e.error||'Error'); }
+    corteToast('🗑 Solicitud eliminada');
     corteCargarMias();
   }catch(e){
     corteToast('⚠️ '+e.message,'error');
@@ -486,6 +502,9 @@ function corteConnectWS(){
         }else if(msg.solicitud.estado==='entregada'){
           corteToast('📦 Lote '+msg.solicitud.lote+' fue marcado como entregado');
         }
+      }
+      if(msg.type==='corte_delete_request'){
+        corteCargarMias();
       }
     }catch(err){}
   };

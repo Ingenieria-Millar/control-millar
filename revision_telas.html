@@ -1573,6 +1573,11 @@ function connectWS(){
         renderCorteCards();
         actualizarBadgeCorte();
       }
+      if(msg.type==='corte_delete_request'){
+        _corteSolicitudes=_corteSolicitudes.filter(s=>s.id!==msg.id);
+        renderCorteCards();
+        actualizarBadgeCorte();
+      }
     }catch(err){console.warn('WS:',err);}
   };
   ws.onclose=()=>{wsReady=false;wsTimer=setTimeout(connectWS,4000);};
