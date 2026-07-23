@@ -87,7 +87,7 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
       <div class="row" style="margin-bottom:6px;">
         <div class="field">
           <label>N° de Lote</label>
-          <input type="text" id="c-lote" placeholder="Ej: TL26467" onkeydown="if(event.key==='Enter')corteBuscarLote()">
+          <input type="text" id="c-lote" placeholder="Ej: TL26467" oninput="corteBuscarLote()" onkeydown="if(event.key==='Enter')corteBuscarLote()">
         </div>
         <button class="btn btn-outline" onclick="corteBuscarLote()">🔍 Buscar</button>
       </div>
@@ -146,42 +146,47 @@ function corteSwitchTab(tab){
   if(tab==='mias') corteCargarMias();
 }
 
+let _corteBuscarSeq=0;
 async function corteBuscarLote(){
-  const lote=(document.getElementById('c-lote').value||'').trim();
+  const texto=(document.getElementById('c-lote').value||'').trim().toLowerCase();
   const msgEl=document.getElementById('c-lote-msg');
   const listEl=document.getElementById('c-rollos');
   document.getElementById('c-form-final').style.display='none';
   _cRolloSel=null;
   listEl.innerHTML='';
-  if(!lote){ msgEl.textContent='Escribe un número de lote.'; return; }
+  if(!texto){ msgEl.textContent='Escribe un número de lote.'; return; }
   msgEl.textContent='Buscando…';
+  const miSeq=++_corteBuscarSeq; // evita que una búsqueda vieja sobrescriba una más reciente
   try{
     const res=await fetch('/api/revision-telas');
     const d=await res.json();
+    if(miSeq!==_corteBuscarSeq) return; // el usuario ya siguió escribiendo, este resultado quedó viejo
+    const coincide=lote=>(lote||'').toString().toLowerCase().includes(texto);
     // Fuente 1: rollos ya revisados y aprobados (dato más confiable, viene de una inspección real)
     const deRevision=(d.registros||[]).filter(r=>
-      r.lote===lote && r.finalizado && r.resultado==='aprobado' && r.tipo!=='multitarea'
+      coincide(r.lote) && r.finalizado && r.resultado==='aprobado' && r.tipo!=='multitarea'
     ).map(r=>({lote:r.lote,rollo:r.rollo,referencia:r.referencia,metros:r.metros}));
     // Fuente 2: catálogo de Referencias por Proveedor (puede tener rollos que aún no se han revisado)
     const deReferencias=[];
     Object.values(d.referencias||{}).forEach(arr=>(arr||[]).forEach(ref=>{
-      if(typeof ref==='object'&&ref.lote===lote){
+      if(typeof ref==='object'&&coincide(ref.lote)){
         deReferencias.push({lote:ref.lote,rollo:ref.rollo,referencia:ref.referencia,metros:ref.mts});
       }
     }));
-    // Combinar sin duplicar: si un rollo aparece en ambas fuentes, se prefiere el de la revisión ya aprobada.
-    const vistos=new Set(deRevision.map(r=>r.rollo));
-    const regs=[...deRevision, ...deReferencias.filter(r=>!vistos.has(r.rollo))];
-    if(!regs.length){ msgEl.textContent='No se encontraron rollos para ese lote.'; return; }
-    msgEl.textContent=regs.length+' rollo(s) encontrados para el lote '+lote+':';
+    // Combinar sin duplicar (por lote+rollo, ya que ahora puede haber varios lotes a la vez).
+    // Si el mismo lote+rollo aparece en ambas fuentes, se prefiere el de la revisión ya aprobada.
+    const vistos=new Set(deRevision.map(r=>r.lote+'||'+r.rollo));
+    const regs=[...deRevision, ...deReferencias.filter(r=>!vistos.has(r.lote+'||'+r.rollo))];
+    if(!regs.length){ msgEl.textContent='No se encontraron rollos que coincidan con "'+texto+'".'; return; }
+    msgEl.textContent=regs.length+' rollo(s) encontrados:';
     _cRollos=regs;
     listEl.innerHTML=regs.map((r,i)=>`
       <div class="rollo-opt" data-i="${i}" onclick="corteSeleccionarRollo(${i})">
-        <span>Rollo <b>#${r.rollo||'—'}</b> — ${r.referencia||'Sin referencia'}</span>
+        <span>Lote <b>${r.lote}</b> — Rollo <b>#${r.rollo||'—'}</b> — ${r.referencia||'Sin referencia'}</span>
         <span>${r.metros||'—'} m disponibles</span>
       </div>`).join('');
   }catch(e){
-    msgEl.textContent='Error buscando el lote. Intenta de nuevo.';
+    if(miSeq===_corteBuscarSeq) msgEl.textContent='Error buscando el lote. Intenta de nuevo.';
   }
 }
 
