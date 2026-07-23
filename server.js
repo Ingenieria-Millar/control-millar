@@ -3053,3 +3053,4 @@ process.on('SIGINT',  () => cierreLimpio('SIGINT'));
 server.listen(PORT, () => {
   console.log(`✅ Confecciones Millar v4.0 | Puerto ${PORT} | RESET_PASS: ${RESET_PASS ? 'OK' : 'NO configurada'} | CORS: ${ALLOWED_ORIGIN || 'abierto'}`);
 });
+.
