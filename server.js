@@ -1054,7 +1054,8 @@ app.post('/api/corte-solicitudes', (req, res) => {
       solicitadoPor,
       estado: 'pendiente',
       fecha: new Date().toISOString().slice(0, 10),
-      hora: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true })
+      hora: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true }),
+      ts: Date.now() // marca exacta para calcular el contador de tiempo en la tarjeta
     };
     const data = readJSON(FILES.corte_solicitudes, []);
     data.unshift(sol);
@@ -1073,6 +1074,7 @@ app.post('/api/corte-solicitudes/:id/entregar', (req, res) => {
     data[idx].estado = 'entregada';
     data[idx].entregadoPor = (req.body && req.body.entregadoPor) || '';
     data[idx].fechaEntrega = new Date().toISOString().slice(0, 10);
+    data[idx].tsEntregada = Date.now();
     if (!writeJSON(FILES.corte_solicitudes, data)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
     broadcast({ type: 'corte_update_request', solicitud: data[idx] });
     res.json({ ok: true, solicitud: data[idx] });
@@ -1087,6 +1089,7 @@ app.post('/api/corte-solicitudes/:id/aceptar', (req, res) => {
     if (data[idx].estado !== 'entregada') return res.status(400).json({ error: 'Aún no ha sido entregada' });
     data[idx].estado = 'aceptada';
     data[idx].fechaAceptada = new Date().toISOString().slice(0, 10);
+    data[idx].tsAceptada = Date.now();
     if (!writeJSON(FILES.corte_solicitudes, data)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
     broadcast({ type: 'corte_update_request', solicitud: data[idx] });
     res.json({ ok: true, solicitud: data[idx] });
