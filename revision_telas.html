@@ -316,24 +316,23 @@ body.rt-has-sidenav #rt-informe-screen{left:224px!important;}
 body.rt-has-sidenav #rt-corte-screen{left:224px!important;}
 .rt-corte-filtro-btn{padding:7px 14px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;cursor:pointer;}
 .rt-corte-filtro-btn.active{background:#1e3a8a;color:#fff;border-color:#1e3a8a;}
-/* Tarjeta de solicitud de Corte, estilo recibo. */
-.rtc{background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;font-family:'Nunito',sans-serif;}
-.rtc-top{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid #f1f5f9;}
+/* Tarjeta de solicitud de Corte: tabla completa, líneas en todos los bordes, filas en cebra. */
+.rtc{background:#fff;border:1.5px solid #dbe2ea;border-radius:10px;overflow:hidden;font-family:'Nunito',sans-serif;}
+.rtc-top{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1.5px solid #dbe2ea;}
 .rtc-title{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;color:#0f172a;}
 .rtc-pill{display:inline-flex;padding:4px 12px;border-radius:20px;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;}
 .rtc-pill.pendiente{background:#fef3c7;color:#92400e;}
 .rtc-pill.entregada{background:#dbeafe;color:#1d4ed8;}
 .rtc-pill.aceptada{background:#dcfce7;color:#15803d;}
-.rtc-cols{display:grid;grid-template-columns:1fr 1fr 1.4fr;border-bottom:1px solid #f1f5f9;}
-.rtc-cols>div{padding:8px 10px;border-right:1px solid #f1f5f9;}
-.rtc-cols>div:last-child{border-right:none;}
-.rtc-lbl{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#94a3b8;}
-.rtc-val{font-size:13px;font-weight:700;color:#0f172a;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.rtc-row{display:flex;align-items:center;justify-content:space-between;padding:7px 14px;border-bottom:1px solid #f8fafc;font-size:12.5px;}
-.rtc-row .rtc-val{font-size:12.5px;font-weight:600;margin-top:0;}
-.rtc-row .rtc-val.strong{font-weight:800;color:#1e3a8a;}
+.rtc-table{width:100%;border-collapse:collapse;}
+.rtc-table tr:nth-child(even){background:#f6f8fb;}
+.rtc-table td{padding:7px 14px;font-size:12.5px;border-bottom:1px solid #dbe2ea;border-right:1px solid #dbe2ea;}
+.rtc-table tr:last-child td{border-bottom:none;}
+.rtc-table td:first-child{color:#8592a6;font-weight:600;width:44%;}
+.rtc-table td:last-child{border-right:none;color:#0f172a;font-weight:800;text-align:center;}
+.rtc-table td.strong{color:#1e3a8a;}
 .rtc-bottom{padding:10px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-.rtc-status-txt{font-size:11.5px;color:#94a3b8;flex:1;}
+.rtc-status-txt{font-size:11.5px;color:#94a3b8;flex:1;font-style:italic;}
 /* Tabla de Referencias — líneas grises entre columnas y encabezados alineados con el contenido, estilo Excel. */
 .rt-refs-grid{align-items:center;}
 .rt-refs-grid>*{border-right:1px solid #e2e8f0;text-align:center;padding-right:6px;box-sizing:border-box;}
@@ -3994,6 +3993,7 @@ function corteContadorTexto(s){
   const min=(fin-s.ts)/60000;
   return (min<0?0:min).toFixed(2)+' min';
 }
+function corteFormatHoraTS(ts){ return ts?new Date(ts).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true}):'—'; }
 // Refresca las tarjetas cada segundo para que el contador se vea "en vivo".
 setInterval(()=>{
   const scr=document.getElementById('rt-corte-screen');
@@ -4018,14 +4018,15 @@ function renderCorteCards(){
         <div class="rtc-title">Lote ${s.lote}</div>
         <span class="rtc-pill ${s.estado}">${s.estado}</span>
       </div>
-      <div class="rtc-cols">
-        <div><div class="rtc-lbl">Rollo</div><div class="rtc-val">#${s.rollo||'—'}</div></div>
-        <div><div class="rtc-lbl">Metros</div><div class="rtc-val">${s.metros}</div></div>
-        <div><div class="rtc-lbl">Solicita</div><div class="rtc-val">${s.solicitadoPor}</div></div>
-      </div>
-      <div class="rtc-row"><span class="rtc-lbl">Hora inicio</span><span class="rtc-val">${s.fecha} ${s.hora||''}</span></div>
-      <div class="rtc-row"><span class="rtc-lbl">Hora fin</span><span class="rtc-val">${s.estado==='aceptada'?(s.fechaAceptada||''):'—'}</span></div>
-      <div class="rtc-row"><span class="rtc-lbl">T. Espera</span><span class="rtc-val strong">${corteContadorTexto(s)}</span></div>
+      <table class="rtc-table">
+        <tr><td>Rollo</td><td>#${s.rollo||'—'}</td></tr>
+        <tr><td>Metros</td><td>${s.metros} m</td></tr>
+        <tr><td>Solicita</td><td>${s.solicitadoPor}</td></tr>
+        <tr><td>Fecha</td><td>${fechaDisplay(s.fecha)||s.fecha}</td></tr>
+        <tr><td>Hora solicitud</td><td>${s.hora||'—'}</td></tr>
+        <tr><td>Hora aceptada</td><td>${s.estado==='aceptada'?corteFormatHoraTS(s.tsAceptada):'—'}</td></tr>
+        <tr><td>T. espera</td><td class="strong">${corteContadorTexto(s)}</td></tr>
+      </table>
       <div class="rtc-bottom">
         <span class="rtc-status-txt">${statusTxt}</span>
         ${accion}

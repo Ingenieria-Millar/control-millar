@@ -68,24 +68,22 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
 
 /* ── Tarjetas de solicitud, estilo recibo ── */
 .cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;}
-.sc{background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;}
-.sc-top{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid #f1f5f9;}
+.sc{background:#fff;border:1.5px solid #dbe2ea;border-radius:10px;overflow:hidden;}
+.sc-top{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1.5px solid #dbe2ea;}
 .sc-title{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;color:#0f172a;}
 .sc-pill{display:inline-flex;padding:4px 12px;border-radius:20px;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;}
 .sc-pill.pendiente{background:#fef3c7;color:#92400e;}
 .sc-pill.entregada{background:#dbeafe;color:#1d4ed8;}
 .sc-pill.aceptada{background:#dcfce7;color:#15803d;}
-.sc-cols{display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid #f1f5f9;}
-.sc-cols>div{padding:8px 10px;border-right:1px solid #f1f5f9;}
-.sc-cols>div:last-child{border-right:none;}
-.sc-lbl{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#94a3b8;}
-.sc-val{font-size:13px;font-weight:700;color:#0f172a;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.sc-row{display:flex;align-items:center;justify-content:space-between;padding:7px 14px;border-bottom:1px solid #f8fafc;font-size:12.5px;}
-.sc-row .sc-lbl{margin-top:0;}
-.sc-row .sc-val{font-size:12.5px;font-weight:600;margin-top:0;}
-.sc-row .sc-val.strong{font-weight:800;color:#1e3a8a;}
+.sc-table{width:100%;border-collapse:collapse;}
+.sc-table tr:nth-child(even){background:#f6f8fb;}
+.sc-table td{padding:7px 14px;font-size:12.5px;border-bottom:1px solid #dbe2ea;border-right:1px solid #dbe2ea;}
+.sc-table tr:last-child td{border-bottom:none;}
+.sc-table td:first-child{color:#8592a6;font-weight:600;width:44%;}
+.sc-table td:last-child{border-right:none;color:#0f172a;font-weight:800;text-align:center;}
+.sc-table td.strong{color:#1e3a8a;}
 .sc-bottom{padding:10px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-.sc-status-txt{font-size:11.5px;color:#94a3b8;flex:1;}
+.sc-status-txt{font-size:11.5px;color:#94a3b8;flex:1;font-style:italic;}
 .sc-bottom .btn{flex:1;padding:9px;font-size:12.5px;}
 
 /* ── Modal del asistente ── */
@@ -245,6 +243,8 @@ function corteContadorTexto(s){
   const min=(fin-s.ts)/60000;
   return (min<0?0:min).toFixed(2)+' min';
 }
+function corteFormatFecha(iso){ if(!iso)return '—'; const[y,m,d]=iso.split('-'); return d+'/'+m+'/'+y; }
+function corteFormatHoraTS(ts){ return ts?new Date(ts).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true}):'—'; }
 function toggleCorteFechaPanel(){ document.getElementById('c-fecha-panel').classList.toggle('open'); }
 function corteAplicarFechas(){
   _cFechaDesde=document.getElementById('c-fecha-desde').value;
@@ -299,13 +299,14 @@ function corteRenderTarjetas(){
           <div class="sc-title">Lote ${s.lote}</div>
           <span class="sc-pill ${s.estado}">${s.estado}</span>
         </div>
-        <div class="sc-cols">
-          <div><div class="sc-lbl">Rollo</div><div class="sc-val">#${s.rollo||'—'}</div></div>
-          <div><div class="sc-lbl">Metros</div><div class="sc-val">${s.metros}</div></div>
-        </div>
-        <div class="sc-row"><span class="sc-lbl">Hora solicitud</span><span class="sc-val">${s.fecha} ${s.hora||''}</span></div>
-        <div class="sc-row"><span class="sc-lbl">Hora aceptada</span><span class="sc-val">${s.estado==='aceptada'?(s.fechaAceptada||''):'—'}</span></div>
-        <div class="sc-row"><span class="sc-lbl">T. Espera</span><span class="sc-val strong">${corteContadorTexto(s)}</span></div>
+        <table class="sc-table">
+          <tr><td>Rollo</td><td>#${s.rollo||'—'}</td></tr>
+          <tr><td>Metros</td><td>${s.metros} m</td></tr>
+          <tr><td>Fecha</td><td>${corteFormatFecha(s.fecha)}</td></tr>
+          <tr><td>Hora solicitud</td><td>${s.hora||'—'}</td></tr>
+          <tr><td>Hora aceptada</td><td>${s.estado==='aceptada'?corteFormatHoraTS(s.tsAceptada):'—'}</td></tr>
+          <tr><td>T. espera</td><td class="strong">${corteContadorTexto(s)}</td></tr>
+        </table>
         <div class="sc-bottom">
           <span class="sc-status-txt">${statusTxt}</span>
           ${accion}
