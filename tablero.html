@@ -32,7 +32,7 @@
 var F=window.fetch;window.fetch=function(u,o){o=o||{};var t=T();if(t){var h=new Headers(o.headers||{});if(!h.has('Authorization'))h.set('Authorization','Bearer '+t);o.headers=h;}return F.call(this,u,o);};
 var W=window.WebSocket;function MW(u,p){try{var t=T();if(t&&typeof u==='string'&&u.indexOf('token=')<0){u+=(u.indexOf('?')<0?'?':'&')+'token='+encodeURIComponent(t);}}catch(e){}return p!==undefined?new W(u,p):new W(u);}MW.prototype=W.prototype;MW.CONNECTING=W.CONNECTING;MW.OPEN=W.OPEN;MW.CLOSING=W.CLOSING;MW.CLOSED=W.CLOSED;window.WebSocket=MW;})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>MES — Millar</title>
+<title>Tablero — MES | Millar</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <!-- Screen & Session Persistence -->
 <script>
@@ -2144,10 +2144,11 @@ window.addEventListener('DOMContentLoaded', async ()=>{
       // Guardar perfil del usuario actual en sessionStorage para el nav
       try{ sessionStorage.setItem('millar_nav_perfil', currentUser.toLowerCase()); }catch(e){}
 
-      // Limpiar login y actualizar URL limpia (sin tablero en la URL)
+      // Limpiar login y actualizar URL limpia — se mantiene en /tablero para que
+      // recargar la página no saque al usuario de la vista del tablero.
       const ls = document.getElementById('login-screen');
       if(ls) ls.classList.add('hidden');
-      history.replaceState({}, '', '/?perfil='+currentUser.toLowerCase());
+      history.replaceState({}, '', '/tablero?tablero='+(_tablero==='mecanicos'?'mecanicos':'general')+'&perfil='+currentUser.toLowerCase());
 
       // Re-inyectar nav con el perfil correcto ANTES de mostrar tablero
       document.querySelectorAll('[data-millar-nav]').forEach(el=>{
@@ -2318,19 +2319,21 @@ function mostrarAreaScreen(){
 
   let idx=0;
 
-  // 1. Tablero General — ahora vive en su propia página independiente
+  // 1. Tablero General
   if(hasPerm('tablero')){
     const c=makeCard('🏭','Tablero General','Vista general · módulos','ac-red',()=>{
-      window.location.href='/tablero?tablero=general';
+      document.getElementById('area-screen').classList.add('hidden');
+      entrarTablero('general');
     });
     c.style.animationDelay=(idx*0.07)+'s'; idx++;
     btns.appendChild(c);
   }
 
-  // 2. Tablero Mecánicos (con notificaciones) — página independiente
+  // 2. Tablero Mecánicos (con notificaciones)
   if(hasPerm('tablero_planta')){
     const c=makeCard('🔊','Tablero Mecánicos','Tablero con notificaciones','ac-orange',()=>{
-      window.location.href='/tablero?tablero=mecanicos';
+      document.getElementById('area-screen').classList.add('hidden');
+      entrarTablero('mecanicos');
     });
     c.style.animationDelay=(idx*0.07)+'s'; idx++;
     btns.appendChild(c);
@@ -2918,29 +2921,9 @@ function cambiarModulo(){
 }
 // ── Volver desde el tablero al menú de áreas ─────────────────────────
 function atrasDesdeTablero(){
-  document.getElementById('stats-bar').style.display='none';
-  document.getElementById('grid-view').classList.add('hidden');
-  // Restaurar título original
-  const h1 = document.getElementById('main-header-title');
-  if(h1) h1.innerHTML = 'Confecciones <span style="color:#2563eb;">Millar</span>';
-  // Ocultar badge usuario y volver
-  const hdRight = document.getElementById('hd-tablero-right');
-  if(hdRight) hdRight.classList.remove('visible');
-  currentView=null;
-  // Restaurar perfil correcto en sessionStorage desde cm_session
-  try{
-    const _s = JSON.parse(localStorage.getItem('cm_session')||'{}');
-    if(_s.user) sessionStorage.setItem('millar_nav_perfil', _s.user.toLowerCase());
-  }catch(e){}
-  // Limpiar parámetros de tablero de la URL
-  history.replaceState({}, '', '/?perfil='+(currentUser||'').toLowerCase());
-  // Re-inyectar nav con el perfil correcto
-  setTimeout(()=>{
-    document.querySelectorAll('[data-millar-nav]').forEach(el=>{
-      if(typeof buildNav==='function') el.innerHTML=buildNav();
-    });
-    mostrarAreaScreen();
-  }, 50);
+  // tablero.html es una página independiente — "Volver" regresa al menú
+  // principal real (index.html), no a un menú local duplicado.
+  window.location.href='/';
 }
 function atrasDesdeModulo(){
   document.getElementById('nav-single').style.display='none';

@@ -904,6 +904,9 @@ app.get('/revision-telas', (req, res) =>
 app.get('/corte', (req, res) =>
   res.sendFile(path.join(__dirname, 'corte.html'))
 );
+app.get('/tablero', (req, res) =>
+  res.sendFile(path.join(__dirname, 'tablero.html'))
+);
 
 app.get('/incentivos', (req, res) =>
   res.sendFile(path.join(__dirname, 'incentivos.html'))
