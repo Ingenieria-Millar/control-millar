@@ -863,61 +863,63 @@ setInterval(() => {
 app.use('/alistamiento/uploads', express.static(UPLOADS_DIR));
 
 // ── Rutas principales ──────────────────────────────────────────────
+// Los archivos de cada pantalla viven en modulos/<nombre>/ — las URLs no cambian,
+// solo dónde vive el archivo en disco.
 app.get('/', (req, res) =>
-  res.sendFile(path.join(__dirname, 'index.html'))
+  res.sendFile(path.join(__dirname, 'modulos/index/index.html'))
 );
 app.get('/ingresos', (req, res) =>
-  res.sendFile(path.join(__dirname, 'ingresos.html'))
+  res.sendFile(path.join(__dirname, 'modulos/ingresos/ingresos.html'))
 );
 // Registro Mecánicos (antes "Alistamiento"). Servido en la ruta nueva y la vieja (alias).
 app.get(['/registro-mecanicos', '/alistamiento'], (req, res) =>
-  res.sendFile(path.join(__dirname, 'registro-mecanicos.html'))
+  res.sendFile(path.join(__dirname, 'modulos/registro-mecanicos/registro-mecanicos.html'))
 );
 
 app.get('/solicitar-insumos', (req, res) =>
-  res.sendFile(path.join(__dirname, 'solicitar_insumos.html'))
+  res.sendFile(path.join(__dirname, 'modulos/solicitar-insumos/solicitar_insumos.html'))
 )
 app.get('/hoja-vida', (req, res) =>
-  res.sendFile(path.join(__dirname, 'hoja_vida_maquina.html'))
+  res.sendFile(path.join(__dirname, 'modulos/hoja-vida-maquina/hoja_vida_maquina.html'))
 );
 
 app.get('/ordenes', (req, res) =>
-  res.sendFile(path.join(__dirname, 'ordenes.html'))
+  res.sendFile(path.join(__dirname, 'modulos/ordenes/ordenes.html'))
 );
 
 app.get('/contador-modulos', (req, res) =>
-  res.sendFile(path.join(__dirname, 'contador_modulos.html'))
+  res.sendFile(path.join(__dirname, 'modulos/contador-modulos/contador_modulos.html'))
 );
 
 // ── Recogedores ───────────────────────────────────────────────────
 app.get('/recogedores', (req, res) =>
-  res.sendFile(path.join(__dirname, 'recogedores.html'))
+  res.sendFile(path.join(__dirname, 'modulos/recogedores/recogedores.html'))
 );
 
 app.get('/produccion', (req, res) =>
-  res.sendFile(path.join(__dirname, 'produccion.html'))
+  res.sendFile(path.join(__dirname, 'modulos/produccion/produccion.html'))
 );
 
 app.get('/revision-telas', (req, res) =>
-  res.sendFile(path.join(__dirname, 'revision_telas.html'))
+  res.sendFile(path.join(__dirname, 'modulos/revision-telas/revision_telas.html'))
 );
 app.get('/corte', (req, res) =>
-  res.sendFile(path.join(__dirname, 'corte.html'))
+  res.sendFile(path.join(__dirname, 'modulos/corte/corte.html'))
 );
 app.get('/tablero', (req, res) =>
-  res.sendFile(path.join(__dirname, 'tablero.html'))
+  res.sendFile(path.join(__dirname, 'modulos/tablero/tablero.html'))
 );
 
 app.get('/incentivos', (req, res) =>
-  res.sendFile(path.join(__dirname, 'incentivos.html'))
+  res.sendFile(path.join(__dirname, 'modulos/incentivos/incentivos.html'))
 );
 
 app.get('/visitantes', (req, res) =>
-  res.sendFile(path.join(__dirname, 'control-visitantes-sst.html'))
+  res.sendFile(path.join(__dirname, 'modulos/control-visitantes-sst/control-visitantes-sst.html'))
 );
 
 app.get('/permisos', (req, res) =>
-  res.sendFile(path.join(__dirname, 'control_permisos.html'))
+  res.sendFile(path.join(__dirname, 'modulos/control-permisos/control_permisos.html'))
 );
 
 // ── PUNTO SEGURO — SG-SST ────────────────────────────────────────────────────
@@ -957,17 +959,15 @@ app.get('/logo.png', (req, res) => {
   // El archivo real se llama "logo.png.jpeg"; probamos varios nombres.
   const candidatos = ['logo.png', 'logo.png.jpeg', 'logo.jpeg', 'logo.jpg'];
   for (const nombre of candidatos) {
-    const p = path.join(__dirname, nombre);
+    const p = path.join(__dirname, 'compartido', nombre);
     if (fs.existsSync(p)) return res.sendFile(p);
   }
   res.status(404).end();
 });
 
-// Menú de usuario compartido (Mi perfil / Cerrar sesión) — se incluye en cada pantalla
-app.get('/user-menu.js', (req, res) => {
-  res.type('application/javascript');
-  res.sendFile(path.join(__dirname, 'user-menu.js'));
-});
+// Archivos compartidos entre módulos (logo, CSS, plantillas) — servidos tal
+// cual desde compartido/, así las páginas los siguen pidiendo con /nombre.css etc.
+app.use(express.static(path.join(__dirname, 'compartido')));
 
 // GET todos los registros (con filtros opcionales)
 app.get('/api/recogedores', (req, res) => {
@@ -1517,12 +1517,12 @@ app.post('/api/wa/reinit', requireAuth, (_req, res) => {
   res.json({ ok: true });
 });
 
-const CI_PATH = path.join(__dirname, 'Tablero_CI.html');
+const CI_PATH = path.join(__dirname, 'modulos/tablero-ci/Tablero_CI.html');
 app.get('/ci', (req, res) => {
   if (!fs.existsSync(CI_PATH)) {
     const variants = ['tablero_ci.html','tablero-ci.html','TableroCI.html','tableroCI.html'];
     for (const v of variants) {
-      const vpath = path.join(__dirname, v);
+      const vpath = path.join(__dirname, 'modulos/tablero-ci', v);
       if (fs.existsSync(vpath)) return res.sendFile(vpath);
     }
     return res.status(404).send('<h1>Tablero CI no encontrado</h1>');
