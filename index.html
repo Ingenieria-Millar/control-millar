@@ -1977,15 +1977,24 @@ function updateHeaderClock(){
 setInterval(updateHeaderClock,1000);
 updateHeaderClock();
 
+// Si una de las solicitudes iniciales se queda sin responder (pasa en algunos
+// navegadores de TV), no se puede dejar bloqueada toda la pantalla de inicio
+// para siempre — después de este tiempo se sigue adelante con lo que ya haya.
+function conLimiteDeTiempo(promesa, ms){
+  return Promise.race([
+    promesa,
+    new Promise(resolve=>setTimeout(resolve, ms))
+  ]);
+}
 window.addEventListener('DOMContentLoaded', async ()=>{
   // Cargar todos los datos desde el servidor antes de iniciar la app
   await Promise.all([
-    loadConfigFromServer(),
-    loadHistorialFromServer(),
-    loadTurnosFromServer(),
-    loadMaquinariaFromServer(),
-    loadGuiasFromServer(),
-    cfgLoadNovedades()
+    conLimiteDeTiempo(loadConfigFromServer(), 7000),
+    conLimiteDeTiempo(loadHistorialFromServer(), 7000),
+    conLimiteDeTiempo(loadTurnosFromServer(), 7000),
+    conLimiteDeTiempo(loadMaquinariaFromServer(), 7000),
+    conLimiteDeTiempo(loadGuiasFromServer(), 7000),
+    conLimiteDeTiempo(cfgLoadNovedades(), 7000)
   ]);
 
   applyConfig();
