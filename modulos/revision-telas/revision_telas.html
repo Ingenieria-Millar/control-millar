@@ -184,11 +184,11 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
 
 /* Modales */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1000;
-  align-items:center;justify-content:center;padding:16px;}
+  align-items:center;justify-content:center;padding:16px;overflow-y:auto;}
 .modal-overlay.open{display:flex;}
-.modal-box{background:#fff;border-radius:16px;width:100%;max-width:680px;max-height:92vh;
-  overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);font-family:'Nunito',sans-serif;}
-.modal-box.wide{max-width:760px;}
+.modal-box{background:#fff;border-radius:16px;width:100%;max-width:720px;max-height:92vh;
+  overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);font-family:'Nunito',sans-serif;margin:auto;}
+.modal-box.wide{max-width:820px;}
 .modal-header{padding:20px 24px 16px;border-bottom:1px solid #e2e8f0;position:sticky;top:0;background:#fff;z-index:1;}
 .modal-title{font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:800;letter-spacing:2px;color:#0f172a;}
 .modal-body{padding:20px 24px;}
@@ -300,7 +300,8 @@ input[type=number]{-moz-appearance:textfield;}
   .table-row{grid-template-columns:70px 62px 58px 1.4fr 70px 65px 1.4fr 65px 90px 60px 70px 44px 70px 44px 110px;min-width:980px;}
   .td{font-size:11px;}
   .btn-finalizar{font-size:11px;padding:5px 10px;}
-  .modal-box{max-width:96vw;}
+  .modal-overlay{padding:10px;}
+  .modal-box,.modal-box.wide{max-width:96vw;width:96vw;}
 }
 
 /* ── Móvil (< 600px) ── */
@@ -749,7 +750,6 @@ input[type=number]{-moz-appearance:textfield;}
     <div class="modal-header" style="position:relative;">
       <div class="modal-title">🏁 FINALIZAR REVISIÓN</div>
       <div style="font-size:12px;color:#64748b;margin-top:4px;" id="fin-ref-label"></div>
-      <button onclick="closeFinalizar()" style="position:absolute;top:0;right:0;background:none;border:none;font-size:20px;color:#94a3b8;cursor:pointer;line-height:1;padding:4px 6px;" title="Volver a revisión">✕</button>
     </div>
     <div class="modal-body">
       <!-- Metros -->
@@ -854,6 +854,19 @@ input[type=number]{-moz-appearance:textfield;}
     <div style="display:flex;gap:10px;">
       <button onclick="closeConfirmRT()" style="flex:1;padding:10px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Cancelar</button>
       <button onclick="executeConfirmRT()" style="flex:1;padding:10px;border-radius:8px;border:none;background:#dc2626;color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Actividad Abierta (bloqueo de seguridad) -->
+<div class="modal-overlay" id="modal-actividad-abierta" style="z-index:1100;">
+  <div style="background:#fff;border-radius:16px;padding:24px;width:100%;max-width:420px;
+    box-shadow:0 20px 60px rgba(0,0,0,.25);font-family:'Nunito',sans-serif;">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:800;letter-spacing:2px;color:#d97706;margin-bottom:10px;">⚠️ ACTIVIDAD EN REVISIÓN</div>
+    <p id="aa-mensaje" style="font-size:13px;color:#475569;margin-bottom:20px;line-height:1.6;"></p>
+    <div style="display:flex;gap:10px;">
+      <button onclick="closeActividadAbierta()" style="flex:1;padding:10px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">No, cancelar</button>
+      <button onclick="finalizarActividadAbierta()" style="flex:1;padding:10px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Sí, finalizar ahora</button>
     </div>
   </div>
 </div>
@@ -2001,13 +2014,30 @@ function migrarTurnos(){
 function actividadAbiertaDe(revisador){
   return _registros.find(r=>r.revisador===revisador&&!r.finalizado);
 }
+let _aaAbiertaId=null;
+function mostrarActividadAbierta(reg){
+  _aaAbiertaId=reg.id;
+  const desc=reg.tipo==='multitarea'?('⚡ '+reg.tarea):((reg.referencia||'')+' — Rollo '+(reg.rollo||''));
+  document.getElementById('aa-mensaje').innerHTML=(reg.revisador||'')+' ya tiene una actividad sin finalizar: <b>'+desc+'</b>.<br><br>Por seguridad no se puede iniciar una nueva mientras esa siga abierta. ¿Deseas finalizarla ahora para poder continuar?';
+  closeRegistroModal();closeMultitareaModal();closeTipoRegistroModal();
+  document.getElementById('modal-actividad-abierta').classList.add('open');
+}
+function closeActividadAbierta(){
+  document.getElementById('modal-actividad-abierta').classList.remove('open');
+  _aaAbiertaId=null;
+}
+function finalizarActividadAbierta(){
+  const id=_aaAbiertaId;
+  closeActividadAbierta();
+  if(id)openFinalizar(id);
+}
 function guardarRegistro(){
   if(_revisionActivaId){showToast('Ya tienes un rollo en revisión. Finalízalo primero.','error');return;}
   const fecha=document.getElementById('f-fecha').value;
   const revisador=_rtIsAdmin?document.getElementById('f-revisador').value:_rtCurrentUser;
   if(revisador){
     const abierta=actividadAbiertaDe(revisador);
-    if(abierta){showToast(revisador+' ya tiene una actividad en revisión — debe finalizarla antes de iniciar otra.','error');return;}
+    if(abierta){mostrarActividadAbierta(abierta);return;}
   }
   const factura=document.getElementById('f-factura-val').value||document.getElementById('f-factura-input').value.trim();
   const proveedor=document.getElementById('f-proveedor-hidden').value||document.getElementById('f-proveedor-val').value||document.getElementById('f-proveedor-input').value.trim();
@@ -3220,7 +3250,7 @@ function closeMultitareaModal(){
 function iniciarMultitarea(){
   if(_mtCurrentId){showToast('Ya tienes una multitarea en curso. Finalízala primero.','error');closeMultitareaModal();return;}
   const abierta=actividadAbiertaDe(_rtCurrentUser);
-  if(abierta){showToast('Ya tienes una actividad en revisión — debe finalizarla antes de iniciar otra.','error');closeMultitareaModal();return;}
+  if(abierta){mostrarActividadAbierta(abierta);return;}
   let tarea=document.getElementById('mt-tarea').value;
   const errEl=document.getElementById('mt-error');
   if(!tarea){errEl.textContent='Selecciona una tarea';return;}
