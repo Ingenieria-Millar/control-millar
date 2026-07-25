@@ -182,6 +182,19 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
 .empty-icon{font-size:48px;margin-bottom:12px;}
 .empty-text{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;text-transform:uppercase;}
 
+/* Revisadores no tienen acciones (editar/eliminar/finalizar) — quitar esa columna */
+.rt-sin-acciones .th-acciones,.rt-sin-acciones .td-actions{display:none;}
+.rt-sin-acciones .table-header,.rt-sin-acciones .table-filters,.rt-sin-acciones .table-row{
+  grid-template-columns:80px 80px 70px 2fr 80px 80px 2fr 80px 100px 70px 80px 50px 75px 50px;min-width:1010px;}
+@media(max-width:1200px){
+  .rt-sin-acciones .table-header,.rt-sin-acciones .table-filters,.rt-sin-acciones .table-row{
+    grid-template-columns:70px 70px 60px 1.5fr 70px 70px 1.5fr 70px 90px 60px 70px 44px 70px 44px;}
+}
+@media(max-width:1024px){
+  .rt-sin-acciones .table-header,.rt-sin-acciones .table-filters,.rt-sin-acciones .table-row{
+    grid-template-columns:70px 62px 58px 1.4fr 70px 65px 1.4fr 65px 90px 60px 70px 44px 70px 44px;min-width:870px;}
+}
+
 /* Modales */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1000;
   align-items:center;justify-content:center;padding:16px;overflow-y:auto;}
@@ -191,6 +204,8 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
 .modal-box.wide{max-width:820px;}
 /* Avisos pequeños (actividad abierta, confirmar) siempre centrados, en cualquier tamaño de pantalla */
 #modal-actividad-abierta{align-items:center;justify-content:center;padding:16px;}
+/* Nuevo Registro: más alta para que el listado de lotes no se vea apretado */
+#modal-registro .modal-box{min-height:560px;}
 .modal-header{padding:20px 24px 16px;border-bottom:1px solid #e2e8f0;position:sticky;top:0;background:#fff;z-index:1;}
 .modal-title{font-family:'Barlow Condensed',sans-serif;font-size:19px;font-weight:800;letter-spacing:2px;color:#0f172a;}
 .modal-body{padding:20px 24px;}
@@ -211,7 +226,7 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
 .searchable-input:focus{border-color:#2563eb;}
 .searchable-dropdown{display:none;position:absolute;top:100%;left:0;right:0;background:#fff;
   border:1.5px solid #e2e8f0;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.1);
-  z-index:100;max-height:180px;overflow-y:auto;}
+  z-index:100;max-height:280px;overflow-y:auto;}
 .searchable-dropdown.open{display:block;}
 .searchable-option{padding:8px 12px;font-size:13px;cursor:pointer;color:#0f172a;}
 .searchable-option:hover{background:#eff6ff;color:#1d4ed8;}
@@ -496,7 +511,7 @@ input[type=number]{-moz-appearance:textfield;}
       <div class="th">Observ.</div>
       <div class="th">Tiempo</div>
       <div class="th">Detalle</div>
-      <div class="th">Acciones</div>
+      <div class="th th-acciones">Acciones</div>
     </div>
     <div class="table-filters">
       <input placeholder="Filtrar..." oninput="filtrarTabla(0,this.value)" class="tf">
@@ -1553,6 +1568,7 @@ function rtEntrarApp(){
   const sidebar=document.getElementById('rt-sidebar');
   if(sidebar)sidebar.classList.toggle('show',_rtIsAdmin);
   document.body.classList.toggle('rt-has-sidenav',_rtIsAdmin);
+  document.body.classList.toggle('rt-sin-acciones',!_rtIsAdmin);
   if(_rtIsAdmin){ rtsAjustarTopMenu(); cargarCorteSolicitudes(); }
   const revField=document.getElementById('f-revisador-field');
   if(revField)revField.style.display=_rtIsAdmin?'':'none';
@@ -1599,6 +1615,7 @@ function rtCerrarSesion(){
   const abr=document.getElementById('rt-admin-btns-row');if(abr)abr.style.display='none';
   const sb=document.getElementById('rt-sidebar');if(sb)sb.classList.remove('show');
   document.body.classList.remove('rt-has-sidenav');
+  document.body.classList.remove('rt-sin-acciones');
   document.getElementById('rt-login-pass').value='';
   const sel=document.getElementById('rt-login-user');if(sel)sel.value='';
   document.getElementById('rt-login-error').textContent='';
@@ -1692,6 +1709,8 @@ function aplicarFiltros(){
     if(_filtroResultado==='aprobado'&&r.resultado!=='aprobado')return false;
     if(_filtroResultado==='rechazado'&&r.resultado!=='rechazado')return false;
     if(_filtroResultado==='revision'&&r.finalizado)return false;
+    if(_filtroResultado==='rollo'&&r.tipo==='multitarea')return false;
+    if(_filtroResultado==='tarea'&&r.tipo!=='multitarea')return false;
     return true;
   });
   _filtrados.sort((a,b)=>{
@@ -1703,7 +1722,7 @@ function aplicarFiltros(){
   if(_sortCol==='fecha'&&_sortDir===-1){
     _filtrados.sort((a,b)=>{const fd=(b.fecha||'').localeCompare(a.fecha||'');if(fd!==0)return fd;return (b.id||'').localeCompare(a.id||'');});
   }
-  renderTabla();renderStats();actualizarFooter();
+  renderTabla();renderStats();actualizarFooter();reaplicarColFiltros();
 }
 function sortBy(col){if(_sortCol===col)_sortDir*=-1;else{_sortCol=col;_sortDir=1;}aplicarFiltros();}
 
@@ -1713,12 +1732,36 @@ function filtrarPorResultado(tipo){
 }
 
 function renderStats(){
-  const total=_statsBase.length,
-    aprobados=_statsBase.filter(r=>r.resultado==='aprobado').length,
-    rechazados=_statsBase.filter(r=>r.resultado==='rechazado').length,
-    pendientes=_statsBase.filter(r=>!r.finalizado).length;
   const selRing=(color)=>`box-shadow:0 0 0 3px ${color};transform:translateY(-1px);`;
   const base='cursor:pointer;transition:transform .15s,box-shadow .15s;';
+  const aprobados=_statsBase.filter(r=>r.resultado==='aprobado').length,
+    rechazados=_statsBase.filter(r=>r.resultado==='rechazado').length;
+  if(!_rtIsAdmin){
+    const rollos=_statsBase.filter(r=>r.tipo!=='multitarea');
+    const tareas=_statsBase.filter(r=>r.tipo==='multitarea').length;
+    const metros=rollos.reduce((s,r)=>s+parseFloat(r.metros||0),0);
+    document.getElementById('rt-stats').innerHTML=`
+      <div class="stat-card" onclick="filtrarPorResultado('rollo')" style="background:#fff;${base}${_filtroResultado==='rollo'?selRing('#94a3b8'):''}">
+        <div class="stat-num" style="color:#0f172a;">${rollos.length}</div>
+        <div class="stat-lbl">Rollos</div>
+        <div style="font-size:11px;font-weight:700;color:#94a3b8;margin-top:2px;">${metros>0?metros.toFixed(1)+' m':'—'}</div>
+      </div>
+      <div class="stat-card" onclick="filtrarPorResultado('tarea')" style="background:#f5f3ff;border-color:#ddd6fe;${base}${_filtroResultado==='tarea'?selRing('#6d28d9'):''}">
+        <div class="stat-num" style="color:#6d28d9;">${tareas}</div>
+        <div class="stat-lbl" style="color:#6d28d9;">Tareas</div>
+      </div>
+      <div class="stat-card" onclick="filtrarPorResultado('aprobado')" style="background:#f0fdf4;border-color:#86efac;${base}${_filtroResultado==='aprobado'?selRing('#15803d'):''}">
+        <div class="stat-num" style="color:#15803d;">${aprobados}</div>
+        <div class="stat-lbl" style="color:#15803d;">Aprobados</div>
+      </div>
+      <div class="stat-card" onclick="filtrarPorResultado('rechazado')" style="background:#fef2f2;border-color:#fca5a5;${base}${_filtroResultado==='rechazado'?selRing('#dc2626'):''}">
+        <div class="stat-num" style="color:#dc2626;">${rechazados}</div>
+        <div class="stat-lbl" style="color:#dc2626;">Rechazados</div>
+      </div>`;
+    return;
+  }
+  const total=_statsBase.length,
+    pendientes=_statsBase.filter(r=>!r.finalizado).length;
   document.getElementById('rt-stats').innerHTML=`
     <div class="stat-card" onclick="filtrarPorResultado(null)" style="background:#fff;${base}${_filtroResultado===null?selRing('#94a3b8'):''}">
       <div class="stat-num" style="color:#0f172a;">${total}</div>
@@ -3211,6 +3254,12 @@ function plantillaProvTerceros(){const ws=XLSX.utils.aoa_to_sheet([['Proveedor']
 let _colFilters=['','','','','','','','',''];
 function filtrarTabla(colIdx,val){
   _colFilters[colIdx]=val.toLowerCase();
+  reaplicarColFiltros();
+}
+// Vuelve a aplicar los filtros de columna ya escritos (_colFilters) sobre las filas
+// actuales de la tabla. Debe llamarse cada vez que #rt-table-body se redibuja
+// (editar, eliminar, sync con servidor, etc.) para que el filtro no se pierda.
+function reaplicarColFiltros(){
   const visibles=[];
   document.getElementById('rt-table-body').querySelectorAll('.table-row').forEach((row,i)=>{
     const cells=[...row.querySelectorAll('.td')];
