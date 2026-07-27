@@ -2407,6 +2407,25 @@ app.get('/api/supervisoras', (req, res) => {
   res.json(sups.map(s => ({ id: s.id, name: s.name, nombre: s.name })));
 });
 
+// MMT Locativo: roster de técnicos del perfil "Mantenimiento" (mismo patrón que /api/mecanicos)
+app.get('/api/mmt-miembros', (req, res) => {
+  const appCfg = readJSON(FILES.app_config, {});
+  const perfilMembers = appCfg._perfil_members || {};
+  const key = Object.keys(perfilMembers).find(k => k.toLowerCase().includes('manten'));
+  if (key && Array.isArray(perfilMembers[key])) {
+    const members = perfilMembers[key]
+      .filter(m => m && !m.disabled)
+      .map(m => {
+        const nombre = typeof m === 'string' ? m : (m.nombre || m.name || '');
+        return { id: nombre, name: nombre };
+      })
+      .filter(m => m.name);
+    members.sort((a, b) => a.name.localeCompare(b.name));
+    return res.json(members);
+  }
+  res.json([]);
+});
+
 // Novedades
 app.get('/api/novedades',  (req, res) => res.json(readJSON(FILES.novedades, [])));
 app.post('/api/novedades', (req, res) => {
