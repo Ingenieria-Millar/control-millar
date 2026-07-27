@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>MANTEX — Mantenimiento Locativo</title>
+<title>MMT LOCATIVO — Mantenimiento Locativo</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -292,7 +292,7 @@ textarea.form-control{min-height:80px;resize:vertical;line-height:1.5}
 <div id="login-screen">
   <div class="login-logo">
     <svg width="36" height="36" viewBox="0 0 36 36" fill="none"><rect width="36" height="36" rx="8" fill="#F0A429"/><path d="M8 28L13 13l4 8 3-5 4 12" stroke="#1A1814" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    <div class="login-logo-text">MANTEX<small>Mantenimiento Locativo</small></div>
+    <div class="login-logo-text">MMT LOCATIVO<small>Mantenimiento Locativo</small></div>
   </div>
 
   <!-- STEP 1: choose user -->
@@ -344,7 +344,7 @@ textarea.form-control{min-height:80px;resize:vertical;line-height:1.5}
 <div class="topbar">
   <div style="display:flex;align-items:center;gap:12px">
     <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="6" fill="#F0A429"/><path d="M7 21L11 10l3 6 2-4 3 9" stroke="#1A1814" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    <div class="logo">MANTEX <small>/ Locativo</small></div>
+    <div class="logo">MMT <small>/ Locativo</small></div>
   </div>
   <div class="topbar-right">
     <div class="user-pill">
@@ -892,7 +892,7 @@ textarea.form-control{min-height:80px;resize:vertical;line-height:1.5}
 //  DATA
 // ════════════════════════════════════════════════
 // ════════════════════════════════════════════════
-//  PERSISTENCE — localStorage
+//  PERSISTENCE — servidor
 // ════════════════════════════════════════════════
 const DEFAULT_MEMBERS = [
   {id:'admin', name:'Leonardo Restrepo', cargo:'Administrador',               ini:'LR', avCls:'av-a', sysRole:'admin',      pin:'1234'},
@@ -920,7 +920,7 @@ function normalizeAssigneeIds(){
       changed = true;
     }
   });
-  if(changed) localStorage.setItem('mantex_tasks', JSON.stringify(tasks));
+  if(changed) saveData();
 }
 
 // Remove duplicate tasks — only collapse when title+loc+area+elemento are ALL identical
@@ -971,85 +971,80 @@ function deduplicateTasks(){
   tasks = keep;
   const removed = before - tasks.length;
   if(removed > 0){
-    localStorage.setItem('mantex_tasks', JSON.stringify(tasks));
-    console.log(`MANTEX: deduplicateTasks removed ${removed} duplicate(s)`);
+    saveData();
+    console.log(`MMT LOCATIVO: deduplicateTasks removed ${removed} duplicate(s)`);
   }
 }
 
-const DATA_VERSION = 'v5';
-
-function loadData(){
+// Todo se guarda en el servidor (mismo motor que el resto de la aplicación),
+// para que se vea igual desde cualquier dispositivo. _mmtBundle guarda lo
+// último recibido del servidor para poder fusionar (merge) sin pisar datos
+// que otro dispositivo acabe de guardar.
+async function loadData(){
+  let bundle = null;
   try{
-    const sm=localStorage.getItem('mantex_members');
-    members = sm ? JSON.parse(sm) : JSON.parse(JSON.stringify(DEFAULT_MEMBERS));
-  }catch(e){ members = JSON.parse(JSON.stringify(DEFAULT_MEMBERS)); }
+    const res = await fetch('/api/mantenimiento');
+    if(res.ok) bundle = await res.json();
+  }catch(e){ console.error('MMT LOCATIVO: no se pudo cargar del servidor', e); }
 
-  try{
-    const savedVersion = localStorage.getItem('mantex_data_version');
-    const st = localStorage.getItem('mantex_tasks');
+  const tieneMiembros = bundle && Array.isArray(bundle.miembros) && bundle.miembros.length;
+  const tieneTareas    = bundle && Array.isArray(bundle.tareas)   && bundle.tareas.length;
 
-    if(!st || savedVersion !== DATA_VERSION){
-      // First run OR old version — load fresh DEFAULT_TASKS
-      // But preserve assigneeId, status, dates and signatures from existing tasks
-      if(st && savedVersion !== DATA_VERSION){
-        const stored = JSON.parse(st);
-        const storedMap = {};
-        stored.forEach(t => {
-          // Index by id and by title+loc for matching
-          storedMap[t.id] = t;
-          const key = (t.title+'|'+t.loc).toLowerCase().trim();
-          if(!storedMap[key]) storedMap[key] = t;
-        });
-        const norm = s => (s||'').toLowerCase().trim();
-        tasks = DEFAULT_TASKS.map(def => {
-          const existing = storedMap[def.id] || storedMap[norm(def.title)+'|'+norm(def.loc)];
-          if(existing){
-            // Keep user data, restore structural fields from DEFAULT_TASKS
-            return {
-              ...def,
-              assigneeId:   existing.assigneeId   || def.assigneeId,
-              status:       existing.status        || def.status,
-              dateAssign:   existing.dateAssign    || def.dateAssign,
-              dateStart:    existing.dateStart     || def.dateStart,
-              dateDue:      existing.dateDue       || def.dateDue,
-              dateRealStart:existing.dateRealStart || def.dateRealStart,
-              dateRealEnd:  existing.dateRealEnd   || def.dateRealEnd,
-              closingNote:  existing.closingNote   || def.closingNote,
-              sigExecutor:  existing.sigExecutor   || def.sigExecutor,
-              sigApprover:  existing.sigApprover   || def.sigApprover,
-              approvedById: existing.approvedById  || def.approvedById,
-              approvedAt:   existing.approvedAt    || def.approvedAt,
-              evidenceBefore:existing.evidenceBefore|| def.evidenceBefore,
-              evidenceAfter: existing.evidenceAfter || def.evidenceAfter,
-            };
-          }
-          return {...def};
-        });
-        // Also keep any user-created tasks not in DEFAULT_TASKS (id not in defIds)
-        const defIds = new Set(DEFAULT_TASKS.map(t=>t.id));
-        stored.forEach(t => { if(!defIds.has(t.id)) tasks.push(t); });
-      } else {
-        tasks = JSON.parse(JSON.stringify(DEFAULT_TASKS));
-      }
-      localStorage.setItem('mantex_tasks', JSON.stringify(tasks));
-      localStorage.setItem('mantex_data_version', DATA_VERSION);
-    } else {
-      tasks = JSON.parse(st);
-      // Normalize assigneeId: if stored as a name, convert to member id
-      normalizeAssigneeIds();
-    }
-  }catch(e){ tasks = JSON.parse(JSON.stringify(DEFAULT_TASKS)); }
+  members = tieneMiembros ? bundle.miembros : JSON.parse(JSON.stringify(DEFAULT_MEMBERS));
+  tasks   = tieneTareas    ? bundle.tareas    : JSON.parse(JSON.stringify(DEFAULT_TASKS));
+  executionHistory = (bundle && Array.isArray(bundle.historial)) ? bundle.historial : [];
+  alerts           = (bundle && Array.isArray(bundle.alertas))   ? bundle.alertas   : [];
 
   normalizeAssigneeIds();
   deduplicateTasks();
+
+  // Primer arranque (servidor vacío todavía) → sembrar con los datos por defecto
+  if(!tieneMiembros || !tieneTareas) saveData();
 }
-function saveData(){
-  try{ localStorage.setItem('mantex_members', JSON.stringify(members)); }catch(e){}
-  try{ localStorage.setItem('mantex_tasks',   JSON.stringify(tasks));   }catch(e){}
+function saveData(){ syncToServer(); }
+
+// Envía el estado actual al servidor. El servidor fusiona por id (nunca
+// reemplaza todo de golpe), así que es seguro llamarlo seguido.
+async function syncToServer(){
+  const payload = {
+    tareas: tasks, miembros: members, historial: executionHistory, alertas: alerts,
+    deletedTaskIds: _deletedTaskIds, deletedMemberIds: _deletedMemberIds, deletedAlertIds: _deletedAlertIds
+  };
+  _deletedTaskIds = []; _deletedMemberIds = []; _deletedAlertIds = [];
+  try{
+    await fetch('/api/mantenimiento', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)
+    });
+  }catch(e){ console.error('MMT LOCATIVO: error guardando en el servidor', e); }
 }
+
+// Sincronización periódica entre dispositivos (igual patrón que Revisión de Telas)
+async function syncPoll(){
+  if(!currentMemberId) return;
+  try{
+    const res = await fetch('/api/mantenimiento');
+    if(!res.ok) return;
+    const bundle = await res.json();
+    if(!bundle) return;
+    if(Array.isArray(bundle.tareas))    tasks = bundle.tareas;
+    if(Array.isArray(bundle.miembros))  members = bundle.miembros;
+    if(Array.isArray(bundle.historial)) executionHistory = bundle.historial;
+    if(Array.isArray(bundle.alertas))   alerts = bundle.alertas;
+    normalizeAssigneeIds();
+    renderAll();
+    refreshBell();
+  }catch(e){}
+}
+setInterval(syncPoll, 8000);
 
 let members = [];
 let tasks   = [];
+let _deletedTaskIds = [], _deletedMemberIds = [], _deletedAlertIds = [];
+
+// Id único con prefijo, seguro entre varios dispositivos guardando a la vez
+// (a diferencia de Date.now() solo, que puede chocar si dos personas crean
+// algo en el mismo milisegundo desde equipos distintos).
+function mmtId(prefix){ return prefix+Date.now()+'_'+Math.random().toString(36).slice(2,7); }
 
 // ════════════════════════════════════════════════
 //  SESSION STATE
@@ -1765,7 +1760,7 @@ function saveTask(confirmed=false){
   const assigneeId=document.getElementById('f-assign').value;
   const loc=document.getElementById('f-loc').value||'Por definir';
   const newTask={
-    id:Date.now(), title,
+    id:mmtId('t_'), title,
     desc:document.getElementById('f-desc').value||'Sin descripción.',
     loc,
     area:document.getElementById('f-area').value||'',
@@ -1944,7 +1939,7 @@ function saveMember(){
   } else {
     if(!pin||pin.length!==4||!/^\d+$/.test(pin)){toast('Ingresa un PIN de 4 dígitos','error');return;}
     const sysRole=document.getElementById('mem-sysrole').value;
-    const newMember={id:'m_'+Date.now(),name,cargo:cargoByRole[sysRole]||'Colaborador',ini:nameToIni(name),avCls:AV_CLS[sysRole]||'av-x',sysRole,pin};
+    const newMember={id:mmtId('m_'),name,cargo:cargoByRole[sysRole]||'Colaborador',ini:nameToIni(name),avCls:AV_CLS[sysRole]||'av-x',sysRole,pin};
     if(sysRole==='proveedor'&&specialty) newMember.specialty=specialty;
     members.push(newMember);
     toast(name+' agregado ✓');
@@ -1960,6 +1955,7 @@ function deleteMember(){
   if(active){toast('No se puede eliminar: tiene tareas activas','error');return;}
   if(!confirm('¿Eliminar a '+m.name+'?'))return;
   members=members.filter(x=>x.id!==editingMemberId);
+  _deletedMemberIds.push(editingMemberId);
   saveData();
   closeModal('modal-member');
   populateAssignSelect();renderAll();renderUserList();
@@ -2296,7 +2292,7 @@ function doAssign(id){
   // The base task is left untouched as a reusable template, always visible in "Todas".
   const newInstance = {
     ...base,
-    id: Date.now() + Math.random(),
+    id: mmtId('t_'),
     assigneeId: sel,
     status: 'assigned',
     dateAssign: today(),
@@ -2329,9 +2325,35 @@ function startTask(id){
   openDetail(id);
 }
 function triggerImg(id,type){document.getElementById(`img-${type}-${id}`)?.click();}
+// Reduce el tamaño de la foto antes de guardarla (la cámara entrega fotos muy
+// pesadas) — se ve igual de bien pero ocupa mucho menos espacio en el servidor.
+function compressImageDataUrl(dataUrl, maxDim=1280, quality=0.72){
+  return new Promise(resolve=>{
+    const img=new Image();
+    img.onload=()=>{
+      let w=img.width, h=img.height;
+      if(w>maxDim||h>maxDim){
+        if(w>=h){ h=Math.round(h*maxDim/w); w=maxDim; } else { w=Math.round(w*maxDim/h); h=maxDim; }
+      }
+      const canvas=document.createElement('canvas');
+      canvas.width=w; canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror=()=>resolve(dataUrl); // si algo falla, usar la foto original sin comprimir
+    img.src=dataUrl;
+  });
+}
 function handleImg(id,type,input){
   const file=input.files[0];if(!file)return;
-  const r=new FileReader();r.onload=e=>{const t=tasks.find(x=>x.id===id);if(type==='before')t.evidenceBefore=e.target.result;else t.evidenceAfter=e.target.result;saveData();closeDetail();openDetail(id);toast('Foto cargada');};r.readAsDataURL(file);
+  const r=new FileReader();
+  r.onload=async e=>{
+    const compressed=await compressImageDataUrl(e.target.result);
+    const t=tasks.find(x=>x.id===id);
+    if(type==='before')t.evidenceBefore=compressed; else t.evidenceAfter=compressed;
+    saveData();closeDetail();openDetail(id);toast('Foto cargada');
+  };
+  r.readAsDataURL(file);
 }
 function submitClose(id){
   const t=tasks.find(x=>x.id===id);
@@ -2346,13 +2368,8 @@ function submitClose(id){
 }
 let executionHistory = []; // persistent log of every completed execution, never deleted
 
-function loadHistory(){
-  try{ executionHistory = JSON.parse(localStorage.getItem('mantex_history')||'[]'); }
-  catch(e){ executionHistory = []; }
-}
-function saveHistory(){
-  try{ localStorage.setItem('mantex_history', JSON.stringify(executionHistory)); }catch(e){}
-}
+function loadHistory(){ /* ya se carga en loadData() junto con el resto del paquete */ }
+function saveHistory(){ syncToServer(); }
 
 function approveTask(id){
   const t=tasks.find(x=>x.id===id);
@@ -2365,7 +2382,7 @@ function approveTask(id){
 
   // Save FULL snapshot to permanent history — never deleted
   executionHistory.unshift({
-    historyId: 'hist_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
+    historyId: mmtId('hist_'),
     taskId: t.id,
     title: t.title,
     loc: t.loc,
@@ -2410,6 +2427,7 @@ function approveTask(id){
     // This was an assigned instance — remove it now that it's archived in history.
     // The original template task remains untouched and available in "Todas".
     tasks = tasks.filter(x => x.id !== id);
+    _deletedTaskIds.push(id);
   } else {
     // Legacy/base task with no template — reset it to available for next cycle
     t.status         = 'pending';
@@ -2553,6 +2571,7 @@ function deleteTask(id){
   const t = tasks.find(x=>x.id===id); if(!t) return;
   if(!confirm(`¿Eliminar la tarea "${t.title}"?\nEsta acción no se puede deshacer.`)) return;
   tasks = tasks.filter(x=>x.id!==id);
+  _deletedTaskIds.push(id);
   closeDetail();
   saveData(); renderAll();
   toast('Tarea eliminada','warning');
@@ -2563,18 +2582,14 @@ function deleteTask(id){
 // ════════════════════════════════════════════════
 let alerts = [];  // {id, type, title, body, taskId, dismissed, createdAt}
 
-function loadAlerts(){
-  try{ alerts = JSON.parse(localStorage.getItem('mantex_alerts')||'[]'); }catch(e){ alerts=[];}
-}
-function saveAlerts(){
-  try{ localStorage.setItem('mantex_alerts', JSON.stringify(alerts)); }catch(e){}
-}
+function loadAlerts(){ /* ya se carga en loadData() junto con el resto del paquete */ }
+function saveAlerts(){ syncToServer(); }
 
 function addAlert(type, title, body, taskId){
   // Avoid exact duplicates already stored
   const exists = alerts.some(a=>a.type===type&&a.taskId===taskId&&!a.dismissed);
   if(exists) return;
-  alerts.unshift({id:'al_'+Date.now()+'_'+Math.random(), type, title, body, taskId, dismissed:false, createdAt:today()});
+  alerts.unshift({id:mmtId('al_'), type, title, body, taskId, dismissed:false, createdAt:today()});
   saveAlerts();
   refreshBell();
 }
@@ -2912,7 +2927,7 @@ function confirmImport(){
   let imported=0, skipped=0;
   valid.forEach(r => {
     const newTask = {
-      id: Date.now()+Math.random(),
+      id: mmtId('t_'),
       title: r.title, desc: r.desc||'Sin descripción.',
       loc: r.loc, area: r.area||'', elemento: r.elemento||'', frecuencia: r.frecuencia||'',
       priority: r.priority,
@@ -2955,7 +2970,7 @@ function downloadTemplate(){
   ws['!cols'] = headers.map(()=>({wch:18}));
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Tareas');
-  XLSX.writeFile(wb, 'MANTEX_Plantilla_Tareas.xlsx');
+  XLSX.writeFile(wb, 'MMT_LOCATIVO_Plantilla_Tareas.xlsx');
 }
 
 // Show import buttons only for managers
@@ -3320,7 +3335,7 @@ function exportHistorialXLSX(){
   styleSheet(wsPerf, perfHeaders.length, perfRows.length);
   XLSX.utils.book_append_sheet(wb, wsPerf, 'Desempeño Colaboradores');
 
-  XLSX.writeFile(wb, `MANTEX_Reporte_${today()}.xlsx`);
+  XLSX.writeFile(wb, `MMT_LOCATIVO_Reporte_${today()}.xlsx`);
   toast('Reporte descargado en Excel ✓');
 }
 
@@ -3348,7 +3363,7 @@ function resetTasksToDefault(){
   if(getMe().sysRole!=='admin'){toast('Solo el administrador puede hacer esto','error');return;}
   if(!confirm('¿Restablecer todas las tareas a la lista original del archivo?\nSe perderán cambios y tareas creadas.')) return;
   tasks = JSON.parse(JSON.stringify(DEFAULT_TASKS));
-  localStorage.setItem('mantex_tasks', JSON.stringify(tasks));
+  saveData();
   renderAll();
   toast('Tareas restablecidas a la lista original ✓');
 }
@@ -3356,10 +3371,10 @@ function resetTasksToDefault(){
 // ════════════════════════════════════════════════
 //  INIT — load persisted data then render login
 // ════════════════════════════════════════════════
-loadData();
-loadAlerts();
-loadHistory();
-renderUserList();
+(async function initMMT(){
+  await loadData();
+  renderUserList();
+})();
 </script>
 </body>
 </html>

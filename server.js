@@ -200,6 +200,7 @@ const FILES = {
   turnos_asignados: path.join(DATA_DIR, 'turnos_asignados.json'),
   consultas_contrato: path.join(DATA_DIR, 'consultas_contrato.json'),
   corte_solicitudes: path.join(DATA_DIR, 'corte_solicitudes.json'),
+  mmt_locativo:   path.join(DATA_DIR, 'mmt_locativo.json'),
 };
 
 // ══════════════════════════════════════════════════════════════════
@@ -922,6 +923,10 @@ app.get('/permisos', (req, res) =>
   res.sendFile(path.join(__dirname, 'modulos/control-permisos/control_permisos.html'))
 );
 
+app.get('/mantenimiento', (req, res) =>
+  res.sendFile(path.join(__dirname, 'modulos/mantenimiento/mantenimiento.html'))
+);
+
 // ── PUNTO SEGURO — SG-SST ────────────────────────────────────────────────────
 const psApi = require('./ps-api');
 app.use('/punto-seguro/api', psApi);
@@ -1262,6 +1267,55 @@ app.post('/api/revision-telas', (req, res) => {
   } catch(e) {
     console.error('Error no capturado [POST revision-telas]:', (e && e.stack) || e);
     if(!res.headersSent) res.status(500).json({ error: String((e && e.message) || e), donde: 'POST revision-telas' });
+  }
+});
+
+// ── API MMT Locativo (mantenimiento de planta) ─────────────────────
+// Un solo bundle {tareas, miembros, historial, alertas}, igual patrón que
+// revision-telas: merge por id en cada guardado para que dos dispositivos
+// nunca se pisen los datos entre sí. El historial es de solo agregar
+// (nunca se borra), tareas/miembros/alertas sí admiten borrado explícito.
+app.get('/api/mantenimiento', (req, res) => {
+  try {
+    res.json(loadDB('mmt_locativo') || { tareas: [], miembros: [], historial: [], alertas: [] });
+  } catch(e) {
+    console.error('Error no capturado [GET mantenimiento]:', (e && e.stack) || e);
+    res.status(500).json({ error: String((e && e.message) || e), donde: 'GET mantenimiento' });
+  }
+});
+
+app.post('/api/mantenimiento', (req, res) => {
+  try {
+    const { tareas, miembros, historial, alertas } = req.body || {};
+    if (!Array.isArray(tareas) || !Array.isArray(miembros)) return res.status(400).json({ error: 'Payload inválido' });
+    const deletedTaskIds   = Array.isArray(req.body.deletedTaskIds)   ? req.body.deletedTaskIds   : [];
+    const deletedMemberIds = Array.isArray(req.body.deletedMemberIds) ? req.body.deletedMemberIds : [];
+    const deletedAlertIds  = Array.isArray(req.body.deletedAlertIds)  ? req.body.deletedAlertIds  : [];
+
+    const prev = loadDB('mmt_locativo') || {};
+
+    const mergeById = (prevArr, incomingArr, idKey, deletedIds) => {
+      const byId = new Map();
+      (Array.isArray(prevArr) ? prevArr : []).forEach(r => { if (r && r[idKey] != null) byId.set(r[idKey], r); });
+      (Array.isArray(incomingArr) ? incomingArr : []).forEach(r => { if (r && r[idKey] != null) byId.set(r[idKey], r); });
+      deletedIds.forEach(id => byId.delete(id));
+      return [...byId.values()];
+    };
+
+    const mergedTareas    = mergeById(prev.tareas, tareas, 'id', deletedTaskIds);
+    const mergedMiembros  = mergeById(prev.miembros, miembros, 'id', deletedMemberIds);
+    // Historial: nunca se borra (registro permanente de ejecuciones aprobadas).
+    const mergedHistorial = mergeById(prev.historial, historial, 'historyId', []);
+    const mergedAlertas   = mergeById(prev.alertas, alertas, 'id', deletedAlertIds);
+
+    const data = { tareas: mergedTareas, miembros: mergedMiembros, historial: mergedHistorial, alertas: mergedAlertas };
+    if (!saveDB('mmt_locativo', data)) {
+      return res.status(500).json({ ok: false, error: 'No se pudo guardar. Intenta de nuevo.' });
+    }
+    res.json({ ok: true });
+  } catch(e) {
+    console.error('Error no capturado [POST mantenimiento]:', (e && e.stack) || e);
+    if (!res.headersSent) res.status(500).json({ error: String((e && e.message) || e), donde: 'POST mantenimiento' });
   }
 });
 
