@@ -263,6 +263,7 @@ td{ padding:10px 14px;font-family:'Nunito',sans-serif;font-size:13px;color:#0f17
       <thead>
         <tr>
           <th style="width:40px;"><input type="checkbox" id="chk-all" onchange="toggleSelAll(this.checked)" style="width:15px;height:15px;cursor:pointer;accent-color:#2563eb;"></th>
+          <th style="width:60px;">N°</th>
           <th>Módulo</th>
           <th>Referencia</th>
           <th>OP / OC</th>
@@ -382,6 +383,12 @@ async function guardarEnServidor(){
 }
 
 // ── Renderizar tabla ───────────────────────────────────
+// Número único y permanente por orden (no se reutiliza aunque se borren órdenes).
+function siguienteNumOrden(){
+  const max = ordenes.reduce((m,o)=> Math.max(m, o.numOrden||0), 0);
+  return max + 1;
+}
+
 function renderTabla(){
   const cfMod  = (document.getElementById('cf-modulo')?.value||'').toLowerCase().trim();
   const cfRef  = (document.getElementById('cf-referencia')?.value||'').toLowerCase().trim();
@@ -389,7 +396,10 @@ function renderTabla(){
   const cfCant = (document.getElementById('cf-cantidad')?.value||'').toLowerCase().trim();
   const cfFech = (document.getElementById('cf-fecha')?.value||'').toLowerCase().trim();
 
-  let rows = ordenes.map((o,i)=>({...o, _idx:i}));
+  // Se muestran de más reciente a más antigua (lo último que se monta queda
+  // de primero), pero _idx sigue apuntando a la posición real en ordenes[]
+  // para que editar/eliminar sigan funcionando correctamente.
+  let rows = ordenes.map((o,i)=>({...o, _idx:i})).reverse();
   if(cfMod)  rows = rows.filter(r=>(r.modulo||'').toLowerCase().includes(cfMod));
   if(cfRef)  rows = rows.filter(r=>(r.referencia||'').toLowerCase().includes(cfRef));
   if(cfOp)   rows = rows.filter(r=>(r.opoc||'').toLowerCase().includes(cfOp));
@@ -401,7 +411,7 @@ function renderTabla(){
   countEl.textContent = rows.length + ' orden' + (rows.length!==1?'es':'');
 
   if(rows.length === 0){
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="7">📋 No hay órdenes para mostrar</td></tr>`;
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="9">📋 No hay órdenes para mostrar</td></tr>`;
     actualizarBtnDel();
     return;
   }
@@ -411,6 +421,7 @@ function renderTabla(){
       <td style="text-align:center;">
         <input type="checkbox" class="chk-row" data-idx="${r._idx}" onchange="onCheckRow()" style="width:15px;height:15px;cursor:pointer;accent-color:#2563eb;">
       </td>
+      <td style="text-align:center;font-weight:800;color:#2563eb;font-family:'Barlow Condensed',sans-serif;">${r.numOrden||'—'}</td>
       <td><span class="td-mod">${r.modulo||'—'}</span></td>
       <td>${r.referencia||'—'}</td>
       <td style="font-family:'Courier New',monospace;font-size:13px;">${r.opoc||'—'}</td>
@@ -496,9 +507,11 @@ function guardarOrden(){
   const orden = { modulo, referencia, opoc, cantidad: parseInt(cantidad)||0, fecha: new Date().toLocaleDateString('es-CO') };
 
   if(editingIdx !== null){
+    orden.numOrden = ordenes[editingIdx].numOrden; // conservar el número al editar
     ordenes[editingIdx] = orden;
     showToast('✅ Orden actualizada');
   } else {
+    orden.numOrden = siguienteNumOrden();
     ordenes.push(orden);
     showToast('✅ Orden creada');
   }
@@ -621,7 +634,7 @@ function importarExcel(e){
         const opoc       = String(row['OP / OC']||row['OP/OC']||row['opoc']||'').trim();
         const cantidad   = parseInt(row['Cantidad']||row['cantidad']||0)||0;
         if(modulo && referencia){
-          ordenes.push({ modulo, referencia, opoc, cantidad, fecha: new Date().toLocaleDateString('es-CO') });
+          ordenes.push({ modulo, referencia, opoc, cantidad, fecha: new Date().toLocaleDateString('es-CO'), numOrden: siguienteNumOrden() });
           importadas++;
         }
       });

@@ -1689,9 +1689,19 @@ function ejecutarCierreMedianoche() {
   });
   if (solicitudesCerradas > 0) saveCiRequests();
 
-  // 2. Resetear todos los módulos en purple u orange a green
+  // Módulos que todavía tienen una solicitud "cumplido" sin confirmar por el
+  // módulo (el paso 1 las deja así a propósito, no se auto-aceptan) — a esos
+  // NO se les debe resetear el color, o quedarían en verde mientras la
+  // solicitud sigue abierta: la misma inconsistencia que se busca evitar.
+  const modulosConCumplidoPendiente = new Set(
+    ciRequests.filter(r => r.status === 'cumplido').map(r => r.module || r.moduloDestino)
+  );
+
+  // 2. Resetear todos los módulos en purple u orange a green (excepto los que
+  // aún tienen una solicitud "cumplido" esperando confirmación)
   const modulosReset = [];
   MODULES.forEach(modId => {
+    if (modulosConCumplidoPendiente.has(modId)) return;
     if (states[modId] === 'orange' || states[modId] === 'purple') {
       const prevState = states[modId];
       states[modId]     = 'green';

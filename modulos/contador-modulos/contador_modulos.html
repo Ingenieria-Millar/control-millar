@@ -717,29 +717,27 @@ setInterval(() => {
 function buildImpCard(impId, color, label, inicio, lockBadge, empHtml, mecHtml, tapHint, isMulti){
   const onclickAttr = isMulti ? `onclick="applyChangeMulti('${impId}')"` : '';
 
-  // Buscar confirmación pendiente para esta tarjeta
-  // Estrategia: buscar en _ciPendingConfirm el request que corresponde
-  // al color de esta tarjeta (orange→Falta de Insumos, purple→Solicitud de Producción)
+  // Buscar confirmación pendiente para esta tarjeta.
+  // IMPORTANTE: esto ya NO depende del color de la tarjeta. Antes, si el color
+  // no coincidía exactamente con "orange"/"purple" (por cualquier desincronización
+  // previa, ej. un reseteo de color mientras la solicitud seguía pendiente), el
+  // aviso quedaba guardado pero invisible — sonaba la alerta pero no aparecía
+  // nada en pantalla. Ahora se muestra siempre que exista una confirmación
+  // pendiente para este módulo, sin importar en qué color esté la tarjeta.
   let req = null;
   const pendings = Object.values(window._ciPendingConfirm);
 
-  if (color === 'orange' || color === 'purple') {
-    const esProd = color === 'purple';
-    // Buscar por ciRequestId del imp si hay multi
-    if (impId !== 'principal') {
-      const imps   = _multiImp[selectedMod] || [];
-      const imp    = imps.find(i => i.id === impId);
-      const ciRId  = imp ? imp.ciRequestId : null;
-      if (ciRId) req = window._ciPendingConfirm[ciRId] || null;
-    }
-    // Si no encontró por ID exacto, buscar por tipo y módulo
-    if (!req) {
-      req = pendings.find(r => {
-        const rEsProd = r.categoria === 'Solicitud de Producción' || r.tipo === 'Solicitud de Producción';
-        const modMatch = !r.module || r.module === selectedMod;
-        return modMatch && (esProd ? rEsProd : !rEsProd);
-      }) || null;
-    }
+  // Buscar por ciRequestId del imp si hay multi
+  if (impId !== 'principal') {
+    const imps   = _multiImp[selectedMod] || [];
+    const imp    = imps.find(i => i.id === impId);
+    const ciRId  = imp ? imp.ciRequestId : null;
+    if (ciRId) req = window._ciPendingConfirm[ciRId] || null;
+  }
+  // Si no se encontró por ID exacto (o es la tarjeta principal), tomar cualquier
+  // confirmación pendiente de este módulo.
+  if (!req) {
+    req = pendings.find(r => !r.module || r.module === selectedMod) || null;
   }
 
   const bannerHtml = req ? `
