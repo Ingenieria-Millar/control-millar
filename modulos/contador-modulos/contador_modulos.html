@@ -1505,6 +1505,14 @@ async function mostrarOrdenesModulo(modulo){
 
 function seleccionarOrden(orden){
   _ordenSeleccionada = orden;
+  // Guardar la orden elegida en la URL (sin recargar la página) para que, si el
+  // usuario refresca, no lo devuelva a "Selecciona la orden" — se queda en la
+  // tarjeta de color, igual que antes de refrescar.
+  try{
+    const url = new URL(location.href);
+    url.searchParams.set('orden', encodeURIComponent(JSON.stringify(orden)));
+    history.replaceState(null, '', url);
+  }catch(e){}
   // Actualizar chip de orden
   const chip  = document.getElementById('orden-chip');
   const ref   = document.getElementById('chip-ref');
