@@ -23,7 +23,7 @@ body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-
 header{position:sticky;top:0;z-index:100;background:#fff;border-bottom:1px solid var(--border);box-shadow:0 1px 6px rgba(0,0,0,.07);padding:0 clamp(12px,2.5vw,24px);min-height:64px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
 header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);}
 .hd-left{display:flex;align-items:center;gap:12px;}
-.hd-logo{width:44px;height:44px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 0 0 1.5px #e2e8f0,0 2px 8px rgba(0,0,0,.08);flex-shrink:0;}
+.hd-logo{width:52px;height:52px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 0 0 2px #e2e8f0,0 2px 8px rgba(0,0,0,.08);flex-shrink:0;}
 .hd-logo img{width:100%;height:100%;object-fit:contain;padding:2px;}
 .hd-title{font-family:'Barlow Condensed',sans-serif;font-size:clamp(16px,2.5vw,22px);font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0f172a;line-height:1.1;}
 .hd-title span{color:#2563eb;}
@@ -90,9 +90,10 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
 .admin-badge{display:inline-block;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#fff;background:var(--blue);padding:3px 10px;border-radius:20px;margin-left:8px;vertical-align:middle;}
 .admin-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px;}
 .admin-toolbar .spacer{flex:1;}
-.tab-nav-btn{display:flex;flex-direction:column;align-items:center;gap:5px;width:100%;padding:12px 8px;border:none;border-radius:10px;background:transparent;color:#64748b;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;transition:all .15s;}
-.tab-nav-btn:hover{background:#e2e8f0;color:#0f172a;}
-.tab-nav-active{background:#e0e7ff!important;color:#2563eb!important;}
+.tab-nav-btn{display:flex;align-items:center;gap:9px;width:100%;padding:9px 12px;border:none;border-radius:8px;background:none;color:#c7d0e8;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;text-align:left;cursor:pointer;transition:background .15s;}
+.tab-nav-btn .tnb-ico{width:16px;text-align:center;font-size:14px;opacity:.85;}
+.tab-nav-btn:hover{background:rgba(255,255,255,.06);color:#fff;}
+.tab-nav-active{background:#1c2c52!important;color:#fff!important;}
 .admin-search{display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap;}
 .admin-search input{flex:1;min-width:150px;padding:10px 14px;border:1.5px solid var(--border);border-radius:9px;font-family:'Nunito',sans-serif;font-size:14px;outline:none;}
 .admin-search input:focus{border-color:var(--blue);}
@@ -205,21 +206,21 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
     <div style="display:flex;min-height:480px;">
 
       <!-- Sidebar -->
-      <div style="width:160px;flex-shrink:0;border-right:1.5px solid var(--border);padding:12px 8px;display:flex;flex-direction:column;gap:4px;background:#f8fafc;">
+      <div style="width:190px;flex-shrink:0;padding:12px 8px;display:flex;flex-direction:column;gap:2px;background:#101a33;">
         <button id="tab-btn-incentivos" onclick="switchTab('incentivos')" class="tab-nav-btn tab-nav-active">
-          <span style="font-size:18px;">📊</span>
+          <span class="tnb-ico">📊</span>
           <span>Incentivos</span>
         </button>
         <button id="tab-btn-meses" onclick="switchTab('meses')" class="tab-nav-btn">
-          <span style="font-size:18px;">📅</span>
+          <span class="tnb-ico">📅</span>
           <span>Meses</span>
         </button>
         <button id="tab-btn-consultas" onclick="switchTab('consultas')" class="tab-nav-btn">
-          <span style="font-size:18px;">🔎</span>
+          <span class="tnb-ico">🔎</span>
           <span>Registros</span>
         </button>
         <button id="tab-btn-configuraciones" onclick="switchTab('configuraciones')" class="tab-nav-btn">
-          <span style="font-size:18px;">⚙️</span>
+          <span class="tnb-ico">⚙️</span>
           <span>Config.</span>
         </button>
       </div>
@@ -860,6 +861,7 @@ function abrirBuscarContrato(){
   document.getElementById('modal-buscar-contrato').style.display='flex';
   document.getElementById('bc-cedula').value='';
   document.getElementById('bc-fecha').value='';
+  document.getElementById('bc-fecha-picker').value='';
   document.getElementById('bc-celular').value='';
   document.getElementById('bc-msg').textContent='';
   document.getElementById('bc-form').style.display='block';
@@ -869,9 +871,32 @@ function abrirBuscarContrato(){
 function cerrarBuscarContrato(){
   document.getElementById('modal-buscar-contrato').style.display='none';
 }
+function bcAbrirPicker(){
+  const p=document.getElementById('bc-fecha-picker');
+  if(p.showPicker){ try{ p.showPicker(); return; }catch(e){} }
+  p.click();
+}
+function bcPickerChange(){
+  const iso=document.getElementById('bc-fecha-picker').value;
+  if(!iso) return;
+  const [y,m,d]=iso.split('-');
+  document.getElementById('bc-fecha').value=d+'/'+m+'/'+y;
+}
+function bcFmtFecha(e){
+  let v=e.target.value.replace(/\D/g,'').slice(0,8);
+  if(v.length>4) v=v.slice(0,2)+'/'+v.slice(2,4)+'/'+v.slice(4);
+  else if(v.length>2) v=v.slice(0,2)+'/'+v.slice(2);
+  e.target.value=v;
+}
+function bcDmyToIso(dmy){
+  const m=dmy.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  return m ? (m[3]+'-'+m[2]+'-'+m[1]) : dmy;
+}
+document.addEventListener('input', e=>{ if(e.target && e.target.id==='bc-fecha') bcFmtFecha(e); });
+document.addEventListener('change', e=>{ if(e.target && e.target.id==='bc-fecha-picker') bcPickerChange(); });
 async function bcBuscar(){
   const cedula=document.getElementById('bc-cedula').value.trim();
-  const fechaExpedicion=document.getElementById('bc-fecha').value.trim();
+  const fechaExpedicion=bcDmyToIso(document.getElementById('bc-fecha').value.trim());
   const celular=document.getElementById('bc-celular').value.trim();
   const msg=document.getElementById('bc-msg');
   if(!cedula||!fechaExpedicion||!celular){msg.textContent='Completa todos los campos.';return;}
@@ -1013,16 +1038,20 @@ async function exportarConsultas(){
 
     <div id="bc-form">
       <div style="margin-bottom:12px;">
-        <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:5px;">Número de cédula</label>
-        <input id="bc-cedula" type="text" inputmode="numeric" placeholder="Ej. 1234567890" style="width:100%;padding:10px 13px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:14px;font-family:'Nunito',sans-serif;outline:none;">
+        <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#0f172a;margin-bottom:5px;">Número de cédula</label>
+        <input id="bc-cedula" type="text" inputmode="numeric" style="width:100%;padding:10px 13px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:14px;font-family:'Nunito',sans-serif;outline:none;">
       </div>
       <div style="margin-bottom:12px;">
-        <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:5px;">Fecha de expedición de cédula</label>
-        <input id="bc-fecha" type="date" style="width:100%;padding:10px 13px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:14px;font-family:'Nunito',sans-serif;outline:none;">
+        <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#0f172a;margin-bottom:5px;">Fecha de expedición de cédula</label>
+        <div style="position:relative;">
+          <input id="bc-fecha" type="text" inputmode="numeric" placeholder="dd/mm/aaaa" maxlength="10" style="width:100%;padding:10px 40px 10px 13px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:14px;font-family:'Nunito',sans-serif;outline:none;">
+          <button type="button" onclick="bcAbrirPicker()" title="Elegir del calendario" style="position:absolute;right:5px;top:50%;transform:translateY(-50%);background:none;border:none;font-size:17px;cursor:pointer;padding:4px 6px;line-height:1;">📅</button>
+          <input id="bc-fecha-picker" type="date" style="position:absolute;opacity:0;pointer-events:none;width:1px;height:1px;left:0;top:0;">
+        </div>
       </div>
       <div style="margin-bottom:14px;">
-        <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:5px;">Número de celular</label>
-        <input id="bc-celular" type="tel" inputmode="numeric" placeholder="Ej. 3001234567" style="width:100%;padding:10px 13px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:14px;font-family:'Nunito',sans-serif;outline:none;">
+        <label style="display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#0f172a;margin-bottom:5px;">Número de celular</label>
+        <input id="bc-celular" type="tel" inputmode="numeric" style="width:100%;padding:10px 13px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:14px;font-family:'Nunito',sans-serif;outline:none;">
       </div>
       <div id="bc-msg" style="font-size:13px;font-weight:600;min-height:18px;margin-bottom:8px;color:#dc2626;"></div>
       <div style="display:flex;gap:8px;">
