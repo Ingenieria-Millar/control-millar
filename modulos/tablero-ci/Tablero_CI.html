@@ -739,8 +739,14 @@ let _pendingDelId  = null;
 // ── WebSocket ──
 let ws;
 
+// Cola de reintento: si el socket no está listo en el momento de enviar
+// (ej. justo se cayó la conexión), el mensaje NO se pierde — se guarda aquí
+// y se reenvía automáticamente al reconectar. Antes esto se perdía en silencio,
+// y era la causa de que "Marcar Cumplido" a veces nunca le llegara al módulo.
+let _wsQueue = [];
 function wsSend(obj){
   if(ws && ws.readyState === 1) ws.send(JSON.stringify(obj));
+  else _wsQueue.push(obj);
 }
 
 function connectWS(){
@@ -764,6 +770,10 @@ function connectWS(){
     // El servidor manda 'init' automáticamente al conectar
     setTimeout(() => wsSend({ type: 'ci_init' }), 100);
     ws.send(JSON.stringify({ type: 'subscribe', topics: ['ci'] }));
+    // Reenviar cualquier mensaje que haya quedado pendiente mientras estaba desconectado
+    while(_wsQueue.length > 0 && ws.readyState === 1){
+      ws.send(JSON.stringify(_wsQueue.shift()));
+    }
   };
 
   ws.onmessage = (e) => {
@@ -785,7 +795,10 @@ function connectWS(){
         if(msg.moduleList)     ciConfig.moduleList     = msg.moduleList;
         if(msg.obsList)        ciConfig.obsList        = msg.obsList;
         arrancar();
-  programarCierreMedianoche();
+        // El cierre automático de medianoche lo maneja únicamente el servidor
+        // (ejecutarCierreMedianoche en server.js) — tener una segunda copia aquí,
+        // corriendo con el reloj del navegador, cerraba solicitudes por duplicado
+        // y a veces en un horario distinto al del servidor.
 
       } else if(msg.type === 'ci_new_request'){
         if(!ciRequests.find(r => r._id === msg.request._id)){
@@ -1597,7 +1610,9 @@ function forzarEntregado(id){
   });
   const idx = ciRequests.findIndex(r => r._id === id);
   if(idx > -1) ciRequests[idx] = updated;
-  wsSend({ type: 'ci_update_request', request: updated });
+  // Enviar solo los campos que cambian (no la copia local completa), para que el
+  // servidor pueda fusionar sin arriesgarse a pisar un cambio concurrente de otro cliente.
+  wsSend({ type: 'ci_update_request', request: { _id:id, status:updated.status, resolvedAt:updated.resolvedAt, waitTime:updated.waitTime } });
   renderCards();
   showToast('✅ Marcado como entregado — ' + (req.module || ''));
 }
@@ -1616,10 +1631,12 @@ function marcarCumplido(id){
   // Actualizar localmente
   const idx = ciRequests.findIndex(r => r._id === id);
   if(idx > -1) ciRequests[idx] = updated;
-  // Broadcast a módulos (ellos ven modal de confirmación)
+  // Broadcast a módulos (ellos ven modal de confirmación) — este mensaje no se
+  // guarda en el servidor, es solo el aviso instantáneo, así que va completo.
   wsSend({ type: 'ci_cumplido_request', request: updated });
-  // También actualizar en servidor
-  wsSend({ type: 'ci_update_request',   request: updated });
+  // También actualizar en servidor: solo los campos que cambian, para que se
+  // fusionen sin pisar un cambio concurrente hecho por otro cliente.
+  wsSend({ type: 'ci_update_request',   request: { _id:id, status:updated.status, resolvedAt:updated.resolvedAt, waitTime:updated.waitTime } });
   renderCards();
   showToast('📦 Insumo marcado como cumplido para ' + (req.module || ''));
 }
@@ -1680,7 +1697,7 @@ function guardarObsDirecta(id, obs){
   const updated = Object.assign({}, req, { obs });
   const idx = ciRequests.findIndex(r => r._id === id);
   if(idx > -1) ciRequests[idx] = updated;
-  wsSend({ type: 'ci_update_request', request: updated });
+  wsSend({ type: 'ci_update_request', request: { _id:id, obs } });
   renderCards();
   showToast(obs ? '📝 Observación guardada' : '📝 Observación eliminada');
 }
@@ -2681,49 +2698,8 @@ document.addEventListener('ci-updated', ()=>{
   }
 })();
 
-// ── Cierre automático de solicitudes a medianoche ─────────────────
-function programarCierreMedianoche(){
-  const ahora = new Date();
-  const medianoche = new Date(ahora);
-  medianoche.setHours(24, 0, 0, 0); // próxima medianoche
-  const msHastaMedianoche = medianoche - ahora;
-
-  setTimeout(()=>{
-    cerrarSolicitudesAbiertas();
-    // Reprogramar para la siguiente medianoche
-    setInterval(cerrarSolicitudesAbiertas, 24 * 60 * 60 * 1000);
-  }, msHastaMedianoche);
-
-  console.log(`[CI] Cierre automático programado en ${Math.round(msHastaMedianoche/60000)} minutos`);
-}
-
-function cerrarSolicitudesAbiertas(){
-  const estadosCerrados = ['cumplido', 'done'];
-  const abiertas = ciRequests.filter(r => !estadosCerrados.includes(r.status));
-  if(!abiertas.length){
-    console.log('[CI] Medianoche: sin solicitudes abiertas.');
-    return;
-  }
-  console.log(`[CI] Medianoche: cerrando ${abiertas.length} solicitud(es) abierta(s).`);
-  abiertas.forEach(req => {
-    const updated = Object.assign({}, req, {
-      status:     'done',
-      resolvedAt: '12:00 AM',
-      cierreAutomatico: true,
-      waitTime: req.alertStart ? (Date.now() - req.alertStart) : 0
-    });
-    const idx = ciRequests.findIndex(r => r._id === req._id);
-    if(idx > -1) ciRequests[idx] = updated;
-    // Broadcast: marcar como done y resetear módulo a verde
-    wsSend({ type: 'ci_cumplido_request', request: updated });
-    wsSend({ type: 'ci_update_request',   request: updated });
-    // Enviar señal explícita para resetear estado del módulo a verde
-    if(updated.module){
-      wsSend({ type: 'change', id: updated.module, color: 'green', mec: null, fromCI: true });
-    }
-  });
-  renderCards();
-  showToast(`🌙 ${abiertas.length} solicitud(es) cerrada(s) automáticamente al llegar la medianoche.`);
-}
+// El cierre automático de solicitudes a medianoche ahora lo maneja
+// exclusivamente el servidor (ejecutarCierreMedianoche en server.js), que
+// además ya transmite el cambio a esta pantalla por WebSocket.
 </script></body>
 </html>

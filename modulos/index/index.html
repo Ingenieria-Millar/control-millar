@@ -2903,7 +2903,9 @@ function abrirModtable(){
   const grid=document.getElementById('modtable-grid');grid.innerHTML='';
   MODULES.forEach(id=>{
     const btn=document.createElement('button');btn.className='sp-mod-btn';btn.textContent=id;
-    btn.addEventListener('click',()=>{selectedMod=id;document.getElementById('modtable-screen').classList.add('hidden');setView('single');});
+    // Siempre usar la página independiente y real de Contador Módulos (nunca el motor
+    // legado embebido aquí), para que no existan dos caminos creando la misma solicitud.
+    btn.addEventListener('click',()=>{ location.href = '/contador-modulos?modulo=' + encodeURIComponent(id); });
     grid.appendChild(btn);
   });
   ['p2','p3','p4'].forEach(id=>{

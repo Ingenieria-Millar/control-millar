@@ -2768,7 +2768,8 @@ wss.on('connection', (ws, req) => {
     iaRecords:     iaRecords,
     modulesConfig: modulesConfig,
     multiImps:     JSON.parse(JSON.stringify(multiImps)),
-    ciCumplido:    ciRequests.filter(r => r.status === 'cumplido')
+    ciCumplido:    ciRequests.filter(r => r.status === 'cumplido'),
+    ciAbiertas:    ciRequests.filter(r => r.status === 'alert')
   }));
 
   ws.on('message', (raw) => {
@@ -2905,6 +2906,18 @@ wss.on('connection', (ws, req) => {
 
       else if (msg.type === 'ci_new_request') {
         if (!msg.request || !msg.request._id) { console.warn('WS ci_new_request: sin _id'); return; }
+        // Bloqueo real contra duplicados: si ya hay una solicitud activa (no 'done') para
+        // el mismo módulo + categoría, no crear otra — reenviar la que ya existe para que
+        // quien la generó no piense que falló y vuelva a intentarlo.
+        const dupExistente = ciRequests.find(r =>
+          r.module === msg.request.module &&
+          r.categoria === msg.request.categoria &&
+          r.status !== 'done'
+        );
+        if (dupExistente) {
+          broadcastLocal({ type:'ci_new_request', request:dupExistente, duplicate:true });
+          return;
+        }
         if (!ciRequests.find(r => r._id === msg.request._id)) {
           if (!msg.request.alertStart) msg.request.alertStart = Date.now();
           
@@ -2955,7 +2968,13 @@ wss.on('connection', (ws, req) => {
       else if (msg.type === 'ci_update_request') {
         if (!msg.request || !msg.request._id) { console.warn('WS ci_update_request: sin _id'); return; }
         const idx = ciRequests.findIndex(r => r._id === msg.request._id);
-        if (idx > -1) ciRequests[idx] = msg.request;
+        // Fusión por campo (no reemplazo total): dos actualizaciones casi simultáneas
+        // (ej. CI marca cumplida mientras el módulo rechaza) ya no se pisan entre sí —
+        // cada cliente debe enviar solo los campos que realmente cambió.
+        if (idx > -1) {
+          ciRequests[idx] = { ...ciRequests[idx], ...msg.request };
+          msg.request = ciRequests[idx]; // el resto de esta rama usa ya el resultado fusionado
+        }
         saveCiRequests();
         broadcastLocal({ type:'ci_update_request', request:msg.request });
 
