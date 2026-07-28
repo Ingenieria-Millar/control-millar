@@ -87,6 +87,10 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
 
 /* ADMIN */
 #adminCard{display:none;}
+.inc-sidebar{display:none;position:fixed;left:0;bottom:0;width:190px;z-index:600;
+  background:#101a33;padding:16px 10px;flex-direction:column;gap:2px;overflow-y:auto;font-family:'Nunito',sans-serif;}
+.inc-sidebar.show{display:flex;}
+body.inc-has-sidenav .wrap.admin-mode{margin-left:190px;width:calc(100% - 190px);}
 .admin-badge{display:inline-block;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#fff;background:var(--blue);padding:3px 10px;border-radius:20px;margin-left:8px;vertical-align:middle;}
 .admin-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px;}
 .admin-toolbar .spacer{flex:1;}
@@ -158,6 +162,25 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
   </div>
 </header>
 
+<aside class="inc-sidebar" id="incSidebar">
+  <button id="tab-btn-incentivos" onclick="switchTab('incentivos')" class="tab-nav-btn tab-nav-active">
+    <span class="tnb-ico">📊</span>
+    <span>Incentivos</span>
+  </button>
+  <button id="tab-btn-meses" onclick="switchTab('meses')" class="tab-nav-btn">
+    <span class="tnb-ico">📅</span>
+    <span>Meses</span>
+  </button>
+  <button id="tab-btn-consultas" onclick="switchTab('consultas')" class="tab-nav-btn">
+    <span class="tnb-ico">🔎</span>
+    <span>Registros</span>
+  </button>
+  <button id="tab-btn-configuraciones" onclick="switchTab('configuraciones')" class="tab-nav-btn">
+    <span class="tnb-ico">⚙️</span>
+    <span>Link</span>
+  </button>
+</aside>
+
 <div class="wrap">
 
   <!-- ── CONSULTA (operaria) ── -->
@@ -198,35 +221,7 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
   </div>
 
   <!-- ── ADMIN (oculto; se desbloquea con la tuerca) ── -->
-  <div class="card" id="adminCard" style="padding:0;overflow:hidden;">
-    <div style="padding:18px 20px 14px;border-bottom:1.5px solid var(--border);">
-      <span class="card-title" style="margin:0;">⚙️ Administración</span>
-      <span class="admin-badge">Admin</span>
-    </div>
-    <div style="display:flex;min-height:480px;">
-
-      <!-- Sidebar -->
-      <div style="width:190px;flex-shrink:0;padding:12px 8px;display:flex;flex-direction:column;gap:2px;background:#101a33;">
-        <button id="tab-btn-incentivos" onclick="switchTab('incentivos')" class="tab-nav-btn tab-nav-active">
-          <span class="tnb-ico">📊</span>
-          <span>Incentivos</span>
-        </button>
-        <button id="tab-btn-meses" onclick="switchTab('meses')" class="tab-nav-btn">
-          <span class="tnb-ico">📅</span>
-          <span>Meses</span>
-        </button>
-        <button id="tab-btn-consultas" onclick="switchTab('consultas')" class="tab-nav-btn">
-          <span class="tnb-ico">🔎</span>
-          <span>Registros</span>
-        </button>
-        <button id="tab-btn-configuraciones" onclick="switchTab('configuraciones')" class="tab-nav-btn">
-          <span class="tnb-ico">⚙️</span>
-          <span>Config.</span>
-        </button>
-      </div>
-
-      <!-- Contenido -->
-      <div style="flex:1;padding:20px;overflow:auto;">
+  <div class="card" id="adminCard" style="padding:20px;">
 
         <!-- Panel Meses -->
         <div id="panel-meses" style="display:none;">
@@ -306,9 +301,6 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
           </div>
         </div>
 
-
-      </div>
-    </div>
   </div>
 
 </div>
@@ -507,11 +499,21 @@ async function guardarConfigIncentivos(){
     setTimeout(()=>{ msg.textContent=''; }, 2500);
   }catch(e){ msg.style.color='#dc2626'; msg.textContent = 'No se pudo guardar'; }
 }
+function incAjustarTopMenu(){
+  const header=document.querySelector('header');
+  const sidebar=document.getElementById('incSidebar');
+  if(!header||!sidebar)return;
+  sidebar.style.top=header.getBoundingClientRect().height+'px';
+}
+window.addEventListener('resize', incAjustarTopMenu);
 function mostrarAdmin(){
   document.getElementById('consultaCard').style.display = 'none';
   document.getElementById('adminCard').style.display = 'block';
   document.getElementById('btnGear').classList.add('on');
   document.querySelector('.wrap').classList.add('admin-mode');
+  document.body.classList.add('inc-has-sidenav');
+  document.getElementById('incSidebar').classList.add('show');
+  incAjustarTopMenu();
   window.scrollTo({ top:0, behavior:'smooth' });
   switchTab('incentivos');
 }
@@ -520,6 +522,8 @@ function mostrarConsulta(){
   document.getElementById('consultaCard').style.display = 'block';
   document.getElementById('btnGear').classList.remove('on');
   document.querySelector('.wrap').classList.remove('admin-mode');
+  document.body.classList.remove('inc-has-sidenav');
+  document.getElementById('incSidebar').classList.remove('show');
   window.scrollTo({ top:0, behavior:'smooth' });
 }
 function validarPass(){
