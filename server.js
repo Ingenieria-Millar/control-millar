@@ -193,6 +193,7 @@ const FILES = {
   revision_telas: path.join(DATA_DIR, 'revision_telas.json'),
   incentivos:     path.join(DATA_DIR, 'incentivos.json'),
   incentivos_disp: path.join(DATA_DIR, 'incentivos_disponibilidad.json'),
+  incentivos_config: path.join(DATA_DIR, 'incentivos_config.json'),
   users:          path.join(DATA_DIR, 'users.json'),
   multitareas:    path.join(DATA_DIR, 'multitareas.json'),
   tareas:         path.join(DATA_DIR, 'tareas.json'),
@@ -1453,6 +1454,21 @@ app.get('/api/incentivos-disponibilidad', (req, res) => {
 app.post('/api/incentivos-disponibilidad', (req, res) => {
   try {
     if (!writeJSON(FILES.incentivos_disp, req.body)) {
+      return res.status(500).json({ ok: false, error: 'No se pudo guardar. Intenta de nuevo.' });
+    }
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ ok: false, error: e.message }); }
+});
+
+// Configuración editable de Incentivos (ej. link de la plataforma de retiro) —
+// se guarda en el servidor para no dejar nada de esto escrito en el código.
+app.get('/api/incentivos-config', (req, res) => {
+  const data = readJSON(FILES.incentivos_config, {});
+  res.json({ ok: true, data: data && !Array.isArray(data) ? data : {} });
+});
+app.post('/api/incentivos-config', (req, res) => {
+  try {
+    if (!writeJSON(FILES.incentivos_config, req.body)) {
       return res.status(500).json({ ok: false, error: 'No se pudo guardar. Intenta de nuevo.' });
     }
     res.json({ ok: true });

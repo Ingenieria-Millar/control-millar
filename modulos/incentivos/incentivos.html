@@ -79,7 +79,7 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
 .res-table th{text-align:left;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding:8px 12px;border-bottom:2px solid var(--border);}
 .res-table th.r,.res-table td.r{text-align:right;}
 .res-table td{padding:11px 12px;border-bottom:1px solid var(--border);font-size:14px;font-weight:700;}
-.res-table td.r{font-family:'Courier New',monospace;}
+.res-table td.r{font-family:'Courier New',monospace;font-size:17px;font-weight:800;}
 .total-card{display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#eff6ff,#e0e7ff);border:1.5px solid #bfdbfe;border-radius:14px;padding:18px 22px;margin-top:14px;}
 .total-card .t-lbl{font-size:12px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--blue-dark);}
 .total-card .t-sub{font-size:12px;color:var(--muted);font-weight:600;}
@@ -168,7 +168,7 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
 
     <button class="btn-primary" id="btnBuscar">Consultar</button>
     <div style="text-align:center;margin-top:10px;">
-      <a href="#" onclick="abrirBuscarContrato();return false;" style="font-size:13px;color:#2563eb;text-decoration:none;font-weight:600;">¿No recuerdas tu código? Búscalo aquí</a>
+      <a href="#" onclick="abrirBuscarContrato();return false;" style="font-size:16px;color:#2563eb;text-decoration:none;font-weight:600;">¿No recuerdas tu código? Búscalo aquí</a>
     </div>
     <div class="error" id="errConsulta"></div>
 
@@ -192,6 +192,7 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
         </div>
         <div class="t-val" id="totalVal">$0</div>
       </div>
+      <a id="btnRetirar" href="#" target="_blank" rel="noopener" style="display:none;margin-top:14px;width:100%;box-sizing:border-box;text-align:center;padding:13px;border-radius:12px;background:linear-gradient(135deg,#16a34a,#22c55e);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;letter-spacing:1px;text-decoration:none;">💳 Retirar mis incentivos</a>
     </div>
   </div>
 
@@ -216,6 +217,10 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
         <button id="tab-btn-consultas" onclick="switchTab('consultas')" class="tab-nav-btn">
           <span style="font-size:18px;">🔎</span>
           <span>Registros</span>
+        </button>
+        <button id="tab-btn-configuraciones" onclick="switchTab('configuraciones')" class="tab-nav-btn">
+          <span style="font-size:18px;">⚙️</span>
+          <span>Config.</span>
         </button>
       </div>
 
@@ -254,6 +259,16 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
               </tbody>
             </table>
           </div>
+        </div>
+
+        <!-- Panel Configuraciones -->
+        <div id="panel-configuraciones" style="display:none;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:14px;">⚙️ Configuraciones</div>
+          <label class="label" for="inpLinkRetiro">Link de la plataforma para retirar incentivos</label>
+          <input class="input" id="inpLinkRetiro" type="url" placeholder="https://...">
+          <div style="font-size:12px;color:#64748b;margin:8px 0 14px;">Este link aparece como botón "Retirar mis incentivos" cuando una operaria consulta su incentivo disponible. Déjalo vacío para no mostrar el botón.</div>
+          <button class="btn-primary" style="width:auto;padding:10px 24px;" onclick="guardarConfigIncentivos()">Guardar</button>
+          <span id="cfgLinkMsg" style="font-size:12px;color:#16a34a;font-weight:700;margin-left:12px;"></span>
         </div>
 
         <!-- Panel Incentivos -->
@@ -371,7 +386,6 @@ async function buscar(){
     err.textContent = 'No hay incentivos registrados para ese contrato.';
     return;
   }
-  registrosContrato.sort((a,b)=>(a.ts||0)-(b.ts||0));
   const nombre = (registrosContrato.find(r=>r.nombre) || {}).nombre || '';
   document.getElementById('mesPerson').textContent = nombre ? nombre : '—';
 
@@ -401,6 +415,16 @@ let disponibilidad = {};
   }catch(e){ disponibilidad = {}; }
 })();
 
+// ─── Link de la plataforma de retiro (editable desde Configuraciones) ──
+let linkRetiro = '';
+(async function cargarLinkRetiro(){
+  try{
+    const res = await fetch('/api/incentivos-config');
+    const json = await res.json();
+    linkRetiro = (json.data && json.data.linkRetiro) || '';
+  }catch(e){ linkRetiro = ''; }
+})();
+
 function recalcular(){
   const checks = [...document.querySelectorAll('#mesGrid input[type=checkbox]')];
   const sel = checks.filter(c=>c.checked).map(c=>registrosContrato[parseInt(c.dataset.i)]);
@@ -408,14 +432,25 @@ function recalcular(){
   document.getElementById('resBody').innerHTML = sel.map(r=>{
     const disp = disponibilidad[r.mes];
     const badge = disp
-      ? '<span style="font-size:10px;font-weight:700;color:#16a34a;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:2px 7px;margin-left:6px;">✅ Disponible para retirar</span>'
-      : '<span style="font-size:10px;font-weight:700;color:#dc2626;background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:2px 7px;margin-left:6px;">🔒 Aún no disponible</span>';
-    return `<tr><td>${esc(r.mes)}${badge}</td><td class="r">${COP.format(r.valor||0)}</td></tr>`;
+      ? '<span style="display:inline-block;white-space:nowrap;font-size:10px;font-weight:700;color:#16a34a;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:2px 7px;margin-top:4px;">✅ Disponible para retirar</span>'
+      : '<span style="display:inline-block;white-space:nowrap;font-size:10px;font-weight:700;color:#dc2626;background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:2px 7px;margin-top:4px;">🔒 Aún no disponible</span>';
+    return `<tr><td>${esc(r.mes)}<br>${badge}</td><td class="r">${COP.format(r.valor||0)}</td></tr>`;
   }).join('');
   const total = sel.reduce((s,r)=>s+(Number(r.valor)||0),0);
   document.getElementById('totalVal').textContent = COP.format(total);
   document.getElementById('totalSub').textContent = sel.length + (sel.length===1?' mes':' meses');
   document.getElementById('resultBox').style.display = 'block';
+
+  // Botón "Retirar mis incentivos" — solo si el admin configuró el link Y hay
+  // al menos un mes seleccionado que ya esté disponible para retirar.
+  const btnRetirar = document.getElementById('btnRetirar');
+  const hayDisponible = sel.some(r => disponibilidad[r.mes]);
+  if(linkRetiro && hayDisponible){
+    btnRetirar.href = linkRetiro;
+    btnRetirar.style.display = 'block';
+  } else {
+    btnRetirar.style.display = 'none';
+  }
 }
 
 document.getElementById('btnToggleAll').addEventListener('click', ()=>{
@@ -442,11 +477,34 @@ function abrirPassModal(){
 function cerrarPassModal(){ document.getElementById('passModal').classList.remove('show'); }
 let _waInterval = null;
 function switchTab(tab){
-  ['incentivos','meses','consultas'].forEach(t=>{
+  ['incentivos','meses','consultas','configuraciones'].forEach(t=>{
     document.getElementById('panel-'+t).style.display = tab===t ? 'block' : 'none';
     document.getElementById('tab-btn-'+t).classList.toggle('tab-nav-active', tab===t);
   });
   if(tab==='consultas') cargarConsultas();
+  if(tab==='configuraciones') cargarConfigIncentivos();
+}
+
+// ─── Configuraciones (link de retiro, editable por el admin) ──────
+async function cargarConfigIncentivos(){
+  try{
+    const res = await fetch('/api/incentivos-config');
+    const json = await res.json();
+    document.getElementById('inpLinkRetiro').value = (json.data && json.data.linkRetiro) || '';
+  }catch(e){}
+}
+async function guardarConfigIncentivos(){
+  const link = document.getElementById('inpLinkRetiro').value.trim();
+  const msg = document.getElementById('cfgLinkMsg');
+  try{
+    await fetch('/api/incentivos-config', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ linkRetiro: link })
+    });
+    linkRetiro = link;
+    msg.textContent = '✓ Guardado';
+    setTimeout(()=>{ msg.textContent=''; }, 2500);
+  }catch(e){ msg.style.color='#dc2626'; msg.textContent = 'No se pudo guardar'; }
 }
 function mostrarAdmin(){
   document.getElementById('consultaCard').style.display = 'none';
