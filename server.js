@@ -1045,6 +1045,16 @@ app.delete('/api/recogedores/:id', (req, res) => {
 // ── API Corte — solicitudes de tela a Revisión de Telas ────────────
 app.get('/api/corte-solicitudes', (req, res) => {
   let data = readJSON(FILES.corte_solicitudes, []);
+  // Rellena el número consecutivo a solicitudes antiguas que se crearon antes de
+  // tener este campo — se asigna por orden real de creación (ts), nunca se reinicia,
+  // y nunca repite un número que ya esté en uso.
+  if (data.some(s => !s.solicitudNum)) {
+    let maxNum = 0;
+    data.forEach(s => { if (s.solicitudNum && s.solicitudNum > maxNum) maxNum = s.solicitudNum; });
+    const faltantes = data.filter(s => !s.solicitudNum).sort((a, b) => (a.ts || 0) - (b.ts || 0));
+    faltantes.forEach(s => { maxNum++; s.solicitudNum = maxNum; });
+    writeJSON(FILES.corte_solicitudes, data);
+  }
   const { solicitadoPor, estado } = req.query;
   if (solicitadoPor) data = data.filter(s => s.solicitadoPor === solicitadoPor);
   if (estado)        data = data.filter(s => s.estado === estado);
