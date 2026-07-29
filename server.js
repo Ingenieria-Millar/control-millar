@@ -1053,13 +1053,13 @@ app.get('/api/corte-solicitudes', (req, res) => {
 
 app.post('/api/corte-solicitudes', (req, res) => {
   try {
-    const { lote, rollo, metros, solicitadoPor } = req.body || {};
-    if (!lote || !rollo || !metros || !solicitadoPor) {
+    const { op, codigoTela, color, metros, solicitadoPor } = req.body || {};
+    if (!op || !codigoTela || !color || !metros || !solicitadoPor) {
       return res.status(400).json({ error: 'Faltan campos requeridos' });
     }
     const sol = {
       id: Date.now() + '-' + Math.random().toString(36).slice(2),
-      lote, rollo, metros,
+      op, codigoTela, color, metros,
       solicitadoPor,
       estado: 'pendiente',
       fecha: new Date().toISOString().slice(0, 10),
@@ -1076,12 +1076,14 @@ app.post('/api/corte-solicitudes', (req, res) => {
 
 app.post('/api/corte-solicitudes/:id/entregar', (req, res) => {
   try {
+    const entregadoPor = (req.body && req.body.entregadoPor || '').trim();
+    if (!entregadoPor) return res.status(400).json({ error: 'Falta indicar quién entrega' });
     const data = readJSON(FILES.corte_solicitudes, []);
     const idx = data.findIndex(s => s.id === req.params.id);
     if (idx === -1) return res.status(404).json({ error: 'No encontrada' });
     if (data[idx].estado !== 'pendiente') return res.status(400).json({ error: 'Esta solicitud ya fue procesada' });
     data[idx].estado = 'entregada';
-    data[idx].entregadoPor = (req.body && req.body.entregadoPor) || '';
+    data[idx].entregadoPor = entregadoPor;
     data[idx].fechaEntrega = new Date().toISOString().slice(0, 10);
     data[idx].tsEntregada = Date.now();
     if (!writeJSON(FILES.corte_solicitudes, data)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });

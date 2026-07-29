@@ -149,52 +149,42 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
   <div id="c-mis-list" class="cards-grid"></div>
 </div>
 
-<!-- Asistente para generar una solicitud -->
+<!-- Formulario para generar una solicitud -->
 <div class="modal-overlay" id="c-wizard-overlay">
-  <div class="modal-box">
+  <div class="modal-box" style="max-width:420px;">
     <div class="modal-hd">
       <div class="modal-hd-title">➕ Generar Solicitud</div>
       <button class="modal-x" onclick="corteCerrarWizard()">✕</button>
     </div>
     <div class="modal-body">
-
-      <!-- Paso 1: elegir lote -->
-      <div id="w-step-lote">
-        <div class="field">
-          <label>N° de Lote</label>
-          <input type="text" id="w-lote-input" placeholder="Ej: 56" oninput="corteWBuscarLotes()">
-        </div>
-        <div id="w-lotes-msg" class="hint"></div>
-        <div id="w-lotes-list" class="w-lotes-list"></div>
+      <div class="field" style="margin-bottom:14px;">
+        <label>Fecha</label>
+        <input type="text" id="w-fecha" disabled style="width:100%;background:#f8fafc;color:#64748b;">
       </div>
-      <div id="w-resumen-lote" class="w-resumen" style="display:none;">
-        <span>Lote: <b id="w-lote-elegido"></b></span>
-        <a onclick="corteWVolverLote()">‹ Cambiar</a>
+      <div class="field" style="margin-bottom:14px;">
+        <label>OP</label>
+        <input type="text" id="w-op" placeholder="Ej: 60777" style="width:100%;">
       </div>
-
-      <!-- Paso 2: elegir rollo -->
-      <div id="w-step-rollo" style="display:none;">
-        <div class="field"><label>Rollo</label></div>
-        <div id="w-rollos-list" class="w-rollos-list"></div>
+      <div class="field" style="margin-bottom:14px;">
+        <label>Código tela</label>
+        <input type="text" id="w-codigo-tela" placeholder="Ej: T-CHANEL" style="width:100%;">
       </div>
-      <div id="w-resumen-rollo" class="w-resumen" style="display:none;">
-        <span>Rollo: <b id="w-rollo-elegido"></b></span>
-        <a onclick="corteWVolverRollo()">‹ Cambiar</a>
+      <div class="field" style="margin-bottom:14px;">
+        <label>Color</label>
+        <input type="text" id="w-color" placeholder="Ej: Negro" style="width:100%;">
       </div>
-
-      <!-- Paso 3+4: confirmación + metros -->
-      <div id="w-step-final" style="display:none;">
-        <div class="w-confirm-card" id="w-confirm-card"></div>
-        <div class="field">
-          <label>Metros que necesita</label>
-          <input type="number" id="w-metros" min="0" step="0.1" placeholder="Ej: 20">
-        </div>
-        <div style="display:flex;gap:8px;">
-          <button class="btn btn-primary" id="w-btn-enviar" onclick="corteWEnviar()" style="flex:1;">Solicitar</button>
-          <button class="btn btn-outline" onclick="corteCerrarWizard()" style="flex:1;">Cancelar</button>
-        </div>
+      <div class="field" style="margin-bottom:14px;">
+        <label>Metros a solicitar</label>
+        <input type="number" id="w-metros" min="0" step="0.1" placeholder="Ej: 20" style="width:100%;">
       </div>
-
+      <div class="field" style="margin-bottom:16px;">
+        <label>Quién lo solicita</label>
+        <input type="text" id="w-solicita" placeholder="Nombre" style="width:100%;">
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-primary" id="w-btn-enviar" onclick="corteWEnviar()" style="flex:1;">Solicitar</button>
+        <button class="btn btn-outline" onclick="corteCerrarWizard()" style="flex:1;">Cancelar</button>
+      </div>
     </div>
   </div>
 </div>
@@ -203,10 +193,6 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
 
 <script>
 let _cUser='', ws=null;
-let _wDatos=null;        // cache de /api/revision-telas mientras el asistente está abierto
-let _wLote=null;         // lote elegido (string) o null
-let _wRollos=[];         // rollos disponibles del lote elegido
-let _wRolloSel=null;     // rollo elegido (objeto) o null
 let _cDatos=[];          // última lista de solicitudes traída del servidor (sin filtrar)
 let _cFiltroEstado='todas', _cFechaDesde='', _cFechaHasta='';
 
@@ -292,26 +278,29 @@ function corteRenderTarjetas(){
   if(_cFechaHasta) data=data.filter(s=>s.fecha<=_cFechaHasta);
 
   try{
-    if(!data.length){ el.innerHTML='<div class="empty">'+(_cDatos.length?'No hay solicitudes con este filtro.':'Aún no hay solicitudes. Usa "Generar Solicitud" para pedir un rollo.')+'</div>'; return; }
+    if(!data.length){ el.innerHTML='<div class="empty">'+(_cDatos.length?'No hay solicitudes con este filtro.':'Aún no hay solicitudes. Usa "Generar Solicitud" para pedir tela.')+'</div>'; return; }
     el.innerHTML=data.map(s=>{
-      const statusTxt=s.estado==='pendiente'?'Esperando que Telas entregue el rollo'
-        :s.estado==='entregada'?'Telas ya lo entregó — confirma que lo recibiste':'Solicitud cerrada';
+      const statusTxt=s.estado==='pendiente'?'Esperando que Telas entregue la tela'
+        :s.estado==='entregada'?'Telas ya la entregó — confirma que la recibiste':'Solicitud cerrada';
       const accion=s.estado==='entregada'
         ?`<button class="btn btn-primary" onclick="corteAceptar('${s.id}')">✔ Aceptar</button><button class="btn btn-danger" onclick="corteRechazar('${s.id}')">✕ Rechazar</button>`:'';
       return `<div class="sc">
         <div class="sc-top">
-          <div class="sc-title">Lote ${s.lote}</div>
+          <div class="sc-title">OP ${s.op}</div>
           <div style="display:flex;align-items:center;gap:8px;">
             <span class="sc-pill ${s.estado}">${s.estado}</span>
-            <button class="sc-del-btn" title="Eliminar solicitud" onclick="corteEliminar('${s.id}','${s.lote.replace(/'/g,"\\'")}')">🗑</button>
+            <button class="sc-del-btn" title="Eliminar solicitud" onclick="corteEliminar('${s.id}','${(s.op+'').replace(/'/g,"\\'")}')">🗑</button>
           </div>
         </div>
         <table class="sc-table">
-          <tr><td>Rollo</td><td>#${s.rollo||'—'}</td></tr>
+          <tr><td>Código tela</td><td>${s.codigoTela||'—'}</td></tr>
+          <tr><td>Color</td><td>${s.color||'—'}</td></tr>
           <tr><td>Metros</td><td>${s.metros} m</td></tr>
+          <tr><td>Solicita</td><td>${s.solicitadoPor||'—'}</td></tr>
           <tr><td>Fecha</td><td>${corteFormatFecha(s.fecha)}</td></tr>
           <tr><td>Hora solicitud</td><td>${s.hora||'—'}</td></tr>
           <tr><td>Hora aceptada</td><td>${s.estado==='aceptada'?corteFormatHoraTS(s.tsAceptada):'—'}</td></tr>
+          <tr><td>Entregado por</td><td>${s.entregadoPor||'—'}</td></tr>
           <tr><td>T. espera</td><td class="strong">${corteContadorTexto(s)}</td></tr>
         </table>
         <div class="sc-bottom">
@@ -345,8 +334,8 @@ async function corteRechazar(id){
     corteToast('⚠️ '+e.message,'error');
   }
 }
-async function corteEliminar(id,lote){
-  if(!confirm('¿Eliminar la solicitud del lote '+lote+'? Esta acción no se puede deshacer.'))return;
+async function corteEliminar(id,op){
+  if(!confirm('¿Eliminar la solicitud de la OP '+op+'? Esta acción no se puede deshacer.'))return;
   try{
     const res=await fetch('/api/corte-solicitudes/'+id,{method:'DELETE'});
     if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e.error||'Error'); }
@@ -364,9 +353,10 @@ function corteExportarExcel(){
   if(_cFechaHasta) data=data.filter(s=>s.fecha<=_cFechaHasta);
   if(!data.length){ corteToast('No hay solicitudes para exportar','error'); return; }
   const filas=data.map(s=>({
-    Lote:s.lote, Rollo:s.rollo, Metros:s.metros, Estado:s.estado,
+    OP:s.op, 'Código tela':s.codigoTela, Color:s.color, Metros:s.metros, 'Solicita':s.solicitadoPor, Estado:s.estado,
     'Hora Solicitud':s.fecha+' '+(s.hora||''),
     'Hora Aceptada':s.estado==='aceptada'?(s.fechaAceptada||''):'',
+    'Entregado por':s.entregadoPor||'',
     'T. Espera (min)':s.ts?(( (s.estado==='aceptada'&&s.tsAceptada?s.tsAceptada:Date.now())-s.ts)/60000).toFixed(2):''
   }));
   const ws=XLSX.utils.json_to_sheet(filas);
@@ -376,106 +366,35 @@ function corteExportarExcel(){
 }
 
 // ── Asistente de 5 pasos (crear solicitud) ──────────────────────────
-async function corteAbrirWizard(){
-  _wLote=null; _wRollos=[]; _wRolloSel=null;
-  document.getElementById('w-lote-input').value='';
-  document.getElementById('w-lotes-list').innerHTML='';
-  document.getElementById('w-lotes-msg').textContent='Escribe parte del número de lote…';
+function corteAbrirWizard(){
+  document.getElementById('w-fecha').value=new Date().toLocaleDateString('es-CO',{day:'2-digit',month:'2-digit',year:'numeric'});
+  document.getElementById('w-op').value='';
+  document.getElementById('w-codigo-tela').value='';
+  document.getElementById('w-color').value='';
   document.getElementById('w-metros').value='';
-  corteWMostrarPaso();
+  document.getElementById('w-solicita').value=_cUser||'';
   document.getElementById('c-wizard-overlay').classList.add('show');
-  try{
-    const res=await fetch('/api/revision-telas');
-    _wDatos=await res.json();
-  }catch(e){ _wDatos={registros:[],referencias:{}}; }
-  document.getElementById('w-lote-input').focus();
+  document.getElementById('w-op').focus();
 }
 function corteCerrarWizard(){
   document.getElementById('c-wizard-overlay').classList.remove('show');
 }
-// Muestra solo el paso que corresponde según el estado actual, y colapsa
-// los pasos ya completados a un resumen con "‹ Cambiar".
-function corteWMostrarPaso(){
-  document.getElementById('w-step-lote').style.display=_wLote?'none':'block';
-  document.getElementById('w-resumen-lote').style.display=_wLote?'flex':'none';
-  if(_wLote) document.getElementById('w-lote-elegido').textContent=_wLote;
-
-  document.getElementById('w-step-rollo').style.display=(_wLote&&!_wRolloSel)?'block':'none';
-  document.getElementById('w-resumen-rollo').style.display=_wRolloSel?'flex':'none';
-  if(_wRolloSel) document.getElementById('w-rollo-elegido').textContent='#'+(_wRolloSel.rollo||'—');
-
-  document.getElementById('w-step-final').style.display=_wRolloSel?'block':'none';
-  if(_wRolloSel){
-    document.getElementById('w-confirm-card').innerHTML=`
-      <div class="w-confirm-row"><span>Lote</span><b>${_wRolloSel.lote}</b></div>
-      <div class="w-confirm-row"><span>Rollo</span><b>#${_wRolloSel.rollo||'—'}</b></div>
-      <div class="w-confirm-row"><span>Referencia</span><b>${_wRolloSel.referencia||'Sin referencia'}</b></div>
-      <div class="w-confirm-row"><span>Metros disponibles</span><b>${_wRolloSel.metros||'—'} m</b></div>`;
-    document.getElementById('w-metros').focus();
-  }
-}
-function corteWBuscarLotes(){
-  const texto=(document.getElementById('w-lote-input').value||'').trim().toLowerCase();
-  const msgEl=document.getElementById('w-lotes-msg');
-  const listEl=document.getElementById('w-lotes-list');
-  listEl.innerHTML='';
-  if(!texto){ msgEl.textContent='Escribe parte del número de lote…'; return; }
-  if(!_wDatos){ msgEl.textContent='Cargando datos…'; return; }
-  const lotes=new Set();
-  (_wDatos.registros||[]).forEach(r=>{
-    if(r.finalizado&&r.resultado==='aprobado'&&r.tipo!=='multitarea'&&(r.lote||'').toString().toLowerCase().includes(texto)) lotes.add(r.lote);
-  });
-  Object.values(_wDatos.referencias||{}).forEach(arr=>(arr||[]).forEach(ref=>{
-    if(typeof ref==='object'&&(ref.lote||'').toString().toLowerCase().includes(texto)) lotes.add(ref.lote);
-  }));
-  const listaLotes=[...lotes].sort();
-  if(!listaLotes.length){ msgEl.textContent='No se encontraron lotes que coincidan con "'+texto+'".'; return; }
-  msgEl.textContent=listaLotes.length+' lote(s) encontrados:';
-  listEl.innerHTML=listaLotes.map(l=>`
-    <div class="w-opt" onclick="corteWElegirLote('${l.replace(/'/g,"\\'")}')"><span>Lote <b>${l}</b></span></div>`).join('');
-}
-function corteWElegirLote(lote){
-  _wLote=lote;
-  const deRevision=(_wDatos.registros||[]).filter(r=>
-    r.lote===lote && r.finalizado && r.resultado==='aprobado' && r.tipo!=='multitarea'
-  ).map(r=>({lote:r.lote,rollo:r.rollo,referencia:r.referencia,metros:r.metros}));
-  const deReferencias=[];
-  Object.values(_wDatos.referencias||{}).forEach(arr=>(arr||[]).forEach(ref=>{
-    if(typeof ref==='object'&&ref.lote===lote){
-      deReferencias.push({lote:ref.lote,rollo:ref.rollo,referencia:ref.referencia,metros:ref.mts});
-    }
-  }));
-  const vistos=new Set(deRevision.map(r=>r.rollo));
-  _wRollos=[...deRevision, ...deReferencias.filter(r=>!vistos.has(r.rollo))];
-  document.getElementById('w-rollos-list').innerHTML=_wRollos.map((r,i)=>`
-    <div class="w-opt" onclick="corteWElegirRollo(${i})">
-      <span>Rollo <b>#${r.rollo||'—'}</b> — ${r.referencia||'Sin referencia'}</span>
-      <span>${r.metros||'—'} m disponibles</span>
-    </div>`).join('')||'<div class="hint">Este lote no tiene rollos disponibles.</div>';
-  corteWMostrarPaso();
-}
-function corteWVolverLote(){
-  _wLote=null; _wRollos=[]; _wRolloSel=null;
-  corteWMostrarPaso();
-  document.getElementById('w-lote-input').focus();
-}
-function corteWElegirRollo(i){
-  _wRolloSel=_wRollos[i];
-  corteWMostrarPaso();
-}
-function corteWVolverRollo(){
-  _wRolloSel=null;
-  corteWMostrarPaso();
-}
 async function corteWEnviar(){
-  if(!_wRolloSel){ corteToast('Selecciona un rollo primero','error'); return; }
+  const op=(document.getElementById('w-op').value||'').trim();
+  const codigoTela=(document.getElementById('w-codigo-tela').value||'').trim();
+  const color=(document.getElementById('w-color').value||'').trim();
   const metros=(document.getElementById('w-metros').value||'').trim();
+  const solicitadoPor=(document.getElementById('w-solicita').value||'').trim();
+  if(!op){ corteToast('Escribe la OP','error'); return; }
+  if(!codigoTela){ corteToast('Escribe el código de tela','error'); return; }
+  if(!color){ corteToast('Escribe el color','error'); return; }
   if(!metros||parseFloat(metros)<=0){ corteToast('Escribe cuántos metros necesitas','error'); return; }
+  if(!solicitadoPor){ corteToast('Escribe quién lo solicita','error'); return; }
   const btn=document.getElementById('w-btn-enviar');
   btn.disabled=true;
   try{
     const res=await fetch('/api/corte-solicitudes',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({lote:_wRolloSel.lote,rollo:_wRolloSel.rollo,metros,solicitadoPor:_cUser})});
+      body:JSON.stringify({op,codigoTela,color,metros,solicitadoPor})});
     if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e.error||'Error al enviar'); }
     corteToast('✅ Solicitud enviada a Revisión de Telas');
     corteCerrarWizard();
@@ -498,9 +417,9 @@ function corteConnectWS(){
       if((msg.type==='corte_new_request'||msg.type==='corte_update_request') && msg.solicitud){
         corteCargarMias();
         if(msg.type==='corte_new_request'){
-          corteToast('➕ Nueva solicitud — Lote '+msg.solicitud.lote);
+          corteToast('➕ Nueva solicitud — OP '+msg.solicitud.op);
         }else if(msg.solicitud.estado==='entregada'){
-          corteToast('📦 Lote '+msg.solicitud.lote+' fue marcado como entregado');
+          corteToast('📦 OP '+msg.solicitud.op+' fue marcada como entregada');
         }
       }
       if(msg.type==='corte_delete_request'){

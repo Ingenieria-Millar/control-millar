@@ -3843,16 +3843,18 @@ function renderCorteCards(){
       ?`<button class="btn btn-primary" style="flex:1;font-size:12.5px;padding:9px;" onclick="corteAdminEntregar('${s.id}')">📦 Marcar como Entregada</button>`:'';
     return `<div class="rtc">
       <div class="rtc-top">
-        <div class="rtc-title">Lote ${s.lote}</div>
+        <div class="rtc-title">OP ${s.op}</div>
         <span class="rtc-pill ${s.estado}">${s.estado}</span>
       </div>
       <table class="rtc-table">
-        <tr><td>Rollo</td><td>#${s.rollo||'—'}</td></tr>
+        <tr><td>Código tela</td><td>${s.codigoTela||'—'}</td></tr>
+        <tr><td>Color</td><td>${s.color||'—'}</td></tr>
         <tr><td>Metros</td><td>${s.metros} m</td></tr>
         <tr><td>Solicita</td><td>${s.solicitadoPor}</td></tr>
         <tr><td>Fecha</td><td>${fechaDisplay(s.fecha)||s.fecha}</td></tr>
         <tr><td>Hora solicitud</td><td>${s.hora||'—'}</td></tr>
         <tr><td>Hora aceptada</td><td>${s.estado==='aceptada'?corteFormatHoraTS(s.tsAceptada):'—'}</td></tr>
+        <tr><td>Entregado por</td><td>${s.entregadoPor||'—'}</td></tr>
         <tr><td>T. espera</td><td class="strong">${corteContadorTexto(s)}</td></tr>
       </table>
       <div class="rtc-bottom">
@@ -3863,16 +3865,18 @@ function renderCorteCards(){
   }).join('');
 }
 async function corteAdminEntregar(id){
+  const entregadoPor=(prompt('¿Quién entrega la tela?', _rtCurrentUser||'')||'').trim();
+  if(!entregadoPor) return;
   try{
     const res=await fetch('/api/corte-solicitudes/'+id+'/entregar',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({entregadoPor:_rtCurrentUser||'Admin'})});
+      body:JSON.stringify({entregadoPor})});
     if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e.error||'Error'); }
     showToast('✅ Marcada como entregada');
   }catch(e){ showToast('⚠️ '+e.message,'error'); }
 }
 function mostrarNotifCorteNueva(sol){
   if(!sol||!_rtIsAdmin) return;
-  showToast('✂️ Nueva solicitud de Corte — Lote '+sol.lote+' (Rollo #'+sol.rollo+')');
+  showToast('✂️ Nueva solicitud de Corte — OP '+sol.op+' ('+sol.codigoTela+' '+sol.color+')');
   corteSonarNotificacion();
 }
 

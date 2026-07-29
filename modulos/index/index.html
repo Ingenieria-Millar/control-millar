@@ -2479,7 +2479,7 @@ function mostrarAreaScreen(){
   }
 
   // Permisos Laborales
-  if(isProg() || hasPerm('configuraciones')){
+  if(isProg() || hasPerm('configuraciones') || hasPerm('control_permisos')){
     const c=makeCard('📋','Control de Permisos','Gestión de permisos laborales','ac-purple',()=>{
       window.location.href='/permisos';
     });
@@ -2488,7 +2488,7 @@ function mostrarAreaScreen(){
   }
 
   // Inducción y Reinducción Integral — SG-SST
-  if(isProg()){
+  if(isProg() || hasPerm('punto_seguro')){
     const c=makeCard('🛡️','Inducción Integral','SG-SST · Inducción · Firmas','ac-teal',()=>{
       window.location.href='/punto-seguro';
     });
@@ -3761,7 +3761,7 @@ function downloadExcel(){
 // ══════════════════════════════════════════════════════════════════
 // Lista maestra de permisos — agregar aquí cada nueva pantalla/función
 const ALL_PERMS = [
-  {key:'area_montajes',          label:'Alistamiento'},
+  {key:'area_montajes',          label:'Registro MMT Mecánico'},
   {key:'configuraciones',        label:'Configuraciones'},
   {key:'modulos',                label:'Contador módulos'},
   {key:'conteo_recogedores',     label:'Conteo recogedores'},
@@ -4607,11 +4607,11 @@ setInterval(()=>{const n=new Date();document.getElementById('clock').textContent
 .cfg-hd-back:hover{background:#f1f5f9;border-color:#93c5fd;}
 .cfg-layout{display:flex;flex:1;overflow:hidden;height:calc(100vh - 64px);}
 /* SIDEBAR */
-.cfg-sidebar{width:200px;flex-shrink:0;background:#f8fafc;border-right:1px solid #e2e8f0;display:flex;flex-direction:column;padding:16px 12px;gap:4px;overflow-y:auto;position:relative;}
+.cfg-sidebar{width:200px;flex-shrink:0;background:#101a33;display:flex;flex-direction:column;padding:16px 12px;gap:4px;overflow-y:auto;position:relative;}
 .cfg-sidebar::before{content:'';}
-.cfg-nav-item{position:relative;z-index:2;display:flex;align-items:center;gap:10px;padding:10px 13px;border-radius:10px;background:transparent;border:1px solid transparent;cursor:pointer;transition:all .2s;font-size:13px;font-weight:700;color:#64748b;}
-.cfg-nav-item:hover:not(.cfg-active){background:#eff6ff;border-color:#e2e8f0;color:#1e3a8a;}
-.cfg-nav-item.cfg-active{background:#eff6ff;border-color:#bfdbfe;color:#1e3a8a;box-shadow:0 1px 4px rgba(37,99,235,.1);}
+.cfg-nav-item{position:relative;z-index:2;display:flex;align-items:center;gap:10px;padding:10px 13px;border-radius:10px;background:transparent;border:1px solid transparent;cursor:pointer;transition:all .2s;font-size:13px;font-weight:700;color:#c7d0e8;}
+.cfg-nav-item:hover:not(.cfg-active){background:rgba(255,255,255,.06);border-color:transparent;color:#fff;}
+.cfg-nav-item.cfg-active{background:#1c2c52;border-color:transparent;color:#fff;box-shadow:none;}
 /* MAIN AREA */
 .cfg-main-area{flex:1;display:flex;flex-direction:column;overflow:hidden;}
 .cfg-topbar2{background:#fff;border-bottom:1px solid #e2e8f0;padding:13px 24px;display:flex;align-items:center;gap:10px;flex-shrink:0;}
