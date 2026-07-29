@@ -3889,16 +3889,22 @@ function actualizarBadgeCorte(){
 function corteSonarNotificacion(){
   try{
     const ctx=new (window.AudioContext||window.webkitAudioContext)();
-    [880,660].forEach((freq,i)=>{
-      const osc=ctx.createOscillator(), gain=ctx.createGain();
-      osc.type='sine'; osc.frequency.value=freq;
-      osc.connect(gain); gain.connect(ctx.destination);
-      const start=ctx.currentTime+i*0.16;
-      gain.gain.setValueAtTime(0.0001,start);
-      gain.gain.exponentialRampToValueAtTime(0.25,start+0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001,start+0.18);
-      osc.start(start); osc.stop(start+0.2);
-    });
+    const duracionTotal=5;     // segundos que debe sonar en total
+    const cadaCuanto=0.6;      // separación entre cada "ding-dong"
+    const repeticiones=Math.round(duracionTotal/cadaCuanto);
+    for(let i=0;i<repeticiones;i++){
+      const base=ctx.currentTime+i*cadaCuanto;
+      [880,660].forEach((freq,j)=>{
+        const osc=ctx.createOscillator(), gain=ctx.createGain();
+        osc.type='sine'; osc.frequency.value=freq;
+        osc.connect(gain); gain.connect(ctx.destination);
+        const start=base+j*0.18;
+        gain.gain.setValueAtTime(0.0001,start);
+        gain.gain.exponentialRampToValueAtTime(0.6,start+0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001,start+0.22);
+        osc.start(start); osc.stop(start+0.24);
+      });
+    }
   }catch(e){}
 }
 function corteAdminFiltrar(f,btn){
