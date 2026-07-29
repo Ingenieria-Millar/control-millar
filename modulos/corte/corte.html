@@ -214,6 +214,12 @@ function corteInit(){
     document.getElementById('c-clock').textContent=new Date().toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
     setTimeout(tick,1000);
   })();
+  // Filtro de fecha: siempre entra mostrando hoy, hasta que el usuario filtre otra fecha.
+  const hoy=new Date().toISOString().slice(0,10);
+  _cFechaDesde=hoy; _cFechaHasta=hoy;
+  document.getElementById('c-fecha-desde').value=hoy;
+  document.getElementById('c-fecha-hasta').value=hoy;
+  document.getElementById('c-fecha-lbl').textContent=corteFormatFecha(hoy);
   corteCargarMias();
   corteConnectWS();
   setInterval(corteCargarMias,60000);       // refresca datos del servidor cada minuto
@@ -238,7 +244,9 @@ function corteAplicarFechas(){
   _cFechaDesde=document.getElementById('c-fecha-desde').value;
   _cFechaHasta=document.getElementById('c-fecha-hasta').value;
   const lbl=document.getElementById('c-fecha-lbl');
-  lbl.textContent=(_cFechaDesde||_cFechaHasta)?((_cFechaDesde||'…')+' – '+(_cFechaHasta||'…')):'Todas las fechas';
+  if(!_cFechaDesde&&!_cFechaHasta) lbl.textContent='Todas las fechas';
+  else if(_cFechaDesde===_cFechaHasta) lbl.textContent=corteFormatFecha(_cFechaDesde);
+  else lbl.textContent=(_cFechaDesde?corteFormatFecha(_cFechaDesde):'…')+' – '+(_cFechaHasta?corteFormatFecha(_cFechaHasta):'…');
   document.getElementById('c-fecha-panel').classList.remove('open');
   corteRenderTarjetas();
 }

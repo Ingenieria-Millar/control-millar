@@ -600,6 +600,22 @@ input[type=number]{-moz-appearance:textfield;}
   </div>
 </div>
 
+<!-- Modal Corte: ¿Quién entrega la tela? -->
+<div class="modal-overlay" id="modal-corte-entrega" style="display:none;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;padding:28px;width:360px;box-shadow:0 20px 60px rgba(0,0,0,.2);">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;color:#0f172a;margin-bottom:18px;">📦 ¿Quién entrega la tela?</div>
+    <div style="margin-bottom:8px;">
+      <label style="display:block;font-size:11px;font-weight:700;color:#0f172a;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Nombre</label>
+      <input type="text" id="corte-entrega-input" style="width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;outline:none;background:#f8fafc;text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')confirmarCorteEntrega()">
+    </div>
+    <div id="corte-entrega-error" style="color:#dc2626;font-size:12px;min-height:16px;margin-bottom:8px;"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button onclick="cerrarModalCorteEntrega()" style="padding:10px 18px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:13px;font-weight:600;cursor:pointer;">Cancelar</button>
+      <button onclick="confirmarCorteEntrega()" style="padding:10px 20px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-size:13px;font-weight:700;cursor:pointer;">✔ Confirmar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Nuevo Registro -->
 <div class="modal-overlay" id="modal-registro">
   <div class="modal-box">
@@ -1203,9 +1219,9 @@ input[type=number]{-moz-appearance:textfield;}
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;letter-spacing:1px;color:#0f172a;">✂️ NOTIFICACIONES CORTE</div>
         <div style="display:flex;gap:6px;">
-          <button class="rt-corte-filtro-btn active" data-f="activas" onclick="corteAdminFiltrar('activas',this)">Activas</button>
+          <button class="rt-corte-filtro-btn" data-f="activas" onclick="corteAdminFiltrar('activas',this)">Activas</button>
           <button class="rt-corte-filtro-btn" data-f="aceptada" onclick="corteAdminFiltrar('aceptada',this)">Aceptadas</button>
-          <button class="rt-corte-filtro-btn" data-f="todas" onclick="corteAdminFiltrar('todas',this)">Todas</button>
+          <button class="rt-corte-filtro-btn active" data-f="todas" onclick="corteAdminFiltrar('todas',this)">Todas</button>
         </div>
       </div>
       <div id="rt-corte-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;"></div>
@@ -3759,7 +3775,7 @@ function verDetalles(id){
 }
 
 // ── Notificaciones Corte (solicitudes de tela desde el módulo Corte) ─
-let _corteSolicitudes=[], _corteFiltroActual='activas';
+let _corteSolicitudes=[], _corteFiltroActual='todas';
 function rtsNavCorte(btn){
   abrirCorteScreen();
   rtsSetActive(btn);
@@ -3864,15 +3880,29 @@ function renderCorteCards(){
     </div>`;
   }).join('');
 }
-async function corteAdminEntregar(id){
-  const entregadoPor=(prompt('¿Quién entrega la tela?', _rtCurrentUser||'')||'').trim();
-  if(!entregadoPor) return;
+let _corteEntregaId=null;
+function corteAdminEntregar(id){
+  _corteEntregaId=id;
+  const inp=document.getElementById('corte-entrega-input');
+  inp.value=(_rtCurrentUser||'').toUpperCase();
+  document.getElementById('corte-entrega-error').textContent='';
+  document.getElementById('modal-corte-entrega').style.display='flex';
+  setTimeout(()=>{ inp.focus(); inp.select(); },50);
+}
+function cerrarModalCorteEntrega(){
+  document.getElementById('modal-corte-entrega').style.display='none';
+  _corteEntregaId=null;
+}
+async function confirmarCorteEntrega(){
+  const entregadoPor=(document.getElementById('corte-entrega-input').value||'').trim();
+  if(!entregadoPor){ document.getElementById('corte-entrega-error').textContent='Escribe quién entrega.'; return; }
   try{
-    const res=await fetch('/api/corte-solicitudes/'+id+'/entregar',{method:'POST',headers:{'Content-Type':'application/json'},
+    const res=await fetch('/api/corte-solicitudes/'+_corteEntregaId+'/entregar',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({entregadoPor})});
     if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e.error||'Error'); }
+    cerrarModalCorteEntrega();
     showToast('✅ Marcada como entregada');
-  }catch(e){ showToast('⚠️ '+e.message,'error'); }
+  }catch(e){ document.getElementById('corte-entrega-error').textContent=e.message; }
 }
 function mostrarNotifCorteNueva(sol){
   if(!sol||!_rtIsAdmin) return;
