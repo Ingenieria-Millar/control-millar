@@ -13,7 +13,7 @@ var W=window.WebSocket;function MW(u,p){try{var t=T();if(t&&typeof u==='string'&
 <style>
 *{box-sizing:border-box;}
 body{margin:0;font-family:'Nunito',sans-serif;background:#f1f5f9;color:#0f172a;}
-header{background:#fff;border-bottom:1px solid #e2e8f0;box-shadow:0 1px 6px rgba(0,0,0,.06);padding:0 clamp(12px,2.5vw,24px);min-height:64px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:relative;}
+header{background:#fff;border-bottom:1px solid #e2e8f0;box-shadow:0 1px 6px rgba(0,0,0,.06);padding:0 clamp(12px,2.5vw,24px);min-height:64px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:200;}
 header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);}
 .hd-left{display:flex;align-items:center;gap:12px;}
 .hd-logo{width:52px;height:52px;border-radius:50%;background:#fff;box-shadow:0 0 0 1.5px #e2e8f0;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;}
@@ -28,7 +28,7 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
 .hd-back:hover{background:#f8fafc;}
 
 .wrap{max-width:1700px;margin:0 auto;padding:24px clamp(12px,2.5vw,24px);}
-.toolbar{display:flex;align-items:center;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+.toolbar{display:flex;align-items:center;gap:8px;margin-bottom:20px;flex-wrap:wrap;position:sticky;z-index:150;background:#f1f5f9;padding:14px 0;}
 .field{margin-bottom:0;}
 .field label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;display:block;margin-bottom:6px;}
 .field input,.field select{padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;font-family:'Nunito',sans-serif;outline:none;}
@@ -189,6 +189,23 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
   </div>
 </div>
 
+<!-- Confirmación al rechazar una entrega -->
+<div class="modal-overlay" id="c-rechazar-overlay">
+  <div class="modal-box" style="max-width:380px;">
+    <div class="modal-hd">
+      <div class="modal-hd-title">↩ Rechazar entrega</div>
+      <button class="modal-x" onclick="cerrarModalRechazar()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:14px;color:#334155;line-height:1.5;margin-bottom:20px;">¿Rechazar? Esto significa que en realidad no te entregaron la tela — la solicitud vuelve a quedar pendiente.</p>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-outline" style="flex:1;" onclick="cerrarModalRechazar()">Cancelar</button>
+        <button class="btn btn-danger" style="flex:1;" onclick="confirmarRechazo()">Rechazar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="c-toast"></div>
 
 <script>
@@ -196,6 +213,13 @@ let _cUser='', ws=null;
 let _cDatos=[];          // última lista de solicitudes traída del servidor (sin filtrar)
 let _cFiltroEstado='todas', _cFechaDesde='', _cFechaHasta='';
 
+function corteAjustarTopToolbar(){
+  const header=document.querySelector('header');
+  const toolbar=document.querySelector('.toolbar');
+  if(!header||!toolbar) return;
+  toolbar.style.top=header.getBoundingClientRect().height+'px';
+}
+window.addEventListener('resize', corteAjustarTopToolbar);
 function corteToast(msg,type){
   const t=document.getElementById('c-toast');
   t.textContent=msg; t.className='toast show'+(type==='error'?' error':'');
@@ -209,6 +233,7 @@ function corteInit(){
   }catch(e){}
   if(!_cUser){ window.location.href='/'; return; }
   document.getElementById('hd-user').textContent=_cUser;
+  corteAjustarTopToolbar();
   document.getElementById('c-date').textContent=new Date().toLocaleDateString('es-CO',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   (function tick(){
     document.getElementById('c-clock').textContent=new Date().toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
@@ -331,8 +356,18 @@ async function corteAceptar(id){
     corteToast('⚠️ '+e.message,'error');
   }
 }
-async function corteRechazar(id){
-  if(!confirm('¿Rechazar? Esto significa que en realidad no te entregaron el rollo — la solicitud vuelve a quedar pendiente.'))return;
+let _corteRechazarId=null;
+function corteRechazar(id){
+  _corteRechazarId=id;
+  document.getElementById('c-rechazar-overlay').classList.add('show');
+}
+function cerrarModalRechazar(){
+  document.getElementById('c-rechazar-overlay').classList.remove('show');
+  _corteRechazarId=null;
+}
+async function confirmarRechazo(){
+  const id=_corteRechazarId;
+  cerrarModalRechazar();
   try{
     const res=await fetch('/api/corte-solicitudes/'+id+'/rechazar',{method:'POST'});
     if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e.error||'Error'); }
