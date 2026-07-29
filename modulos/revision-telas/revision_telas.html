@@ -33,10 +33,22 @@ body.rt-has-sidenav #rt-cfg-screen{left:224px!important;}
 body.rt-has-sidenav #rt-dashboard-screen{left:224px!important;}
 body.rt-has-sidenav #rt-informe-screen{left:224px!important;}
 body.rt-has-sidenav #rt-corte-screen{left:224px!important;}
-.rt-corte-filtro-btn{padding:7px 14px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;cursor:pointer;}
-.rt-corte-filtro-btn.active{background:#1e3a8a;color:#fff;border-color:#1e3a8a;}
+.rtcf-pill{display:flex;align-items:center;gap:7px;padding:8px 14px;border-radius:20px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.3px;}
+.rtcf-pill .rtcf-count{background:#f1f5f9;color:#475569;border-radius:20px;padding:1px 8px;font-size:11.5px;}
+.rtcf-pill.active{border-color:#1e3a8a;background:#eef2ff;color:#1e3a8a;}
+.rtcf-pill.active .rtcf-count{background:#1e3a8a;color:#fff;}
+.rtcf-pill.f-pendiente.active{border-color:#f59e0b;background:#fffbeb;color:#92400e;}
+.rtcf-pill.f-pendiente.active .rtcf-count{background:#f59e0b;color:#fff;}
+.rtcf-pill.f-entregado.active{border-color:#16a34a;background:#f0fdf4;color:#15803d;}
+.rtcf-pill.f-entregado.active .rtcf-count{background:#16a34a;color:#fff;}
+.rtc-fecha-wrap{position:relative;}
+.rtc-fecha-panel{display:none;position:absolute;top:110%;right:0;z-index:300;background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.12);min-width:230px;}
+.rtc-fecha-panel.open{display:block;}
 /* Tarjeta de solicitud de Corte: tabla completa, líneas en todos los bordes, filas en cebra. */
 .rtc{background:#fff;border:1.5px solid #dbe2ea;border-radius:10px;overflow:hidden;font-family:'Nunito',sans-serif;}
+.rtc.pendiente{border-left:3px solid #d97706;}
+.rtc.entregada{border-left:3px solid #2563eb;}
+.rtc.aceptada{border-left:3px solid #16a34a;}
 .rtc-top{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1.5px solid #dbe2ea;}
 .rtc-title{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;color:#0f172a;}
 .rtc-pill{display:inline-flex;padding:4px 12px;border-radius:20px;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;}
@@ -1216,12 +1228,30 @@ input[type=number]{-moz-appearance:textfield;}
 <div id="rt-corte-screen" style="display:none;position:fixed;inset:0;z-index:500;background:#f1f5f9;flex-direction:column;">
   <div style="flex:1;overflow-y:auto;padding:24px clamp(12px,2.5vw,24px);">
     <div style="max-width:1100px;margin:0 auto;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;letter-spacing:1px;color:#0f172a;">✂️ NOTIFICACIONES CORTE</div>
-        <div style="display:flex;gap:6px;">
-          <button class="rt-corte-filtro-btn" data-f="activas" onclick="corteAdminFiltrar('activas',this)">Activas</button>
-          <button class="rt-corte-filtro-btn" data-f="aceptada" onclick="corteAdminFiltrar('aceptada',this)">Aceptadas</button>
-          <button class="rt-corte-filtro-btn active" data-f="todas" onclick="corteAdminFiltrar('todas',this)">Todas</button>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <button class="rtcf-pill active" data-f="todas" onclick="corteAdminFiltrar('todas',this)">Todos <span class="rtcf-count" id="rtc-cnt-todas">0</span></button>
+          <button class="rtcf-pill" data-f="pendiente" onclick="corteAdminFiltrar('pendiente',this)">🔴 Pendientes <span class="rtcf-count" id="rtc-cnt-pendiente">0</span></button>
+          <button class="rtcf-pill" data-f="aceptada" onclick="corteAdminFiltrar('aceptada',this)">✅ Entregados <span class="rtcf-count" id="rtc-cnt-entregado">0</span></button>
+          <div class="rtc-fecha-wrap">
+            <button class="btn btn-outline" style="padding:8px 14px;" onclick="rtCorteToggleFechaPanel()">📅 <span id="rtc-fecha-lbl">Todas las fechas</span></button>
+            <div class="rtc-fecha-panel" id="rtc-fecha-panel">
+              <div style="margin-bottom:10px;">
+                <label style="display:block;font-size:11px;font-weight:700;color:#0f172a;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Desde</label>
+                <input type="date" id="rtc-fecha-desde" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;outline:none;box-sizing:border-box;">
+              </div>
+              <div style="margin-bottom:10px;">
+                <label style="display:block;font-size:11px;font-weight:700;color:#0f172a;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Hasta</label>
+                <input type="date" id="rtc-fecha-hasta" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:14px;outline:none;box-sizing:border-box;">
+              </div>
+              <div style="display:flex;gap:8px;">
+                <button class="btn btn-primary" style="flex:1;padding:8px;" onclick="rtCorteAplicarFechas()">Filtrar</button>
+                <button class="btn btn-outline" style="flex:1;padding:8px;" onclick="rtCorteLimpiarFechas()">Limpiar</button>
+              </div>
+            </div>
+          </div>
+          <button class="btn btn-outline" style="padding:8px 14px;" onclick="rtCorteExportarExcel()">📊 Excel</button>
         </div>
       </div>
       <div id="rt-corte-cards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;"></div>
@@ -3797,7 +3827,56 @@ async function cargarCorteSolicitudes(){
     _corteSolicitudes=await res.json();
     renderCorteCards();
     actualizarBadgeCorte();
+    actualizarContadoresCorte();
   }catch(e){console.warn('[Corte] Error cargando solicitudes:',e);}
+}
+function actualizarContadoresCorte(){
+  const t=document.getElementById('rtc-cnt-todas'), p=document.getElementById('rtc-cnt-pendiente'), a=document.getElementById('rtc-cnt-entregado');
+  if(!t) return;
+  t.textContent=_corteSolicitudes.length;
+  p.textContent=_corteSolicitudes.filter(s=>s.estado!=='aceptada').length;
+  a.textContent=_corteSolicitudes.filter(s=>s.estado==='aceptada').length;
+}
+let _rtcFechaDesde='', _rtcFechaHasta='';
+function rtCorteToggleFechaPanel(){ document.getElementById('rtc-fecha-panel').classList.toggle('open'); }
+function rtCorteAplicarFechas(){
+  _rtcFechaDesde=document.getElementById('rtc-fecha-desde').value;
+  _rtcFechaHasta=document.getElementById('rtc-fecha-hasta').value;
+  const lbl=document.getElementById('rtc-fecha-lbl');
+  if(!_rtcFechaDesde&&!_rtcFechaHasta) lbl.textContent='Todas las fechas';
+  else if(_rtcFechaDesde===_rtcFechaHasta) lbl.textContent=fechaDisplay(_rtcFechaDesde)||_rtcFechaDesde;
+  else lbl.textContent=(_rtcFechaDesde?(fechaDisplay(_rtcFechaDesde)||_rtcFechaDesde):'…')+' – '+(_rtcFechaHasta?(fechaDisplay(_rtcFechaHasta)||_rtcFechaHasta):'…');
+  document.getElementById('rtc-fecha-panel').classList.remove('open');
+  renderCorteCards();
+}
+function rtCorteLimpiarFechas(){
+  _rtcFechaDesde=''; _rtcFechaHasta='';
+  document.getElementById('rtc-fecha-desde').value=''; document.getElementById('rtc-fecha-hasta').value='';
+  document.getElementById('rtc-fecha-lbl').textContent='Todas las fechas';
+  document.getElementById('rtc-fecha-panel').classList.remove('open');
+  renderCorteCards();
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.rtc-fecha-wrap')){ const p=document.getElementById('rtc-fecha-panel'); if(p) p.classList.remove('open'); }
+});
+function rtCorteExportarExcel(){
+  let data=_corteSolicitudes;
+  if(_corteFiltroActual==='pendiente') data=data.filter(s=>s.estado!=='aceptada');
+  else if(_corteFiltroActual==='aceptada') data=data.filter(s=>s.estado==='aceptada');
+  if(_rtcFechaDesde) data=data.filter(s=>s.fecha>=_rtcFechaDesde);
+  if(_rtcFechaHasta) data=data.filter(s=>s.fecha<=_rtcFechaHasta);
+  if(!data.length){ showToast('No hay solicitudes para exportar','error'); return; }
+  const filas=data.map(s=>({
+    OP:s.op, 'Código tela':s.codigoTela, Color:s.color, Metros:s.metros, Solicita:s.solicitadoPor, Estado:s.estado,
+    'Hora Solicitud':s.fecha+' '+(s.hora||''),
+    'Hora Aceptada':s.estado==='aceptada'?(s.fechaAceptada||''):'',
+    'Entregado por':s.entregadoPor||'',
+    'T. Espera (min)':s.ts?(( (s.estado==='aceptada'&&s.tsAceptada?s.tsAceptada:Date.now())-s.ts)/60000).toFixed(2):''
+  }));
+  const ws=XLSX.utils.json_to_sheet(filas);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Solicitudes Corte');
+  XLSX.writeFile(wb,'notificaciones_corte.xlsx');
 }
 function actualizarBadgeCorte(){
   const badge=document.getElementById('rts-corte-badge');
@@ -3824,7 +3903,7 @@ function corteSonarNotificacion(){
 }
 function corteAdminFiltrar(f,btn){
   _corteFiltroActual=f;
-  document.querySelectorAll('.rt-corte-filtro-btn').forEach(b=>b.classList.toggle('active',b===btn));
+  document.querySelectorAll('.rtcf-pill').forEach(b=>b.classList.toggle('active',b===btn));
   renderCorteCards();
 }
 // Contador de tiempo de la tarjeta: desde que Corte solicitó hasta que Corte aceptó
@@ -3846,21 +3925,26 @@ setInterval(()=>{
 function renderCorteCards(){
   const el=document.getElementById('rt-corte-cards');
   if(!el) return;
-  // "Activas" agrupa pendiente + entregada: la solicitud sigue visible hasta que
-  // Corte la dé como aceptada — nunca "desaparece" solo porque Telas ya la entregó.
-  const lista=_corteFiltroActual==='todas'?_corteSolicitudes
-    :_corteFiltroActual==='activas'?_corteSolicitudes.filter(s=>s.estado!=='aceptada')
-    :_corteSolicitudes.filter(s=>s.estado===_corteFiltroActual);
+  // "Pendientes" agrupa pendiente + entregada: la solicitud sigue contando como
+  // pendiente hasta que Corte la dé como aceptada — nunca "desaparece" solo porque Telas ya la entregó.
+  let lista=_corteFiltroActual==='todas'?_corteSolicitudes
+    :_corteFiltroActual==='pendiente'?_corteSolicitudes.filter(s=>s.estado!=='aceptada')
+    :_corteSolicitudes.filter(s=>s.estado==='aceptada');
+  if(_rtcFechaDesde) lista=lista.filter(s=>s.fecha>=_rtcFechaDesde);
+  if(_rtcFechaHasta) lista=lista.filter(s=>s.fecha<=_rtcFechaHasta);
   if(!lista.length){ el.innerHTML='<div style="color:#94a3b8;font-size:13px;text-align:center;padding:40px;grid-column:1/-1;">Sin solicitudes en este filtro.</div>'; return; }
   el.innerHTML=lista.map(s=>{
     const statusTxt=s.estado==='pendiente'?'Esperando entrega de Telas'
       :s.estado==='entregada'?'Entregada — esperando confirmación de Corte':'Solicitud cerrada';
     const accion=s.estado==='pendiente'
       ?`<button class="btn btn-primary" style="flex:1;font-size:12.5px;padding:9px;" onclick="corteAdminEntregar('${s.id}')">📦 Marcar como Entregada</button>`:'';
-    return `<div class="rtc">
+    return `<div class="rtc ${s.estado}">
       <div class="rtc-top">
         <div class="rtc-title">OP ${s.op}</div>
-        <span class="rtc-pill ${s.estado}">${s.estado}</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="rtc-pill ${s.estado}">${s.estado}</span>
+          <span style="font-size:11px;color:#9ca3af;font-weight:500;">#${s.solicitudNum||'—'}</span>
+        </div>
       </div>
       <table class="rtc-table">
         <tr><td>Código tela</td><td>${s.codigoTela||'—'}</td></tr>

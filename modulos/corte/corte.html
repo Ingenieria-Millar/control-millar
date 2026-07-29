@@ -69,6 +69,9 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
 /* ── Tarjetas de solicitud, estilo recibo ── */
 .cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;}
 .sc{background:#fff;border:1.5px solid #dbe2ea;border-radius:10px;overflow:hidden;}
+.sc.pendiente{border-left:3px solid #d97706;}
+.sc.entregada{border-left:3px solid #2563eb;}
+.sc.aceptada{border-left:3px solid #16a34a;}
 .sc-top{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1.5px solid #dbe2ea;}
 .sc-title{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;color:#0f172a;}
 .sc-pill{display:inline-flex;padding:4px 12px;border-radius:20px;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;}
@@ -301,12 +304,12 @@ async function corteCargarMias(){
 function corteRenderTarjetas(){
   const el=document.getElementById('c-mis-list');
   document.getElementById('cnt-todas').textContent=_cDatos.length;
-  document.getElementById('cnt-pendiente').textContent=_cDatos.filter(s=>s.estado==='pendiente').length;
-  document.getElementById('cnt-entregado').textContent=_cDatos.filter(s=>s.estado==='entregada'||s.estado==='aceptada').length;
+  document.getElementById('cnt-pendiente').textContent=_cDatos.filter(s=>s.estado!=='aceptada').length;
+  document.getElementById('cnt-entregado').textContent=_cDatos.filter(s=>s.estado==='aceptada').length;
 
   let data=_cDatos;
-  if(_cFiltroEstado==='pendiente') data=data.filter(s=>s.estado==='pendiente');
-  else if(_cFiltroEstado==='entregado') data=data.filter(s=>s.estado==='entregada'||s.estado==='aceptada');
+  if(_cFiltroEstado==='pendiente') data=data.filter(s=>s.estado!=='aceptada');
+  else if(_cFiltroEstado==='entregado') data=data.filter(s=>s.estado==='aceptada');
   if(_cFechaDesde) data=data.filter(s=>s.fecha>=_cFechaDesde);
   if(_cFechaHasta) data=data.filter(s=>s.fecha<=_cFechaHasta);
 
@@ -317,11 +320,12 @@ function corteRenderTarjetas(){
         :s.estado==='entregada'?'Telas ya la entregó — confirma que la recibiste':'Solicitud cerrada';
       const accion=s.estado==='entregada'
         ?`<button class="btn btn-primary" onclick="corteAceptar('${s.id}')">✔ Aceptar</button><button class="btn btn-danger" onclick="corteRechazar('${s.id}')">✕ Rechazar</button>`:'';
-      return `<div class="sc">
+      return `<div class="sc ${s.estado}">
         <div class="sc-top">
           <div class="sc-title">OP ${s.op}</div>
           <div style="display:flex;align-items:center;gap:8px;">
             <span class="sc-pill ${s.estado}">${s.estado}</span>
+            <span style="font-size:11px;color:#9ca3af;font-weight:500;">#${s.solicitudNum||'—'}</span>
             <button class="sc-del-btn" title="Eliminar solicitud" onclick="corteEliminar('${s.id}','${(s.op+'').replace(/'/g,"\\'")}')">🗑</button>
           </div>
         </div>
@@ -390,8 +394,8 @@ async function corteEliminar(id,op){
 }
 function corteExportarExcel(){
   let data=_cDatos;
-  if(_cFiltroEstado==='pendiente') data=data.filter(s=>s.estado==='pendiente');
-  else if(_cFiltroEstado==='entregado') data=data.filter(s=>s.estado==='entregada'||s.estado==='aceptada');
+  if(_cFiltroEstado==='pendiente') data=data.filter(s=>s.estado!=='aceptada');
+  else if(_cFiltroEstado==='entregado') data=data.filter(s=>s.estado==='aceptada');
   if(_cFechaDesde) data=data.filter(s=>s.fecha>=_cFechaDesde);
   if(_cFechaHasta) data=data.filter(s=>s.fecha<=_cFechaHasta);
   if(!data.length){ corteToast('No hay solicitudes para exportar','error'); return; }

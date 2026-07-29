@@ -1057,8 +1057,13 @@ app.post('/api/corte-solicitudes', (req, res) => {
     if (!op || !codigoTela || !color || !metros || !solicitadoPor) {
       return res.status(400).json({ error: 'Faltan campos requeridos' });
     }
+    const data = readJSON(FILES.corte_solicitudes, []);
+    // Número consecutivo único, igual al patrón ya usado en Tablero CI (solicitudNum).
+    let maxNum = 0;
+    data.forEach(s => { if (s.solicitudNum && s.solicitudNum > maxNum) maxNum = s.solicitudNum; });
     const sol = {
       id: Date.now() + '-' + Math.random().toString(36).slice(2),
+      solicitudNum: maxNum + 1,
       op, codigoTela, color, metros,
       solicitadoPor,
       estado: 'pendiente',
@@ -1066,7 +1071,6 @@ app.post('/api/corte-solicitudes', (req, res) => {
       hora: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true }),
       ts: Date.now() // marca exacta para calcular el contador de tiempo en la tarjeta
     };
-    const data = readJSON(FILES.corte_solicitudes, []);
     data.unshift(sol);
     if (!writeJSON(FILES.corte_solicitudes, data)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
     broadcast({ type: 'corte_new_request', solicitud: sol });
