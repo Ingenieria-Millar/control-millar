@@ -864,6 +864,17 @@ setInterval(() => {
 // ── Archivos estáticos ─────────────────────────────────────────────
 app.use('/alistamiento/uploads', express.static(UPLOADS_DIR));
 
+// Evita que el navegador se quede con una copia vieja en caché de las
+// pantallas HTML — obliga a revalidar con el servidor en cada carga, para
+// que todos los equipos (PC y celulares) reciban el código actualizado
+// sin necesitar un refresco forzado manual.
+app.use((req, res, next) => {
+  if (req.method === 'GET' && !req.path.startsWith('/api') && !req.path.startsWith('/punto-seguro')) {
+    res.set('Cache-Control', 'no-cache');
+  }
+  next();
+});
+
 // ── Rutas principales ──────────────────────────────────────────────
 // Los archivos de cada pantalla viven en modulos/<nombre>/ — las URLs no cambian,
 // solo dónde vive el archivo en disco.
