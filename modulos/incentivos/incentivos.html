@@ -25,6 +25,7 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
 .hd-left{display:flex;align-items:center;gap:12px;}
 .hd-logo{width:52px;height:52px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 0 0 2px #e2e8f0,0 2px 8px rgba(0,0,0,.08);flex-shrink:0;}
 .hd-logo img{width:100%;height:100%;object-fit:contain;padding:2px;}
+.hd-title-wrap{display:flex;flex-direction:column;gap:0;}
 .hd-title{font-family:'Barlow Condensed',sans-serif;font-size:clamp(16px,2.5vw,22px);font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0f172a;line-height:1.1;}
 .hd-title span{color:#2563eb;}
 .hd-right{display:flex;align-items:center;gap:8px;}
@@ -166,7 +167,11 @@ body.inc-has-sidenav #adminCard{flex:1;min-height:0;overflow:hidden;display:flex
 <header>
   <div class="hd-left">
     <div class="hd-logo"><img src="/logo.png" alt="Confecciones Millar"></div>
-    <div class="hd-title">CONSULTA DE <span>INCENTIVOS</span></div>
+    <div class="hd-title-wrap">
+      <div class="hd-title">CONSULTA DE <span>INCENTIVOS</span></div>
+      <p style="font-size:11px;color:#64748b;font-weight:600;margin-top:1px;" id="inc-date"></p>
+      <p style="font-size:11px;color:#94a3b8;font-weight:600;margin-top:0;font-family:'IBM Plex Mono',monospace;letter-spacing:.5px;" id="inc-clock"></p>
+    </div>
   </div>
   <div class="hd-right">
     <button class="hd-gear" id="btnGear" title="Administración">⚙️</button>
@@ -434,6 +439,14 @@ let linkRetiro = '';
     const json = await res.json();
     linkRetiro = (json.data && json.data.linkRetiro) || '';
   }catch(e){ linkRetiro = ''; }
+})();
+
+// ── Fecha y hora del encabezado ─────────────────────────────────────
+document.getElementById('inc-date').textContent=new Date().toLocaleDateString('es-CO',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+(function tickClock(){
+  const el=document.getElementById('inc-clock');
+  if(el) el.textContent=new Date().toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  setTimeout(tickClock,1000);
 })();
 
 function recalcular(){
