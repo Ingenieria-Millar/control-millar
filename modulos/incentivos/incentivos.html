@@ -107,12 +107,15 @@ body.inc-has-sidenav .wrap.admin-mode{margin-left:190px;width:calc(100% - 190px)
 
 .tbl-scroll{max-height:520px;overflow:auto;border:1.5px solid var(--border);border-radius:12px;}
 .data-tbl{width:100%;border-collapse:collapse;font-size:13px;}
-.data-tbl thead th{position:sticky;top:0;background:#f8fafc;z-index:2;text-align:left;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted);padding:10px 12px;border-bottom:1px solid var(--border);}
-.data-tbl thead tr.filter-row td{position:sticky;top:37px;background:#fff;z-index:2;padding:5px 6px;border-bottom:2px solid var(--border);}
+.data-tbl thead th{position:sticky;top:0;background:#f8fafc;z-index:2;text-align:left;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;padding:10px 12px;border-bottom:1px solid var(--border);border-right:1px solid #475569;}
+.data-tbl thead th:last-child{border-right:none;}
+.data-tbl thead tr.filter-row td{position:sticky;top:37px;background:#fff;z-index:2;padding:5px 6px;border-bottom:2px solid var(--border);border-right:1px solid #475569;}
+.data-tbl thead tr.filter-row td:last-child{border-right:none;}
 .data-tbl thead tr.filter-row input{width:100%;padding:5px 8px;border:1.5px solid var(--border);border-radius:7px;font-size:12px;font-family:'Nunito',sans-serif;outline:none;background:#f8fafc;box-sizing:border-box;}
 .data-tbl thead tr.filter-row input:focus{border-color:var(--blue);background:#fff;}
 .data-tbl th.r,.data-tbl td.r{text-align:right;}
-.data-tbl td{padding:9px 12px;border-bottom:1px solid #eef2f7;font-weight:600;}
+.data-tbl td{padding:9px 12px;border-bottom:1px solid #eef2f7;border-right:1px solid #475569;font-weight:600;}
+.data-tbl td:last-child{border-right:none;}
 .data-tbl tr:hover td{background:#f8fafc;}
 .data-tbl td.r{font-family:'Courier New',monospace;}
 .data-tbl input{width:100%;padding:6px 8px;border:1.5px solid var(--blue-light);border-radius:6px;font-family:'Nunito',sans-serif;font-size:13px;outline:none;}
@@ -232,24 +235,29 @@ body.inc-has-sidenav .wrap.admin-mode{margin-left:190px;width:calc(100% - 190px)
 
         <!-- Panel Consultas -->
         <div id="panel-consultas" style="display:none;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">🔎 Registros de Número de Contrato <span style="font-size:11px;font-weight:600;color:#94a3b8;letter-spacing:0;text-transform:none;">(v. 15-jul editar)</span></div>
-            <div style="display:flex;gap:8px;">
-              <button onclick="exportarConsultas()" style="padding:5px 12px;border-radius:7px;border:1.5px solid #16a34a;background:#16a34a;color:#fff;font-size:12px;font-weight:700;cursor:pointer;">📥 Exportar Excel</button>
-              <button onclick="cargarConsultas()" style="padding:5px 12px;border-radius:7px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:12px;font-weight:700;cursor:pointer;">↻ Actualizar</button>
+          <div style="position:sticky;top:0;z-index:20;background:#fff;padding-bottom:14px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">🔎 Registros de Número de Contrato</div>
+              <div style="display:flex;gap:8px;">
+                <button onclick="exportarConsultas()" style="padding:5px 12px;border-radius:7px;border:1.5px solid #16a34a;background:#16a34a;color:#fff;font-size:12px;font-weight:700;cursor:pointer;">📥 Exportar Excel</button>
+              </div>
             </div>
           </div>
-          <div style="overflow-x:auto;">
-            <table style="width:100%;border-collapse:collapse;font-size:12px;">
-              <thead><tr style="background:#f8fafc;">
-                <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">Cédula</th>
-                <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">Nombre</th>
-                <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">Contrato</th>
-                <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">F. Expedición</th>
-                <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">Celular</th>
-                <th style="padding:8px 10px;text-align:left;font-weight:700;text-transform:uppercase;font-size:10px;color:#64748b;border-bottom:2px solid #e2e8f0;">Fecha consulta</th>
-                <th style="padding:8px 10px;border-bottom:2px solid #e2e8f0;"></th>
-              </tr></thead>
+          <div class="tbl-scroll">
+            <table class="data-tbl">
+              <thead>
+                <tr>
+                  <th>Cédula</th><th>Nombre</th><th>Contrato</th><th>F. Expedición</th><th>Celular</th><th>Fecha consulta</th><th>Acciones</th>
+                </tr>
+                <tr class="filter-row">
+                  <td><input id="conFiltroCedula" type="text" placeholder="Buscar…"></td>
+                  <td><input id="conFiltroNombre" type="text" placeholder="Buscar…"></td>
+                  <td><input id="conFiltroContrato" type="text" placeholder="Buscar…"></td>
+                  <td><input id="conFiltroFecha" type="text" placeholder="Buscar…"></td>
+                  <td><input id="conFiltroCelular" type="text" placeholder="Buscar…"></td>
+                  <td></td><td></td>
+                </tr>
+              </thead>
               <tbody id="consultas-body">
                 <tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:14px;">Sin registros aún.</td></tr>
               </tbody>
@@ -269,20 +277,22 @@ body.inc-has-sidenav .wrap.admin-mode{margin-left:190px;width:calc(100% - 190px)
 
         <!-- Panel Incentivos -->
         <div id="panel-incentivos">
-          <div class="admin-toolbar">
-            <label class="btn-app primary" for="fileXls">📤 Importar<input type="file" id="fileXls" accept=".xlsx,.xls" hidden></label>
-            <button class="btn-app" id="btnExport">📥 Exportar</button>
-            <button class="btn-app" id="btnPlantilla">📄 Plantilla</button>
-            <span class="spacer"></span>
-            <button class="btn-app danger" id="btnClear">🗑 Limpiar todo</button>
-          </div>
-          <div class="admin-search">
-            <span class="count" id="admCount">0 registros</span>
+          <div style="position:sticky;top:0;z-index:20;background:#fff;">
+            <div class="admin-toolbar">
+              <label class="btn-app primary" for="fileXls">📤 Importar<input type="file" id="fileXls" accept=".xlsx,.xls" hidden></label>
+              <button class="btn-app" id="btnExport">📥 Exportar</button>
+              <button class="btn-app" id="btnPlantilla">📄 Plantilla</button>
+              <span class="spacer"></span>
+              <button class="btn-app danger" id="btnClear">🗑 Limpiar todo</button>
+            </div>
+            <div class="admin-search">
+              <span class="count" id="admCount">0 registros</span>
+            </div>
           </div>
           <div class="tbl-scroll">
             <table class="data-tbl">
               <thead>
-                <tr><th>Cédula</th><th>Nombre</th><th>N° Contrato</th><th>Mes</th><th class="r">Valor</th><th></th></tr>
+                <tr><th>Cédula</th><th>Nombre</th><th>N° Contrato</th><th>Mes</th><th class="r">Valor</th><th>Acciones</th></tr>
                 <tr class="filter-row">
                   <td><input id="admFiltroCedula" type="text" placeholder="Buscar…"></td>
                   <td><input id="admFiltroNombre" type="text" placeholder="Buscar…"></td>
@@ -953,13 +963,28 @@ async function cargarConsultas(){
   }catch{tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#dc2626;padding:14px;">Sin conexión.</td></tr>';}
 }
 
+function _consultasFiltrar(lista){
+  const g=id=>{const el=document.getElementById(id);return el?el.value.trim().toLowerCase():'';};
+  const cedula=g('conFiltroCedula'), nombre=g('conFiltroNombre'), contrato=g('conFiltroContrato'),
+        fecha=g('conFiltroFecha'), celular=g('conFiltroCelular');
+  return lista.filter(c=>{
+    if(cedula   && !(c.cedula||'').toLowerCase().includes(cedula))     return false;
+    if(nombre   && !(c.nombre||'').toLowerCase().includes(nombre))     return false;
+    if(contrato && !(c.contrato||'').toLowerCase().includes(contrato)) return false;
+    if(fecha    && !(c.fechaExpedicion||'').toLowerCase().includes(fecha)) return false;
+    if(celular  && !(c.celular||'').toLowerCase().includes(celular))   return false;
+    return true;
+  });
+}
 function pintarConsultas(){
   const tbody=document.getElementById('consultas-body');
   if(!tbody)return;
   if(!_consultasLista.length){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:14px;">Sin registros aún.</td></tr>';return;}
+  const lista=_consultasFiltrar([..._consultasLista].reverse());
+  if(!lista.length){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:14px;">Sin coincidencias.</td></tr>';return;}
   const td='padding:7px 10px;font-size:12px;';
   const inp='width:100%;padding:5px 7px;border:1.5px solid #93c5fd;border-radius:6px;font-size:12px;font-family:inherit;box-sizing:border-box;';
-  tbody.innerHTML=[..._consultasLista].reverse().map(c=>{
+  tbody.innerHTML=lista.map(c=>{
     if(c.id===_editConsultaId){
       // Fila en modo edición: cédula, fecha, celular editables
       return `<tr style="background:#eff6ff;">
@@ -990,6 +1015,11 @@ function pintarConsultas(){
   }).join('');
 }
 
+['conFiltroCedula','conFiltroNombre','conFiltroContrato','conFiltroFecha','conFiltroCelular'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', pintarConsultas);
+});
+// Se actualiza sola cada 30s — ya no depende de un botón "Actualizar".
+setInterval(cargarConsultas, 30000);
 function editarConsulta(id){ _editConsultaId=id; pintarConsultas(); }
 function cancelarEdicionConsulta(){ _editConsultaId=null; pintarConsultas(); }
 async function guardarConsulta(id){
