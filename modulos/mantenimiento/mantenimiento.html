@@ -30,7 +30,7 @@ html,body{height:100%;overflow:hidden;font-family:'Nunito',-apple-system,BlinkMa
 .login-logo{display:flex;align-items:center;gap:12px;margin-bottom:32px}
 .brand-logo-badge{width:44px;height:44px;border-radius:50%;background:#fff;box-shadow:0 0 0 1.5px #26314f;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden}
 .brand-logo-badge img{width:100%;height:100%;object-fit:contain;padding:4px}
-.brand-logo-badge-sm{width:36px;height:36px;box-shadow:0 0 0 1.5px #e2e8f0,0 1px 4px rgba(0,0,0,.08)}
+.brand-logo-badge-sm{width:52px;height:52px;box-shadow:0 0 0 2px #e2e8f0,0 2px 8px rgba(0,0,0,.08)}
 .brand-logo-badge-sm img{padding:3px}
 .login-logo-text{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800;letter-spacing:1.5px;color:#2563eb}
 .login-logo-text small{color:#8291b3;font-weight:400;font-size:14px;display:block;letter-spacing:0}
@@ -47,10 +47,13 @@ html,body{height:100%;overflow:hidden;font-family:'Nunito',-apple-system,BlinkMa
 
 /* ─── APP ─── */
 #app{display:flex;flex-direction:column;height:100vh;height:100dvh}
-.topbar{background:#fff;color:#0f172a;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;border-bottom:1px solid #e2e8f0;box-shadow:0 1px 6px rgba(0,0,0,.07);position:relative}
+.topbar{background:#fff;color:#0f172a;padding:0 clamp(12px,2.5vw,24px);min-height:64px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;border-bottom:1px solid #e2e8f0;box-shadow:0 1px 6px rgba(0,0,0,.07);position:relative}
+.hd-title-wrap{display:flex;flex-direction:column;gap:0}
+.hd-date{font-size:11px;color:#64748b;font-weight:600;margin-top:1px}
+.hd-clock{font-size:11px;color:#94a3b8;font-weight:600;margin-top:0;font-family:'IBM Plex Mono',monospace;letter-spacing:.5px}
 .topbar::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:3px;background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa)}
-.logo{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;letter-spacing:1px;color:#2563eb}
-.logo small{color:#64748b;font-weight:400;font-size:13px;margin-left:4px;letter-spacing:0}
+.logo{font-family:'Barlow Condensed',sans-serif;font-size:clamp(14px,2vw,20px);font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0f172a;line-height:1.1}
+.logo small{color:#2563eb;font-weight:800;font-size:inherit;margin-left:4px;letter-spacing:2px;text-transform:uppercase}
 .topbar-right{display:flex;align-items:center;gap:10px}
 .user-pill{display:flex;align-items:center;gap:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:30px;padding:5px 12px 5px 5px;min-height:44px}
 .avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0}
@@ -315,7 +318,11 @@ textarea.form-control{min-height:80px;resize:vertical;line-height:1.5}
 <div class="topbar">
   <div style="display:flex;align-items:center;gap:12px">
     <div class="brand-logo-badge brand-logo-badge-sm"><img src="/logo.png" alt="Millar"></div>
-    <div class="logo">MMT <small>/ Locativo</small></div>
+    <div class="hd-title-wrap">
+      <div class="logo">MMT <small>LOCATIVO</small></div>
+      <p class="hd-date" id="hd-date"></p>
+      <p class="hd-clock" id="hd-clock"></p>
+    </div>
   </div>
   <div class="topbar-right">
     <div class="user-pill">
@@ -3079,6 +3086,14 @@ function resetTasksToDefault(){
 (async function initMMT(){
   await loadData();
   renderUserList();
+})();
+
+// ── Fecha y hora del encabezado ─────────────────────────────────────
+document.getElementById('hd-date').textContent=new Date().toLocaleDateString('es-CO',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+(function tickClock(){
+  const el=document.getElementById('hd-clock');
+  if(el) el.textContent=new Date().toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  setTimeout(tickClock,1000);
 })();
 </script>
 </body>

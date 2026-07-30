@@ -44,12 +44,13 @@ header{
 }
 header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);}
 .hd-left{display:flex;align-items:center;gap:12px;}
-.hd-logo{width:46px;height:46px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 0 0 2px #e2e8f0,0 2px 8px rgba(0,0,0,.1);flex-shrink:0;}
+.hd-logo{width:52px;height:52px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 0 0 2px #e2e8f0,0 2px 8px rgba(0,0,0,.08);flex-shrink:0;}
 .hd-logo img{width:100%;height:100%;object-fit:contain;padding:3px;}
 .hd-title-wrap{display:flex;flex-direction:column;gap:0;}
-h1{font-family:'Barlow Condensed',sans-serif;font-size:clamp(16px,2.2vw,22px);font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0f172a;line-height:1;margin:0;}
+h1{font-family:'Barlow Condensed',sans-serif;font-size:clamp(14px,2vw,20px);font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0f172a;line-height:1.1;margin:0;}
 h1 span{color:#2563eb;}
-.hd-date{font-family:'Nunito',sans-serif;font-size:12px;color:#64748b;font-weight:600;margin:2px 0 0 0;}
+.hd-date{font-size:11px;color:#64748b;font-weight:600;margin-top:1px;}
+.hd-clock{font-size:11px;color:#94a3b8;font-weight:600;margin-top:0;font-family:'IBM Plex Mono',monospace;letter-spacing:.5px;}
 .hd-right{display:flex;align-items:center;gap:8px;}
 .btn-volver{padding:7px 16px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#1e3a8a;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:.5px;cursor:pointer;transition:all .2s;height:36px;display:flex;align-items:center;}
 .btn-volver:hover{background:#f1f5f9;border-color:#93c5fd;}
@@ -340,6 +341,7 @@ input.form-input[type="text"],textarea.form-textarea{text-transform:uppercase;}
     <div class="hd-title-wrap">
       <h1 id="page-title">MES <span>Millar</span></h1>
       <p class="hd-date" id="alist-header-date"></p>
+      <p class="hd-clock" id="alist-header-clock"></p>
     </div>
   </div>
   <div class="hd-right">
@@ -1516,6 +1518,11 @@ async function init() {
   }
   setInterval(updateAlistDate, 60000);
   updateAlistDate();
+  (function tickClock(){
+    const el=document.getElementById('alist-header-clock');
+    if(el) el.textContent=new Date().toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    setTimeout(tickClock,1000);
+  })();
 }
 
 // Volver a la pantalla de selección Alistamiento/Mantenimiento

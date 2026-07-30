@@ -47,17 +47,21 @@ input,select,textarea{ font-size:16px !important; }
 #ci-topbar [data-millar-nav]{flex:1;display:flex;justify-content:center;}
 #ci-topbar::after{
   content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
-  background:linear-gradient(90deg,#1e3a8a,#2563eb,#7c3aed);
+  background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);
 }
-.ci-tb-left{ display:flex;align-items:center;gap:10px; }
+.ci-tb-left{ display:flex;align-items:center;gap:12px; }
 .ci-tb-title{
-  font-family:'Barlow Condensed',sans-serif;font-size:clamp(16px,2.5vw,22px);
-  font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0f172a;line-height:1;margin:0;
+  font-family:'Barlow Condensed',sans-serif;font-size:clamp(14px,2vw,20px);
+  font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0f172a;line-height:1.1;margin:0;
 }
 .ci-tb-title span{ color:var(--accent); }
 .ci-tb-date{
-  font-family:'Nunito',sans-serif;font-size:12px;color:#64748b;
-  font-weight:600;margin:2px 0 0 0;letter-spacing:.2px;
+  font-size:11px;color:#64748b;
+  font-weight:600;margin-top:1px;
+}
+.ci-tb-clock{
+  font-size:11px;color:#94a3b8;font-weight:600;margin-top:0;
+  font-family:'IBM Plex Mono',monospace;letter-spacing:.5px;
 }
 .ci-tb-right{ display:flex;align-items:center;gap:8px; }
 .ci-conn-dot{
@@ -345,7 +349,7 @@ input,select,textarea{ font-size:16px !important; }
 
 /* ── Header estilo Tablero Planta ── */
 .hd-logo{
-  width:36px;height:36px;border-radius:50%;background:#fff;
+  width:52px;height:52px;border-radius:50%;background:#fff;
   display:flex;align-items:center;justify-content:center;overflow:hidden;
   box-shadow:0 0 0 2px #e2e8f0,0 2px 8px rgba(0,0,0,.08);flex-shrink:0;
 }
@@ -438,6 +442,7 @@ input,select,textarea{ font-size:16px !important; }
       <div>
         <div class="ci-tb-title">TABLERO <span>CI</span></div>
         <p class="ci-tb-date" id="ci-header-date"></p>
+        <p class="ci-tb-clock" id="ci-header-clock"></p>
       </div>
     </div>
     <div data-millar-nav></div>
@@ -2458,6 +2463,11 @@ function updateCIHeaderDate(){
   if(el2) el2.textContent = str;
 }
 setInterval(updateCIHeaderDate, 60000);
+(function tickClock(){
+  const el=document.getElementById('ci-header-clock');
+  if(el) el.textContent=new Date().toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  setTimeout(tickClock,1000);
+})();
 updateCIHeaderDate();
 
 // ── Minutos acumulados en stats bar ─────────────────────────────

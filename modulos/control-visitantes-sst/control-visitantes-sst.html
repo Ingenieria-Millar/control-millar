@@ -51,7 +51,7 @@
   }
   .topbar .left{display:flex;align-items:center;gap:12px;}
   .topbar-icon{
-    width:38px;height:38px;border-radius:50%;background:#fff;flex-shrink:0;
+    width:52px;height:52px;border-radius:50%;background:#fff;flex-shrink:0;
     display:flex;align-items:center;justify-content:center;overflow:hidden;
     box-shadow:0 0 0 2px #e2e8f0,0 2px 8px rgba(0,0,0,.08);
   }
@@ -76,9 +76,13 @@
   }
   .brand-title .brand-accent{color:#2563eb;}
   .topbar-fecha{
+    font-size:11px;color:#64748b;font-weight:600;
+    display:block;margin-top:1px;
+  }
+  .topbar-clock{
     font-family:'IBM Plex Mono',monospace;
-    font-size:.68rem;color:var(--steel);font-weight:500;
-    display:block;margin-top:3px;
+    font-size:11px;color:#94a3b8;font-weight:600;letter-spacing:.5px;
+    display:block;margin-top:0;
   }
   .topbar-right{display:flex;align-items:center;gap:10px;flex-shrink:0;}
   .storage-badge{
@@ -477,7 +481,8 @@
         <div class="topbar-brand">
           <span class="eyebrow">MES · Control de acceso · SST</span>
           <span class="brand-title">CONTROL DE <span class="brand-accent">VISITANTES</span></span>
-          <span class="topbar-fecha" id="clockDisplay">—</span>
+          <span class="topbar-fecha" id="fechaDisplay">—</span>
+          <span class="topbar-clock" id="clockDisplay">—</span>
         </div>
       </div>
       <div class="topbar-right">
@@ -637,8 +642,10 @@ async function saveDB(){
 /* ============================ RELOJ ============================ */
 function tickClock(){
   const now = new Date();
+  const fechaEl = document.getElementById('fechaDisplay');
+  if(fechaEl) fechaEl.textContent = now.toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   const clockEl = document.getElementById('clockDisplay');
-  if(clockEl) clockEl.textContent = new Intl.DateTimeFormat('es-CO',{weekday:'short',day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(now);
+  if(clockEl) clockEl.textContent = now.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   const liveEl = document.getElementById('horaIngresoLive');
   if(liveEl) liveEl.textContent = fmtDateTime(now);
 }

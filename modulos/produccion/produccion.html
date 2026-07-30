@@ -322,11 +322,13 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 /* ── HEADER COMPARTIDO ── */
 header{position:sticky;top:0;z-index:200;background:#fff;border-bottom:1px solid #e2e8f0;box-shadow:0 1px 6px rgba(0,0,0,.07);padding:0 clamp(12px,2.5vw,20px);min-height:64px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
 header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);}
-.hd-left{display:flex;align-items:center;gap:10px;}
-.hd-logo{width:36px;height:36px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 0 0 2px #e2e8f0,0 2px 8px rgba(0,0,0,.08);flex-shrink:0;}
+.hd-left{display:flex;align-items:center;gap:12px;}
+.hd-title-wrap{display:flex;flex-direction:column;gap:0;}
+.hd-logo{width:52px;height:52px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 0 0 2px #e2e8f0,0 2px 8px rgba(0,0,0,.08);flex-shrink:0;}
 .hd-logo img{width:100%;height:100%;object-fit:contain;padding:3px;}
 .hd-title{font-family:'Barlow Condensed',sans-serif;font-size:clamp(14px,2vw,20px);font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0f172a;line-height:1.1;}
 .hd-title span{color:#2563eb;}
+.hd-clock{font-size:11px;color:#94a3b8;font-weight:600;margin-top:0;font-family:'IBM Plex Mono',monospace;letter-spacing:.5px;}
 .hd-right{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
 .hd-back-btn{padding:6px 13px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#1e3a8a;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:.5px;cursor:pointer;transition:all .2s;white-space:nowrap;}
 .hd-back-btn:hover{background:#f1f5f9;border-color:#93c5fd;}
@@ -368,9 +370,10 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
     <div class="hd-logo">
       <img src="/logo.png" alt="Millar" onerror="this.style.display='none'">
     </div>
-    <div>
+    <div class="hd-title-wrap">
       <div class="hd-title">PRODUCCIÓN <span>Millar</span></div>
-      <p id="prod-header-date" style="font-family:'Nunito',sans-serif;font-size:12px;color:#64748b;font-weight:600;margin:2px 0 0 0;letter-spacing:.2px;"></p>
+      <p id="prod-header-date" style="font-size:11px;color:#64748b;font-weight:600;margin-top:1px;"></p>
+      <p class="hd-clock" id="prod-header-clock"></p>
     </div>
     <div style="width:1px;height:28px;background:#e2e8f0;margin:0 4px;flex-shrink:0;"></div>
     <select class="board-select" id="boardSelect" onchange="switchBoard(this.value)" style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:.5px;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:8px;padding:5px 10px;color:#0f172a;cursor:pointer;outline:none;"></select>
@@ -1780,6 +1783,11 @@ async function init(){
   buildModalEmojis(); buildModalColors();
   const dateEl=document.getElementById('prod-header-date');
   if(dateEl)dateEl.textContent=new Date().toLocaleDateString('es-CO',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  (function tickClock(){
+    const el=document.getElementById('prod-header-clock');
+    if(el) el.textContent=new Date().toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    setTimeout(tickClock,1000);
+  })();
   document.querySelectorAll('.modal-overlay').forEach(o=>{o.addEventListener('click',e=>{if(e.target===o)o.classList.add('hidden');});});
   document.addEventListener('click',e=>{
     const wrap=document.getElementById('excelBtnWrap');
