@@ -95,8 +95,8 @@ body.inc-has-sidenav .wrap.admin-mode{margin-left:190px;width:calc(100% - 190px)
    solo .tbl-scroll se desplaza internamente. Evita los dos scrollbars y el
    choque entre el sticky del encabezado y el sticky de la tabla. */
 body.inc-has-sidenav{height:100vh;overflow:hidden;display:flex;flex-direction:column;}
-body.inc-has-sidenav .wrap.admin-mode{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;}
-body.inc-has-sidenav #adminCard{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;margin-bottom:0;}
+body.inc-has-sidenav .wrap.admin-mode{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;padding:10px;}
+body.inc-has-sidenav #adminCard{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;margin-bottom:0;box-shadow:none;border-radius:10px;}
 #panel-incentivos,#panel-consultas{flex:1;min-height:0;flex-direction:column;}
 #panel-meses,#panel-configuraciones{flex:1;min-height:0;overflow-y:auto;}
 .admin-badge{display:inline-block;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#fff;background:var(--blue);padding:3px 10px;border-radius:20px;margin-left:8px;vertical-align:middle;}
@@ -116,14 +116,14 @@ body.inc-has-sidenav #adminCard{flex:1;min-height:0;overflow:hidden;display:flex
 .tbl-scroll{flex:1;min-height:0;overflow:auto;border:1.5px solid var(--border);border-radius:12px;}
 .data-tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;}
 .data-tbl thead{position:sticky;top:0;z-index:2;}
-.data-tbl thead th{background:#f8fafc;text-align:left;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;padding:10px 12px;border-bottom:1px solid var(--border);border-right:1px solid #94a3b8;}
+.data-tbl thead th{background:#f8fafc;text-align:center;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;padding:10px 12px;border-bottom:1px solid var(--border);border-right:1px solid #cbd5e1;}
 .data-tbl thead th:last-child{border-right:none;}
-.data-tbl thead tr.filter-row td{background:#fff;padding:5px 6px;border-bottom:2px solid var(--border);border-right:1px solid #94a3b8;}
+.data-tbl thead tr.filter-row td{background:#fff;padding:5px 6px;border-bottom:2px solid var(--border);border-right:1px solid #cbd5e1;}
 .data-tbl thead tr.filter-row td:last-child{border-right:none;}
 .data-tbl thead tr.filter-row input{width:100%;padding:5px 8px;border:1.5px solid var(--border);border-radius:7px;font-size:12px;font-family:'Nunito',sans-serif;outline:none;background:#f8fafc;box-sizing:border-box;}
 .data-tbl thead tr.filter-row input:focus{border-color:var(--blue);background:#fff;}
-.data-tbl th.r,.data-tbl td.r{text-align:right;}
-.data-tbl td{padding:9px 12px;border-bottom:1px solid #eef2f7;border-right:1px solid #94a3b8;font-weight:600;}
+.data-tbl th.r,.data-tbl td.r{text-align:center;}
+.data-tbl td{padding:9px 12px;border-bottom:1px solid #eef2f7;border-right:1px solid #cbd5e1;font-weight:600;text-align:center;}
 .data-tbl td:last-child{border-right:none;}
 .data-tbl tr:hover td{background:#f8fafc;}
 .data-tbl td.r{font-family:'Courier New',monospace;}
@@ -233,7 +233,7 @@ body.inc-has-sidenav #adminCard{flex:1;min-height:0;overflow:hidden;display:flex
   </div>
 
   <!-- ── ADMIN (oculto; se desbloquea con la tuerca) ── -->
-  <div class="card" id="adminCard" style="padding:20px;">
+  <div class="card" id="adminCard" style="padding:12px;">
 
         <!-- Panel Meses -->
         <div id="panel-meses" style="display:none;">
@@ -264,7 +264,8 @@ body.inc-has-sidenav #adminCard{flex:1;min-height:0;overflow:hidden;display:flex
                   <td><input id="conFiltroContrato" type="text" placeholder="Buscar…"></td>
                   <td><input id="conFiltroFecha" type="text" placeholder="Buscar…"></td>
                   <td><input id="conFiltroCelular" type="text" placeholder="Buscar…"></td>
-                  <td></td><td></td>
+                  <td><input id="conFiltroFechaConsulta" type="text" placeholder="Buscar…"></td>
+                  <td></td>
                 </tr>
               </thead>
               <tbody id="consultas-body">
@@ -294,9 +295,6 @@ body.inc-has-sidenav #adminCard{flex:1;min-height:0;overflow:hidden;display:flex
               <span class="spacer"></span>
               <button class="btn-app danger" id="btnClear">🗑 Limpiar todo</button>
             </div>
-            <div class="admin-search">
-              <span class="count" id="admCount">0 registros</span>
-            </div>
           </div>
           <div class="tbl-scroll">
             <table class="data-tbl">
@@ -307,7 +305,8 @@ body.inc-has-sidenav #adminCard{flex:1;min-height:0;overflow:hidden;display:flex
                   <td><input id="admFiltroNombre" type="text" placeholder="Buscar…"></td>
                   <td><input id="admFiltroContrato" type="text" placeholder="Buscar…"></td>
                   <td><input id="admFiltroMes" type="text" placeholder="Buscar…"></td>
-                  <td></td><td></td>
+                  <td><input id="admFiltroValor" type="text" placeholder="Buscar…"></td>
+                  <td></td>
                 </tr>
               </thead>
               <tbody id="admBody"></tbody>
@@ -645,11 +644,13 @@ function aplicarBusqueda(reset){
   const contrato = document.getElementById('admFiltroContrato').value.trim().toLowerCase();
   const nombre   = document.getElementById('admFiltroNombre').value.trim().toLowerCase();
   const cedula   = document.getElementById('admFiltroCedula').value.trim().toLowerCase();
+  const valor    = document.getElementById('admFiltroValor').value.trim().toLowerCase();
   filtered = adminData.filter(r=>{
     if(mes      && !(r.mes||'').toLowerCase().includes(mes))          return false;
     if(contrato && !(r.contrato||'').toLowerCase().includes(contrato)) return false;
     if(nombre   && !(r.nombre||'').toLowerCase().includes(nombre))     return false;
     if(cedula   && !(r.cedula||'').toLowerCase().includes(cedula))     return false;
+    if(valor    && !String(r.valor||'').toLowerCase().includes(valor)) return false;
     return true;
   });
   filtered.sort((a,b)=>{
@@ -659,7 +660,6 @@ function aplicarBusqueda(reset){
   if(reset) page = 1;
   const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   if(page > pages) page = pages;
-  document.getElementById('admCount').textContent = filtered.length + (filtered.length===1?' registro':' registros');
   renderTabla();
 }
 
@@ -753,6 +753,7 @@ document.getElementById('admFiltroMes').addEventListener('input', ()=>aplicarBus
 document.getElementById('admFiltroContrato').addEventListener('input', ()=>aplicarBusqueda(true));
 document.getElementById('admFiltroNombre').addEventListener('input', ()=>aplicarBusqueda(true));
 document.getElementById('admFiltroCedula').addEventListener('input', ()=>aplicarBusqueda(true));
+document.getElementById('admFiltroValor').addEventListener('input', ()=>aplicarBusqueda(true));
 document.getElementById('pgPrev').addEventListener('click', ()=>{ if(page>1){ page--; renderTabla(); } });
 document.getElementById('pgNext').addEventListener('click', ()=>{
   const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -976,13 +977,14 @@ async function cargarConsultas(){
 function _consultasFiltrar(lista){
   const g=id=>{const el=document.getElementById(id);return el?el.value.trim().toLowerCase():'';};
   const cedula=g('conFiltroCedula'), nombre=g('conFiltroNombre'), contrato=g('conFiltroContrato'),
-        fecha=g('conFiltroFecha'), celular=g('conFiltroCelular');
+        fecha=g('conFiltroFecha'), celular=g('conFiltroCelular'), fechaConsulta=g('conFiltroFechaConsulta');
   return lista.filter(c=>{
     if(cedula   && !(c.cedula||'').toLowerCase().includes(cedula))     return false;
     if(nombre   && !(c.nombre||'').toLowerCase().includes(nombre))     return false;
     if(contrato && !(c.contrato||'').toLowerCase().includes(contrato)) return false;
     if(fecha    && !(c.fechaExpedicion||'').toLowerCase().includes(fecha)) return false;
     if(celular  && !(c.celular||'').toLowerCase().includes(celular))   return false;
+    if(fechaConsulta && !_fmtFecha(c.fecha).toLowerCase().includes(fechaConsulta)) return false;
     return true;
   });
 }
@@ -1025,7 +1027,7 @@ function pintarConsultas(){
   }).join('');
 }
 
-['conFiltroCedula','conFiltroNombre','conFiltroContrato','conFiltroFecha','conFiltroCelular'].forEach(id=>{
+['conFiltroCedula','conFiltroNombre','conFiltroContrato','conFiltroFecha','conFiltroCelular','conFiltroFechaConsulta'].forEach(id=>{
   document.getElementById(id).addEventListener('input', pintarConsultas);
 });
 // Se actualiza sola cada 30s — ya no depende de un botón "Actualizar".
