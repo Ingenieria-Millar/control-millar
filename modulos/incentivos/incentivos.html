@@ -91,6 +91,14 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;ba
   background:#101a33;padding:16px 10px;flex-direction:column;gap:2px;overflow-y:auto;font-family:'Nunito',sans-serif;}
 .inc-sidebar.show{display:flex;}
 body.inc-has-sidenav .wrap.admin-mode{margin-left:190px;width:calc(100% - 190px);}
+/* Panel admin: una sola columna flex de alto fijo — nada de scroll de página,
+   solo .tbl-scroll se desplaza internamente. Evita los dos scrollbars y el
+   choque entre el sticky del encabezado y el sticky de la tabla. */
+body.inc-has-sidenav{height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+body.inc-has-sidenav .wrap.admin-mode{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;}
+body.inc-has-sidenav #adminCard{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;margin-bottom:0;}
+#panel-incentivos,#panel-consultas{flex:1;min-height:0;flex-direction:column;}
+#panel-meses,#panel-configuraciones{flex:1;min-height:0;overflow-y:auto;}
 .admin-badge{display:inline-block;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#fff;background:var(--blue);padding:3px 10px;border-radius:20px;margin-left:8px;vertical-align:middle;}
 .admin-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px;}
 .admin-toolbar .spacer{flex:1;}
@@ -105,7 +113,7 @@ body.inc-has-sidenav .wrap.admin-mode{margin-left:190px;width:calc(100% - 190px)
 .admin-search select:focus{border-color:var(--blue);}
 .admin-search .count{font-size:12px;color:var(--muted);font-weight:700;}
 
-.tbl-scroll{max-height:520px;overflow:auto;border:1.5px solid var(--border);border-radius:12px;}
+.tbl-scroll{flex:1;min-height:0;overflow:auto;border:1.5px solid var(--border);border-radius:12px;}
 .data-tbl{width:100%;border-collapse:collapse;font-size:13px;}
 .data-tbl thead th{position:sticky;top:0;background:#f8fafc;z-index:2;text-align:left;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;padding:10px 12px;border-bottom:1px solid var(--border);border-right:1px solid #475569;}
 .data-tbl thead th:last-child{border-right:none;}
@@ -129,7 +137,7 @@ body.inc-has-sidenav .wrap.admin-mode{margin-left:190px;width:calc(100% - 190px)
 .ico-btn.del:hover{background:#fef2f2;}
 .tbl-empty{padding:30px;text-align:center;color:#94a3b8;font-size:13px;}
 
-.pager{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:14px;}
+.pager{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:14px;flex-shrink:0;}
 .pager button{width:36px;height:36px;border-radius:8px;border:1.5px solid var(--border);background:#fff;cursor:pointer;font-size:16px;font-weight:700;color:var(--blue-dark);}
 .pager button:disabled{opacity:.4;cursor:default;}
 .pager .pg-info{font-size:13px;font-weight:700;color:var(--muted);}
@@ -235,7 +243,7 @@ body.inc-has-sidenav .wrap.admin-mode{margin-left:190px;width:calc(100% - 190px)
 
         <!-- Panel Consultas -->
         <div id="panel-consultas" style="display:none;">
-          <div style="position:sticky;top:0;z-index:20;background:#fff;padding-bottom:14px;">
+          <div style="flex-shrink:0;padding-bottom:14px;">
             <div style="display:flex;align-items:center;justify-content:space-between;">
               <div style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;">🔎 Registros de Número de Contrato</div>
               <div style="display:flex;gap:8px;">
@@ -277,7 +285,7 @@ body.inc-has-sidenav .wrap.admin-mode{margin-left:190px;width:calc(100% - 190px)
 
         <!-- Panel Incentivos -->
         <div id="panel-incentivos">
-          <div style="position:sticky;top:0;z-index:20;background:#fff;">
+          <div style="flex-shrink:0;">
             <div class="admin-toolbar">
               <label class="btn-app primary" for="fileXls">📤 Importar<input type="file" id="fileXls" accept=".xlsx,.xls" hidden></label>
               <button class="btn-app" id="btnExport">📥 Exportar</button>
@@ -480,8 +488,9 @@ function abrirPassModal(){
 function cerrarPassModal(){ document.getElementById('passModal').classList.remove('show'); }
 let _waInterval = null;
 function switchTab(tab){
+  const flexPanels = new Set(['incentivos','consultas']);
   ['incentivos','meses','consultas','configuraciones'].forEach(t=>{
-    document.getElementById('panel-'+t).style.display = tab===t ? 'block' : 'none';
+    document.getElementById('panel-'+t).style.display = tab!==t ? 'none' : (flexPanels.has(t) ? 'flex' : 'block');
     document.getElementById('tab-btn-'+t).classList.toggle('tab-nav-active', tab===t);
   });
   if(tab==='consultas') cargarConsultas();
@@ -518,7 +527,7 @@ function incAjustarTopMenu(){
 window.addEventListener('resize', incAjustarTopMenu);
 function mostrarAdmin(){
   document.getElementById('consultaCard').style.display = 'none';
-  document.getElementById('adminCard').style.display = 'block';
+  document.getElementById('adminCard').style.display = 'flex';
   document.getElementById('btnGear').classList.add('on');
   document.querySelector('.wrap').classList.add('admin-mode');
   document.body.classList.add('inc-has-sidenav');
