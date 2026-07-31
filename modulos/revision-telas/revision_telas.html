@@ -1271,15 +1271,39 @@ input[type=number]{-moz-appearance:textfield;}
 <!-- Pantalla Informe Gerencial -->
 <div id="rt-informe-screen" style="display:none;position:fixed;inset:0;z-index:500;background:#f1f5f9;flex-direction:column;">
   <div style="flex:1;overflow-y:auto;padding:24px clamp(12px,2.5vw,24px);">
-    <div style="max-width:900px;margin:0 auto;">
+    <div style="max-width:1200px;margin:0 auto;">
       <div id="ig-selector" style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:20px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px 20px;">
         <div>
           <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;display:block;margin-bottom:5px;">Operario</label>
-          <select id="ig-persona" style="padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:'Nunito',sans-serif;outline:none;min-width:220px;"></select>
+          <select id="ig-persona" onchange="igCargar()" style="padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:'Nunito',sans-serif;outline:none;min-width:200px;"></select>
         </div>
         <div>
-          <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;display:block;margin-bottom:5px;">Fecha</label>
-          <input type="date" id="ig-fecha" style="padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:'Nunito',sans-serif;outline:none;">
+          <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;display:block;margin-bottom:5px;">Turno</label>
+          <select id="ig-turno" onchange="igCargar()" style="padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:'Nunito',sans-serif;outline:none;min-width:130px;">
+            <option value="">Ambos</option>
+            <option value="dia">Día</option>
+            <option value="noche">Noche</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;display:block;margin-bottom:5px;">Período</label>
+          <select id="ig-modo-fecha" onchange="igModoFechaChange()" style="padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:'Nunito',sans-serif;outline:none;min-width:150px;">
+            <option value="hoy">Hoy</option>
+            <option value="ayer">Ayer</option>
+            <option value="semana">Esta semana</option>
+            <option value="mes">Este mes</option>
+            <option value="rango">Rango personalizado</option>
+          </select>
+        </div>
+        <div id="ig-rango-wrap" style="display:none;gap:10px;">
+          <div>
+            <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;display:block;margin-bottom:5px;">Desde</label>
+            <input type="date" id="ig-desde" oninput="igCargar()" style="padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:'Nunito',sans-serif;outline:none;">
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;display:block;margin-bottom:5px;">Hasta</label>
+            <input type="date" id="ig-hasta" oninput="igCargar()" style="padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:'Nunito',sans-serif;outline:none;">
+          </div>
         </div>
         <button onclick="igCargar()" style="padding:9px 18px;border-radius:8px;border:none;background:#1e3a8a;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Cargar</button>
         <button id="ig-btn-pdf" onclick="igGenerarPDF()" style="display:none;padding:9px 18px;border-radius:8px;border:none;background:#4338ca;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;cursor:pointer;letter-spacing:.5px;margin-left:auto;">📄 Generar PDF</button>
@@ -3134,7 +3158,10 @@ function renderRefsTable(){
   const provs=Object.keys(_cfgReferencias);
   if(!provs.length){el.innerHTML='<div style="color:#94a3b8;font-size:13px;text-align:center;padding:30px;">Sin datos. Importa una plantilla o crea una nueva.</div>';return;}
   let rows=[];
-  provs.sort().forEach(prov=>{(_cfgReferencias[prov]||[]).forEach((ref,ri)=>rows.push({prov,ref,ri}));});
+  provs.sort().forEach(prov=>{
+    const arr=_cfgReferencias[prov]||[];
+    for(let ri=arr.length-1;ri>=0;ri--) rows.push({prov,ref:arr[ri],ri});
+  });
   if(_refsFiltros.some(f=>f)){
     rows=rows.filter(({prov,ref})=>{
       const r=typeof ref==='object'?ref:{referencia:String(ref||'')};
@@ -4024,8 +4051,10 @@ function abrirInformeGerencial(){
   _igData=null;
   document.getElementById('ig-btn-pdf').style.display='none';
   const sel=document.getElementById('ig-persona');
-  sel.innerHTML='<option value="">Selecciona un operario…</option>'+[..._revisadores].sort().map(n=>`<option value="${n.replace(/"/g,'&quot;')}">${n}</option>`).join('');
-  document.getElementById('ig-fecha').value=fechaHoy();
+  sel.innerHTML='<option value="">Todos</option>'+[..._revisadores].sort().map(n=>`<option value="${n.replace(/"/g,'&quot;')}">${n}</option>`).join('');
+  document.getElementById('ig-turno').value='';
+  document.getElementById('ig-modo-fecha').value='hoy';
+  igModoFechaChange();
   rtsAjustarTopMenu();
 }
 function cerrarInformeGerencial(){
@@ -4035,6 +4064,11 @@ function cerrarInformeGerencial(){
 
 function calcularInformeTurno(persona,fecha){
   const regsTurno=_registros.filter(r=>r.revisador===persona && r.fechaTurno===fecha);
+  return calcularInstanciaTurno(persona,fecha,regsTurno);
+}
+// Igual que calcularInformeTurno pero recibe los registros ya filtrados —
+// permite que calcularInformeAgregado la llame N veces sin re-escanear _registros.
+function calcularInstanciaTurno(persona,fecha,regsTurno){
   if(!regsTurno.length) return null;
   const turno=regsTurno[0].turno==='noche'?'noche':'dia';
   const finalizados=regsTurno.filter(r=>r.finalizado&&r.hora_inicio&&r.hora_fin)
@@ -4112,20 +4146,131 @@ function calcularInformeTurno(persona,fecha){
   };
 }
 
+// Agrupa _registros por (persona,fechaTurno) — cada grupo es una "instancia de
+// turno" — y reutiliza calcularInstanciaTurno por cada una, sin duplicar su lógica.
+function calcularInformeAgregado(filtros){ // {persona, turno, desde, hasta}
+  const regsRango=_registros.filter(r=>
+    r.fechaTurno>=filtros.desde && r.fechaTurno<=filtros.hasta &&
+    (!filtros.persona || r.revisador===filtros.persona) &&
+    (!filtros.turno || r.turno===filtros.turno));
+  const claves={};
+  regsRango.forEach(r=>{ const k=r.revisador+'||'+r.fechaTurno; (claves[k]=claves[k]||[]).push(r); });
+  const instancias=Object.entries(claves)
+    .map(([k,regs])=>{ const [persona,fecha]=k.split('||'); return calcularInstanciaTurno(persona,fecha,regs); })
+    .filter(Boolean);
+  return { instancias, ...agregarInstancias(instancias) };
+}
+
+// Combina varias instancias de turno en totales/comparaciones. Los porcentajes
+// (eficiencia/productividad/rechazo) se agregan de forma PONDERADA (suma de
+// minutos o rollos, no promedio de porcentajes) para que un día con pocos datos
+// no pese igual que uno con muchos — es la misma fórmula de calcularInstanciaTurno,
+// solo que aplicada sobre sumatorias en vez de un solo turno.
+// Solo totales (sin desgloses) — la usan tanto agregarInstancias (para el total
+// general) como cada subgrupo de serieDias/porPersona/porTurno, para no recalcular
+// desgloses anidados que no se necesitan (evita recursión innecesaria).
+function sumarInstancias(instancias){
+  const sum=f=>instancias.reduce((s,d)=>s+f(d),0);
+  const duracionTotal=sum(d=>d.duracionTurno);
+  const tiempoReportado=sum(d=>d.tiempoReportadoMin);
+  const tiempoRevision=sum(d=>d.tiempoRevisionMin);
+  const tiempoMultitarea=sum(d=>d.tiempoMultitareaMin);
+  const tiempoBaches=sum(d=>d.tiempoBachesMin);
+  const rollos=sum(d=>d.rollosRevisados), rechazados=sum(d=>d.rechazados);
+  const eficienciaPct=duracionTotal?Math.round(tiempoReportado/duracionTotal*100):0;
+  const productividadPct=duracionTotal?Math.round(tiempoRevision/duracionTotal*100):0;
+  const pctRechazo=rollos?Math.round(rechazados/rollos*100):0;
+
+  const mtGrupos={};
+  instancias.forEach(d=>d.multitareaLista.forEach(m=>{
+    if(!mtGrupos[m.nombre]) mtGrupos[m.nombre]={veces:0,minutos:0};
+    mtGrupos[m.nombre].veces+=m.veces; mtGrupos[m.nombre].minutos+=m.minutos;
+  }));
+  const multitareaLista=Object.entries(mtGrupos)
+    .map(([nombre,d])=>({nombre,...d,pct:tiempoMultitarea?Math.round(d.minutos/tiempoMultitarea*100):0}))
+    .sort((a,b)=>b.minutos-a.minutos);
+
+  return {duracionTotal,tiempoReportado,tiempoRevision,tiempoMultitarea,tiempoBaches,
+    rollos,rechazados,eficienciaPct,productividadPct,pctRechazo,multitareaLista,
+    metros:sum(d=>d.metrosRevisados)};
+}
+function agregarInstancias(instancias){
+  const porDiaMap={}; instancias.forEach(d=>(porDiaMap[d.fecha]=porDiaMap[d.fecha]||[]).push(d));
+  const serieDias=Object.keys(porDiaMap).sort().map(fecha=>({fecha,...sumarInstancias(porDiaMap[fecha])}));
+
+  const porPersonaMap={}; instancias.forEach(d=>(porPersonaMap[d.persona]=porPersonaMap[d.persona]||[]).push(d));
+  const porTurnoMap={}; instancias.forEach(d=>(porTurnoMap[d.turno]=porTurnoMap[d.turno]||[]).push(d));
+  const porPersona=Object.entries(porPersonaMap).map(([persona,arr])=>({persona,dias:arr.length,...sumarInstancias(arr)}));
+  const porTurno=Object.entries(porTurnoMap).map(([turno,arr])=>({turno,dias:arr.length,...sumarInstancias(arr)}));
+
+  return {...sumarInstancias(instancias),serieDias,porPersona,porTurno};
+}
+
+function igResolverRangoModo(modo){
+  const hoy=new Date(fechaHoy()+'T00:00:00');
+  const iso=d=>d.toISOString().split('T')[0];
+  if(modo==='hoy') return {desde:iso(hoy),hasta:iso(hoy)};
+  if(modo==='ayer'){ const a=new Date(hoy); a.setDate(a.getDate()-1); return {desde:iso(a),hasta:iso(a)}; }
+  if(modo==='semana'){
+    const diaSemana=(hoy.getDay()+6)%7; // lunes=0 ... domingo=6
+    const lunes=new Date(hoy); lunes.setDate(lunes.getDate()-diaSemana);
+    return {desde:iso(lunes),hasta:iso(hoy)};
+  }
+  if(modo==='mes'){
+    const primero=new Date(hoy.getFullYear(),hoy.getMonth(),1);
+    return {desde:iso(primero),hasta:iso(hoy)};
+  }
+  return {desde:document.getElementById('ig-desde').value,hasta:document.getElementById('ig-hasta').value};
+}
+function igModoFechaChange(){
+  const modo=document.getElementById('ig-modo-fecha').value;
+  document.getElementById('ig-rango-wrap').style.display = modo==='rango' ? 'flex' : 'none';
+  if(modo!=='rango'){
+    const {desde,hasta}=igResolverRangoModo(modo);
+    document.getElementById('ig-desde').value=desde;
+    document.getElementById('ig-hasta').value=hasta;
+  }
+  igCargar();
+}
+
 function igCargar(){
-  const persona=document.getElementById('ig-persona').value;
-  const fecha=document.getElementById('ig-fecha').value;
-  if(!persona||!fecha){showToast('Selecciona operario y fecha','error');return;}
-  const data=calcularInformeTurno(persona,fecha);
-  if(!data){
-    document.getElementById('ig-content').innerHTML='<div style="color:#94a3b8;font-size:13px;text-align:center;padding:40px;">Sin registros de ese operario en esa fecha.</div>';
-    document.getElementById('ig-btn-pdf').style.display='none';
+  const persona=document.getElementById('ig-persona').value||null;
+  const turno=document.getElementById('ig-turno').value||null;
+  const modo=document.getElementById('ig-modo-fecha').value;
+  const {desde,hasta}=igResolverRangoModo(modo);
+  if(!desde||!hasta) return;
+
+  const agg=calcularInformeAgregado({persona,turno,desde,hasta});
+  document.getElementById('ig-btn-pdf').style.display = agg.instancias.length ? 'inline-block' : 'none';
+
+  if(!agg.instancias.length){
+    document.getElementById('ig-content').innerHTML='<div style="color:#94a3b8;font-size:13px;text-align:center;padding:40px;">Sin registros para ese filtro.</div>';
     _igData=null;
     return;
   }
-  _igData=data;
-  document.getElementById('ig-content').innerHTML=igRenderSecciones(data,true);
-  document.getElementById('ig-btn-pdf').style.display='inline-block';
+  if(agg.instancias.length===1){
+    _igData=agg.instancias[0];
+    document.getElementById('ig-content').innerHTML=igRenderSecciones(_igData,true);
+  } else if(persona){
+    _igData=agg;
+    document.getElementById('ig-content').innerHTML=igRenderResumenPersona(agg,persona);
+  } else {
+    _igData=agg;
+    document.getElementById('ig-content').innerHTML=igRenderResumenGeneral(agg);
+  }
+}
+// Atajo usado por las filas clicables de las vistas de resumen para bajar un nivel
+// en el recorrido General → Día → Turno → Persona.
+function igIrA(persona,desde,hasta,turno){
+  if(persona!==undefined) document.getElementById('ig-persona').value=persona||'';
+  if(turno!==undefined) document.getElementById('ig-turno').value=turno||'';
+  if(desde){
+    document.getElementById('ig-modo-fecha').value='rango';
+    document.getElementById('ig-rango-wrap').style.display='flex';
+    document.getElementById('ig-desde').value=desde;
+    document.getElementById('ig-hasta').value=hasta||desde;
+  }
+  igCargar();
 }
 
 // Genera el HTML de todas las secciones del informe. editable=true → celdas de
@@ -4218,6 +4363,214 @@ function igRenderSecciones(d,editable){
   </div>`;
 }
 
+// ── Vistas agregadas (varias instancias de turno) ──────────────────────
+function igTituloSeccion(txt){
+  return `<div style="font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#1e3a8a;border-bottom:2px solid #e2e8f0;padding-bottom:6px;margin-bottom:14px;">${txt}</div>`;
+}
+function igKpiCard(valor,label,bg,border,color){
+  return `<div style="border-radius:12px;padding:18px 12px;text-align:center;background:${bg};border:1.5px solid ${border};"><div style="font-size:26px;font-weight:800;color:${color};line-height:1;">${valor}</div><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-top:5px;">${label}</div></div>`;
+}
+function igKpisHTML(agg){
+  const totalMultitareas=agg.multitareaLista.reduce((s,m)=>s+m.veces,0);
+  return `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:24px;">
+    ${igKpiCard(agg.eficienciaPct+'%','Eficiencia','#eef2ff','#c7d2fe','#4338ca')}
+    ${igKpiCard(agg.productividadPct+'%','Productividad','#eff6ff','#bfdbfe','#1d4ed8')}
+    ${igKpiCard(agg.pctRechazo+'%','% Rechazo','#fef2f2','#fca5a5','#dc2626')}
+    ${igKpiCard(agg.rollos,'Rollos revisados','#f8fafc','#e2e8f0','#0f172a')}
+    ${igKpiCard(agg.metros.toFixed(1)+' m','Metros revisados','#f8fafc','#e2e8f0','#0f172a')}
+    ${igKpiCard(totalMultitareas,'Multitareas','#f8fafc','#e2e8f0','#0f172a')}
+    ${igKpiCard(agg.tiempoMultitarea+' min','Min. en multitareas','#f8fafc','#e2e8f0','#0f172a')}
+  </div>`;
+}
+function igDistribucionHTML(agg){
+  const pctRev=agg.duracionTotal?Math.round(agg.tiempoRevision/agg.duracionTotal*100):0;
+  const pctReportado=agg.duracionTotal?Math.min(100,Math.round((agg.tiempoRevision+agg.tiempoMultitarea)/agg.duracionTotal*100)):0;
+  const donutBg=`conic-gradient(#4338ca 0% ${pctRev}%, #38bdf8 ${pctRev}% ${pctReportado}%, #fca5a5 ${pctReportado}% 100%)`;
+  return `<div style="margin-bottom:26px;">
+    ${igTituloSeccion('Distribución del Tiempo')}
+    <div style="display:flex;gap:28px;align-items:center;flex-wrap:wrap;">
+      <div style="width:118px;height:118px;border-radius:50%;flex-shrink:0;position:relative;background:${donutBg};"><div style="position:absolute;inset:16px;background:#fff;border-radius:50%;"></div></div>
+      <div style="flex:1;min-width:220px;display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;align-items:center;gap:10px;"><span style="width:11px;height:11px;border-radius:3px;background:#4338ca;flex-shrink:0;"></span><span style="font-size:12.5px;color:#334155;"><b style="color:#0f172a;">${agg.tiempoRevision} min</b> revisión de tela</span><span style="font-size:10.5px;color:#94a3b8;margin-left:auto;">${pctRev}%</span></div>
+        <div style="display:flex;align-items:center;gap:10px;"><span style="width:11px;height:11px;border-radius:3px;background:#38bdf8;flex-shrink:0;"></span><span style="font-size:12.5px;color:#334155;"><b style="color:#0f172a;">${agg.tiempoMultitarea} min</b> multitareas</span><span style="font-size:10.5px;color:#94a3b8;margin-left:auto;">${agg.duracionTotal?Math.round(agg.tiempoMultitarea/agg.duracionTotal*100):0}%</span></div>
+        <div style="display:flex;align-items:center;gap:10px;"><span style="width:11px;height:11px;border-radius:3px;background:#fca5a5;flex-shrink:0;"></span><span style="font-size:12.5px;color:#334155;"><b style="color:#0f172a;">${agg.tiempoBaches} min</b> sin reportar (baches)</span><span style="font-size:10.5px;color:#94a3b8;margin-left:auto;">${agg.duracionTotal?Math.round(agg.tiempoBaches/agg.duracionTotal*100):0}%</span></div>
+      </div>
+    </div>
+    <div style="font-size:10px;color:#94a3b8;margin-top:10px;">Con los datos actuales solo existen estas 3 categorías de tiempo (no hay un registro separado de "otros tiempos").</div>
+  </div>`;
+}
+function igMultitareasHTML(agg){
+  const rows=agg.multitareaLista.length?agg.multitareaLista.map((m,i)=>`
+    <tr style="${i===0?'background:#eef2ff;':''}">
+      <td style="padding:6.5px 10px;border-bottom:1px solid #f1f5f9;font-size:11.5px;">${m.nombre}${i===0?'<span style="display:inline-block;background:#4338ca;color:#fff;font-size:9px;font-weight:800;padding:2px 7px;border-radius:20px;margin-left:6px;">MÁS FRECUENTE</span>':''}</td>
+      <td style="padding:6.5px 10px;border-bottom:1px solid #f1f5f9;font-size:11.5px;text-align:center;">${m.veces}</td>
+      <td style="padding:6.5px 10px;border-bottom:1px solid #f1f5f9;font-size:11.5px;text-align:center;">${m.minutos} min</td>
+      <td style="padding:6.5px 10px;border-bottom:1px solid #f1f5f9;font-size:11.5px;text-align:right;">${m.pct}%</td>
+    </tr>`).join(''):'<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:16px;">Sin actividades de multitarea</td></tr>';
+  return `<div style="margin-bottom:26px;">
+    ${igTituloSeccion('Multitareas Más Frecuentes')}
+    <table style="width:100%;border-collapse:collapse;">
+      <thead><tr>
+        <th style="background:#1e3a8a;color:#fff;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;text-align:left;">Actividad</th>
+        <th style="background:#1e3a8a;color:#fff;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;text-align:center;width:90px;">N° veces</th>
+        <th style="background:#1e3a8a;color:#fff;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;text-align:center;width:100px;">Minutos</th>
+        <th style="background:#1e3a8a;color:#fff;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;text-align:right;width:90px;">% del tiempo</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+}
+function igBarraHorizontal(label,valor,maxValor,sufijo,color,onclick){
+  const pct=maxValor?Math.max(2,Math.round(valor/maxValor*100)):0;
+  return `<div ${onclick?`onclick="${onclick}" style="cursor:pointer;"`:''} style="display:flex;align-items:center;gap:10px;padding:4px 2px;">
+    <div style="width:90px;flex-shrink:0;font-size:11px;color:#334155;">${label}</div>
+    <div style="flex:1;background:#f1f5f9;border-radius:5px;overflow:hidden;height:16px;"><div style="height:100%;width:${pct}%;background:${color};border-radius:5px;"></div></div>
+    <div style="width:60px;flex-shrink:0;text-align:right;font-size:11px;font-weight:700;color:#0f172a;">${valor}${sufijo}</div>
+  </div>`;
+}
+function igEvolucionHTML(agg,persona){
+  if(!agg.serieDias.length) return '';
+  const maxPct=100;
+  const filas=agg.serieDias.map(s=>{
+    const click=`igIrA(${persona?`'${persona.replace(/'/g,"\\'")}'`:'undefined'},'${s.fecha}','${s.fecha}')`;
+    return `<div style="margin-bottom:8px;">
+      <div style="font-size:10.5px;color:#64748b;font-weight:700;margin-bottom:2px;">${fechaDisplay(s.fecha)}</div>
+      ${igBarraHorizontal('Eficiencia',s.eficienciaPct,maxPct,'%','#4338ca',click)}
+      ${igBarraHorizontal('Productividad',s.productividadPct,maxPct,'%','#38bdf8',click)}
+    </div>`;
+  }).join('');
+  return `<div style="margin-bottom:26px;">
+    ${igTituloSeccion('Evolución de Eficiencia y Productividad por Día')}
+    ${filas}
+  </div>`;
+}
+function igMetrosRollosHTML(agg){
+  if(!agg.serieDias.length) return '';
+  const maxRollos=Math.max(1,...agg.serieDias.map(s=>s.rollos));
+  const maxMetros=Math.max(1,...agg.serieDias.map(s=>s.metros));
+  const filasRollos=agg.serieDias.map(s=>igBarraHorizontal(fechaDisplay(s.fecha),s.rollos,maxRollos,'','#4338ca')).join('');
+  const filasMetros=agg.serieDias.map(s=>igBarraHorizontal(fechaDisplay(s.fecha),Math.round(s.metros),maxMetros,' m','#38bdf8')).join('');
+  return `<div style="display:flex;gap:28px;flex-wrap:wrap;margin-bottom:26px;">
+    <div style="flex:1;min-width:260px;">${igTituloSeccion('Rollos Revisados por Día')}${filasRollos}</div>
+    <div style="flex:1;min-width:260px;">${igTituloSeccion('Metros Revisados por Día')}${filasMetros}</div>
+  </div>`;
+}
+function igMaxMin(arr,key){
+  if(!arr.length) return {max:null,min:null};
+  let max=arr[0],min=arr[0];
+  arr.forEach(a=>{ if(a[key]>max[key]) max=a; if(a[key]<min[key]) min=a; });
+  return {max,min};
+}
+function igCeldaComparacion(item,key,mejorEsMayor,arr,sufijo){
+  const {max,min}=igMaxMin(arr,key);
+  let bg='';
+  if(max&&min&&max[key]!==min[key]){
+    const esMejor = mejorEsMayor ? item===max : item===min;
+    const esPeor = mejorEsMayor ? item===min : item===max;
+    if(esMejor) bg='background:#f0fdf4;';
+    else if(esPeor) bg='background:#fef2f2;';
+  }
+  return `<td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;font-size:11.5px;text-align:center;${bg}">${item[key]}${sufijo||''}</td>`;
+}
+function igComparacionPersonasHTML(agg){
+  if(agg.porPersona.length<2) return '';
+  const arr=[...agg.porPersona].sort((a,b)=>b.eficienciaPct-a.eficienciaPct);
+  const filas=arr.map(p=>`
+    <tr style="cursor:pointer;" onclick="igIrA('${p.persona.replace(/'/g,"\\'")}')">
+      <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;font-size:11.5px;font-weight:700;color:#1e3a8a;">${p.persona}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;font-size:11.5px;text-align:center;">${p.dias}</td>
+      ${igCeldaComparacion(p,'eficienciaPct',true,arr,'%')}
+      ${igCeldaComparacion(p,'productividadPct',true,arr,'%')}
+      ${igCeldaComparacion(p,'pctRechazo',false,arr,'%')}
+      ${igCeldaComparacion(p,'rollos',true,arr,'')}
+      <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;font-size:11.5px;text-align:center;">${p.metros.toFixed(1)} m</td>
+    </tr>`).join('');
+  return `<div style="margin-bottom:26px;">
+    ${igTituloSeccion('Comparación entre Personas')}
+    <table style="width:100%;border-collapse:collapse;">
+      <thead><tr>
+        <th style="background:#1e3a8a;color:#fff;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;text-align:left;">Persona</th>
+        <th style="background:#1e3a8a;color:#fff;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;text-align:center;">Días</th>
+        <th style="background:#1e3a8a;color:#fff;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;text-align:center;">Eficiencia</th>
+        <th style="background:#1e3a8a;color:#fff;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;text-align:center;">Productividad</th>
+        <th style="background:#1e3a8a;color:#fff;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;text-align:center;">% Rechazo</th>
+        <th style="background:#1e3a8a;color:#fff;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;text-align:center;">Rollos</th>
+        <th style="background:#1e3a8a;color:#fff;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;text-align:center;">Metros</th>
+      </tr></thead>
+      <tbody>${filas}</tbody>
+    </table>
+    <div style="font-size:10px;color:#94a3b8;margin-top:8px;">Verde = mejor valor de la columna · Rojo = menor valor. Clic en una fila para ver su detalle.</div>
+  </div>`;
+}
+function igComparacionTurnosHTML(agg){
+  if(agg.porTurno.length<2) return '';
+  const arr=agg.porTurno;
+  const filas=arr.map(t=>`
+    <tr>
+      <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;font-size:11.5px;font-weight:700;color:#1e3a8a;">${t.turno==='noche'?'Noche':'Día'}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;font-size:11.5px;text-align:center;">${t.dias}</td>
+      ${igCeldaComparacion(t,'eficienciaPct',true,arr,'%')}
+      ${igCeldaComparacion(t,'productividadPct',true,arr,'%')}
+      ${igCeldaComparacion(t,'pctRechazo',false,arr,'%')}
+      <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;font-size:11.5px;text-align:center;">${t.rollos}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;font-size:11.5px;text-align:center;">${t.metros.toFixed(1)} m</td>
+    </tr>`).join('');
+  return `<div style="margin-bottom:26px;">
+    ${igTituloSeccion('Comparación entre Turnos')}
+    <table style="width:100%;border-collapse:collapse;">
+      <thead><tr>
+        <th style="background:#1e3a8a;color:#fff;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;text-align:left;">Turno</th>
+        <th style="background:#1e3a8a;color:#fff;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;text-align:center;">Instancias</th>
+        <th style="background:#1e3a8a;color:#fff;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;text-align:center;">Eficiencia</th>
+        <th style="background:#1e3a8a;color:#fff;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;text-align:center;">Productividad</th>
+        <th style="background:#1e3a8a;color:#fff;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;text-align:center;">% Rechazo</th>
+        <th style="background:#1e3a8a;color:#fff;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;text-align:center;">Rollos</th>
+        <th style="background:#1e3a8a;color:#fff;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;text-align:center;">Metros</th>
+      </tr></thead>
+      <tbody>${filas}</tbody>
+    </table>
+    <div style="font-size:10px;color:#94a3b8;margin-top:8px;">Ambos turnos tienen la misma duración oficial (12h 30min), así que el % es directamente comparable. Los valores de rollos/metros son absolutos — no ajustan por cantidad de personal asignado a cada turno.</div>
+  </div>`;
+}
+function igRenderResumenGeneral(agg){
+  return igKpisHTML(agg)
+    + igDistribucionHTML(agg)
+    + igEvolucionHTML(agg,null)
+    + igMetrosRollosHTML(agg)
+    + igComparacionPersonasHTML(agg)
+    + igComparacionTurnosHTML(agg)
+    + igMultitareasHTML(agg);
+}
+function igRenderResumenPersona(agg,persona){
+  const diasHTML=agg.serieDias.map(s=>`
+    <tr style="cursor:pointer;" onclick="igIrA('${persona.replace(/'/g,"\\'")}','${s.fecha}','${s.fecha}')">
+      <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;font-size:11.5px;font-weight:700;color:#1e3a8a;">${fechaDisplay(s.fecha)}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;font-size:11.5px;text-align:center;">${s.eficienciaPct}%</td>
+      <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;font-size:11.5px;text-align:center;">${s.productividadPct}%</td>
+      <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;font-size:11.5px;text-align:center;">${s.pctRechazo}%</td>
+      <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;font-size:11.5px;text-align:center;">${s.rollos}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;font-size:11.5px;text-align:center;">${s.metros.toFixed(1)} m</td>
+    </tr>`).join('');
+  return `<div style="font-size:13px;font-weight:800;color:#0f172a;margin-bottom:16px;">${persona} — ${agg.serieDias.length} días en el período seleccionado</div>`
+    + igKpisHTML(agg)
+    + igDistribucionHTML(agg)
+    + igEvolucionHTML(agg,persona)
+    + igMultitareasHTML(agg)
+    + `<div>${igTituloSeccion('Días en el Período')}<table style="width:100%;border-collapse:collapse;">
+      <thead><tr>
+        <th style="background:#1e3a8a;color:#fff;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;text-align:left;">Día</th>
+        <th style="background:#1e3a8a;color:#fff;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;text-align:center;">Eficiencia</th>
+        <th style="background:#1e3a8a;color:#fff;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;text-align:center;">Productividad</th>
+        <th style="background:#1e3a8a;color:#fff;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;text-align:center;">% Rechazo</th>
+        <th style="background:#1e3a8a;color:#fff;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;text-align:center;">Rollos</th>
+        <th style="background:#1e3a8a;color:#fff;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;text-align:center;">Metros</th>
+      </tr></thead>
+      <tbody>${diasHTML}</tbody>
+    </table>
+    <div style="font-size:10px;color:#94a3b8;margin-top:8px;">Clic en un día para ver su detalle completo (baches, actividad por hora).</div>
+    </div>`;
+}
+
 function igGenerarPDF(){
   if(!_igData){showToast('Primero carga un informe','error');return;}
   document.querySelectorAll('.ig-just').forEach(inp=>{
@@ -4225,14 +4578,31 @@ function igGenerarPDF(){
     if(val) _igJustificaciones[key]=val; else delete _igJustificaciones[key];
   });
   guardarEnServidor();
-  const d=_igData;
   const genEn=new Date().toLocaleString('es-CO',{dateStyle:'long',timeStyle:'short'});
-  const turnoLabel=d.turno==='noche'?'Noche':'Día';
+
+  const esAgregado=!!_igData.instancias;
+  let tituloOperario,metaLinea,bodyHTML;
+  if(esAgregado){
+    const d=_igData;
+    const personaSel=document.getElementById('ig-persona').value;
+    const turnoSel=document.getElementById('ig-turno').value;
+    const desde=document.getElementById('ig-desde').value;
+    const hasta=document.getElementById('ig-hasta').value;
+    tituloOperario=personaSel||'Todos los operarios';
+    const turnoTxt=turnoSel?(turnoSel==='noche'?'Turno Noche':'Turno Día'):'Ambos turnos';
+    metaLinea=`${turnoTxt} · ${fechaDisplay(desde)}${hasta!==desde?' – '+fechaDisplay(hasta):''}`;
+    bodyHTML=personaSel?igRenderResumenPersona(d,personaSel):igRenderResumenGeneral(d);
+  } else {
+    const d=_igData;
+    tituloOperario=d.persona;
+    metaLinea=`Turno ${d.turno==='noche'?'Noche':'Día'} · ${d.horaOficialInicio} – ${d.horaOficialFin} · ${fechaDisplay(d.fecha)}`;
+    bodyHTML=igRenderSecciones(d,false);
+  }
   const html=`<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Informe Gerencial — ${d.persona}</title>
+<title>Informe Gerencial — ${tituloOperario}</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;font-size:12px;}
@@ -4262,12 +4632,12 @@ body{font-family:'Segoe UI',Arial,sans-serif;color:#0f172a;background:#fff;font-
     <div class="hd-right">
       <div class="hd-title">Informe Gerencial</div>
       <div class="hd-sub2">Control de Revisión de Telas</div>
-      <div class="hd-op">${d.persona}</div>
-      <div class="hd-meta">Turno ${turnoLabel} · ${d.horaOficialInicio} – ${d.horaOficialFin} · ${fechaDisplay(d.fecha)}</div>
+      <div class="hd-op">${tituloOperario}</div>
+      <div class="hd-meta">${metaLinea}</div>
       <div class="hd-gen">Generado: ${genEn}</div>
     </div>
   </div>
-  ${igRenderSecciones(d,false)}
+  ${bodyHTML}
   <div class="footer">
     <span>Confecciones Millar S.A.S. — Documento interno de uso gerencial</span>
     <span>Página 1 de 1</span>
