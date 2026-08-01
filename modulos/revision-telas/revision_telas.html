@@ -1124,10 +1124,7 @@ input[type=number]{-moz-appearance:textfield;}
             </div>
             <div>
               <label style="font-size:10px;font-weight:500;color:#94a3b8;letter-spacing:.5px;text-transform:uppercase;display:block;margin-bottom:4px;">Turno</label>
-              <select id="ta-turno" style="width:100%;padding:7px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;color:#0f172a;">
-                <option value="noche">🌙 Noche</option>
-                <option value="dia">☀️ Día</option>
-              </select>
+              <select id="ta-turno" style="width:100%;padding:7px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;color:#0f172a;"></select>
             </div>
             <div>
               <label style="font-size:10px;font-weight:500;color:#94a3b8;letter-spacing:.5px;text-transform:uppercase;display:block;margin-bottom:4px;">Desde</label>
@@ -1170,10 +1167,8 @@ input[type=number]{-moz-appearance:textfield;}
             </div>
           </div>
         </div>
-        <div style="display:flex;gap:4px;background:#e2e8f0;border-radius:8px;padding:3px;">
+        <div id="dash-turno-toggle" style="display:flex;gap:4px;background:#e2e8f0;border-radius:8px;padding:3px;">
           <button id="dash-turno-todos" onclick="setDashTurno('todos')" style="padding:5px 12px;border-radius:6px;border:none;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;cursor:pointer;background:#2563eb;color:#fff;">Todos</button>
-          <button id="dash-turno-dia" onclick="setDashTurno('dia')" style="padding:5px 12px;border-radius:6px;border:none;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;cursor:pointer;background:transparent;color:#64748b;">☀️ Día</button>
-          <button id="dash-turno-noche" onclick="setDashTurno('noche')" style="padding:5px 12px;border-radius:6px;border:none;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;cursor:pointer;background:transparent;color:#64748b;">🌙 Noche</button>
         </div>
         <input type="hidden" id="dash-filtro-turno" value="todos">
       </div>
@@ -1280,9 +1275,7 @@ input[type=number]{-moz-appearance:textfield;}
         <div>
           <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;display:block;margin-bottom:5px;">Turno</label>
           <select id="ig-turno" onchange="igCargar()" style="padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:'Nunito',sans-serif;outline:none;min-width:130px;">
-            <option value="">Ambos</option>
-            <option value="dia">Día</option>
-            <option value="noche">Noche</option>
+            <option value="">Todos</option>
           </select>
         </div>
         <div>
@@ -1329,6 +1322,7 @@ let _filtroResultado=null;
 let _statsBase=[];
 let _rtCurrentUser=null, _rtIsAdmin=false, _rtMembersData=[], _revisadores=[];
 let _turnosAsignados=[], _taEditId='';
+let _turnosCatalogo=[], _turnosCatalogoCargado=false;
 let _igData=null, _igJustificaciones={};
 
 // ── WebSocket ──────────────────────────────────────────────────────
@@ -1436,6 +1430,10 @@ async function cargarDatos(){
     const rta=await fetch('/api/turnos-asignados');
     if(rta.ok) _turnosAsignados=await rta.json();
   }catch(e){console.warn('[RT] turnos-asignados:',e);}
+  try{
+    const rtc=await fetch('/api/turnos');
+    if(rtc.ok){ _turnosCatalogo=(await rtc.json()).filter(t=>!t.disabled); _turnosCatalogoCargado=true; }
+  }catch(e){console.warn('[RT] catálogo de turnos:',e);}
 }
 
 // ── Historial de cambios ───────────────────────────────────────────
@@ -1880,7 +1878,7 @@ function renderTabla(){
     return `<div class="table-row"${esMultitarea?' style="background:#faf5ff;"':''}>
       <div class="td" data-label="Fecha">${fechaDisplay(r.fecha)||'—'}</div>
       <div class="td" data-label="Hora">${r.hora_inicio||'—'}</div>
-      <div class="td" data-label="Turno">${r.turno==='noche'?'Noche':'Día'}</div>
+      <div class="td" data-label="Turno">${rtNombreTurno(r.turno)}</div>
       <div class="td" data-label="Revisador">${r.revisador||'—'}</div>
       <div class="td" data-label="N° Lote">${esMultitarea?'—':r.lote||'—'}</div>
       <div class="td" data-label="# Rollo">${esMultitarea?'—':r.rollo||'—'}</div>
@@ -2090,16 +2088,141 @@ function horaA24(hora){
   const parts=hora.split(':').map(Number);
   return (parts[0]||0)*60+(parts[1]||0);
 }
+// ── Turnos dinámicos (catálogo de Configuraciones — /api/turnos) ───────
+// Si el catálogo no cargó o ningún turno matchea, todo cae al comportamiento
+// fijo de siempre (día/noche a las 17:45) para no bloquear la operación normal.
+const RT_DIAS_ABR=['DO','LN','MR','XR','JU','VI','SB']; // Date.getDay(): 0=domingo
+function rtSumarDias(fecha,n){
+  const d=new Date(fecha+'T12:00:00');
+  d.setDate(d.getDate()+n);
+  return d.toISOString().slice(0,10);
+}
+function rtDiaAbrev(fecha){
+  return RT_DIAS_ABR[new Date(fecha+'T12:00:00').getDay()];
+}
+// Acepta "HH:MM" o número decimal fracción de día (típico de Excel, ej 0.739583=17:45).
+function rtNormalizarHoraAMin(v){
+  if(v==null||v==='') return null;
+  if(typeof v==='string' && v.includes(':')){
+    const m=v.match(/^(\d{1,2}):(\d{2})/);
+    if(m) return (parseInt(m[1],10)*60+parseInt(m[2],10))%1440;
+  }
+  const f=parseFloat(v);
+  return isNaN(f) ? null : Math.round(f*1440)%1440;
+}
+// Ventana oficial de un turno del catálogo para un día (abreviatura LN/MR/.../DO).
+// null si ese turno no tiene hora de inicio marcada para ese día.
+function rtVentanaDelDia(turno,diaAbr){
+  const horas=(turno.horas||[]).filter(h=>!h.disabled && (h.dias||[]).includes(diaAbr));
+  const inicioH=horas.find(h=>h.iniciaTurno);
+  if(!inicioH) return null;
+  const inicioMin=rtNormalizarHoraAMin(inicioH.comienza);
+  if(inicioMin==null) return null;
+  // Si hay varias "finalizaTurno" NORMAL para el mismo día (datos duplicados), se
+  // toma la de cierre más tardío contando desde el inicio (tolera cruce de medianoche).
+  let finNormalMin=null;
+  horas.filter(h=>h.finalizaTurno && h.tipo==='NORMAL').forEach(h=>{
+    const m=rtNormalizarHoraAMin(h.termina);
+    if(m==null) return;
+    const elapsed=(m-inicioMin+1440)%1440;
+    const bestElapsed=finNormalMin==null?-1:(finNormalMin-inicioMin+1440)%1440;
+    if(elapsed>bestElapsed) finNormalMin=m;
+  });
+  if(finNormalMin==null) return null;
+  const bloquesExtra=horas.filter(h=>h.tipo==='EXTRA').map(h=>{
+    const iM=rtNormalizarHoraAMin(h.comienza), fM=rtNormalizarHoraAMin(h.termina);
+    return (iM==null||fM==null) ? null : {inicioMin:iM, finMin:fM, cruza:fM<=iM};
+  }).filter(Boolean);
+  return {inicioMin, finNormalMin, cruzaMedianoche:finNormalMin<=inicioMin, bloquesExtra};
+}
+// soloColaNocturna=true → la ventana empezó el día ANTERIOR, solo interesa la
+// parte que sigue después de medianoche.
+function rtHoraEnVentana(minutoHora,ventana,soloColaNocturna){
+  if(minutoHora==null) return false;
+  if(!ventana.cruzaMedianoche) return !soloColaNocturna && minutoHora>=ventana.inicioMin && minutoHora<=ventana.finNormalMin;
+  return soloColaNocturna ? minutoHora<=ventana.finNormalMin : minutoHora>=ventana.inicioMin;
+}
+function rtHoraEnBloqueExtra(minutoHora,bloque,soloColaNocturna){
+  if(minutoHora==null) return false;
+  if(!bloque.cruza) return !soloColaNocturna && minutoHora>=bloque.inicioMin && minutoHora<=bloque.finMin;
+  return soloColaNocturna ? minutoHora<=bloque.finMin : minutoHora>=bloque.inicioMin;
+}
+function rtDistanciaAVentana(minutoHora,ventana){
+  const dIni=Math.min(Math.abs(minutoHora-ventana.inicioMin),1440-Math.abs(minutoHora-ventana.inicioMin));
+  const dFin=Math.min(Math.abs(minutoHora-ventana.finNormalMin),1440-Math.abs(minutoHora-ventana.finNormalMin));
+  return Math.min(dIni,dFin);
+}
+// A qué turno del catálogo pertenece una hora/fecha. {turno:<objeto>, fechaTurno} o null.
+function rtDetectarTurnoCatalogo(horaStr,fecha){
+  if(!_turnosCatalogoCargado || !_turnosCatalogo.length) return null;
+  const horaMin=rtNormalizarHoraAMin(horaStr);
+  if(horaMin==null) return null;
+  const diaAbr=rtDiaAbrev(fecha);
+  const diaAntAbr=rtDiaAbrev(rtSumarDias(fecha,-1));
+
+  for(const t of _turnosCatalogo){
+    const vHoy=rtVentanaDelDia(t,diaAbr);
+    if(vHoy && (rtHoraEnVentana(horaMin,vHoy,false) || vHoy.bloquesExtra.some(b=>rtHoraEnBloqueExtra(horaMin,b,false))))
+      return {turno:t, fechaTurno:fecha};
+    const vAyer=rtVentanaDelDia(t,diaAntAbr);
+    if(vAyer && (rtHoraEnVentana(horaMin,vAyer,true) || vAyer.bloquesExtra.some(b=>b.cruza && rtHoraEnBloqueExtra(horaMin,b,true))))
+      return {turno:t, fechaTurno:rtSumarDias(fecha,-1)};
+  }
+  let mejor=null, mejorDist=Infinity;
+  for(const t of _turnosCatalogo){
+    const v=rtVentanaDelDia(t,diaAbr);
+    if(!v) continue;
+    const d=rtDistanciaAVentana(horaMin,v);
+    if(d<mejorDist){ mejorDist=d; mejor={turno:t, fechaTurno:fecha}; }
+  }
+  return mejor;
+}
+// Duración oficial (min) de una instancia turno+día para una persona — suma horas
+// extra solo si algún registro de esa instancia cayó dentro de ese bloque.
+// Minutos de solape entre [iniA,finA) y [iniB,finB) (en minutos desde medianoche).
+// Si algún rango "cruza" medianoche (fin<=inicio), se extiende +1440 para comparar
+// en una sola línea de tiempo continua.
+function rtSolapeMinutos(iniA,finA,iniB,finB){
+  if(iniA==null||finA==null) return 0;
+  let a2=finA<=iniA?finA+1440:finA;
+  let b2=finB<=iniB?finB+1440:finB;
+  return Math.max(0, Math.min(a2,b2)-Math.max(iniA,iniB));
+}
+// Duración oficial de una instancia turno+día: minutos NORMAL + el tiempo REAL
+// (no el bloque completo) que la persona haya trabajado dentro de cada hora extra,
+// con tope del tamaño del bloque.
+function rtDuracionOficialInstancia(turnoId,fechaTurno,regsTurno){
+  const tCat=_turnosCatalogo.find(t=>t.id===turnoId);
+  if(!tCat) return null;
+  const v=rtVentanaDelDia(tCat, rtDiaAbrev(fechaTurno));
+  if(!v) return null;
+  let minutos=(v.finNormalMin-v.inicioMin+1440)%1440;
+  v.bloquesExtra.forEach(bloque=>{
+    const duracionBloque=(bloque.finMin-bloque.inicioMin+1440)%1440;
+    const usados=(regsTurno||[]).reduce((s,r)=>{
+      const ini=rtNormalizarHoraAMin(r.hora_inicio), fin=rtNormalizarHoraAMin(r.hora_fin);
+      return s+rtSolapeMinutos(ini,fin,bloque.inicioMin,bloque.finMin);
+    },0);
+    minutos+=Math.min(usados,duracionBloque);
+  });
+  return minutos;
+}
+function rtNombreTurno(turnoId){
+  const t=_turnosCatalogo.find(x=>x.id===turnoId);
+  if(t) return t.nombre;
+  if(turnoId==='dia') return '☀️ Día';
+  if(turnoId==='noche') return '🌙 Noche';
+  return turnoId||'—';
+}
 function detectarTurno(hora, fecha){
   if(!hora||!fecha) return {turno:'dia', fechaTurno:fecha||fechaHoy()};
+  const r=rtDetectarTurnoCatalogo(hora,fecha);
+  if(r) return {turno:r.turno.id, fechaTurno:r.fechaTurno};
+  // Catálogo no disponible / sin match: comportamiento fijo de siempre.
   const mins=horaA24(hora);
   if(mins>=17*60+45){
-    // Turno noche: el turno "cierra" al día siguiente → agrupa en fecha+1
-    const d=new Date(fecha+'T12:00:00');
-    d.setDate(d.getDate()+1);
-    return {turno:'noche', fechaTurno:d.toISOString().slice(0,10)};
+    return {turno:'noche', fechaTurno:rtSumarDias(fecha,1)};
   } else {
-    // Turno día o madrugada: misma fecha física
     return {turno:'dia', fechaTurno:fecha};
   }
 }
@@ -2108,10 +2231,19 @@ function resolverTurnoFinal(revisador, hora, fecha){
   const asig=_turnosAsignados.find(a=>
     a.revisador===revisador && a.desde<=fecha && a.hasta>=fecha
   );
-  const turnoFinal=asig?asig.turno.toLowerCase():turnoDetectado;
-  // Si asignación DÍA pero detectado NOCHE (>=17:45), fechaTurno quedó en fecha+1
-  // → para DÍA usamos fecha física directamente
-  const fechaTurnoFinal=(turnoFinal==='dia'&&turnoDetectado==='noche')?fecha:fechaTurno;
+  if(!asig) return {turno:turnoDetectado, fechaTurno};
+  const turnoFinal=asig.turno;
+  const tCat=_turnosCatalogo.find(t=>t.id===turnoFinal);
+  let fechaTurnoFinal;
+  if(tCat){
+    const horaMin=rtNormalizarHoraAMin(hora);
+    const vAyer=rtVentanaDelDia(tCat, rtDiaAbrev(rtSumarDias(fecha,-1)));
+    const enColaNocturna = !!vAyer && (rtHoraEnVentana(horaMin,vAyer,true) || vAyer.bloquesExtra.some(b=>b.cruza && rtHoraEnBloqueExtra(horaMin,b,true)));
+    fechaTurnoFinal = enColaNocturna ? rtSumarDias(fecha,-1) : fecha;
+  } else {
+    // Turno legacy 'dia'/'noche' (dato histórico) — regla original.
+    fechaTurnoFinal=(turnoFinal==='dia'&&turnoDetectado==='noche')?fecha:fechaTurno;
+  }
   return {turno:turnoFinal, fechaTurno:fechaTurnoFinal};
 }
 function migrarFechaTurno(){
@@ -2598,7 +2730,7 @@ function exportarExcel(){
     const base={
       'Fecha':fechaDisplay(r.fecha),
       'Tipo':(r.tipo==='multitarea'?'Multitarea':'Revisión Tela'),
-      'Turno':(r.turno==='noche'?'Noche':'Día'),
+      'Turno':rtNombreTurno(r.turno),
       'Fecha Turno':r.fechaTurno?fechaDisplay(r.fechaTurno):'',
       'Factura':r.factura||'',
       'Proveedor':r.proveedor||'',
@@ -2676,6 +2808,7 @@ function abrirDashboard(){
   if(!document.getElementById('dash-filtro-desde').value){document.getElementById('dash-filtro-desde').value=hoy;}
   if(!document.getElementById('dash-filtro-hasta').value){document.getElementById('dash-filtro-hasta').value=hoy;}
   actualizarLabelDashFecha();
+  poblarDashTurnoToggle();
   renderDashboard();
   document.getElementById('rt-dashboard-screen').style.display='flex';
   if(_rtIsAdmin)rtsAjustarTopMenu();
@@ -2687,11 +2820,20 @@ document.addEventListener('click',e=>{
 });
 
 function cerrarDashboard(){document.getElementById('rt-dashboard-screen').style.display='none';rtsSetActive(document.getElementById('rts-nav-registros'));}
+function poblarDashTurnoToggle(){
+  const wrap=document.getElementById('dash-turno-toggle');
+  if(!wrap) return;
+  const extra=_turnosCatalogo.map(t=>
+    `<button class="dash-turno-btn" data-turno="${t.id}" onclick="setDashTurno('${t.id}')" style="padding:5px 12px;border-radius:6px;border:none;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;cursor:pointer;background:transparent;color:#64748b;">${t.nombre}</button>`
+  ).join('');
+  wrap.innerHTML='<button id="dash-turno-todos" class="dash-turno-btn" data-turno="todos" onclick="setDashTurno(\'todos\')" style="padding:5px 12px;border-radius:6px;border:none;font-family:\'Barlow Condensed\',sans-serif;font-size:12px;font-weight:700;cursor:pointer;background:#2563eb;color:#fff;">Todos</button>'+extra;
+}
 function setDashTurno(val){
   document.getElementById('dash-filtro-turno').value=val;
-  ['todos','dia','noche'].forEach(t=>{
-    const b=document.getElementById('dash-turno-'+t);
-    if(b){b.style.background=t===val?'#2563eb':'transparent';b.style.color=t===val?'#fff':'#64748b';}
+  document.querySelectorAll('.dash-turno-btn').forEach(b=>{
+    const activo=b.dataset.turno===val;
+    b.style.background=activo?'#2563eb':'transparent';
+    b.style.color=activo?'#fff':'#64748b';
   });
   renderDashboard();
 }
@@ -2714,79 +2856,44 @@ function renderDashboard(){
   function parseMins(t){if(!t)return 0;const m=t.match(/(?:(\d+)h\s*)?(\d+)min/);return m?(parseInt(m[1]||0)*60+parseInt(m[2]||0)):0;}
   const minsTotales=fin.reduce((s,r)=>s+parseMins(r.tiempo),0);
   const horasLab=minsTotales>=60?Math.floor(minsTotales/60)+'h '+(minsTotales%60)+'min':minsTotales+'min';
-  // ── Tarjetas DÍA vs NOCHE ────────────────────────────────────────
-  const rDia=allRegs.filter(r=>(r.turno||'dia')==='dia');
-  const rNoche=allRegs.filter(r=>r.turno==='noche');
-  const mDia=rDia.reduce((s,r)=>s+parseFloat(r.metros||0),0);
-  const mNoche=rNoche.reduce((s,r)=>s+parseFloat(r.metros||0),0);
-  const cardTurno=(ico,label,color,bg,border,rList,metros,minTurno)=>{
+  // ── Tarjetas por turno (dinámico, según el catálogo de Configuraciones) ──
+  // La eficiencia/productividad sale de calcularInformeAgregado (misma lógica que el
+  // Informe Gerencial, ya usa la duración real del turno del catálogo) — el resto de
+  // datos de la tarjeta (rollos, metros, personas, % rechazo) sale directo de los
+  // registros del período, igual que antes.
+  const aggDash=calcularInformeAgregado({persona:null, turno:turnoFiltro==='todos'?null:turnoFiltro, desde:desde||'0000-01-01', hasta:hasta||'9999-12-31'});
+  function pct(v,max){const p=max?Math.min(Math.round(v/max*100),999):0;const c=p>=80?'#15803d':p>=50?'#b45309':'#dc2626';return {p,c};}
+  const turnosPresentes=[...new Set(allRegs.map(r=>r.turno||'dia'))];
+  const cardTurno=(turnoId,rList)=>{
+    const metros=rList.reduce((s,r)=>s+parseFloat(r.metros||0),0);
     const rollos=rList.filter(r=>r.tipo!=='multitarea').length;
-    const minRep=rList.filter(r=>r.finalizado).reduce((s,r)=>s+parseMins(r.tiempo),0);
-    const minTela=rList.filter(r=>r.finalizado&&r.tipo!=='multitarea').reduce((s,r)=>s+parseMins(r.tiempo),0);
     const revs=new Set(rList.map(r=>r.revisador||'—')).size;
     const finalizadosTela=rList.filter(r=>r.finalizado&&r.tipo!=='multitarea');
     const rechazados=finalizadosTela.filter(r=>r.resultado==='rechazado').length;
     const rechPct=finalizadosTela.length>0?Math.round(rechazados/finalizadosTela.length*100):0;
     const rechColor=rechPct===0?'#15803d':rechPct<=10?'#b45309':'#dc2626';
-    const efPct=revs>0&&minTurno>0?Math.min(Math.round(minRep/(revs*minTurno)*100),999):0;
-    const prodPct=revs>0&&minTurno>0?Math.min(Math.round(minTela/(revs*minTurno)*100),999):0;
-    const efColor=efPct>=80?'#15803d':efPct>=50?'#b45309':'#dc2626';
-    const prodColor=prodPct>=80?'#15803d':prodPct>=50?'#b45309':'#dc2626';
-    return `<div style="background:${bg};border:1.5px solid ${border};border-radius:12px;padding:16px 20px;flex:1;min-width:220px;">
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:${color};margin-bottom:12px;">${ico} Turno ${label}</div>
+    const dTurno=aggDash.porTurno.find(t=>t.turno===turnoId)||{eficienciaPct:0,productividadPct:0};
+    const efP=pct(dTurno.eficienciaPct,100), prP=pct(dTurno.productividadPct,100);
+    return `<div style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:12px;padding:16px 20px;flex:1;min-width:220px;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#1e3a8a;margin-bottom:12px;">${rtNombreTurno(turnoId)}</div>
       <div style="display:flex;gap:16px;flex-wrap:wrap;">
-        <div><div style="font-size:22px;font-weight:800;color:${color};">${revs}</div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">N° Personas</div></div>
-        <div><div style="font-size:22px;font-weight:800;color:${color};">${rList.length}</div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;"># Tareas</div></div>
-        <div><div style="font-size:22px;font-weight:800;color:${color};">${rollos}</div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;"># Rollos</div></div>
-        <div><div style="font-size:22px;font-weight:800;color:${color};">${metros.toFixed(1)}m</div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">Metros</div></div>
-        <div><div style="font-size:22px;font-weight:800;color:${efColor};">${efPct}%</div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">Eficiencia</div></div>
-        <div><div style="font-size:22px;font-weight:800;color:${prodColor};">${prodPct}%</div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">Productividad</div></div>
+        <div><div style="font-size:22px;font-weight:800;color:#1e3a8a;">${revs}</div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">N° Personas</div></div>
+        <div><div style="font-size:22px;font-weight:800;color:#1e3a8a;">${rList.length}</div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;"># Tareas</div></div>
+        <div><div style="font-size:22px;font-weight:800;color:#1e3a8a;">${rollos}</div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;"># Rollos</div></div>
+        <div><div style="font-size:22px;font-weight:800;color:#1e3a8a;">${metros.toFixed(1)}m</div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">Metros</div></div>
+        <div><div style="font-size:22px;font-weight:800;color:${efP.c};">${dTurno.eficienciaPct}%</div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">Eficiencia</div></div>
+        <div><div style="font-size:22px;font-weight:800;color:${prP.c};">${dTurno.productividadPct}%</div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">Productividad</div></div>
         <div><div style="font-size:22px;font-weight:800;color:${rechColor};">${rechPct}%</div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;">% Rechazo</div></div>
       </div>
     </div>`;
   };
-  document.getElementById('dash-turnos-row').innerHTML=
-    cardTurno('☀️','DÍA','#b45309','#fffbeb','#fde68a',rDia,mDia,630)+
-    cardTurno('🌙','NOCHE','#1e3a8a','#eff6ff','#bfdbfe',rNoche,mNoche,690);
+  document.getElementById('dash-turnos-row').innerHTML=turnosPresentes
+    .map(tId=>cardTurno(tId, allRegs.filter(r=>(r.turno||'dia')===tId)))
+    .join('');
 
-  // ── Tabla metros + eficiencia por revisador por turno ─────────────
-  const MIN_DIA=630, MIN_NOCHE=690;
-  function pct(v,max){const p=Math.min(Math.round(v/max*100),999);const c=p>=80?'#15803d':p>=50?'#b45309':'#dc2626';return {p,c};}
-  function barEfic(p,c){return '<div style="background:#f1f5f9;border-radius:4px;height:6px;overflow:hidden;margin-top:3px;"><div style="width:'+Math.min(p,100)+'%;height:100%;background:'+c+';border-radius:4px;"></div></div>';}
   const TH2='padding:8px 12px;font-family:\'Barlow Condensed\',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;background:#f8fafc;border-bottom:2px solid #e2e8f0;';
   const TD2='padding:8px 12px;font-size:13px;color:#0f172a;border-bottom:1px solid #f1f5f9;';
   const TD2R='padding:8px 12px;font-size:12px;font-weight:700;border-bottom:1px solid #f1f5f9;text-align:center;font-family:\'IBM Plex Mono\',monospace;';
-  const revSet=new Set(allRegs.map(r=>r.revisador||'—'));
-  const revTurnoRows=[...revSet].map(rev=>{
-    const regsDia  =rDia.filter(r=>(r.revisador||'—')===rev&&r.finalizado);
-    const regsNoche=rNoche.filter(r=>(r.revisador||'—')===rev&&r.finalizado);
-    const md =rDia.filter(r=>(r.revisador||'—')===rev).reduce((s,r)=>s+parseFloat(r.metros||0),0);
-    const mn =rNoche.filter(r=>(r.revisador||'—')===rev).reduce((s,r)=>s+parseFloat(r.metros||0),0);
-    // rollos revisados (excluye multitarea)
-    const rollosDia  =rDia.filter(r=>(r.revisador||'—')===rev&&r.tipo!=='multitarea').length;
-    const rollosNoche=rNoche.filter(r=>(r.revisador||'—')===rev&&r.tipo!=='multitarea').length;
-    // minutos totales reportados (tela + multitarea)
-    const minRepDia  =regsDia.reduce((s,r)=>s+parseMins(r.tiempo),0);
-    const minRepNoche=regsNoche.reduce((s,r)=>s+parseMins(r.tiempo),0);
-    // minutos solo revisión de tela
-    const minTelaDia  =regsDia.filter(r=>r.tipo!=='multitarea').reduce((s,r)=>s+parseMins(r.tiempo),0);
-    const minTelaNoche=regsNoche.filter(r=>r.tipo!=='multitarea').reduce((s,r)=>s+parseMins(r.tiempo),0);
-    return {rev,md,mn,total:md+mn,rollosDia,rollosNoche,minRepDia,minRepNoche,minTelaDia,minTelaNoche};
-  }).filter(x=>x.total>0||x.minRepDia>0||x.minRepNoche>0).sort((a,b)=>(b.minRepDia+b.minRepNoche)-(a.minRepDia+a.minRepNoche));
-
-  function fmtMin(m){return m>=60?Math.floor(m/60)+'h '+(m%60)+'min':m+'min';}
-  function cellEfic(minRep,minTela,minTurno){
-    if(minTurno===0||minRep===0) return '<td style="'+TD2R+'color:#94a3b8;" colspan="2">—</td>';
-    const ef=pct(minRep,minTurno), prod=pct(minTela,minTurno);
-    return '<td style="'+TD2R+'">'
-      +'<div style="color:'+ef.c+';font-size:13px;">'+ef.p+'%</div>'
-      +'<div style="font-size:10px;color:#64748b;">'+fmtMin(minRep)+' / '+fmtMin(minTurno)+'</div>'
-      +barEfic(ef.p,ef.c)+'</td>'
-      +'<td style="'+TD2R+'">'
-      +'<div style="color:'+prod.c+';font-size:13px;">'+prod.p+'%</div>'
-      +'<div style="font-size:10px;color:#64748b;">'+fmtMin(minTela)+'</div>'
-      +barEfic(prod.p,prod.c)+'</td>';
-  }
 
   document.getElementById('dash-stats-row').innerHTML=[
     {n:'Total',v:regs.length,c:'#0f172a'},
@@ -2811,24 +2918,21 @@ function renderDashboard(){
   // 4. Eficiencia y productividad por revisador
   const TH3='padding:7px 10px;font-family:\'Barlow Condensed\',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;background:#f8fafc;border-bottom:2px solid #e2e8f0;';
   const TD3='padding:7px 10px;font-size:13px;color:#0f172a;border-bottom:1px solid #f1f5f9;font-weight:600;';
-  document.getElementById('dash-efic-prod').innerHTML=revTurnoRows.length
+  const porPersonaOrdenado=[...aggDash.porPersona].sort((a,b)=>b.eficienciaPct-a.eficienciaPct);
+  document.getElementById('dash-efic-prod').innerHTML=porPersonaOrdenado.length
     ?'<table style="width:100%;border-collapse:collapse;">'
       +'<thead><tr>'
       +'<th style="'+TH3+'text-align:left;">Revisador</th>'
       +'<th style="'+TH3+'text-align:center;">Eficiencia</th>'
       +'<th style="'+TH3+'text-align:center;">Productividad</th>'
       +'</tr></thead><tbody>'
-      +revTurnoRows.map(x=>{
-        const totalMinRep=x.minRepDia+x.minRepNoche;
-        const totalMinTela=x.minTelaDia+x.minTelaNoche;
-        const totalMinTurno=(x.minRepDia>0?630:0)+(x.minRepNoche>0?690:0);
-        if(!totalMinTurno)return '';
-        const efP=pct(totalMinRep,totalMinTurno);
-        const prP=pct(totalMinTela,totalMinTurno);
+      +porPersonaOrdenado.map(x=>{
+        const efP=pct(x.eficienciaPct,100);
+        const prP=pct(x.productividadPct,100);
         return '<tr>'
-          +'<td style="'+TD3+'">'+x.rev+'</td>'
-          +'<td style="'+TD3+'text-align:center;color:'+efP.c+';">'+efP.p+'%</td>'
-          +'<td style="'+TD3+'text-align:center;color:'+prP.c+';">'+prP.p+'%</td>'
+          +'<td style="'+TD3+'">'+x.persona+'</td>'
+          +'<td style="'+TD3+'text-align:center;color:'+efP.c+';">'+x.eficienciaPct+'%</td>'
+          +'<td style="'+TD3+'text-align:center;color:'+prP.c+';">'+x.productividadPct+'%</td>'
           +'</tr>';
       }).join('')
       +'</tbody></table>'
@@ -3084,7 +3188,7 @@ function editarTurnoAsignacion(id){
   const a=_turnosAsignados.find(x=>x.id===id);if(!a)return;
   _taEditId=id;
   document.getElementById('ta-revisador').value=a.revisador||'';
-  document.getElementById('ta-turno').value=a.turno||'noche';
+  document.getElementById('ta-turno').value=a.turno||'';
   document.getElementById('ta-desde').value=a.desde||'';
   document.getElementById('ta-hasta').value=a.hasta||'';
   document.getElementById('ta-form-title').textContent='Editar asignación';
@@ -3094,12 +3198,20 @@ function editarTurnoAsignacion(id){
 function cancelarEditTurno(){
   _taEditId='';
   document.getElementById('ta-revisador').value='';
-  document.getElementById('ta-turno').value='noche';
+  document.getElementById('ta-turno').selectedIndex=0;
   document.getElementById('ta-desde').value='';
   document.getElementById('ta-hasta').value='';
   document.getElementById('ta-form-title').textContent='Nueva asignación de turno';
   document.getElementById('ta-cancel-btn').style.display='none';
   document.getElementById('ta-error').textContent='';
+}
+function poblarSelectTurno(selectId, incluirTodos){
+  const sel=document.getElementById(selectId);
+  if(!sel) return;
+  const cur=sel.value;
+  const opciones=_turnosCatalogo.map(t=>`<option value="${t.id}">${t.nombre}</option>`).join('');
+  sel.innerHTML=(incluirTodos?'<option value="">Todos</option>':'')+opciones;
+  if(cur && [...sel.options].some(o=>o.value===cur)) sel.value=cur;
 }
 function renderTurnosPanel(){
   // Poblar select de revisadores
@@ -3109,6 +3221,7 @@ function renderTurnosPanel(){
     const cur=selRev.value;
     selRev.innerHTML='<option value="">— Selecciona —</option>'+revs.map(r=>`<option value="${r}"${r===cur?' selected':''}>${r}</option>`).join('');
   }
+  poblarSelectTurno('ta-turno', false);
   const hoy=fechaHoy();
   const el=document.getElementById('cfg-turnos-content');if(!el)return;
   if(!_turnosAsignados.length){
@@ -3130,9 +3243,8 @@ function renderTurnosPanel(){
     +'</tr></thead><tbody>'
     +sorted.map(a=>{
       const activo=a.desde<=hoy&&a.hasta>=hoy;
-      const esNoche=a.turno==='noche';
-      const turnoLabel=esNoche?'🌙 Noche':'☀️ Día';
-      const turnoStyle=esNoche?'background:#eff6ff;color:#1e3a8a;border:0.5px solid #bfdbfe;':'background:#fffbeb;color:#b45309;border:0.5px solid #fde68a;';
+      const turnoLabel=rtNombreTurno(a.turno);
+      const turnoStyle='background:#eff6ff;color:#1e3a8a;border:0.5px solid #bfdbfe;';
       const badge=activo
         ?'<span style="font-size:10px;padding:2px 8px;border-radius:10px;background:#f0fdf4;color:#166534;border:0.5px solid #bbf7d0;font-weight:500;">Activo</span>'
         :'<span style="font-size:10px;padding:2px 8px;border-radius:10px;background:#f8fafc;color:#94a3b8;border:0.5px solid #e2e8f0;font-weight:500;">Vencido</span>';
@@ -4040,8 +4152,37 @@ function mostrarNotifCorteNueva(sol){
 const IG_TURNOS={ dia:{inicio:5*60+15,fin:17*60+45}, noche:{inicio:17*60+45,fin:5*60+15} };
 function igMinutosATexto(mins){ mins=((mins%1440)+1440)%1440; let h=Math.floor(mins/60),m=mins%60; const ap=h>=12?'PM':'AM'; let h12=h%12||12; return h12+':'+String(m).padStart(2,'0')+' '+ap; }
 function igHoraCorta(h){ h=((h%24)+24)%24; const ap=h>=12?'PM':'AM'; let h12=h%12||12; return h12+ap; }
-function igElapsed(horaStr,turno){ const b=IG_TURNOS[turno]; const mins=horaA24(horaStr); return turno==='noche' ? ((mins-b.inicio+1440)%1440) : (mins-b.inicio); }
-function igDuracionTurno(turno){ const b=IG_TURNOS[turno]; return turno==='noche' ? (1440-b.inicio+b.fin) : (b.fin-b.inicio); }
+// Las 3 funciones siguientes intentan primero la ventana real del turno en el
+// catálogo de Configuraciones; si el turno no está ahí (dato legacy 'dia'/'noche',
+// o turno borrado del catálogo), caen al horario fijo IG_TURNOS de siempre.
+function igVentanaOficialLabel(turno,fecha){
+  const tCat=_turnosCatalogo.find(t=>t.id===turno);
+  if(tCat){
+    const v=rtVentanaDelDia(tCat, rtDiaAbrev(fecha));
+    if(v) return {inicio:v.inicioMin, fin:v.finNormalMin};
+  }
+  const b=IG_TURNOS[turno]||IG_TURNOS.dia;
+  return {inicio:b.inicio, fin:b.fin};
+}
+function igElapsed(horaStr,turno,fecha){
+  const tCat=fecha?_turnosCatalogo.find(t=>t.id===turno):null;
+  const v=tCat?rtVentanaDelDia(tCat, rtDiaAbrev(fecha)):null;
+  if(v){
+    const mins=rtNormalizarHoraAMin(horaStr);
+    return (mins-v.inicioMin+1440)%1440;
+  }
+  const b=IG_TURNOS[turno]||IG_TURNOS.dia;
+  const mins=horaA24(horaStr);
+  return turno==='noche' ? ((mins-b.inicio+1440)%1440) : (mins-b.inicio);
+}
+function igDuracionTurno(turno,fecha,regsTurno){
+  if(fecha&&regsTurno){
+    const oficial=rtDuracionOficialInstancia(turno,fecha,regsTurno);
+    if(oficial!=null) return oficial;
+  }
+  const b=IG_TURNOS[turno]||IG_TURNOS.dia;
+  return turno==='noche' ? (1440-b.inicio+b.fin) : (b.fin-b.inicio);
+}
 function igEtiquetaTarea(r){ return r.tipo==='multitarea' ? ('Multitarea – '+(r.tarea||'').toString().toUpperCase()) : ('Revisión de tela – '+(r.referencia||r.factura||'—')); }
 
 function abrirInformeGerencial(){
@@ -4052,6 +4193,7 @@ function abrirInformeGerencial(){
   document.getElementById('ig-btn-pdf').style.display='none';
   const sel=document.getElementById('ig-persona');
   sel.innerHTML='<option value="">Todos</option>'+[..._revisadores].sort().map(n=>`<option value="${n.replace(/"/g,'&quot;')}">${n}</option>`).join('');
+  poblarSelectTurno('ig-turno', true);
   document.getElementById('ig-turno').value='';
   document.getElementById('ig-modo-fecha').value='hoy';
   igModoFechaChange();
@@ -4070,13 +4212,13 @@ function calcularInformeTurno(persona,fecha){
 // permite que calcularInformeAgregado la llame N veces sin re-escanear _registros.
 function calcularInstanciaTurno(persona,fecha,regsTurno){
   if(!regsTurno.length) return null;
-  const turno=regsTurno[0].turno==='noche'?'noche':'dia';
+  const turno=regsTurno[0].turno;
   const finalizados=regsTurno.filter(r=>r.finalizado&&r.hora_inicio&&r.hora_fin)
-    .map(r=>({...r,_ei:igElapsed(r.hora_inicio,turno),_ef:igElapsed(r.hora_fin,turno)}))
+    .map(r=>({...r,_ei:igElapsed(r.hora_inicio,turno,fecha),_ef:igElapsed(r.hora_fin,turno,fecha)}))
     .sort((a,b)=>a._ei-b._ei);
-  const duracionTurno=igDuracionTurno(turno);
-  const b=IG_TURNOS[turno];
-  const horaOficialInicio=igMinutosATexto(b.inicio), horaOficialFin=igMinutosATexto(b.fin);
+  const duracionTurno=igDuracionTurno(turno,fecha,regsTurno);
+  const bLabel=igVentanaOficialLabel(turno,fecha);
+  const horaOficialInicio=igMinutosATexto(bLabel.inicio), horaOficialFin=igMinutosATexto(bLabel.fin);
 
   const baches=[];
   let cursor=0, anterior=null;
@@ -4122,7 +4264,7 @@ function calcularInstanciaTurno(persona,fecha,regsTurno){
   });
   const multitareaLista=Object.entries(mtGrupos).map(([nombre,d])=>({nombre,...d})).sort((a,b)=>b.minutos-a.minutos);
 
-  const hIni=Math.floor(b.inicio/60);
+  const hIni=Math.floor(bLabel.inicio/60);
   const totalHoras=Math.ceil(duracionTurno/60)+1;
   const porHora=[];
   for(let i=0;i<totalHoras;i++){ const h=(hIni+i)%24; porHora.push({hora:h,minutos:0}); }
@@ -4507,7 +4649,7 @@ function igComparacionTurnosHTML(agg){
   const arr=agg.porTurno;
   const filas=arr.map(t=>`
     <tr>
-      <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;font-size:11.5px;font-weight:700;color:#1e3a8a;">${t.turno==='noche'?'Noche':'Día'}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;font-size:11.5px;font-weight:700;color:#1e3a8a;">${rtNombreTurno(t.turno)}</td>
       <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;font-size:11.5px;text-align:center;">${t.dias}</td>
       ${igCeldaComparacion(t,'eficienciaPct',true,arr,'%')}
       ${igCeldaComparacion(t,'productividadPct',true,arr,'%')}
@@ -4529,7 +4671,7 @@ function igComparacionTurnosHTML(agg){
       </tr></thead>
       <tbody>${filas}</tbody>
     </table>
-    <div style="font-size:10px;color:#94a3b8;margin-top:8px;">Ambos turnos tienen la misma duración oficial (12h 30min), así que el % es directamente comparable. Los valores de rollos/metros son absolutos — no ajustan por cantidad de personal asignado a cada turno.</div>
+    <div style="font-size:10px;color:#94a3b8;margin-top:8px;">La eficiencia/productividad ya está calculada sobre la duración oficial real de cada turno (según su horario configurado). Los valores de rollos/metros son absolutos — no ajustan por cantidad de personal asignado a cada turno.</div>
   </div>`;
 }
 function igRenderResumenGeneral(agg){
@@ -4595,7 +4737,7 @@ function igGenerarPDF(){
   } else {
     const d=_igData;
     tituloOperario=d.persona;
-    metaLinea=`Turno ${d.turno==='noche'?'Noche':'Día'} · ${d.horaOficialInicio} – ${d.horaOficialFin} · ${fechaDisplay(d.fecha)}`;
+    metaLinea=`Turno ${rtNombreTurno(d.turno)} · ${d.horaOficialInicio} – ${d.horaOficialFin} · ${fechaDisplay(d.fecha)}`;
     bodyHTML=igRenderSecciones(d,false);
   }
   const html=`<!DOCTYPE html>
