@@ -421,7 +421,6 @@ input[type=number]{-moz-appearance:textfield;}
   <button class="rts-item" onclick="rtsNavCfg(1,this)"><span class="rts-ico">🧵</span> Referencias por Proveedor</button>
   <button class="rts-item" onclick="rtsNavCfg(2,this)"><span class="rts-ico">⚠</span> Tipos de Defectos</button>
   <button class="rts-item" onclick="rtsNavCfg(3,this)"><span class="rts-ico">⚡</span> Tipos de Tareas</button>
-  <button class="rts-item" onclick="rtsNavCfg(4,this)"><span class="rts-ico">🕘</span> Historial</button>
   <button class="rts-item" onclick="rtsNavCfg(6,this)"><span class="rts-ico">🕐</span> Turnos</button>
   <button class="rts-item" onclick="rtsNavCfg(5,this)"><span class="rts-ico">🔁</span> Asignar Turnos</button>
 </aside>
@@ -959,7 +958,6 @@ input[type=number]{-moz-appearance:textfield;}
     <button class="cfg-tab-btn active" id="cfg-tab-btn-1" onclick="switchCfgTab(1)">🧵 Referencias por Proveedor</button>
     <button class="cfg-tab-btn" id="cfg-tab-btn-2" onclick="switchCfgTab(2)">⚠️ Defectos</button>
     <button class="cfg-tab-btn" id="cfg-tab-btn-3" onclick="switchCfgTab(3)">⚡ Tareas</button>
-    <button class="cfg-tab-btn" id="cfg-tab-btn-4" onclick="switchCfgTab(4)">📋 Historial</button>
     <button class="cfg-tab-btn" id="cfg-tab-btn-6" onclick="switchCfgTab(6)">🕐 Turnos</button>
     <button class="cfg-tab-btn" id="cfg-tab-btn-5" onclick="switchCfgTab(5)">🔁 Asignar Turnos</button>
   </div>
@@ -1102,16 +1100,6 @@ input[type=number]{-moz-appearance:textfield;}
           </div>
         </div>
         <div id="cfg-tareas-list" style="padding:16px 20px;min-height:60px;"></div>
-      </div>
-    </div>
-    <!-- Pestaña 4: Historial -->
-    <div id="cfg-panel-4" style="display:none;width:100%;">
-      <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;overflow:hidden;">
-        <div style="padding:16px 20px;border-bottom:1px solid #e2e8f0;background:#f8fafc;display:flex;align-items:center;justify-content:space-between;">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#0f172a;">📋 Historial de Cambios</div>
-          <button onclick="_historial=[];renderHistorialCfg();showToast('🗑 Historial limpiado')" style="padding:7px 14px;border-radius:8px;border:1.5px solid #fca5a5;background:#fef2f2;color:#dc2626;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;cursor:pointer;">🗑 Limpiar</button>
-        </div>
-        <div id="cfg-historial-content" style="overflow-x:auto;max-height:calc(100vh - 280px);overflow-y:auto;"></div>
       </div>
     </div>
     <!-- Pestaña 5: Turnos -->
@@ -1521,33 +1509,6 @@ function registrarHistorial(accion, registro, extra){
   };
   _historial.unshift(entrada);
   if(_historial.length>200)_historial.length=200;
-}
-function renderHistorialCfg(){
-  const el=document.getElementById('cfg-historial-content');if(!el)return;
-  const TH='padding:8px 12px;font-family:\'Barlow Condensed\',sans-serif;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;background:#f8fafc;border-bottom:2px solid #e2e8f0;text-align:left;position:sticky;top:0;';
-  const TD='padding:8px 12px;font-size:12px;color:#0f172a;border-bottom:1px solid #f1f5f9;';
-  el.innerHTML=_historial.length
-    ?'<table style="width:100%;border-collapse:collapse;min-width:700px;">'
-      +'<thead><tr>'
-      +'<th style="'+TH+'">Fecha/Hora</th>'
-      +'<th style="'+TH+'">Usuario</th>'
-      +'<th style="'+TH+'">Acción</th>'
-      +'<th style="'+TH+'">Lote</th>'
-      +'<th style="'+TH+'text-align:center;"># Rollo</th>'
-      +'<th style="'+TH+'">Referencia</th>'
-      +'<th style="'+TH+'">Detalle</th>'
-      +'</tr></thead><tbody>'
-      +_historial.map(h=>'<tr>'
-        +'<td style="'+TD+'color:#64748b;">'+h.ts+'</td>'
-        +'<td style="'+TD+'font-weight:600;">'+h.usuario+'</td>'
-        +'<td style="'+TD+'"><span style="padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;background:'+(h.accion==='CREADO'?'#dcfce7':h.accion==='FINALIZADO'?'#dbeafe':h.accion==='EDITADO'?'#fef3c7':'#fee2e2')+';color:'+(h.accion==='CREADO'?'#15803d':h.accion==='FINALIZADO'?'#1d4ed8':h.accion==='EDITADO'?'#b45309':'#dc2626')+';">'+h.accion+'</span></td>'
-        +'<td style="'+TD+'">'+h.lote+'</td>'
-        +'<td style="'+TD+'text-align:center;">'+h.rollo+'</td>'
-        +'<td style="'+TD+'">'+h.referencia+'</td>'
-        +'<td style="'+TD+'color:#64748b;">'+h.detalle+'</td>'
-        +'</tr>').join('')
-      +'</tbody></table>'
-    :'<div style="text-align:center;padding:40px;color:#94a3b8;font-size:13px;">Sin cambios registrados</div>';
 }
 function verHistorial(){
   let m=document.getElementById('modal-historial-rt');
@@ -2907,10 +2868,14 @@ function cerrarDashboard(){document.getElementById('rt-dashboard-screen').style.
 function poblarDashTurnoToggle(){
   const wrap=document.getElementById('dash-turno-toggle');
   if(!wrap) return;
+  // Respeta el filtro ya seleccionado (si vuelves a entrar al Dashboard, el botón
+  // activo debe coincidir con lo que realmente se está filtrando, no reiniciar a "Todos").
+  const actual=document.getElementById('dash-filtro-turno')?.value||'todos';
+  const btnStyle=(activo)=>`padding:5px 12px;border-radius:6px;border:none;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;cursor:pointer;background:${activo?'#2563eb':'transparent'};color:${activo?'#fff':'#64748b'};`;
   const extra=['dia','noche'].map(key=>
-    `<button class="dash-turno-btn" data-turno="${key}" onclick="setDashTurno('${key}')" style="padding:5px 12px;border-radius:6px;border:none;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;cursor:pointer;background:transparent;color:#64748b;">${rtNombreTurno(key)}</button>`
+    `<button class="dash-turno-btn" data-turno="${key}" onclick="setDashTurno('${key}')" style="${btnStyle(actual===key)}">${rtNombreTurno(key)}</button>`
   ).join('');
-  wrap.innerHTML='<button id="dash-turno-todos" class="dash-turno-btn" data-turno="todos" onclick="setDashTurno(\'todos\')" style="padding:5px 12px;border-radius:6px;border:none;font-family:\'Barlow Condensed\',sans-serif;font-size:12px;font-weight:700;cursor:pointer;background:#2563eb;color:#fff;">Todos</button>'+extra;
+  wrap.innerHTML=`<button id="dash-turno-todos" class="dash-turno-btn" data-turno="todos" onclick="setDashTurno('todos')" style="${btnStyle(actual==='todos')}">Todos</button>`+extra;
 }
 function setDashTurno(val){
   document.getElementById('dash-filtro-turno').value=val;
@@ -3249,7 +3214,7 @@ function abrirCfgScreen(){
 function cerrarCfgScreen(){document.getElementById('rt-cfg-screen').style.display='none';rtsSetActive(document.getElementById('rts-nav-registros'));_cfgUnlocked=false;}
 function switchCfgTab(n){
   // Mostrar/ocultar paneles (instantáneo) — esto siempre corre
-  [1,2,3,4,5,6].forEach(i=>{document.getElementById('cfg-panel-'+i).style.display=i===n?'block':'none';document.getElementById('cfg-tab-btn-'+i).classList.toggle('active',i===n);});
+  [1,2,3,5,6].forEach(i=>{document.getElementById('cfg-panel-'+i).style.display=i===n?'block':'none';document.getElementById('cfg-tab-btn-'+i).classList.toggle('active',i===n);});
   // Dibujar el contenido SOLO la primera vez que se abre la pestaña.
   // Al editar/importar, cada función redibuja su propia tabla, así que los datos siguen frescos.
   if(_cfgRendered[n]) return;
@@ -3257,7 +3222,6 @@ function switchCfgTab(n){
   if(n===1)      renderRefsTable();
   else if(n===2) renderDefectosList();
   else if(n===3) renderTareasList();
-  else if(n===4) renderHistorialCfg();
   else if(n===5) renderTurnosPanel();
   else if(n===6) renderHorariosTurno();
 }
@@ -3844,13 +3808,23 @@ function rtConfigTareaHTML(t,i){
         <option value="ambas"${t.afecta==='ambas'?' selected':''}>Eficiencia y Productividad</option>
       </select>
     </div>
+    <div>
+      <button onclick="rtGuardarConfigTarea(${i})" style="padding:7px 16px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-size:12px;font-weight:700;cursor:pointer;">💾 Guardar</button>
+    </div>
   </div>`;
 }
+// Los campos solo actualizan el valor en memoria — no se guarda en el servidor
+// hasta que se hace clic en "Guardar" (evita perder el foco del campo mientras
+// se escribe y deja claro cuándo quedó confirmado el cambio).
 function rtTareaCfgCampo(i,campo,val){
   if(campo==='tiempoDefinido') val=val?parseInt(val,10):null;
   _cfgTareas[i][campo]=val;
+}
+function rtGuardarConfigTarea(i){
   guardarEnServidor();
+  _tareaCfgAbierta.delete(i);
   renderTareasList();
+  showToast('✅ Cambios guardados');
 }
 function editarTarea(i){
   document.getElementById('tarea-txt-'+i).style.display='none';
