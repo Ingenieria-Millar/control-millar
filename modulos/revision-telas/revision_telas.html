@@ -422,6 +422,7 @@ input[type=number]{-moz-appearance:textfield;}
   <button class="rts-item" onclick="rtsNavCfg(2,this)"><span class="rts-ico">⚠</span> Tipos de Defectos</button>
   <button class="rts-item" onclick="rtsNavCfg(3,this)"><span class="rts-ico">⚡</span> Tipos de Tareas</button>
   <button class="rts-item" onclick="rtsNavCfg(4,this)"><span class="rts-ico">🕘</span> Historial</button>
+  <button class="rts-item" onclick="rtsNavCfg(6,this)"><span class="rts-ico">🕐</span> Turnos</button>
   <button class="rts-item" onclick="rtsNavCfg(5,this)"><span class="rts-ico">🔁</span> Asignar Turnos</button>
 </aside>
 
@@ -959,7 +960,8 @@ input[type=number]{-moz-appearance:textfield;}
     <button class="cfg-tab-btn" id="cfg-tab-btn-2" onclick="switchCfgTab(2)">⚠️ Defectos</button>
     <button class="cfg-tab-btn" id="cfg-tab-btn-3" onclick="switchCfgTab(3)">⚡ Tareas</button>
     <button class="cfg-tab-btn" id="cfg-tab-btn-4" onclick="switchCfgTab(4)">📋 Historial</button>
-    <button class="cfg-tab-btn" id="cfg-tab-btn-5" onclick="switchCfgTab(5)">🔄 Turnos</button>
+    <button class="cfg-tab-btn" id="cfg-tab-btn-6" onclick="switchCfgTab(6)">🕐 Turnos</button>
+    <button class="cfg-tab-btn" id="cfg-tab-btn-5" onclick="switchCfgTab(5)">🔁 Asignar Turnos</button>
   </div>
   <div style="flex:1;overflow-y:auto;padding:24px clamp(12px,2.5vw,24px);">
     <!-- Pestaña 1 -->
@@ -1145,6 +1147,11 @@ input[type=number]{-moz-appearance:textfield;}
       </div>
       <p style="font-size:11px;color:#94a3b8;margin-top:8px;">Los registros vencidos quedan como historial y no se eliminan.</p>
     </div>
+    <!-- Pestaña 6: Turnos (horario propio de Telas — Día/Noche) -->
+    <div id="cfg-panel-6" style="display:none;width:100%;">
+      <p style="font-size:12px;color:#64748b;margin:0 0 14px;">Horario de los 2 turnos de Telas. Al editar, el nuevo horario aplica <b>desde hoy</b> en adelante — los registros de días anteriores siguen calculándose con el horario que estaba vigente en ese momento.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;" id="rt-horarios-grid"></div>
+    </div>
   </div>
 </div>
 
@@ -1322,7 +1329,9 @@ let _filtroResultado=null;
 let _statsBase=[];
 let _rtCurrentUser=null, _rtIsAdmin=false, _rtMembersData=[], _revisadores=[];
 let _turnosAsignados=[], _taEditId='';
-let _turnosCatalogo=[], _turnosCatalogoCargado=false;
+// Turnos propios de Telas: solo Día y Noche, cada uno con historial de versiones
+// por fecha ("vigenteDesde") para que editar un horario nunca recalcule días pasados.
+let _turnosRT={dia:[],noche:[]}, _turnosRTCargado=false;
 let _igData=null, _igJustificaciones={};
 
 // ── WebSocket ──────────────────────────────────────────────────────
@@ -1354,6 +1363,7 @@ async function syncPoll(){
       _cfgColores=d.colores||_cfgColores;
       _cfgProveedores=d.proveedores||_cfgProveedores;
       _igJustificaciones=d.igJustificaciones||_igJustificaciones;
+      if(d.turnosRT && (d.turnosRT.dia||[]).length) _turnosRT=d.turnosRT;
       aplicarFiltros();
     }
   }catch(e){}
@@ -1384,8 +1394,9 @@ function connectWS(){
         _cfgColores=msg.colores||_cfgColores;
         _cfgProveedores=msg.proveedores||_cfgProveedores;
         _cfgProveedoresTerceros=msg.proveedoresTerceros||_cfgProveedoresTerceros;
-        _cfgTareas=msg.tareas||_cfgTareas;
+        _cfgTareas=msg.tareas?migrarCfgTareas(msg.tareas):_cfgTareas;
         _igJustificaciones=msg.igJustificaciones||_igJustificaciones;
+        if(msg.turnosRT && (msg.turnosRT.dia||[]).length) _turnosRT=msg.turnosRT;
         aplicarFiltros();
       }
       if(msg.type==='corte_new_request'||msg.type==='corte_update_request'){
@@ -1410,6 +1421,7 @@ function connectWS(){
 
 // ── API ────────────────────────────────────────────────────────────
 async function cargarDatos(){
+  let turnosRTdesdeServidor=null;
   try{
     const res=await fetch('/api/revision-telas');
     if(res.ok){
@@ -1422,18 +1434,78 @@ async function cargarDatos(){
       _cfgColores=d.colores||[];
       _cfgProveedores=d.proveedores||[];
       _cfgProveedoresTerceros=d.proveedoresTerceros||[];
-      _cfgTareas=d.tareas||[];
+      _cfgTareas=migrarCfgTareas(d.tareas||[]);
       _igJustificaciones=d.igJustificaciones||{};
+      turnosRTdesdeServidor=d.turnosRT||null;
     }
   }catch(e){console.warn(e);}
   try{
     const rta=await fetch('/api/turnos-asignados');
     if(rta.ok) _turnosAsignados=await rta.json();
+    migrarAsignacionesCatalogoGeneral();
   }catch(e){console.warn('[RT] turnos-asignados:',e);}
-  try{
-    const rtc=await fetch('/api/turnos');
-    if(rtc.ok){ _turnosCatalogo=(await rtc.json()).filter(t=>!t.disabled); _turnosCatalogoCargado=true; }
-  }catch(e){console.warn('[RT] catálogo de turnos:',e);}
+  const yaTeniaTurnosRT = turnosRTdesdeServidor && (turnosRTdesdeServidor.dia||[]).length;
+  _turnosRT = yaTeniaTurnosRT ? turnosRTdesdeServidor : rtSemillaTurnosRT();
+  _turnosRTCargado=true;
+  if(!yaTeniaTurnosRT){
+    guardarEnServidor(); // primera vez: persistir la semilla para que quede fija en el servidor
+  }
+}
+// Horario real vigente de Telas al momento de construir esta función — se usa solo
+// como semilla la primera vez (vigenteDesde muy antiguo, para no alterar el cálculo
+// de ningún registro histórico). Desde ahí en adelante todo se edita desde la app.
+function rtSemillaTurnosRT(){
+  const horasDia=[
+    {nombre:'1ra Hra',comienza:'06:00',termina:'07:00',tipo:'NORMAL',iniciaTurno:true,finalizaTurno:false,dias:['LN','MR','XR','JU','VI','SB'],disabled:false},
+    {nombre:'2da Hra',comienza:'07:00',termina:'08:00',tipo:'NORMAL',iniciaTurno:false,finalizaTurno:false,dias:['LN','MR','XR','JU','VI','SB'],disabled:false},
+    {nombre:'3ra Hra',comienza:'08:00',termina:'09:00',tipo:'NORMAL',iniciaTurno:false,finalizaTurno:false,dias:['LN','MR','XR','JU','VI','SB'],disabled:false},
+    {nombre:'4ta Hra',comienza:'09:00',termina:'10:00',tipo:'NORMAL',iniciaTurno:false,finalizaTurno:false,dias:['LN','MR','XR','JU','VI','SB'],disabled:false},
+    {nombre:'5ta Hra',comienza:'10:00',termina:'11:00',tipo:'NORMAL',iniciaTurno:false,finalizaTurno:false,dias:['LN','MR','XR','JU','VI','SB'],disabled:false},
+    {nombre:'6ta Hra',comienza:'11:00',termina:'11:30',tipo:'NORMAL',iniciaTurno:false,finalizaTurno:true,dias:['SB'],disabled:false},
+    {nombre:'6ta Hra',comienza:'11:00',termina:'12:00',tipo:'NORMAL',iniciaTurno:false,finalizaTurno:false,dias:['LN','MR','XR','JU','VI'],disabled:false},
+    {nombre:'7ma Hra',comienza:'12:00',termina:'13:00',tipo:'NORMAL',iniciaTurno:false,finalizaTurno:false,dias:['LN','MR','XR','JU','VI'],disabled:false},
+    {nombre:'8va Hra',comienza:'13:00',termina:'14:00',tipo:'NORMAL',iniciaTurno:false,finalizaTurno:true,dias:['LN','MR','XR','JU','VI'],disabled:false},
+    {nombre:'9na Hra',comienza:'14:00',termina:'15:00',tipo:'EXTRA',iniciaTurno:false,finalizaTurno:false,dias:['LN','MR','XR','JU','VI'],disabled:false},
+    {nombre:'10ma Hra',comienza:'15:00',termina:'16:00',tipo:'EXTRA',iniciaTurno:false,finalizaTurno:false,dias:['LN','MR','XR','JU','VI'],disabled:false},
+    {nombre:'7ma Hra',comienza:'11:30',termina:'12:30',tipo:'EXTRA',iniciaTurno:false,finalizaTurno:true,dias:['SB'],disabled:false},
+    {nombre:'8va Hra',comienza:'12:30',termina:'13:30',tipo:'EXTRA',iniciaTurno:false,finalizaTurno:true,dias:['SB'],disabled:false},
+    {nombre:'9na Hra',comienza:'13:30',termina:'14:00',tipo:'EXTRA',iniciaTurno:false,finalizaTurno:true,dias:['SB'],disabled:false}
+  ];
+  const horasNoche=[
+    {nombre:'1ra Hra',comienza:'17:45',termina:'18:45',tipo:'NORMAL',iniciaTurno:true,finalizaTurno:false,dias:['LN','MR','XR','JU','VI','SB'],disabled:false},
+    {nombre:'2da Hra',comienza:'18:45',termina:'19:45',tipo:'NORMAL',iniciaTurno:false,finalizaTurno:false,dias:['LN','MR','XR','JU','VI','SB'],disabled:false},
+    {nombre:'3ra Hra',comienza:'19:45',termina:'20:45',tipo:'NORMAL',iniciaTurno:false,finalizaTurno:false,dias:['LN','MR','XR','JU','VI','SB'],disabled:false},
+    {nombre:'4ta Hra',comienza:'20:45',termina:'21:45',tipo:'NORMAL',iniciaTurno:false,finalizaTurno:false,dias:['LN','MR','XR','JU','VI','SB'],disabled:false},
+    {nombre:'5ta Hra',comienza:'21:45',termina:'22:45',tipo:'NORMAL',iniciaTurno:false,finalizaTurno:false,dias:['LN','MR','XR','JU','VI','SB'],disabled:false},
+    {nombre:'6ta Hra',comienza:'22:45',termina:'23:45',tipo:'NORMAL',iniciaTurno:false,finalizaTurno:false,dias:['LN','MR','XR','JU','VI','SB'],disabled:false},
+    {nombre:'7ma Hra',comienza:'23:45',termina:'00:45',tipo:'NORMAL',iniciaTurno:false,finalizaTurno:false,dias:['LN','MR','XR','JU','VI','SB'],disabled:false},
+    {nombre:'8va Hra',comienza:'00:45',termina:'01:45',tipo:'NORMAL',iniciaTurno:false,finalizaTurno:false,dias:['LN','MR','XR','JU','VI','SB'],disabled:false},
+    {nombre:'9na Hra',comienza:'01:45',termina:'02:45',tipo:'NORMAL',iniciaTurno:false,finalizaTurno:false,dias:['LN','MR','XR','JU','VI','SB'],disabled:false},
+    {nombre:'10ma Hra',comienza:'02:45',termina:'03:45',tipo:'NORMAL',iniciaTurno:false,finalizaTurno:false,dias:['LN','MR','XR','JU','VI','SB'],disabled:false},
+    {nombre:'11ma Hra',comienza:'03:45',termina:'04:45',tipo:'NORMAL',iniciaTurno:false,finalizaTurno:false,dias:['LN','MR','XR','JU','VI','SB'],disabled:false},
+    {nombre:'12ma Hra',comienza:'04:45',termina:'05:15',tipo:'NORMAL',iniciaTurno:false,finalizaTurno:true,dias:['LN','MR','XR','JU','VI','SB'],disabled:false}
+  ];
+  return { dia:[{vigenteDesde:'2000-01-01',horas:horasDia}], noche:[{vigenteDesde:'2000-01-01',horas:horasNoche}] };
+}
+// Los 4 registros reales de turnos-asignados creados durante la prueba del catálogo
+// general usan el id largo del catálogo (ej. "turno_1785516915093_wl0bu0nfsno") en vez
+// de 'dia'/'noche'. Se traducen una sola vez y se persisten — ningún registro de
+// producción usa esos ids (ya verificado), solo estas 4 asignaciones.
+const RT_MIGRACION_CATALOGO_GENERAL={
+  'turno_1785516915093_wl0bu0nfsno':'dia',   // TURNO DIA TELAS
+  'turno_1785429954087_w2s9zqbwyl':'noche'   // TURNO NOCHE TELAS
+};
+function migrarAsignacionesCatalogoGeneral(){
+  let cambios=0;
+  _turnosAsignados.forEach(a=>{
+    const nuevo=RT_MIGRACION_CATALOGO_GENERAL[a.turno];
+    if(nuevo){
+      fetch('/api/turnos-asignados/'+a.id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({turno:nuevo})}).catch(()=>{});
+      a.turno=nuevo;cambios++;
+    }
+  });
+  if(cambios>0) console.log('[RT] migrarAsignacionesCatalogoGeneral:',cambios,'asignaciones actualizadas');
+  return cambios;
 }
 
 // ── Historial de cambios ───────────────────────────────────────────
@@ -1540,7 +1612,7 @@ async function guardarEnServidor(){
   try{
     const res=await fetch('/api/revision-telas',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({registros:_registros,defectos:_cfgDefectos,referencias:_cfgReferencias,colores:_cfgColores,proveedores:_cfgProveedores,proveedoresTerceros:_cfgProveedoresTerceros,tareas:_cfgTareas,igJustificaciones:_igJustificaciones,deletedIds:sentDeleted})
+      body:JSON.stringify({registros:_registros,defectos:_cfgDefectos,referencias:_cfgReferencias,colores:_cfgColores,proveedores:_cfgProveedores,proveedoresTerceros:_cfgProveedoresTerceros,tareas:_cfgTareas,igJustificaciones:_igJustificaciones,turnosRT:_turnosRT,deletedIds:sentDeleted})
     });
     if(!res||!res.ok) throw new Error('HTTP '+(res?res.status:'sin respuesta'));
     if(sentDeleted.length){
@@ -1679,7 +1751,7 @@ function rtEntrarApp(){
     const mt=JSON.parse(localStorage.getItem('rt_mt_activa')||'null');
     if(mt&&mt.id){
       const r=_registros.find(x=>x.id===mt.id&&!x.finalizado);
-      if(r) abrirMtTimer(mt.id, mt.tarea||r.tarea||'Multitarea', mt.start);
+      if(r) abrirMtTimer(mt.id, mt.tarea||r.tarea||'Multitarea', mt.start, mt.duracionSesionMin!=null?mt.duracionSesionMin:null);
       else localStorage.removeItem('rt_mt_activa');
     }
   }catch(e){}
@@ -2152,28 +2224,41 @@ function rtDistanciaAVentana(minutoHora,ventana){
   const dFin=Math.min(Math.abs(minutoHora-ventana.finNormalMin),1440-Math.abs(minutoHora-ventana.finNormalMin));
   return Math.min(dIni,dFin);
 }
-// A qué turno del catálogo pertenece una hora/fecha. {turno:<objeto>, fechaTurno} o null.
+// Elige, para un turno ('dia'/'noche') y una fecha dada, la versión de horario que
+// estaba vigente ese día — así editar el horario hoy nunca recalcula días pasados.
+function rtVersionVigente(turnoKey,fecha){
+  const versiones=_turnosRT[turnoKey]||[];
+  if(!versiones.length) return null;
+  const vigentes=versiones.filter(v=>v.vigenteDesde<=fecha);
+  if(!vigentes.length) return versiones.reduce((a,b)=>a.vigenteDesde<b.vigenteDesde?a:b); // fecha anterior a toda versión: usar la más antigua
+  return vigentes.reduce((a,b)=>a.vigenteDesde>b.vigenteDesde?a:b);
+}
+// A qué turno (Día/Noche) pertenece una hora/fecha. {turnoId, fechaTurno} o null.
 function rtDetectarTurnoCatalogo(horaStr,fecha){
-  if(!_turnosCatalogoCargado || !_turnosCatalogo.length) return null;
+  if(!_turnosRTCargado) return null;
   const horaMin=rtNormalizarHoraAMin(horaStr);
   if(horaMin==null) return null;
   const diaAbr=rtDiaAbrev(fecha);
   const diaAntAbr=rtDiaAbrev(rtSumarDias(fecha,-1));
+  const claves=['dia','noche'];
 
-  for(const t of _turnosCatalogo){
-    const vHoy=rtVentanaDelDia(t,diaAbr);
+  for(const key of claves){
+    const tHoy=rtVersionVigente(key,fecha);
+    const vHoy=tHoy?rtVentanaDelDia(tHoy,diaAbr):null;
     if(vHoy && (rtHoraEnVentana(horaMin,vHoy,false) || vHoy.bloquesExtra.some(b=>rtHoraEnBloqueExtra(horaMin,b,false))))
-      return {turno:t, fechaTurno:fecha};
-    const vAyer=rtVentanaDelDia(t,diaAntAbr);
+      return {turnoId:key, fechaTurno:fecha};
+    const tAyer=rtVersionVigente(key,rtSumarDias(fecha,-1));
+    const vAyer=tAyer?rtVentanaDelDia(tAyer,diaAntAbr):null;
     if(vAyer && (rtHoraEnVentana(horaMin,vAyer,true) || vAyer.bloquesExtra.some(b=>b.cruza && rtHoraEnBloqueExtra(horaMin,b,true))))
-      return {turno:t, fechaTurno:rtSumarDias(fecha,-1)};
+      return {turnoId:key, fechaTurno:rtSumarDias(fecha,-1)};
   }
   let mejor=null, mejorDist=Infinity;
-  for(const t of _turnosCatalogo){
-    const v=rtVentanaDelDia(t,diaAbr);
+  for(const key of claves){
+    const t=rtVersionVigente(key,fecha);
+    const v=t?rtVentanaDelDia(t,diaAbr):null;
     if(!v) continue;
     const d=rtDistanciaAVentana(horaMin,v);
-    if(d<mejorDist){ mejorDist=d; mejor={turno:t, fechaTurno:fecha}; }
+    if(d<mejorDist){ mejorDist=d; mejor={turnoId:key, fechaTurno:fecha}; }
   }
   return mejor;
 }
@@ -2190,9 +2275,10 @@ function rtSolapeMinutos(iniA,finA,iniB,finB){
 }
 // Duración oficial de una instancia turno+día: minutos NORMAL + el tiempo REAL
 // (no el bloque completo) que la persona haya trabajado dentro de cada hora extra,
-// con tope del tamaño del bloque.
+// con tope del tamaño del bloque. Usa la versión de horario vigente EN esa fecha.
 function rtDuracionOficialInstancia(turnoId,fechaTurno,regsTurno){
-  const tCat=_turnosCatalogo.find(t=>t.id===turnoId);
+  if(turnoId!=='dia'&&turnoId!=='noche') return null;
+  const tCat=rtVersionVigente(turnoId,fechaTurno);
   if(!tCat) return null;
   const v=rtVentanaDelDia(tCat, rtDiaAbrev(fechaTurno));
   if(!v) return null;
@@ -2208,8 +2294,6 @@ function rtDuracionOficialInstancia(turnoId,fechaTurno,regsTurno){
   return minutos;
 }
 function rtNombreTurno(turnoId){
-  const t=_turnosCatalogo.find(x=>x.id===turnoId);
-  if(t) return t.nombre;
   if(turnoId==='dia') return '☀️ Día';
   if(turnoId==='noche') return '🌙 Noche';
   return turnoId||'—';
@@ -2217,7 +2301,7 @@ function rtNombreTurno(turnoId){
 function detectarTurno(hora, fecha){
   if(!hora||!fecha) return {turno:'dia', fechaTurno:fecha||fechaHoy()};
   const r=rtDetectarTurnoCatalogo(hora,fecha);
-  if(r) return {turno:r.turno.id, fechaTurno:r.fechaTurno};
+  if(r) return {turno:r.turnoId, fechaTurno:r.fechaTurno};
   // Catálogo no disponible / sin match: comportamiento fijo de siempre.
   const mins=horaA24(hora);
   if(mins>=17*60+45){
@@ -2233,15 +2317,15 @@ function resolverTurnoFinal(revisador, hora, fecha){
   );
   if(!asig) return {turno:turnoDetectado, fechaTurno};
   const turnoFinal=asig.turno;
-  const tCat=_turnosCatalogo.find(t=>t.id===turnoFinal);
   let fechaTurnoFinal;
-  if(tCat){
+  if(turnoFinal==='dia'||turnoFinal==='noche'){
     const horaMin=rtNormalizarHoraAMin(hora);
-    const vAyer=rtVentanaDelDia(tCat, rtDiaAbrev(rtSumarDias(fecha,-1)));
+    const tAyer=rtVersionVigente(turnoFinal, rtSumarDias(fecha,-1));
+    const vAyer=tAyer?rtVentanaDelDia(tAyer, rtDiaAbrev(rtSumarDias(fecha,-1))):null;
     const enColaNocturna = !!vAyer && (rtHoraEnVentana(horaMin,vAyer,true) || vAyer.bloquesExtra.some(b=>b.cruza && rtHoraEnBloqueExtra(horaMin,b,true)));
     fechaTurnoFinal = enColaNocturna ? rtSumarDias(fecha,-1) : fecha;
   } else {
-    // Turno legacy 'dia'/'noche' (dato histórico) — regla original.
+    // Turno asignado no reconocido (no debería pasar tras la migración) — regla original.
     fechaTurnoFinal=(turnoFinal==='dia'&&turnoDetectado==='noche')?fecha:fechaTurno;
   }
   return {turno:turnoFinal, fechaTurno:fechaTurnoFinal};
@@ -2823,8 +2907,8 @@ function cerrarDashboard(){document.getElementById('rt-dashboard-screen').style.
 function poblarDashTurnoToggle(){
   const wrap=document.getElementById('dash-turno-toggle');
   if(!wrap) return;
-  const extra=_turnosCatalogo.map(t=>
-    `<button class="dash-turno-btn" data-turno="${t.id}" onclick="setDashTurno('${t.id}')" style="padding:5px 12px;border-radius:6px;border:none;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;cursor:pointer;background:transparent;color:#64748b;">${t.nombre}</button>`
+  const extra=['dia','noche'].map(key=>
+    `<button class="dash-turno-btn" data-turno="${key}" onclick="setDashTurno('${key}')" style="padding:5px 12px;border-radius:6px;border:none;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;cursor:pointer;background:transparent;color:#64748b;">${rtNombreTurno(key)}</button>`
   ).join('');
   wrap.innerHTML='<button id="dash-turno-todos" class="dash-turno-btn" data-turno="todos" onclick="setDashTurno(\'todos\')" style="padding:5px 12px;border-radius:6px;border:none;font-family:\'Barlow Condensed\',sans-serif;font-size:12px;font-weight:700;cursor:pointer;background:#2563eb;color:#fff;">Todos</button>'+extra;
 }
@@ -3017,21 +3101,32 @@ function donutChart(aprobados,rechazados,enRev){
 }
 
 // ── Timer Multitarea ─────────────────────────────────────────────────
-let _mtTimerInterval=null,_mtTimerStart=null,_mtCurrentId=null;
-function abrirMtTimer(id,tarea,startEpoch){
+let _mtTimerInterval=null,_mtTimerStart=null,_mtCurrentId=null,_mtDuracionSesionMin=null;
+// duracionSesionMin: si viene definido, el reloj cuenta REGRESIVO desde ese valor y se
+// auto-cierra al llegar a 0. Si es null/undefined, cronómetro normal (como siempre).
+function abrirMtTimer(id,tarea,startEpoch,duracionSesionMin){
   _mtCurrentId=id;_mtTimerStart=startEpoch||Date.now();
-  localStorage.setItem('rt_mt_activa',JSON.stringify({id,tarea,start:_mtTimerStart}));
+  _mtDuracionSesionMin=(duracionSesionMin!=null)?duracionSesionMin:null;
+  localStorage.setItem('rt_mt_activa',JSON.stringify({id,tarea,start:_mtTimerStart,duracionSesionMin:_mtDuracionSesionMin}));
   document.getElementById('mt-timer-tarea').textContent=tarea;
-  document.getElementById('mt-timer-display').textContent='00:00:00';
+  document.getElementById('mt-timer-display').textContent=_mtDuracionSesionMin!=null?rtFormatoReloj(_mtDuracionSesionMin*60000):'00:00:00';
   document.getElementById('mt-timer-overlay').style.display='flex';
   _mtTimerInterval=setInterval(()=>{
     const e=Date.now()-_mtTimerStart;
-    const h=Math.floor(e/3600000),m=Math.floor((e%3600000)/60000),s=Math.floor((e%60000)/1000);
-    document.getElementById('mt-timer-display').textContent=
-      String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+    if(_mtDuracionSesionMin!=null){
+      const restante=(_mtDuracionSesionMin*60000)-e;
+      if(restante<=0){ document.getElementById('mt-timer-display').textContent='00:00:00'; finalizarMultitareaTimer(true); return; }
+      document.getElementById('mt-timer-display').textContent=rtFormatoReloj(restante);
+    } else {
+      document.getElementById('mt-timer-display').textContent=rtFormatoReloj(e);
+    }
   },1000);
 }
-function finalizarMultitareaTimer(){
+function rtFormatoReloj(ms){
+  const h=Math.floor(ms/3600000),m=Math.floor((ms%3600000)/60000),s=Math.floor((ms%60000)/1000);
+  return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+}
+function finalizarMultitareaTimer(auto){
   clearInterval(_mtTimerInterval);_mtTimerInterval=null;
   localStorage.removeItem('rt_mt_activa');
   document.getElementById('mt-timer-overlay').style.display='none';
@@ -3040,9 +3135,18 @@ function finalizarMultitareaTimer(){
     const horaFin=horaActual();
     _registros[idx]={..._registros[idx],hora_fin:horaFin,tiempo:calcTiempo(_registros[idx].hora_inicio,horaFin),resultado:'Completado',finalizado:true};
   }
-  _mtCurrentId=null;_mtTimerStart=null;
+  _mtCurrentId=null;_mtTimerStart=null;_mtDuracionSesionMin=null;
   aplicarFiltros();guardarEnServidor();
-  showToast('✅ Tarea completada');
+  showToast(auto?'⏱ Tiempo cumplido — tarea cerrada automáticamente':'✅ Tarea completada');
+}
+// Minutos ya usados HOY por esta persona en esta tarea (solo sesiones ya finalizadas) —
+// usado para el cupo diario repartible (Tipo1 "reanuda").
+function rtParseMinsTiempo(t){ if(!t)return 0; const m=t.match(/(?:(\d+)h\s*)?(\d+)min/); return m?(parseInt(m[1]||0)*60+parseInt(m[2]||0)):0; }
+function rtMinutosUsadosHoy(revisador,tareaNombre){
+  const hoy=fechaHoy();
+  return _registros
+    .filter(r=>r.tipo==='multitarea'&&r.revisador===revisador&&r.tarea===tareaNombre&&r.fecha===hoy&&r.finalizado)
+    .reduce((s,r)=>s+rtParseMinsTiempo(r.tiempo),0);
 }
 
 function barChart(data,colorFn,showDisplay){
@@ -3145,7 +3249,7 @@ function abrirCfgScreen(){
 function cerrarCfgScreen(){document.getElementById('rt-cfg-screen').style.display='none';rtsSetActive(document.getElementById('rts-nav-registros'));_cfgUnlocked=false;}
 function switchCfgTab(n){
   // Mostrar/ocultar paneles (instantáneo) — esto siempre corre
-  [1,2,3,4,5].forEach(i=>{document.getElementById('cfg-panel-'+i).style.display=i===n?'block':'none';document.getElementById('cfg-tab-btn-'+i).classList.toggle('active',i===n);});
+  [1,2,3,4,5,6].forEach(i=>{document.getElementById('cfg-panel-'+i).style.display=i===n?'block':'none';document.getElementById('cfg-tab-btn-'+i).classList.toggle('active',i===n);});
   // Dibujar el contenido SOLO la primera vez que se abre la pestaña.
   // Al editar/importar, cada función redibuja su propia tabla, así que los datos siguen frescos.
   if(_cfgRendered[n]) return;
@@ -3155,6 +3259,7 @@ function switchCfgTab(n){
   else if(n===3) renderTareasList();
   else if(n===4) renderHistorialCfg();
   else if(n===5) renderTurnosPanel();
+  else if(n===6) renderHorariosTurno();
 }
 // ── Turnos asignados ───────────────────────────────────────────────
 async function guardarTurnoAsignacion(){
@@ -3209,7 +3314,7 @@ function poblarSelectTurno(selectId, incluirTodos){
   const sel=document.getElementById(selectId);
   if(!sel) return;
   const cur=sel.value;
-  const opciones=_turnosCatalogo.map(t=>`<option value="${t.id}">${t.nombre}</option>`).join('');
+  const opciones=['dia','noche'].map(key=>`<option value="${key}">${rtNombreTurno(key)}</option>`).join('');
   sel.innerHTML=(incluirTodos?'<option value="">Todos</option>':'')+opciones;
   if(cur && [...sel.options].some(o=>o.value===cur)) sel.value=cur;
 }
@@ -3260,6 +3365,126 @@ function renderTurnosPanel(){
     }).join('')
     +'</tbody></table>';
 }
+
+// ── Turnos: horario propio de Telas (Día/Noche) ──────────────────────
+const RT_TH='padding:7px 10px;font-family:\'Barlow Condensed\',sans-serif;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:#64748b;background:#f8fafc;border-bottom:1px solid #e2e8f0;text-align:left;';
+const RT_TD='padding:7px 10px;font-size:12px;color:#0f172a;border-bottom:1px solid #f1f5f9;';
+const RT_DIAS_TODOS=[{k:'LN',l:'Lun'},{k:'MR',l:'Mar'},{k:'XR',l:'Mié'},{k:'JU',l:'Jue'},{k:'VI',l:'Vie'},{k:'SB',l:'Sáb'},{k:'DO',l:'Dom'}];
+let _rtHorarioEditKey=null, _rtHorasEdit=[];
+function renderHorariosTurno(){
+  const grid=document.getElementById('rt-horarios-grid');
+  if(!grid) return;
+  grid.innerHTML=['dia','noche'].map(key=>rtHorarioCardHTML(key)).join('');
+}
+function rtHorarioCardHTML(key){
+  if(_rtHorarioEditKey===key) return rtHorarioEditHTML(key);
+  const titulo=rtNombreTurno(key);
+  const version=rtVersionVigente(key, fechaHoy());
+  if(!version || !(version.horas||[]).length){
+    return `<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:18px;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;color:#0f172a;margin-bottom:10px;">${titulo}</div>
+      <div style="color:#94a3b8;font-size:13px;margin-bottom:14px;">Sin horario configurado.</div>
+      <button onclick="rtEditarHorario('${key}')" style="padding:7px 14px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-size:12px;font-weight:600;cursor:pointer;">✏️ Configurar horario</button>
+    </div>`;
+  }
+  const vigenteDesde=version.vigenteDesde<='2000-01-01'?'siempre':fechaDisplay(version.vigenteDesde);
+  const filas=(version.horas||[]).map(h=>`<tr>
+      <td style="${RT_TD}">${h.nombre||'—'}</td>
+      <td style="${RT_TD}">${h.comienza}${h.iniciaTurno?' <span style="color:#2563eb;font-size:10px;">(inicia)</span>':''}</td>
+      <td style="${RT_TD}">${h.termina}${h.finalizaTurno?' <span style="color:#2563eb;font-size:10px;">(cierra)</span>':''}</td>
+      <td style="${RT_TD}">${h.tipo==='EXTRA'?'<span style="color:#b45309;font-weight:600;">Extra</span>':'Normal'}</td>
+      <td style="${RT_TD}font-size:11px;color:#64748b;">${(h.dias||[]).join(' ')}</td>
+    </tr>`).join('');
+  return `<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
+    <div style="padding:14px 18px;border-bottom:1px solid #e2e8f0;background:#f8fafc;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+      <div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;color:#0f172a;">${titulo}</div>
+        <div style="font-size:11px;color:#94a3b8;margin-top:2px;">Vigente desde ${vigenteDesde}</div>
+      </div>
+      <button onclick="rtEditarHorario('${key}')" style="padding:6px 12px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;color:#475569;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">✏️ Editar</button>
+    </div>
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;min-width:320px;">
+        <thead><tr><th style="${RT_TH}">Hora</th><th style="${RT_TH}">Inicio</th><th style="${RT_TH}">Fin</th><th style="${RT_TH}">Tipo</th><th style="${RT_TH}">Días</th></tr></thead>
+        <tbody>${filas}</tbody>
+      </table>
+    </div>
+  </div>`;
+}
+function rtEditarHorario(key){
+  const version=rtVersionVigente(key, fechaHoy());
+  _rtHorarioEditKey=key;
+  _rtHorasEdit=version ? JSON.parse(JSON.stringify(version.horas||[])) : [];
+  renderHorariosTurno();
+}
+function rtCancelarEditHorario(){
+  _rtHorarioEditKey=null; _rtHorasEdit=[];
+  renderHorariosTurno();
+}
+function rtAgregarHoraEdit(){
+  _rtHorasEdit.push({nombre:'',comienza:'',termina:'',tipo:'NORMAL',iniciaTurno:false,finalizaTurno:false,dias:['LN','MR','XR','JU','VI'],disabled:false});
+  renderHorariosTurno();
+}
+function rtEliminarHoraEdit(i){
+  _rtHorasEdit.splice(i,1);
+  renderHorariosTurno();
+}
+function rtHoraEditCampo(i,campo,val){
+  _rtHorasEdit[i][campo]=val;
+}
+function rtHoraEditDia(i,dia,checked){
+  const dias=new Set(_rtHorasEdit[i].dias||[]);
+  if(checked) dias.add(dia); else dias.delete(dia);
+  _rtHorasEdit[i].dias=[...dias];
+}
+function rtGuardarHorario(key){
+  if(!_rtHorasEdit.some(h=>h.iniciaTurno)){ showToast('⚠️ Marca cuál hora inicia el turno');return; }
+  if(!_rtHorasEdit.some(h=>h.finalizaTurno&&h.tipo==='NORMAL')){ showToast('⚠️ Marca cuál hora normal cierra el turno');return; }
+  const nuevaVersion={vigenteDesde:fechaHoy(), horas:JSON.parse(JSON.stringify(_rtHorasEdit))};
+  _turnosRT[key]=[...(_turnosRT[key]||[]), nuevaVersion];
+  guardarEnServidor();
+  _rtHorarioEditKey=null;_rtHorasEdit=[];
+  renderHorariosTurno();
+  showToast('✅ Horario actualizado — aplica desde hoy');
+}
+function rtHorarioEditHTML(key){
+  const titulo=rtNombreTurno(key);
+  const filas=_rtHorasEdit.map((h,i)=>`
+    <tr>
+      <td style="${RT_TD}"><input value="${h.nombre||''}" oninput="rtHoraEditCampo(${i},'nombre',this.value)" style="width:70px;padding:4px 6px;border:1px solid #e2e8f0;border-radius:5px;font-size:11px;"></td>
+      <td style="${RT_TD}"><input type="time" value="${h.comienza||''}" oninput="rtHoraEditCampo(${i},'comienza',this.value)" style="padding:4px 6px;border:1px solid #e2e8f0;border-radius:5px;font-size:11px;"></td>
+      <td style="${RT_TD}"><input type="time" value="${h.termina||''}" oninput="rtHoraEditCampo(${i},'termina',this.value)" style="padding:4px 6px;border:1px solid #e2e8f0;border-radius:5px;font-size:11px;"></td>
+      <td style="${RT_TD}">
+        <select onchange="rtHoraEditCampo(${i},'tipo',this.value)" style="padding:4px 6px;border:1px solid #e2e8f0;border-radius:5px;font-size:11px;">
+          <option value="NORMAL"${h.tipo==='NORMAL'?' selected':''}>Normal</option>
+          <option value="EXTRA"${h.tipo==='EXTRA'?' selected':''}>Extra</option>
+        </select>
+      </td>
+      <td style="${RT_TD}white-space:nowrap;">
+        <label style="font-size:10px;margin-right:6px;"><input type="checkbox" ${h.iniciaTurno?'checked':''} onchange="rtHoraEditCampo(${i},'iniciaTurno',this.checked)"> Inicia</label>
+        <label style="font-size:10px;"><input type="checkbox" ${h.finalizaTurno?'checked':''} onchange="rtHoraEditCampo(${i},'finalizaTurno',this.checked)"> Cierra</label>
+      </td>
+      <td style="${RT_TD}white-space:nowrap;">${RT_DIAS_TODOS.map(d=>`<label style="font-size:9px;margin-right:4px;"><input type="checkbox" ${((h.dias||[]).includes(d.k))?'checked':''} onchange="rtHoraEditDia(${i},'${d.k}',this.checked)">${d.l}</label>`).join('')}</td>
+      <td style="${RT_TD}"><button onclick="rtEliminarHoraEdit(${i})" style="width:24px;height:24px;border-radius:5px;border:1px solid #fca5a5;background:#fef2f2;color:#dc2626;cursor:pointer;font-size:11px;">✕</button></td>
+    </tr>`).join('');
+  return `<div style="background:#fff;border:1.5px solid #2563eb;border-radius:12px;overflow:hidden;grid-column:1/-1;">
+    <div style="padding:14px 18px;border-bottom:1px solid #e2e8f0;background:#eff6ff;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;color:#0f172a;">Editando: ${titulo}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button onclick="rtAgregarHoraEdit()" style="padding:6px 12px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;color:#475569;font-size:12px;font-weight:600;cursor:pointer;">+ Agregar hora</button>
+        <button onclick="rtGuardarHorario('${key}')" style="padding:6px 14px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-size:12px;font-weight:700;cursor:pointer;">💾 Guardar</button>
+        <button onclick="rtCancelarEditHorario()" style="padding:6px 12px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;color:#64748b;font-size:12px;cursor:pointer;">Cancelar</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;min-width:640px;">
+        <thead><tr><th style="${RT_TH}">Hora</th><th style="${RT_TH}">Inicio</th><th style="${RT_TH}">Fin</th><th style="${RT_TH}">Tipo</th><th style="${RT_TH}">Marca</th><th style="${RT_TH}">Días</th><th style="${RT_TH}"></th></tr></thead>
+        <tbody>${filas||'<tr><td colspan="7" style="padding:14px;text-align:center;color:#94a3b8;font-size:12px;">Sin filas. Agrega una hora.</td></tr>'}</tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
 let _refsFiltros=['','','','','','','','','','','',''];
 function filtrarRefsTabla(colIdx,val){
   _refsFiltros[colIdx]=(val||'').toLowerCase();
@@ -3489,7 +3714,7 @@ function closeTipoRegistroModal(){
 function openMultitareaModal(){
   const sel=document.getElementById('mt-tarea');
   sel.innerHTML='<option value="">— Selecciona una tarea —</option>'+
-    _cfgTareas.map(t=>'<option value="'+t+'">'+t+'</option>').join('')+
+    _cfgTareas.map(t=>'<option value="'+t.nombre+'">'+t.nombre+'</option>').join('')+
     '<option value="__otros__">✏️ Otros</option>';
   sel.onchange=function(){
     const wrap=document.getElementById('mt-otros-wrap');
@@ -3516,8 +3741,24 @@ function iniciarMultitarea(){
     if(!desc){errEl.textContent='Describe la actividad';return;}
     tarea=desc;
   }
-  errEl.textContent='';
   const revisador=_rtCurrentUser;
+  // Tarea con tiempo definido: Tipo1 (reanuda) reparte un cupo diario entre varias
+  // activaciones; Tipo3 (no reanuda) arranca siempre en el tiempo completo.
+  const cfgTarea=rtBuscarTareaCfg(tarea);
+  let duracionSesionMin=null;
+  if(cfgTarea && cfgTarea.tiempoDefinido){
+    if(cfgTarea.reanuda){
+      const usados=rtMinutosUsadosHoy(revisador,tarea);
+      duracionSesionMin=Math.max(0,cfgTarea.tiempoDefinido-usados);
+      if(duracionSesionMin<=0){
+        errEl.textContent='Ya usaste todo el tiempo de hoy para "'+tarea+'" ('+cfgTarea.tiempoDefinido+' min)';
+        return;
+      }
+    } else {
+      duracionSesionMin=cfgTarea.tiempoDefinido;
+    }
+  }
+  errEl.textContent='';
   const reg={
     id:'rt_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
     tipo:'multitarea',
@@ -3536,27 +3777,84 @@ function iniciarMultitarea(){
   closeMultitareaModal();
   guardarEnServidor();
   aplicarFiltros();
-  abrirMtTimer(reg.id,tarea);
+  abrirMtTimer(reg.id,tarea,null,duracionSesionMin);
 }
 
 // ── Config Tareas ───────────────────────────────────────────────────
+// Tareas: array de objetos {nombre,tiempoDefinido(min|null),reanuda(bool),afecta('nada'|'eficiencia'|'ambas')}.
+// migrarCfgTareas convierte datos viejos (simples strings) a este formato una sola vez,
+// con valores por defecto que reproducen el comportamiento de siempre (no descuenta nada).
+function migrarCfgTareas(arr){
+  return (arr||[]).map(t=>{
+    if(typeof t==='string') return {nombre:t,tiempoDefinido:null,reanuda:false,afecta:'nada'};
+    return {nombre:t.nombre||'',tiempoDefinido:(t.tiempoDefinido!=null&&t.tiempoDefinido!==''?parseInt(t.tiempoDefinido,10):null),reanuda:!!t.reanuda,afecta:t.afecta||'nada'};
+  });
+}
+function rtBuscarTareaCfg(nombre){
+  return _cfgTareas.find(t=>t.nombre===nombre)||null;
+}
+function rtEtiquetaConfigTarea(t){
+  const partes=[];
+  if(t.tiempoDefinido) partes.push('⏱ '+t.tiempoDefinido+' min'+(t.reanuda?' (repartible)':''));
+  if(t.afecta==='eficiencia') partes.push('descuenta Eficiencia');
+  else if(t.afecta==='ambas') partes.push('descuenta Eficiencia y Productividad');
+  return partes.length?partes.join(' · '):'Normal — no descuenta';
+}
+let _tareaCfgAbierta=new Set();
+function toggleTareaCfg(i){
+  if(_tareaCfgAbierta.has(i)) _tareaCfgAbierta.delete(i); else _tareaCfgAbierta.add(i);
+  renderTareasList();
+}
 function renderTareasList(){
   const el=document.getElementById('cfg-tareas-list');
   if(!el)return;
   if(!_cfgTareas.length){el.innerHTML='<div style="color:#94a3b8;font-size:13px;text-align:center;padding:20px;">Sin tareas configuradas.</div>';return;}
   el.innerHTML=_cfgTareas.map((t,i)=>`
-    <div id="tarea-row-${i}" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0;margin-bottom:6px;">
-      <span style="font-size:15px;">⚡</span>
-      <span id="tarea-txt-${i}" style="flex:1;font-size:13px;font-weight:600;color:#0f172a;">${t}</span>
-      <input id="tarea-inp-${i}" type="text" value="${t}" style="display:none;flex:1;padding:5px 8px;border:1.5px solid #7c3aed;border-radius:6px;font-size:13px;outline:none;">
-      <button id="tarea-btn-edit-${i}" onclick="editarTarea(${i})" style="padding:4px 10px;border-radius:6px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:12px;cursor:pointer;">✏️</button>
-      <button id="tarea-btn-save-${i}" onclick="guardarEditTarea(${i})" style="display:none;padding:4px 10px;border-radius:6px;border:none;background:#7c3aed;color:#fff;font-size:12px;cursor:pointer;">✔</button>
-      <button onclick="eliminarTarea(${i})" style="width:26px;height:26px;border-radius:6px;border:1.5px solid #fca5a5;background:#fef2f2;color:#dc2626;cursor:pointer;font-size:12px;">✕</button>
+    <div id="tarea-row-${i}" style="padding:8px 10px;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0;margin-bottom:6px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:15px;">⚡</span>
+        <div style="flex:1;">
+          <span id="tarea-txt-${i}" style="display:block;font-size:13px;font-weight:600;color:#0f172a;">${t.nombre}</span>
+          <input id="tarea-inp-${i}" type="text" value="${t.nombre}" style="display:none;width:100%;padding:5px 8px;border:1.5px solid #7c3aed;border-radius:6px;font-size:13px;outline:none;margin-top:2px;">
+          <span style="font-size:11px;color:#94a3b8;">${rtEtiquetaConfigTarea(t)}</span>
+        </div>
+        <button onclick="toggleTareaCfg(${i})" style="padding:4px 10px;border-radius:6px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:12px;cursor:pointer;">⚙️</button>
+        <button id="tarea-btn-edit-${i}" onclick="editarTarea(${i})" style="padding:4px 10px;border-radius:6px;border:1.5px solid #e2e8f0;background:#fff;color:#64748b;font-size:12px;cursor:pointer;">✏️</button>
+        <button id="tarea-btn-save-${i}" onclick="guardarEditTarea(${i})" style="display:none;padding:4px 10px;border-radius:6px;border:none;background:#7c3aed;color:#fff;font-size:12px;cursor:pointer;">✔</button>
+        <button onclick="eliminarTarea(${i})" style="width:26px;height:26px;border-radius:6px;border:1.5px solid #fca5a5;background:#fef2f2;color:#dc2626;cursor:pointer;font-size:12px;">✕</button>
+      </div>
+      ${_tareaCfgAbierta.has(i)?rtConfigTareaHTML(t,i):''}
     </div>`).join('');
+}
+function rtConfigTareaHTML(t,i){
+  return `<div style="margin-top:10px;padding:12px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;">
+    <div>
+      <label style="font-size:10px;font-weight:500;color:#94a3b8;letter-spacing:.5px;text-transform:uppercase;display:block;margin-bottom:4px;">Tiempo definido (min)</label>
+      <input type="number" min="1" value="${t.tiempoDefinido||''}" placeholder="Sin definir" oninput="rtTareaCfgCampo(${i},'tiempoDefinido',this.value)" style="width:120px;padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;">
+    </div>
+    <div>
+      <label style="font-size:10px;font-weight:500;color:#94a3b8;letter-spacing:.5px;text-transform:uppercase;display:block;margin-bottom:4px;">&nbsp;</label>
+      <label style="font-size:12px;color:#334155;display:flex;align-items:center;gap:6px;"><input type="checkbox" ${t.reanuda?'checked':''} onchange="rtTareaCfgCampo(${i},'reanuda',this.checked)"> Se puede repartir en varias veces el mismo día</label>
+    </div>
+    <div>
+      <label style="font-size:10px;font-weight:500;color:#94a3b8;letter-spacing:.5px;text-transform:uppercase;display:block;margin-bottom:4px;">Descuenta de</label>
+      <select onchange="rtTareaCfgCampo(${i},'afecta',this.value)" style="padding:6px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;">
+        <option value="nada"${t.afecta==='nada'?' selected':''}>Ninguna (informativo)</option>
+        <option value="eficiencia"${t.afecta==='eficiencia'?' selected':''}>Solo Eficiencia</option>
+        <option value="ambas"${t.afecta==='ambas'?' selected':''}>Eficiencia y Productividad</option>
+      </select>
+    </div>
+  </div>`;
+}
+function rtTareaCfgCampo(i,campo,val){
+  if(campo==='tiempoDefinido') val=val?parseInt(val,10):null;
+  _cfgTareas[i][campo]=val;
+  guardarEnServidor();
+  renderTareasList();
 }
 function editarTarea(i){
   document.getElementById('tarea-txt-'+i).style.display='none';
-  document.getElementById('tarea-inp-'+i).style.display='flex';
+  document.getElementById('tarea-inp-'+i).style.display='block';
   document.getElementById('tarea-btn-edit-'+i).style.display='none';
   document.getElementById('tarea-btn-save-'+i).style.display='inline-block';
   document.getElementById('tarea-inp-'+i).focus();
@@ -3564,14 +3862,14 @@ function editarTarea(i){
 function guardarEditTarea(i){
   const val=(document.getElementById('tarea-inp-'+i).value||'').trim();
   if(!val){showToast('⚠️ El nombre no puede estar vacío');return;}
-  _cfgTareas[i]=val;
+  _cfgTareas[i].nombre=val;
   guardarEnServidor();renderTareasList();showToast('✅ Tarea actualizada');
 }
 function agregarTarea(){
   const val=(document.getElementById('cfg-add-tarea').value||'').trim();
   if(!val){showToast('⚠️ Ingresa el nombre de la tarea');return;}
-  if(_cfgTareas.includes(val)){showToast('⚠️ Ya existe');return;}
-  _cfgTareas.push(val);
+  if(_cfgTareas.some(t=>t.nombre===val)){showToast('⚠️ Ya existe');return;}
+  _cfgTareas.push({nombre:val,tiempoDefinido:null,reanuda:false,afecta:'nada'});
   document.getElementById('cfg-add-tarea').value='';
   guardarEnServidor();renderTareasList();showToast('✅ Tarea agregada');
 }
@@ -3589,7 +3887,7 @@ function importarTareas(e){
       rows.forEach((row,i)=>{
         if(i===0)return; // saltar encabezado
         const val=(row[0]||'').toString().trim();
-        if(val&&!_cfgTareas.includes(val)){_cfgTareas.push(val);added++;}
+        if(val&&!_cfgTareas.some(t=>t.nombre===val)){_cfgTareas.push({nombre:val,tiempoDefinido:null,reanuda:false,afecta:'nada'});added++;}
       });
       guardarEnServidor();renderTareasList();showToast('✅ '+added+' tareas importadas');
     }catch(err){alert('Error al leer el archivo: '+err.message);}
@@ -3605,7 +3903,7 @@ function plantillaTareas(){
 }
 function exportarTareas(){
   if(!_cfgTareas.length){showToast('⚠️ Sin tareas para exportar');return;}
-  const rows=_cfgTareas.map(t=>({'Tarea':t}));
+  const rows=_cfgTareas.map(t=>({'Tarea':t.nombre}));
   const ws=XLSX.utils.json_to_sheet(rows);
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,ws,'Tareas');
@@ -4152,11 +4450,11 @@ function mostrarNotifCorteNueva(sol){
 const IG_TURNOS={ dia:{inicio:5*60+15,fin:17*60+45}, noche:{inicio:17*60+45,fin:5*60+15} };
 function igMinutosATexto(mins){ mins=((mins%1440)+1440)%1440; let h=Math.floor(mins/60),m=mins%60; const ap=h>=12?'PM':'AM'; let h12=h%12||12; return h12+':'+String(m).padStart(2,'0')+' '+ap; }
 function igHoraCorta(h){ h=((h%24)+24)%24; const ap=h>=12?'PM':'AM'; let h12=h%12||12; return h12+ap; }
-// Las 3 funciones siguientes intentan primero la ventana real del turno en el
-// catálogo de Configuraciones; si el turno no está ahí (dato legacy 'dia'/'noche',
-// o turno borrado del catálogo), caen al horario fijo IG_TURNOS de siempre.
+// Las 3 funciones siguientes intentan primero la ventana real del turno propio de
+// Telas (vigente en esa fecha); si el turno no está ahí (dato legacy sin match), caen
+// al horario fijo IG_TURNOS de siempre.
 function igVentanaOficialLabel(turno,fecha){
-  const tCat=_turnosCatalogo.find(t=>t.id===turno);
+  const tCat=(turno==='dia'||turno==='noche')?rtVersionVigente(turno,fecha):null;
   if(tCat){
     const v=rtVentanaDelDia(tCat, rtDiaAbrev(fecha));
     if(v) return {inicio:v.inicioMin, fin:v.finNormalMin};
@@ -4165,7 +4463,7 @@ function igVentanaOficialLabel(turno,fecha){
   return {inicio:b.inicio, fin:b.fin};
 }
 function igElapsed(horaStr,turno,fecha){
-  const tCat=fecha?_turnosCatalogo.find(t=>t.id===turno):null;
+  const tCat=(fecha&&(turno==='dia'||turno==='noche'))?rtVersionVigente(turno,fecha):null;
   const v=tCat?rtVentanaDelDia(tCat, rtDiaAbrev(fecha)):null;
   if(v){
     const mins=rtNormalizarHoraAMin(horaStr);
@@ -4253,8 +4551,15 @@ function calcularInstanciaTurno(persona,fecha,regsTurno){
   const metrosRevisados=revision.reduce((s,r)=>s+parseFloat(r.metros||0),0);
   const rechazados=revision.filter(r=>r.resultado==='rechazado').length;
   const pctRechazo=rollosRevisados?Math.round(rechazados/rollosRevisados*100):0;
-  const eficienciaPct=duracionTurno?Math.round(tiempoReportadoMin/duracionTurno*100):0;
-  const productividadPct=duracionTurno?Math.round(tiempoRevisionMin/duracionTurno*100):0;
+  // Eficiencia y Productividad: SIEMPRE se calculan sobre el tiempo de revisión de
+  // tela solamente (las multitareas nunca suman arriba — son improductivos, solo
+  // pueden restar de la base). Cada multitarea, según su configuración, resta de la
+  // base de Eficiencia, de Eficiencia+Productividad, o de ninguna (informativo).
+  const {descEfic,descProd}=rtCalcularDescuentosMultitarea(multitarea);
+  const duracionEficiencia=Math.max(0,duracionTurno-descEfic);
+  const duracionProductividad=Math.max(0,duracionTurno-descProd);
+  const eficienciaPct=duracionEficiencia?Math.round(tiempoRevisionMin/duracionEficiencia*100):0;
+  const productividadPct=duracionProductividad?Math.round(tiempoRevisionMin/duracionProductividad*100):0;
 
   const mtGrupos={};
   multitarea.forEach(r=>{
@@ -4281,11 +4586,44 @@ function calcularInstanciaTurno(persona,fecha,regsTurno){
 
   return {
     persona,fecha,turno,horaOficialInicio,horaOficialFin,duracionTurno,
+    duracionEficiencia,duracionProductividad,
     baches,revision,multitarea,multitareaLista,
     tiempoRevisionMin,tiempoMultitareaMin,tiempoReportadoMin,tiempoBachesMin,
     rollosRevisados,metrosRevisados,rechazados,pctRechazo,eficienciaPct,productividadPct,
     porHora,horaPico,promedioHoraBache
   };
+}
+// Minutos que se restan de la base de Eficiencia y de Productividad por las
+// multitareas de una instancia turno+día, según la configuración de cada tarea:
+//  - Sin tiempo definido (Tipo 2): resta el tiempo REAL de cada activación.
+//  - Con tiempo definido y "reanuda" (Tipo 1, ej. Alimentación): resta el tiempo
+//    definido completo UNA sola vez por día, sin importar en cuántas filas se repartió.
+//  - Con tiempo definido y NO reanuda (Tipo 3, reutilizable): resta el tiempo
+//    definido completo POR CADA activación (fila) — repetible varias veces al día.
+// Tareas sin configuración (dato histórico, o "Otros") no restan nada, igual que
+// "Ninguna" — esto preserva el cálculo de todo lo registrado antes de este cambio.
+function rtCalcularDescuentosMultitarea(multitareaFinalizadas){
+  let descEfic=0, descProd=0;
+  const tipo1YaContadas=new Set();
+  multitareaFinalizadas.forEach(r=>{
+    const cfg=rtBuscarTareaCfg(r.tarea);
+    if(!cfg || cfg.afecta==='nada' || !cfg.afecta) return;
+    let monto;
+    if(cfg.tiempoDefinido){
+      if(cfg.reanuda){
+        if(tipo1YaContadas.has(cfg.nombre)) return;
+        tipo1YaContadas.add(cfg.nombre);
+        monto=cfg.tiempoDefinido;
+      } else {
+        monto=cfg.tiempoDefinido;
+      }
+    } else {
+      monto=Math.max(0,r._ef-r._ei);
+    }
+    descEfic+=monto;
+    if(cfg.afecta==='ambas') descProd+=monto;
+  });
+  return {descEfic,descProd};
 }
 
 // Agrupa _registros por (persona,fechaTurno) — cada grupo es una "instancia de
@@ -4319,8 +4657,13 @@ function sumarInstancias(instancias){
   const tiempoMultitarea=sum(d=>d.tiempoMultitareaMin);
   const tiempoBaches=sum(d=>d.tiempoBachesMin);
   const rollos=sum(d=>d.rollosRevisados), rechazados=sum(d=>d.rechazados);
-  const eficienciaPct=duracionTotal?Math.round(tiempoReportado/duracionTotal*100):0;
-  const productividadPct=duracionTotal?Math.round(tiempoRevision/duracionTotal*100):0;
+  // Igual que en calcularInstanciaTurno: Eficiencia/Productividad solo cuentan tiempo
+  // de revisión de tela arriba, y se ponderan sobre la SUMA de las bases ya reducidas
+  // de cada instancia (nunca sobre duracionTotal sin ajustar).
+  const duracionEficienciaTotal=sum(d=>d.duracionEficiencia);
+  const duracionProductividadTotal=sum(d=>d.duracionProductividad);
+  const eficienciaPct=duracionEficienciaTotal?Math.round(tiempoRevision/duracionEficienciaTotal*100):0;
+  const productividadPct=duracionProductividadTotal?Math.round(tiempoRevision/duracionProductividadTotal*100):0;
   const pctRechazo=rollos?Math.round(rechazados/rollos*100):0;
 
   const mtGrupos={};
@@ -4419,7 +4762,12 @@ function igIrA(persona,desde,hasta,turno){
 // Justificación como <input> (vista dentro del sistema); false → texto plano (PDF).
 function igRenderSecciones(d,editable){
   const KPI1='border-radius:12px;padding:20px 14px;text-align:center;';
-  const donutBg=`conic-gradient(#4338ca 0% ${d.productividadPct}%, #38bdf8 ${d.productividadPct}% ${Math.min(100,Math.round(d.tiempoReportadoMin/d.duracionTurno*100))}%, #fca5a5 ${Math.min(100,Math.round(d.tiempoReportadoMin/d.duracionTurno*100))}% 100%)`;
+  // Este donut es la foto real del turno completo (revisión / multitareas / tiempo
+  // muerto sobre los minutos reales) — a propósito NO usa eficienciaPct/productividadPct,
+  // que ahora se calculan sobre una base reducida distinta según cada multitarea.
+  const pctRevisionReal=d.duracionTurno?Math.round(d.tiempoRevisionMin/d.duracionTurno*100):0;
+  const pctReportadoReal=d.duracionTurno?Math.round(d.tiempoReportadoMin/d.duracionTurno*100):0;
+  const donutBg=`conic-gradient(#4338ca 0% ${pctRevisionReal}%, #38bdf8 ${pctRevisionReal}% ${Math.min(100,pctReportadoReal)}%, #fca5a5 ${Math.min(100,pctReportadoReal)}% 100%)`;
   const maxHora=Math.max(1,d.horaPico.minutos);
   const horasHTML=d.porHora.map(p=>`
     <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;">
@@ -4452,8 +4800,8 @@ function igRenderSecciones(d,editable){
 
   return `
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px;">
-    <div style="${KPI1}background:#eef2ff;border:1.5px solid #c7d2fe;"><div style="font-size:34px;font-weight:800;color:#4338ca;line-height:1;">${d.eficienciaPct}%</div><div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-top:6px;">Eficiencia</div><div style="font-size:9.5px;color:#94a3b8;margin-top:3px;">${d.tiempoReportadoMin} de ${d.duracionTurno} min del turno reportados</div></div>
-    <div style="${KPI1}background:#eff6ff;border:1.5px solid #bfdbfe;"><div style="font-size:34px;font-weight:800;color:#1d4ed8;line-height:1;">${d.productividadPct}%</div><div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-top:6px;">Productividad</div><div style="font-size:9.5px;color:#94a3b8;margin-top:3px;">${d.tiempoRevisionMin} de ${d.duracionTurno} min en revisión de tela</div></div>
+    <div style="${KPI1}background:#eef2ff;border:1.5px solid #c7d2fe;"><div style="font-size:34px;font-weight:800;color:#4338ca;line-height:1;">${d.eficienciaPct}%</div><div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-top:6px;">Eficiencia</div><div style="font-size:9.5px;color:#94a3b8;margin-top:3px;">${d.tiempoRevisionMin} de ${d.duracionEficiencia} min (turno ${d.duracionTurno})</div></div>
+    <div style="${KPI1}background:#eff6ff;border:1.5px solid #bfdbfe;"><div style="font-size:34px;font-weight:800;color:#1d4ed8;line-height:1;">${d.productividadPct}%</div><div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-top:6px;">Productividad</div><div style="font-size:9.5px;color:#94a3b8;margin-top:3px;">${d.tiempoRevisionMin} de ${d.duracionProductividad} min (turno ${d.duracionTurno})</div></div>
     <div style="${KPI1}background:#fef2f2;border:1.5px solid #fca5a5;"><div style="font-size:34px;font-weight:800;color:#dc2626;line-height:1;">${d.pctRechazo}%</div><div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-top:6px;">% Rechazo</div><div style="font-size:9.5px;color:#94a3b8;margin-top:3px;">${d.rechazados} de ${d.rollosRevisados} rollos</div></div>
   </div>
   <div style="display:flex;gap:12px;margin-bottom:26px;">
@@ -4467,7 +4815,7 @@ function igRenderSecciones(d,editable){
     <div style="display:flex;gap:28px;align-items:center;">
       <div style="width:118px;height:118px;border-radius:50%;flex-shrink:0;position:relative;background:${donutBg};"><div style="position:absolute;inset:16px;background:#fff;border-radius:50%;"></div></div>
       <div style="flex:1;display:flex;flex-direction:column;gap:10px;">
-        <div style="display:flex;align-items:center;gap:10px;"><span style="width:11px;height:11px;border-radius:3px;background:#4338ca;flex-shrink:0;"></span><span style="font-size:12.5px;color:#334155;"><b style="color:#0f172a;">${d.tiempoRevisionMin} min</b> revisión de tela</span><span style="font-size:10.5px;color:#94a3b8;margin-left:auto;">${d.productividadPct}%</span></div>
+        <div style="display:flex;align-items:center;gap:10px;"><span style="width:11px;height:11px;border-radius:3px;background:#4338ca;flex-shrink:0;"></span><span style="font-size:12.5px;color:#334155;"><b style="color:#0f172a;">${d.tiempoRevisionMin} min</b> revisión de tela</span><span style="font-size:10.5px;color:#94a3b8;margin-left:auto;">${pctRevisionReal}%</span></div>
         <div style="display:flex;align-items:center;gap:10px;"><span style="width:11px;height:11px;border-radius:3px;background:#38bdf8;flex-shrink:0;"></span><span style="font-size:12.5px;color:#334155;"><b style="color:#0f172a;">${d.tiempoMultitareaMin} min</b> multitareas</span><span style="font-size:10.5px;color:#94a3b8;margin-left:auto;">${Math.round(d.tiempoMultitareaMin/d.duracionTurno*100)}%</span></div>
         <div style="display:flex;align-items:center;gap:10px;"><span style="width:11px;height:11px;border-radius:3px;background:#fca5a5;flex-shrink:0;"></span><span style="font-size:12.5px;color:#334155;"><b style="color:#0f172a;">${d.tiempoBachesMin} min</b> sin reportar (baches)</span><span style="font-size:10.5px;color:#94a3b8;margin-left:auto;">${Math.round(d.tiempoBachesMin/d.duracionTurno*100)}%</span></div>
       </div>

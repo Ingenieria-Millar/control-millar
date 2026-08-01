@@ -1181,7 +1181,7 @@ app.post('/api/ordenes', (req, res) => {
 // ── API Revisión de Telas ────────────────────────────────────────
 app.get('/api/revision-telas', (req, res) => {
   try {
-    res.json(loadDB('revision_telas') || { registros:[], defectos:[], referencias:[], colores:[] });
+    res.json(loadDB('revision_telas') || { registros:[], defectos:[], referencias:[], colores:[], turnosRT:{} });
   } catch(e) {
     console.error('Error no capturado [GET revision-telas]:', (e && e.stack) || e);
     res.status(500).json({ error: String((e && e.message) || e), donde: 'GET revision-telas' });
@@ -1196,6 +1196,7 @@ app.post('/api/revision-telas', (req, res) => {
     const proveedoresTerceros= req.body.proveedoresTerceros|| [];
     const tareas             = req.body.tareas             || [];
     const igJustificaciones  = req.body.igJustificaciones  || {};
+    const turnosRT           = req.body.turnosRT           || {};
     const deletedIds         = Array.isArray(req.body.deletedIds) ? req.body.deletedIds : [];
 
     const prev = loadDB('revision_telas') || {};
@@ -1271,6 +1272,9 @@ app.post('/api/revision-telas', (req, res) => {
     // Justificaciones de baches (Informe Gerencial): unión simple por clave —
     // nunca se reemplaza todo el objeto, solo se agregan/actualizan las claves enviadas.
     const mergedIgJustificaciones = { ...(prev.igJustificaciones && typeof prev.igJustificaciones==='object' ? prev.igJustificaciones : {}), ...igJustificaciones };
+    // Turnos propios de Telas (Día/Noche versionados por fecha) — unión simple por
+    // clave ('dia'/'noche'), nunca se reemplaza todo el objeto de una sola vez.
+    const mergedTurnosRT = { ...(prev.turnosRT && typeof prev.turnosRT==='object' ? prev.turnosRT : {}), ...turnosRT };
 
     const data = {
       registros: mergedRegistros,
@@ -1280,7 +1284,8 @@ app.post('/api/revision-telas', (req, res) => {
       proveedores: mergedProveedores,
       proveedoresTerceros: mergedProvTerceros,
       igJustificaciones: mergedIgJustificaciones,
-      tareas:    mergedTareas
+      tareas:    mergedTareas,
+      turnosRT:  mergedTurnosRT
     };
 
     if (!saveDB('revision_telas', data)) {
