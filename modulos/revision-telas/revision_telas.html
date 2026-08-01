@@ -1146,7 +1146,7 @@ input[type=number]{-moz-appearance:textfield;}
 <!-- Pantalla Dashboard -->
 <div id="rt-dashboard-screen" style="display:none;position:fixed;inset:0;z-index:500;background:#f1f5f9;flex-direction:column;">
   <div style="flex:1;overflow-y:auto;padding:24px clamp(12px,2.5vw,24px);" id="rt-dash-content">
-    <div style="max-width:1200px;margin:0 auto;">
+    <div style="max-width:100%;margin:0 auto;">
       <!-- Filtros (fecha y turno) — antes vivían en una barra propia, ahora son parte del contenido -->
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
         <div style="position:relative;">
@@ -1194,9 +1194,9 @@ input[type=number]{-moz-appearance:textfield;}
           <div id="dash-efic-prod"></div>
         </div>
         <!-- 5. Resultados -->
-        <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;padding:20px;">
+        <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;padding:20px;display:flex;flex-direction:column;">
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:14px;">✅ Resultados</div>
-          <div id="dash-resultados"></div>
+          <div id="dash-resultados" style="flex:1;display:flex;align-items:center;justify-content:center;"></div>
         </div>
         <!-- 6. Defectos más frecuentes -->
         <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;padding:20px;">
@@ -1212,6 +1212,11 @@ input[type=number]{-moz-appearance:textfield;}
         <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;padding:20px;">
           <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:14px;">🕐 Horas Laboradas por Revisador</div>
           <div id="dash-horas-laboradas"></div>
+        </div>
+        <!-- 9b. Tiempo disponible del turno vs tiempo registrado, por revisador -->
+        <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;padding:20px;grid-column:1/-1;">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#0f172a;margin-bottom:14px;">⏳ Tiempo Disponible del Turno vs. Tiempo Registrado</div>
+          <div id="dash-disponible-registrado"></div>
         </div>
         <!-- 9. Tiempo por actividad por revisador -->
         <div style="background:#fff;border-radius:12px;border:1px solid #e2e8f0;padding:20px;grid-column:1/-1;">
@@ -2134,11 +2139,22 @@ function rtDiaAbrev(fecha){
   return RT_DIAS_ABR[new Date(fecha+'T12:00:00').getDay()];
 }
 // Acepta "HH:MM" o número decimal fracción de día (típico de Excel, ej 0.739583=17:45).
+// Acepta "HH:MM" 24h (horario del catálogo de turnos), "H:MM AM/PM" (hora_inicio/
+// hora_fin de los registros, formato de horaActual()) o número decimal fracción de
+// día (Excel). Siempre devuelve minutos desde medianoche en 24h.
+// OJO: sin el sufijo AM/PM ("12:53") no hay ambigüedad que resolver — se toma tal
+// cual, igual que siempre. El AM/PM solo se aplica cuando SÍ viene en el texto.
 function rtNormalizarHoraAMin(v){
   if(v==null||v==='') return null;
   if(typeof v==='string' && v.includes(':')){
-    const m=v.match(/^(\d{1,2}):(\d{2})/);
-    if(m) return (parseInt(m[1],10)*60+parseInt(m[2],10))%1440;
+    const m=v.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+    if(m){
+      let h=parseInt(m[1],10), mn=parseInt(m[2],10);
+      const ap=m[3]?m[3].toUpperCase():null;
+      if(ap==='PM' && h!==12) h+=12;
+      if(ap==='AM' && h===12) h=0;
+      return (h*60+mn)%1440;
+    }
   }
   const f=parseFloat(v);
   return isNaN(f) ? null : Math.round(f*1440)%1440;
@@ -2900,11 +2916,8 @@ function renderDashboard(){
   const totalDef=fin.reduce((s,r)=>s+(r.defectos||[]).reduce((ss,d)=>ss+parseInt(d.cantidad||0),0),0);
   const aprobados=fin.filter(r=>r.resultado==='aprobado').length;
   const rechazados=fin.filter(r=>r.resultado==='rechazado').length;
-  const enRev=regs.filter(r=>!r.finalizado).length;
-  // Calcular minutos totales (todas las actividades finalizadas con tiempo)
+  const numOperarios=new Set(regs.map(r=>r.revisador||'—')).size;
   function parseMins(t){if(!t)return 0;const m=t.match(/(?:(\d+)h\s*)?(\d+)min/);return m?(parseInt(m[1]||0)*60+parseInt(m[2]||0)):0;}
-  const minsTotales=fin.reduce((s,r)=>s+parseMins(r.tiempo),0);
-  const horasLab=minsTotales>=60?Math.floor(minsTotales/60)+'h '+(minsTotales%60)+'min':minsTotales+'min';
   // ── Tarjetas por turno (dinámico, según el catálogo de Configuraciones) ──
   // La eficiencia/productividad sale de calcularInformeAgregado (misma lógica que el
   // Informe Gerencial, ya usa la duración real del turno del catálogo) — el resto de
@@ -2945,15 +2958,14 @@ function renderDashboard(){
   const TD2R='padding:8px 12px;font-size:12px;font-weight:700;border-bottom:1px solid #f1f5f9;text-align:center;font-family:\'IBM Plex Mono\',monospace;';
 
   document.getElementById('dash-stats-row').innerHTML=[
-    {n:'Total',v:regs.length,c:'#0f172a'},
-    {n:'Finalizados',v:fin.length,c:'#2563eb'},
-    {n:'En Revisión',v:enRev,c:'#b45309'},
+    {n:'# Operarios',v:numOperarios,c:'#0f172a'},
+    {n:'Total de Registros',v:regs.length,c:'#2563eb'},
+    {n:'Total de Rollos',v:telasRegs.length,c:'#7c3aed'},
+    {n:'Total de Tareas',v:multiRegs.length,c:'#7c3aed'},
     {n:'Aprobados',v:aprobados,c:'#15803d'},
     {n:'Rechazados',v:rechazados,c:'#dc2626'},
-    {n:'Multitareas',v:multiRegs.length,c:'#7c3aed'},
-    {n:'Metros Totales',v:totalMetros.toFixed(1)+'m',c:'#7c3aed'},
-    {n:'Defectos',v:totalDef,c:'#c2410c'},
-    {n:'Horas Lab.',v:horasLab,c:'#0891b2'}
+    {n:'Mts Totales',v:totalMetros.toFixed(1)+'m',c:'#0891b2'},
+    {n:'Cantidad de Defectos',v:totalDef,c:'#c2410c'}
   ].map(s=>'<div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px 18px;min-width:100px;flex:1;"><div style="font-family:\'Barlow Condensed\',sans-serif;font-size:26px;font-weight:800;color:'+s.c+';">'+s.v+'</div><div style="font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:#94a3b8;">'+s.n+'</div></div>').join('');
   // 1. Tareas por revisador — barras horizontales azul
   const porRev={};regs.forEach(r=>{porRev[r.revisador||'—']=(porRev[r.revisador||'—']||0)+1;});
@@ -2987,7 +2999,7 @@ function renderDashboard(){
       +'</tbody></table>'
     :'<div style="color:#94a3b8;font-size:12px;padding:10px;">Sin datos</div>';
   // 5. Resultados — dona
-  document.getElementById('dash-resultados').innerHTML=donutChart(aprobados,rechazados,enRev);
+  document.getElementById('dash-resultados').innerHTML=donutChart(aprobados,rechazados);
   // 6. Defectos — barras verticales azul
   const dm={};fin.forEach(r=>(r.defectos||[]).forEach(d=>{dm[d.tipo]=(dm[d.tipo]||0)+parseInt(d.cantidad||0);}));
   document.getElementById('dash-defectos').innerHTML=Object.keys(dm).length?vBarChart(Object.entries(dm).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([l,v])=>({label:l,val:v})),'#2563eb'):'<div style="color:#94a3b8;font-size:12px;padding:10px;">Sin defectos</div>';
@@ -2997,7 +3009,14 @@ function renderDashboard(){
   document.getElementById('dash-tiempos').innerHTML=promedios.length?rankList(promedios):'<div style="color:#94a3b8;font-size:12px;padding:10px;">Sin datos</div>';
   // 8. Horas laboradas — barras horizontales azul
   const hl={};fin.forEach(r=>{const mins=parseMins(r.tiempo);if(mins)hl[r.revisador||'—']=(hl[r.revisador||'—']||0)+mins;});
-  document.getElementById('dash-horas-laboradas').innerHTML=Object.keys(hl).length?barChart(Object.entries(hl).sort((a,b)=>b[1]-a[1]).map(([l,v])=>{const d=v>=60?Math.floor(v/60)+'h '+(v%60)+'min':v+'min';return{label:l,val:v,display:d};}),()=>'#2563eb',true):'<div style="color:#94a3b8;font-size:12px;padding:10px;">Sin datos</div>';
+  document.getElementById('dash-horas-laboradas').innerHTML=Object.keys(hl).length?barChart(Object.entries(hl).sort((a,b)=>b[1]-a[1]).map(([l,v])=>({label:l,val:v,display:v+' min'})),()=>'#2563eb',true):'<div style="color:#94a3b8;font-size:12px;padding:10px;">Sin datos</div>';
+  // 8b. Tiempo disponible del turno vs. tiempo registrado, por revisador — usa el
+  // mismo agregado del Informe Gerencial (duracionTotal = minutos de turno reales
+  // sumados; tiempoReportado = revisión + multitareas realmente registradas).
+  document.getElementById('dash-disponible-registrado').innerHTML=disponibleVsRegistradoHTML(
+    [...aggDash.porPersona].sort((a,b)=>b.duracionTotal-a.duracionTotal)
+      .map(p=>({label:p.persona,disponible:p.duracionTotal,registrado:p.tiempoReportado}))
+  );
   // 9. Tiempo por actividad por revisador
   const actPorRev={};
   fin.forEach(r=>{
@@ -3012,15 +3031,34 @@ function renderDashboard(){
   const colores=['#2563eb','#2563eb','#2563eb','#2563eb','#2563eb','#2563eb','#2563eb'];
   const allActKeys=[...new Set(fin.map(r=>r.tipo==='multitarea'?('⚡ '+(r.tarea||'Tarea')):'🧵 Rev. Tela'))].sort();
   document.getElementById('dash-actividades-por-rev').innerHTML=revOrdenados.length?
-    revOrdenados.map(rev=>{
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;">'
+    +revOrdenados.map(rev=>{
       const data=allActKeys.map((k,i)=>({label:k,val:actPorRev[rev][k]||0,display:(actPorRev[rev][k]||0)>=60?Math.floor((actPorRev[rev][k]||0)/60)+'h '+((actPorRev[rev][k]||0)%60)+'min':(actPorRev[rev][k]||0)+'min',color:colores[i%colores.length]})).filter(d=>d.val>0);
       if(!data.length)return '';
-      return '<div style="margin-bottom:18px;"><div style="font-size:12px;font-weight:700;color:#1e3a8a;margin-bottom:6px;padding:4px 8px;background:#eff6ff;border-radius:6px;display:inline-block;">'+rev+'</div>'
+      return '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;"><div style="font-size:12px;font-weight:700;color:#1e3a8a;margin-bottom:10px;padding:4px 8px;background:#eff6ff;border-radius:6px;display:inline-block;">'+rev+'</div>'
         +barChart(data,d=>d.color,true)+'</div>';
     }).join('')
+    +'</div>'
     :'<div style="color:#94a3b8;font-size:12px;padding:10px;">Sin datos</div>';
 }
 
+// data: [{label, disponible, registrado}] — barra de aprovechamiento (registrado ÷
+// disponible) por persona, con ambos minutos a la vista.
+function disponibleVsRegistradoHTML(data){
+  if(!data.length) return '<div style="color:#94a3b8;font-size:12px;padding:10px;">Sin datos</div>';
+  return data.map(d=>{
+    const pct=d.disponible?Math.min(100,Math.round(d.registrado/d.disponible*100)):0;
+    const color=pct>=80?'#15803d':pct>=50?'#b45309':'#dc2626';
+    return '<div style="margin-bottom:12px;">'
+      +'<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px;">'
+      +'<span style="font-size:13px;font-weight:700;color:#0f172a;">'+d.label+'</span>'
+      +'<span style="font-size:12px;color:#64748b;">'+d.registrado+' / '+d.disponible+' min <b style="color:'+color+';">('+pct+'%)</b></span>'
+      +'</div>'
+      +'<div style="background:#f1f5f9;border-radius:6px;height:10px;overflow:hidden;">'
+      +'<div style="width:'+pct+'%;height:100%;background:'+color+';border-radius:6px;"></div>'
+      +'</div></div>';
+  }).join('');
+}
 function vBarChart(data,color){
   if(!data.length)return '<div style="color:#94a3b8;font-size:12px;padding:10px;">Sin datos</div>';
   const max=Math.max(...data.map(d=>d.val));
@@ -3029,10 +3067,10 @@ function vBarChart(data,color){
     +data.map(d=>{
       const h=max>0?Math.round(d.val/max*H):0;
       const lbl=(d.label||'').split(' ')[0].slice(0,8);
-      return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;min-width:24px;">'
-        +'<span style="font-size:9px;font-weight:600;color:var(--dp,#0f172a);">'+d.val+'</span>'
+      return '<div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;min-width:24px;">'
+        +'<span style="font-size:13px;font-weight:800;color:#0f172a;">'+d.val+'</span>'
         +'<div style="width:100%;background:'+(color||'#2563eb')+';border-radius:4px 4px 0 0;height:'+Math.max(h,3)+'px;"></div>'
-        +'<span style="font-size:8px;color:#94a3b8;text-align:center;white-space:nowrap;overflow:hidden;max-width:100%;">'+lbl+'</span>'
+        +'<span style="font-size:11px;font-weight:700;color:#0f172a;text-align:center;white-space:nowrap;overflow:hidden;max-width:100%;">'+lbl+'</span>'
         +'</div>';
     }).join('')+'</div>';
 }
@@ -3044,24 +3082,22 @@ function rankList(data,unit){
     +'<span style="font-family:\'Barlow Condensed\',sans-serif;font-size:14px;font-weight:800;color:#0f172a;">'+(d.display||d.val)+(unit&&!d.display?unit:'')+'</span>'
     +'</div>').join('');
 }
-function donutChart(aprobados,rechazados,enRev){
-  const total=aprobados+rechazados+enRev||1;
+function donutChart(aprobados,rechazados){
+  const total=aprobados+rechazados||1;
   const C=188.5;
-  const pA=aprobados/total*C, pR=rechazados/total*C, pE=enRev/total*C;
+  const pA=aprobados/total*C, pR=rechazados/total*C;
   const pctA=Math.round(aprobados/total*100),pctR=Math.round(rechazados/total*100);
-  return '<div style="display:flex;align-items:center;gap:16px;">'
+  return '<div style="display:flex;align-items:center;justify-content:center;gap:16px;">'
     +'<svg width="90" height="90" viewBox="0 0 80 80" style="flex-shrink:0;">'
     +'<circle cx="40" cy="40" r="30" fill="none" stroke="#f1f5f9" stroke-width="13"/>'
     +'<circle cx="40" cy="40" r="30" fill="none" stroke="#15803d" stroke-width="13" stroke-dasharray="'+pA+' '+C+'" stroke-dashoffset="'+(C/4)+'" transform="rotate(-90 40 40)"/>'
     +'<circle cx="40" cy="40" r="30" fill="none" stroke="#dc2626" stroke-width="13" stroke-dasharray="'+pR+' '+C+'" stroke-dashoffset="'+((C/4)-pA)+'" transform="rotate(-90 40 40)"/>'
-    +'<circle cx="40" cy="40" r="30" fill="none" stroke="#f59e0b" stroke-width="13" stroke-dasharray="'+pE+' '+C+'" stroke-dashoffset="'+((C/4)-pA-pR)+'" transform="rotate(-90 40 40)"/>'
-    +'<text x="40" y="37" text-anchor="middle" font-size="11" font-weight="700" fill="#0f172a">'+(aprobados+rechazados+enRev)+'</text>'
+    +'<text x="40" y="37" text-anchor="middle" font-size="11" font-weight="700" fill="#0f172a">'+(aprobados+rechazados)+'</text>'
     +'<text x="40" y="49" text-anchor="middle" font-size="8" fill="#94a3b8">total</text>'
     +'</svg>'
     +'<div>'
     +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:7px;"><div style="width:8px;height:8px;border-radius:50%;background:#15803d;flex-shrink:0;"></div><span style="font-size:11px;color:#334155;flex:1;">Aprobados</span><span style="font-size:13px;font-weight:700;color:#15803d;">'+aprobados+' <span style="font-size:10px;color:#94a3b8;">('+pctA+'%)</span></span></div>'
-    +'<div style="display:flex;align-items:center;gap:6px;margin-bottom:7px;"><div style="width:8px;height:8px;border-radius:50%;background:#dc2626;flex-shrink:0;"></div><span style="font-size:11px;color:#334155;flex:1;">Rechazados</span><span style="font-size:13px;font-weight:700;color:#dc2626;">'+rechazados+' <span style="font-size:10px;color:#94a3b8;">('+pctR+'%)</span></span></div>'
-    +'<div style="display:flex;align-items:center;gap:6px;"><div style="width:8px;height:8px;border-radius:50%;background:#f59e0b;flex-shrink:0;"></div><span style="font-size:11px;color:#334155;flex:1;">En revisión</span><span style="font-size:13px;font-weight:700;color:#f59e0b;">'+enRev+'</span></div>'
+    +'<div style="display:flex;align-items:center;gap:6px;"><div style="width:8px;height:8px;border-radius:50%;background:#dc2626;flex-shrink:0;"></div><span style="font-size:11px;color:#334155;flex:1;">Rechazados</span><span style="font-size:13px;font-weight:700;color:#dc2626;">'+rechazados+' <span style="font-size:10px;color:#94a3b8;">('+pctR+'%)</span></span></div>'
     +'</div></div>';
 }
 
@@ -4649,7 +4685,8 @@ function sumarInstancias(instancias){
     .map(([nombre,d])=>({nombre,...d,pct:tiempoMultitarea?Math.round(d.minutos/tiempoMultitarea*100):0}))
     .sort((a,b)=>b.minutos-a.minutos);
 
-  return {duracionTotal,tiempoReportado,tiempoRevision,tiempoMultitarea,tiempoBaches,
+  return {duracionTotal,duracionEficiencia:duracionEficienciaTotal,duracionProductividad:duracionProductividadTotal,
+    tiempoReportado,tiempoRevision,tiempoMultitarea,tiempoBaches,
     rollos,rechazados,eficienciaPct,productividadPct,pctRechazo,multitareaLista,
     metros:sum(d=>d.metrosRevisados)};
 }
@@ -4783,6 +4820,8 @@ function igRenderSecciones(d,editable){
     <div style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:9px;padding:9px 12px;"><span style="font-size:16px;font-weight:800;color:#0f172a;">${d.metrosRevisados.toFixed(1)} m</span><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#64748b;">Metros revisados</span></div>
     <div style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:9px;padding:9px 12px;"><span style="font-size:16px;font-weight:800;color:#0f172a;">${Math.floor(d.tiempoRevisionMin/60)}h ${d.tiempoRevisionMin%60}m</span><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#64748b;">Tiempo en revisión de tela</span></div>
   </div>
+
+  ${igComoSeCalculoHTML(d.duracionTurno,d.tiempoRevisionMin,d.duracionEficiencia,d.duracionProductividad,d.eficienciaPct,d.productividadPct)}
 
   <div style="margin-bottom:26px;">
     <div style="font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#1e3a8a;border-bottom:2px solid #e2e8f0;padding-bottom:6px;margin-bottom:14px;">Distribución del Turno</div>
@@ -4996,8 +5035,37 @@ function igComparacionTurnosHTML(agg){
     <div style="font-size:10px;color:#94a3b8;margin-top:8px;">La eficiencia/productividad ya está calculada sobre la duración oficial real de cada turno (según su horario configurado). Los valores de rollos/metros son absolutos — no ajustan por cantidad de personal asignado a cada turno.</div>
   </div>`;
 }
+// Tarjeta explicativa: de dónde salió cada % de Eficiencia/Productividad — base
+// (turno), tiempo de revisión (arriba de la cuenta), cuánto se descontó y por qué.
+function igComoSeCalculoHTML(base,tiempoRevision,duracionEficiencia,duracionProductividad,eficienciaPct,productividadPct){
+  const descEfic=Math.max(0,Math.round(base-duracionEficiencia));
+  const descProd=Math.max(0,Math.round(base-duracionProductividad));
+  return `<div style="margin-bottom:26px;">
+    ${igTituloSeccion('Cómo se Calculó')}
+    <div style="border:1.5px solid #c7d2fe;background:#eef2ff22;border-radius:12px;padding:18px 20px;">
+      <div style="display:flex;flex-wrap:wrap;gap:18px 32px;margin-bottom:16px;">
+        <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#64748b;">Turno / Base</div><div style="font-size:18px;font-weight:800;color:#0f172a;">${base} min</div></div>
+        <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#64748b;">Tiempo revisando tela</div><div style="font-size:18px;font-weight:800;color:#0f172a;">${tiempoRevision} min</div></div>
+        <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#64748b;">Descontado (Eficiencia)</div><div style="font-size:18px;font-weight:800;color:#0f172a;">${descEfic?descEfic+' min':'— (no aplica)'}</div></div>
+        <div><div style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#64748b;">Descontado (Productividad)</div><div style="font-size:18px;font-weight:800;color:#0f172a;">${descProd?descProd+' min':'— (no aplica)'}</div></div>
+      </div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:180px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;">
+          <div style="font-size:22px;font-weight:800;color:#4338ca;">${eficienciaPct}%</div>
+          <div style="font-size:10.5px;color:#64748b;">Eficiencia = ${tiempoRevision} ÷ ${Math.round(duracionEficiencia)}</div>
+        </div>
+        <div style="flex:1;min-width:180px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;">
+          <div style="font-size:22px;font-weight:800;color:#1d4ed8;">${productividadPct}%</div>
+          <div style="font-size:10.5px;color:#64748b;">Productividad = ${tiempoRevision} ÷ ${Math.round(duracionProductividad)}</div>
+        </div>
+      </div>
+      <div style="font-size:10.5px;color:#94a3b8;margin-top:12px;">La Productividad solo se reduce por multitareas configuradas para afectarla a ella también; la Eficiencia se reduce por esas y por las que solo la afectan a ella.</div>
+    </div>
+  </div>`;
+}
 function igRenderResumenGeneral(agg){
   return igKpisHTML(agg)
+    + igComoSeCalculoHTML(agg.duracionTotal,agg.tiempoRevision,agg.duracionEficiencia,agg.duracionProductividad,agg.eficienciaPct,agg.productividadPct)
     + igDistribucionHTML(agg)
     + igEvolucionHTML(agg,null)
     + igMetrosRollosHTML(agg)
@@ -5017,6 +5085,7 @@ function igRenderResumenPersona(agg,persona){
     </tr>`).join('');
   return `<div style="font-size:13px;font-weight:800;color:#0f172a;margin-bottom:16px;">${persona} — ${agg.serieDias.length} días en el período seleccionado</div>`
     + igKpisHTML(agg)
+    + igComoSeCalculoHTML(agg.duracionTotal,agg.tiempoRevision,agg.duracionEficiencia,agg.duracionProductividad,agg.eficienciaPct,agg.productividadPct)
     + igDistribucionHTML(agg)
     + igEvolucionHTML(agg,persona)
     + igMultitareasHTML(agg)
