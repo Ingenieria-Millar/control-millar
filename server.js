@@ -2773,6 +2773,15 @@ app.post('/admin/diagnostico-disco', rateLimit(10, 15 * 60 * 1000), (req, res) =
   resultado.backupsMB = mb(tamanoCarpeta(BACKUP_DIR));
   resultado.wwaSessionMB = mb(tamanoCarpeta(WA_DIR));
   resultado.dataDirTotalMB = mb(tamanoCarpeta(DATA_DIR));
+  // Detalle: cuánto pesa cada cosa DENTRO de DATA_DIR, para encontrar exactamente
+  // qué archivo/carpeta explica la diferencia entre lo ya contado arriba y el total.
+  try {
+    resultado.contenido = fs.readdirSync(DATA_DIR).map(nombre => {
+      const p = path.join(DATA_DIR, nombre);
+      const st = fs.statSync(p);
+      return { nombre, tipo: st.isDirectory() ? 'carpeta' : 'archivo', MB: mb(st.isDirectory() ? tamanoCarpeta(p) : st.size) };
+    }).sort((a, b) => b.MB - a.MB);
+  } catch (e) { resultado.contenidoError = e.message; }
   res.json(resultado);
 });
 
