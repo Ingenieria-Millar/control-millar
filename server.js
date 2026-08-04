@@ -2785,6 +2785,76 @@ app.post('/admin/diagnostico-disco', rateLimit(10, 15 * 60 * 1000), (req, res) =
   res.json(resultado);
 });
 
+// ── Fotos viejas de Alistamiento (uploads/) — respaldo + borrado por fecha ─
+// El nombre de cada archivo empieza con su fecha de subida en milisegundos
+// (Date.now()-uuid.ext, ver "multer" arriba), así que no hace falta tocar
+// ningún dato/registro para saber qué tan vieja es cada foto.
+function cutoffMsDesde(antesDe) {
+  const iso = antesDe || '2026-07-01';
+  const t = new Date(iso + 'T00:00:00Z').getTime();
+  return isNaN(t) ? null : t;
+}
+function fotosAntesDe(cutoffMs) {
+  let archivos;
+  try { archivos = fs.readdirSync(UPLOADS_DIR); } catch (e) { return []; }
+  return archivos.filter(nombre => {
+    const m = nombre.match(/^(\d+)-/);
+    const ts = m ? parseInt(m[1], 10) : NaN;
+    return !isNaN(ts) && ts < cutoffMs;
+  });
+}
+// Descarga en streaming un .tar.gz con las fotos anteriores a la fecha — nunca
+// escribe nada a disco (el disco está lleno), va directo del archivo original
+// al navegador, comprimiendo al vuelo. Uso: POST /admin/respaldo-fotos-antes-de
+// body { pass, antesDe: 'YYYY-MM-DD' opcional, por defecto 2026-07-01 }
+app.post('/admin/respaldo-fotos-antes-de', rateLimit(5, 60 * 60 * 1000), (req, res) => {
+  if (!RESET_PASS) return res.status(503).json({ error: 'Configura RESET_PASS en Render.' });
+  if (!req.body || req.body.pass !== RESET_PASS) return res.status(403).json({ error: 'Contraseña incorrecta.' });
+  const cutoffMs = cutoffMsDesde(req.body.antesDe);
+  if (cutoffMs == null) return res.status(400).json({ error: 'Fecha inválida (usa YYYY-MM-DD).' });
+  const archivos = fotosAntesDe(cutoffMs);
+  if (!archivos.length) return res.status(404).json({ error: 'No hay fotos anteriores a esa fecha.' });
+
+  const tarStream = require('tar-stream');
+  const zlib = require('zlib');
+  const pack = tarStream.pack();
+  res.setHeader('Content-Disposition', `attachment; filename="fotos-antes-de-${req.body.antesDe || '2026-07-01'}.tar.gz"`);
+  res.setHeader('Content-Type', 'application/gzip');
+  pack.pipe(zlib.createGzip()).pipe(res);
+
+  (async () => {
+    for (const nombre of archivos) {
+      const p = path.join(UPLOADS_DIR, nombre);
+      try {
+        const st = fs.statSync(p);
+        await new Promise((resolve, reject) => {
+          const entry = pack.entry({ name: nombre, size: st.size }, err => err ? reject(err) : resolve());
+          fs.createReadStream(p).on('error', reject).pipe(entry);
+        });
+      } catch (e) { console.error('[RESPALDO-FOTOS] Error empacando', nombre, e.message); }
+    }
+    pack.finalize();
+  })();
+});
+// Borra ÚNICAMENTE archivos de uploads/ anteriores a la fecha dada — nunca toca
+// ningún registro/dato. Ejecutar SOLO después de confirmar el respaldo. Uso:
+// POST /admin/eliminar-fotos-antes-de  body { pass, antesDe }
+app.post('/admin/eliminar-fotos-antes-de', rateLimit(5, 60 * 60 * 1000), (req, res) => {
+  if (!RESET_PASS) return res.status(503).json({ error: 'Configura RESET_PASS en Render.' });
+  if (!req.body || req.body.pass !== RESET_PASS) return res.status(403).json({ error: 'Contraseña incorrecta.' });
+  const cutoffMs = cutoffMsDesde(req.body.antesDe);
+  if (cutoffMs == null) return res.status(400).json({ error: 'Fecha inválida (usa YYYY-MM-DD).' });
+  const archivos = fotosAntesDe(cutoffMs);
+  let borrados = 0, liberadoBytes = 0;
+  archivos.forEach(nombre => {
+    const p = path.join(UPLOADS_DIR, nombre);
+    try { const st = fs.statSync(p); fs.unlinkSync(p); borrados++; liberadoBytes += st.size; }
+    catch (e) { console.error('[ELIMINAR-FOTOS] Error borrando', nombre, e.message); }
+  });
+  console.log(`[ELIMINAR-FOTOS] ${borrados} archivos borrados, ${mb(liberadoBytes)} MB liberados (antes de ${req.body.antesDe || '2026-07-01'})`);
+  res.json({ ok: true, borrados, liberadoMB: mb(liberadoBytes) });
+});
+
 // Libera espacio en disco borrando la sesión de WhatsApp acumulada (claves de
 // intentos de conexión que nunca llegaron a emparejarse). Uso: POST
 // /admin/limpiar-whatsapp body { pass }. No toca ningún dato de la operación
