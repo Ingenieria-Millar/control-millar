@@ -1884,6 +1884,29 @@ function notifySaveError(area) {
   try { broadcast({ type: 'save_error', area: area || '', ts: now }); } catch (e) {}
 }
 
+// ── Aviso proactivo de disco casi lleno ────────────────────────────
+// A diferencia de notifySaveError (avisa DESPUÉS de que algo ya falló), esto
+// revisa el disco periódicamente y avisa ANTES de llegar a ese punto — así
+// da tiempo de liberar espacio o agrandar el disco sin que nada se rompa.
+const DISK_WARN_PCT = parseInt(process.env.DISK_WARN_PCT || '80', 10);
+let _lastDiskWarnTs = 0;
+function chequearDisco() {
+  try {
+    const salida = require('child_process').execSync(`df -k "${DATA_DIR}"`).toString();
+    const linea = salida.trim().split('\n')[1];
+    if (!linea) return;
+    const usePct = parseInt(linea.trim().split(/\s+/)[4], 10); // ej. "80%" → 80
+    if (isNaN(usePct) || usePct < DISK_WARN_PCT) return;
+    const now = Date.now();
+    if (now - _lastDiskWarnTs < 30 * 60 * 1000) return; // no repetir antes de 30 min
+    _lastDiskWarnTs = now;
+    console.warn(`[DISCO] Uso al ${usePct}% (umbral ${DISK_WARN_PCT}%) — avisando a las pantallas.`);
+    try { broadcast({ type: 'disk_warning', pct: usePct, ts: now }); } catch (e) {}
+  } catch (e) { /* "df" no disponible (ej. desarrollo local en Windows) — se ignora */ }
+}
+setInterval(chequearDisco, 15 * 60 * 1000); // cada 15 minutos
+setTimeout(chequearDisco, 30 * 1000);       // primera revisión poco después de arrancar
+
 // Debounce para prod_update: evita floods si varios cambios llegan en <300ms
 let _prodUpdateTimer = null;
 let _prodUpdatePending = null;

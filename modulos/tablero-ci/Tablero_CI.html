@@ -842,6 +842,9 @@ function connectWS(){
 
       } else if(msg.type === 'save_error'){
         mostrarErrorGuardado(msg.area || '');
+
+      } else if(msg.type === 'disk_warning'){
+        mostrarAvisoDisco(msg.pct);
       }
 
     } catch(err){ dbg('Error parseando: ' + err.message); }
@@ -865,6 +868,29 @@ function mostrarErrorGuardado(area){
   const t=b.querySelector('#save-error-text');
   if(t) t.textContent='⚠️ ATENCIÓN: el servidor no pudo guardar'+(area?(' ('+area+')'):'')
     +'. Tu último cambio podría NO haberse guardado. Avisa al administrador y verifica en unos minutos.';
+  b.style.display='block';
+}
+
+// Banner amarillo cuando el disco del servidor se está por llenar (aviso
+// preventivo — todavía no ha fallado nada, hay tiempo de resolverlo).
+function mostrarAvisoDisco(pct){
+  let b=document.getElementById('disk-warning-banner');
+  if(!b){
+    b=document.createElement('div');
+    b.id='disk-warning-banner';
+    b.style.cssText='position:fixed;left:0;right:0;z-index:99998;background:#f59e0b;color:#1f2937;'
+      +'font-family:system-ui,sans-serif;font-size:13px;font-weight:700;text-align:center;padding:10px 44px;'
+      +'box-shadow:0 3px 12px rgba(0,0,0,.25);cursor:default;';
+    b.innerHTML='<span id="disk-warning-text"></span>'
+      +'<button onclick="this.parentNode.remove()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);'
+      +'background:rgba(0,0,0,.15);border:none;color:#1f2937;font-size:16px;font-weight:700;width:26px;height:26px;'
+      +'border-radius:6px;cursor:pointer;">✕</button>';
+    document.body.appendChild(b);
+  }
+  const errBanner=document.getElementById('save-error-banner');
+  b.style.top=(errBanner && errBanner.style.display!=='none') ? errBanner.offsetHeight+'px' : '0';
+  const t=b.querySelector('#disk-warning-text');
+  if(t) t.textContent='⚠️ El disco del servidor está al '+pct+'% — avisa al administrador antes de que se llene por completo.';
   b.style.display='block';
 }
 
