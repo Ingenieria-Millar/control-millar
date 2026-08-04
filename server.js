@@ -32,7 +32,20 @@ const bcrypt   = require('bcryptjs');
 const crypto   = require('crypto');
 
 // ── WhatsApp via Baileys (sin Chrome) ─────────────────────────────
+// WA_DIR guarda las claves de sesión (useMultiFileAuthState). Mientras el
+// número no se empareja escaneando el QR, cada reintento de conexión genera
+// un lote nuevo de archivos de claves — si nadie escanea nunca, se acumulan
+// sin límite. limpiarSesionWA() se usa tanto en el reintento automático (ver
+// más abajo) como en /admin/limpiar-whatsapp para poder liberar espacio.
+const WA_DIR = path.join(fs.existsSync('/var/data') ? '/var/data' : path.join(__dirname, 'data'), 'wwa-session');
+function limpiarSesionWA() {
+  try {
+    if (fs.existsSync(WA_DIR)) { fs.rmSync(WA_DIR, { recursive: true, force: true }); return true; }
+    return false;
+  } catch (e) { console.error('[WA] Error limpiando sesión:', e.message); return false; }
+}
 let waClient = null, waQrDataUrl = null, waReady = false, waStatus = 'desconectado';
+let waEverConectado = false; // true una sola vez que se empareja con éxito en este proceso
 let _Baileys, _QRCode;
 try {
   _Baileys = require('@whiskeysockets/baileys');
@@ -47,7 +60,6 @@ async function initWhatsApp() {
   // Limpiar cliente anterior antes de crear uno nuevo
   if (waClient) { try { waClient.end(undefined); } catch {} waClient = null; }
   try {
-    const WA_DIR = path.join(fs.existsSync('/var/data') ? '/var/data' : path.join(__dirname, 'data'), 'wwa-session');
     if (!fs.existsSync(WA_DIR)) fs.mkdirSync(WA_DIR, { recursive: true });
 
     const { state, saveCreds } = await _Baileys.useMultiFileAuthState(WA_DIR);
@@ -84,7 +96,7 @@ async function initWhatsApp() {
         console.log('[WA] QR generado');
       }
       if (connection === 'open') {
-        waReady = true; waQrDataUrl = null; waStatus = 'conectado';
+        waReady = true; waQrDataUrl = null; waStatus = 'conectado'; waEverConectado = true;
         console.log('[WA] Conectado');
       }
       if (connection === 'close') {
@@ -93,6 +105,11 @@ async function initWhatsApp() {
         const code = lastDisconnect?.error instanceof Boom ? lastDisconnect.error.output.statusCode : 0;
         const { DisconnectReason } = _Baileys;
         console.log('[WA] Conexión cerrada, código:', code);
+        // Si este proceso nunca llegó a emparejar (nadie escaneó el QR), cada
+        // reintento generaba un lote nuevo de claves sin borrar las anteriores —
+        // eso fue lo que llenó el disco. Limpiar antes de reintentar evita que
+        // vuelva a pasar, sin importar cuántas veces reintente.
+        if (!waEverConectado) limpiarSesionWA();
         if (code === DisconnectReason.loggedOut) {
           waStatus = 'sesión cerrada — escanea QR de nuevo';
           console.log('[WA] Sesión cerrada');
@@ -2728,6 +2745,25 @@ app.post('/admin/backup', rateLimit(10, 15 * 60 * 1000), (req, res) => {
   res.setHeader('Content-Disposition', `attachment; filename="respaldo-millar-${new Date().toISOString().split('T')[0]}.json"`);
   res.setHeader('Content-Type', 'application/json');
   res.send(JSON.stringify(bundle, null, 2));
+});
+
+// Libera espacio en disco borrando la sesión de WhatsApp acumulada (claves de
+// intentos de conexión que nunca llegaron a emparejarse). Uso: POST
+// /admin/limpiar-whatsapp body { pass }. No toca ningún dato de la operación
+// (registros, historial, etc.) — solo la carpeta de sesión de WhatsApp.
+app.post('/admin/limpiar-whatsapp', rateLimit(5, 15 * 60 * 1000), (req, res) => {
+  if (!RESET_PASS) return res.status(503).json({ error: 'Configura RESET_PASS en Render para usar esta limpieza.' });
+  if (!req.body || req.body.pass !== RESET_PASS) {
+    console.warn(`[WA] Intento de limpieza con clave incorrecta desde IP ${req.ip}`);
+    return res.status(403).json({ error: 'Contraseña incorrecta.' });
+  }
+  if (waClient) { try { waClient.end(undefined); } catch {} waClient = null; }
+  waReady = false; waQrDataUrl = null; waEverConectado = false;
+  const habiaCarpeta = limpiarSesionWA();
+  waStatus = 'sesión limpiada — reintentando';
+  console.log('[WA] Sesión limpiada manualmente vía /admin/limpiar-whatsapp');
+  if (process.env.ENABLE_WHATSAPP === 'true') setTimeout(initWhatsApp, 1000);
+  res.json({ ok: true, carpetaBorrada: habiaCarpeta });
 });
 
 app.post('/admin/reset', rateLimit(5, 15 * 60 * 1000), (req, res) => {
