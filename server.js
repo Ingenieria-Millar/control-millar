@@ -2747,6 +2747,35 @@ app.post('/admin/backup', rateLimit(10, 15 * 60 * 1000), (req, res) => {
   res.send(JSON.stringify(bundle, null, 2));
 });
 
+// Diagnóstico de disco: cuánto ocupa cada cosa, para saber qué es lo que
+// realmente lo está llenando (no solo confiar en que "debería" ser tal cosa).
+// Uso: POST /admin/diagnostico-disco  body { pass }
+function tamanoCarpeta(dir) {
+  let total = 0;
+  try {
+    for (const nombre of fs.readdirSync(dir)) {
+      const p = path.join(dir, nombre);
+      const st = fs.statSync(p);
+      total += st.isDirectory() ? tamanoCarpeta(p) : st.size;
+    }
+  } catch (e) { /* carpeta no existe o sin permiso — se cuenta como 0 */ }
+  return total;
+}
+function mb(bytes) { return Math.round(bytes / 1024 / 1024 * 10) / 10; }
+app.post('/admin/diagnostico-disco', rateLimit(10, 15 * 60 * 1000), (req, res) => {
+  if (!RESET_PASS) return res.status(503).json({ error: 'Configura RESET_PASS en Render.' });
+  if (!req.body || req.body.pass !== RESET_PASS) return res.status(403).json({ error: 'Contraseña incorrecta.' });
+  const resultado = { dataDir: DATA_DIR };
+  try {
+    resultado.dfKB = require('child_process').execSync(`df -k "${DATA_DIR}"`).toString();
+  } catch (e) { resultado.dfError = e.message; }
+  try { resultado.millarDbMB = fs.existsSync(DB_PATH) ? mb(fs.statSync(DB_PATH).size) : null; } catch (e) { resultado.dbError = e.message; }
+  resultado.backupsMB = mb(tamanoCarpeta(BACKUP_DIR));
+  resultado.wwaSessionMB = mb(tamanoCarpeta(WA_DIR));
+  resultado.dataDirTotalMB = mb(tamanoCarpeta(DATA_DIR));
+  res.json(resultado);
+});
+
 // Libera espacio en disco borrando la sesión de WhatsApp acumulada (claves de
 // intentos de conexión que nunca llegaron a emparejarse). Uso: POST
 // /admin/limpiar-whatsapp body { pass }. No toca ningún dato de la operación
