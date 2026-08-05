@@ -2017,6 +2017,22 @@ function conLimiteDeTiempo(promesa, ms){
     new Promise(resolve=>setTimeout(resolve, ms))
   ]);
 }
+// Valida un token de sesión contra el servidor (GET /api/me) y, si sigue
+// vigente, recibe uno renovado (ventana deslizante — la sesión no expira
+// mientras el usuario siga abriendo la app). Distingue "token inválido/expirado"
+// (debe cerrar sesión) de "servidor inalcanzable" (mantener sesión local, no
+// desconectar a alguien solo por estar sin internet un momento).
+async function validarSesionServidor(token){
+  try{
+    const r = await conLimiteDeTiempo(fetch('/api/me', { headers:{ Authorization: 'Bearer '+token } }), 6000);
+    if(!r) return { network:true };
+    if(r.status === 401) return { invalid:true };
+    if(!r.ok) return { network:true };
+    const d = await r.json();
+    if(!d || !d.ok) return { invalid:true };
+    return { ok:true, perms:d.perms||[], rol:d.rol||'', token:d.token||token };
+  }catch(e){ return { network:true }; }
+}
 window.addEventListener('DOMContentLoaded', async ()=>{
   // Cargar todos los datos desde el servidor antes de iniciar la app
   await Promise.all([
@@ -2056,7 +2072,25 @@ window.addEventListener('DOMContentLoaded', async ()=>{
     const saved = localStorage.getItem('cm_session');
     if(saved){
       const s = JSON.parse(saved);
-      if(s && s.user){
+      let sesionInvalida = false;
+      if(s && s.user && s.token){
+        // Cuenta con contraseña (login normal) — el token es la única prueba
+        // de identidad válida. Se revalida contra el servidor en vez de
+        // confiar en datos locales/públicos.
+        const chk = await validarSesionServidor(s.token);
+        if(chk.invalid){
+          sesionInvalida = true;
+        } else if(chk.ok){
+          s.perms = chk.perms;
+          s.rol = chk.rol;
+          persistSession(s.user, chk.rol, chk.perms, chk.token);
+        }
+        // chk.network (sin conexión con el servidor): se sigue con la sesión
+        // local tal como estaba, para no desconectar a nadie por falta de red.
+      }
+      if(sesionInvalida){
+        localStorage.removeItem('cm_session');
+      } else if(s && s.user){
         // Cargar permisos desde Configuraciones
         const cfg = loadConfig();
         if(cfg[s.user] && cfg[s.user].perms){
@@ -2179,7 +2213,7 @@ window.addEventListener('DOMContentLoaded', async ()=>{
         currentUserRol = '';
         const cfg2 = loadConfig();
         if(cfg2[_fallback]&&cfg2[_fallback].perms) USUARIOS[_fallback].perms=cfg2[_fallback].perms;
-        try{ localStorage.setItem('cm_session', JSON.stringify({user:_fallback,pass:USUARIOS[_fallback].pass||'',rol:''})); }catch(e){}
+        try{ localStorage.setItem('cm_session', JSON.stringify({user:_fallback,rol:''})); }catch(e){}
       }
 
       // Guardar perfil del usuario actual en sessionStorage para el nav
@@ -2248,7 +2282,7 @@ async function submitLogin(){
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('login-pass').value='';
     document.getElementById('login-error').textContent='';
-    try{ localStorage.setItem('cm_session', JSON.stringify({user: rawVal, pass: document.getElementById('login-pass').value||pass, rol:'supervisora'})); }catch(e){}
+    try{ localStorage.setItem('cm_session', JSON.stringify({user: rawVal, rol:'supervisora'})); }catch(e){}
     mostrarAreaScreen(); return;
   }
 
@@ -2290,7 +2324,7 @@ async function submitLogin(){
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('login-pass').value='';
     document.getElementById('login-error').textContent='';
-    try{ localStorage.setItem('cm_session', JSON.stringify({user: usuario, pass:'', rol:''})); }catch(e){}
+    try{ localStorage.setItem('cm_session', JSON.stringify({user: usuario, rol:''})); }catch(e){}
     mostrarAreaScreen();return;
   }
   // Validar contra el servidor (con fallback local si está sin migrar) ──
@@ -9251,9 +9285,6 @@ function cfgSavePerfilModal(){
       saveConfig(cfg);
       if(typeof USUARIOS !== 'undefined' && USUARIOS[target]){
         USUARIOS[target].pass = pass;
-        try{ const s=JSON.parse(localStorage.getItem('cm_session')||'{}');
-          if(s.user===target){s.pass=pass;localStorage.setItem('cm_session',JSON.stringify(s));}
-        }catch(e){}
       }
       document.getElementById('cfg-perfil-modal').style.display='none';
       cfgSwitchTab('perfiles', document.getElementById('cfgn-perfiles'));

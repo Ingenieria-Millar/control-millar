@@ -2308,6 +2308,7 @@ app.post('/api/app-config', (req, res) => {
 // ── Auth: login server-side con hash (Paso 1) ─────────────────────
 // POST /api/login { user, pass } → { ok, token, user, perms, rol }
 // Rate-limit: 10 intentos por IP / minuto.
+const SESSION_TOKEN_TTL = 30 * 24 * 60 * 60 * 1000; // 30 días — sesión persistente estilo Gmail/GitHub
 app.post('/api/login', rateLimit(20, 60 * 1000), (req, res) => {
   try {
     const { user, pass } = req.body || {};
@@ -2324,7 +2325,7 @@ app.post('/api/login', rateLimit(20, 60 * 1000), (req, res) => {
       console.warn(`[AUTH] Login fallido para "${user}" desde IP ${req.ip}`);
       return fail();
     }
-    const exp     = Date.now() + 30 * 24 * 60 * 60 * 1000; // 30 días
+    const exp     = Date.now() + SESSION_TOKEN_TTL;
     const token   = signToken({ user, rol: u.rol || '', exp });
     res.json({ ok: true, token, user, perms: u.perms || [], rol: u.rol || '', exp });
   } catch (e) {
@@ -2344,7 +2345,10 @@ function requireAuth(req, res, next) {
   next();
 }
 
-// Verifica una sesión existente (lo usará el cliente al recargar)
+// Verifica una sesión existente (usado por el cliente al recargar/reabrir la app).
+// Renueva el token (ventana deslizante de 30 días) para que una sesión activa
+// nunca expire por sí sola — solo termina con "Cerrar sesión" o si el usuario
+// se deshabilita/borra, igual que Gmail/GitHub.
 app.get('/api/me', (req, res) => {
   const hdr   = req.headers.authorization || '';
   const token = hdr.startsWith('Bearer ') ? hdr.slice(7) : (req.headers['x-session-token'] || '');
@@ -2353,7 +2357,9 @@ app.get('/api/me', (req, res) => {
   const store = loadUsers();
   const u = store.users[payload.user];
   if (!u || u.disabled) return res.status(401).json({ ok: false });
-  res.json({ ok: true, user: payload.user, perms: u.perms || [], rol: u.rol || '', displayName: u.displayName || '', email: u.email || '' });
+  const exp = Date.now() + SESSION_TOKEN_TTL;
+  const newToken = signToken({ user: payload.user, rol: u.rol || '', exp });
+  res.json({ ok: true, user: payload.user, perms: u.perms || [], rol: u.rol || '', displayName: u.displayName || '', email: u.email || '', token: newToken, exp });
 });
 
 // ── Mi perfil: cada usuario ve y edita SOLO su propio perfil ───────
