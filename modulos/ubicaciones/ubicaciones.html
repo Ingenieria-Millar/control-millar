@@ -227,14 +227,45 @@ table.tbl tr:hover td{background:var(--surface2)}
 
   <!-- INGRESAR LOTES -->
   <div class="section" id="section-ingresar">
-    <div class="page-header"><div class="page-title">Ingresar lotes</div></div>
+    <div class="page-header">
+      <div class="page-title">Ingresar lotes</div>
+      <button class="btn" onclick="document.getElementById('excel-input').click()" title="Columnas requeridas: Cliente, Referencia, OP, Prenda, Color, Cantidad, Ubicación (código exacto, ej. C1-Z2-P3)">📥 Importar</button>
+      <input type="file" id="excel-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleExcelImport(this)">
+    </div>
 
     <div class="card" style="margin-bottom:16px">
       <div style="font-size:13px;font-weight:700;margin-bottom:14px">Registro manual</div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Cliente *</label><input class="form-control" id="ltm-cliente" style="text-transform:uppercase" oninput="toUpperInput(this)"></div>
-        <div class="form-group"><label class="form-label">Referencia *</label><input class="form-control" id="ltm-referencia" style="text-transform:uppercase" oninput="toUpperInput(this)"></div>
-        <div class="form-group"><label class="form-label">OP *</label><input class="form-control" id="ltm-op" style="text-transform:uppercase" oninput="toUpperInput(this)"></div>
+        <div class="form-group">
+          <label class="form-label">Cliente *</label>
+          <div class="ac-wrap">
+            <input class="form-control" id="ltm-cliente" style="text-transform:uppercase" autocomplete="off"
+              oninput="toUpperInput(this);acFilter('ltm-cliente','ac-cliente','cliente')"
+              onfocus="acOpen('ltm-cliente','ac-cliente','cliente')"
+              onkeydown="acKey(event,'ac-cliente','ltm-cliente')">
+            <div class="ac-dropdown" id="ac-cliente"></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Referencia *</label>
+          <div class="ac-wrap">
+            <input class="form-control" id="ltm-referencia" style="text-transform:uppercase" autocomplete="off"
+              oninput="toUpperInput(this);acFilter('ltm-referencia','ac-referencia','referencia')"
+              onfocus="acOpen('ltm-referencia','ac-referencia','referencia')"
+              onkeydown="acKey(event,'ac-referencia','ltm-referencia')">
+            <div class="ac-dropdown" id="ac-referencia"></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">OP *</label>
+          <div class="ac-wrap">
+            <input class="form-control" id="ltm-op" style="text-transform:uppercase" autocomplete="off"
+              oninput="toUpperInput(this);acFilter('ltm-op','ac-op','op')"
+              onfocus="acOpen('ltm-op','ac-op','op')"
+              onkeydown="acKey(event,'ac-op','ltm-op')">
+            <div class="ac-dropdown" id="ac-op"></div>
+          </div>
+        </div>
       </div>
       <div class="form-row">
         <div class="form-group">
@@ -265,15 +296,6 @@ table.tbl tr:hover td{background:var(--surface2)}
       </div>
       <div class="form-group" id="ltm-error" style="color:var(--red);font-size:13px;font-weight:600;min-height:18px"></div>
       <button class="btn btn-primary" onclick="guardarLote()">Guardar y generar etiqueta</button>
-    </div>
-
-    <div class="card">
-      <div style="font-size:13px;font-weight:700;margin-bottom:6px">Importar por Excel</div>
-      <div style="font-size:12px;color:var(--text3);margin-bottom:12px">
-        Columnas requeridas: <b>Cliente, Referencia, OP, Prenda, Color, Cantidad, Ubicación</b> (código exacto de la ubicación, ej. C1-Z2-P3).
-      </div>
-      <button class="btn" onclick="document.getElementById('excel-input').click()">📥 Importar</button>
-      <input type="file" id="excel-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleExcelImport(this)">
     </div>
   </div>
 
