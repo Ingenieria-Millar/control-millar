@@ -3697,6 +3697,7 @@ const ALL_PERMS = [
   {key:'revision_telas',         label:'Control de Revisión de Telas'},
   {key:'corte',                  label:'Corte'},
   {key:'mmt_locativo',           label:'MMT Locativo'},
+  {key:'ubicaciones',            label:'Ubicaciones'},
   {key:'consulta_incentivos',    label:'Consulta de incentivos'},
   {key:'visitantes_sst',         label:'Control de Visitantes SST'},
   {key:'control_permisos',       label:'Control de Permisos'},
@@ -3733,6 +3734,8 @@ const MENU_MODULE_CARDS = [
     visible:()=>hasPerm('corte'), action:()=>{ window.location.href='/corte'; } },
   { key:'mmt_locativo', icon:'🛠️', name:'MMT Locativo', desc:'Mantenimiento de planta · tareas · evidencias', color:'ac-yellow',
     visible:()=>hasPerm('mmt_locativo'), action:()=>{ window.location.href='/mantenimiento'; } },
+  { key:'ubicaciones', icon:'📍', name:'Ubicaciones', desc:'Almacén físico · insumos por ubicación', color:'ac-blue',
+    visible:()=>hasPerm('ubicaciones'), action:()=>{ window.location.href='/ubicaciones'; } },
   { key:'tablero_produccion', icon:'🗂️', name:'Producción', desc:'Planeación y seguimiento · Kanban', color:'ac-green',
     visible:()=>hasPerm('tablero_produccion'), action:()=>{ window.location.href='/produccion'; } },
   { key:'conteo_recogedores', icon:'🧺', name:'Conteo Recogedores', desc:'Registro de producción por hora', color:'ac-teal',
@@ -3761,12 +3764,13 @@ function getMenuCategoriaModulos(){ return (loadConfig()._menu_categoria_modulos
 // aparezca vacío mientras nadie ha configurado nada todavía.
 function seedMenuCategoriasSiVacio(){
   if(getMenuCategorias().length) return; // ya hay categorías configuradas — no tocar nada
-  const categorias=['Control','Mecánicos','Producción','SG-SST'];
+  const categorias=['Control','Mecánicos','Producción','SG-SST','Almacén'];
   const asignacion={
     'Producción': ['tablero','modulos','ordenes_produccion','tablero_produccion','conteo_recogedores','revision_telas','corte','area_solicitar_insumos'],
     'Mecánicos':  ['tablero_planta','area_montajes','hoja_vida','mmt_locativo'],
     'Control':    ['area_asistencia','consulta_incentivos','control_permisos','visitantes_sst','tablero_ci'],
-    'SG-SST':     ['punto_seguro']
+    'SG-SST':     ['punto_seguro'],
+    'Almacén':    ['ubicaciones']
   };
   saveConfig({_menu_categorias:categorias, _menu_categoria_modulos:asignacion});
 }
