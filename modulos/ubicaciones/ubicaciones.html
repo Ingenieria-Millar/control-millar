@@ -103,9 +103,15 @@ table.tbl tr:hover td{background:var(--surface2)}
 .filters-row .form-control{width:auto;min-width:140px;font-size:13px;padding:6px 10px;min-height:38px}
 .reserved-box{border:1px dashed var(--border2);border-radius:var(--radius);background:var(--surface2);padding:12px 14px;margin-top:6px}
 .reserved-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
-.drop-zone{border:2px dashed var(--border2);border-radius:var(--radius-lg);padding:36px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface2)}
-.drop-zone:hover{border-color:var(--amber);background:var(--amber-bg)}
 .import-summary{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.ac-wrap{position:relative}
+.ac-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);box-shadow:0 4px 20px rgba(0,0,0,.15);z-index:9999;max-height:220px;overflow-y:auto;display:none}
+.ac-dropdown.open{display:block}
+.ac-option{padding:10px 14px;font-size:13px;cursor:pointer;color:var(--text);border-bottom:1px solid var(--border)}
+.ac-option:last-child{border-bottom:none}
+.ac-option:hover,.ac-option.focused{background:var(--amber-bg);color:var(--amber-dark)}
+.ac-option mark{background:transparent;color:var(--amber-dark);font-weight:700;font-style:normal}
+.ac-empty{padding:10px 14px;font-size:13px;color:var(--text3);font-style:italic}
 .import-summary .card{text-align:center}
 .result-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:12px}
 .salida-form{background:var(--surface2);border-radius:var(--radius);padding:12px;margin-top:12px;display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
@@ -226,13 +232,31 @@ table.tbl tr:hover td{background:var(--surface2)}
     <div class="card" style="margin-bottom:16px">
       <div style="font-size:13px;font-weight:700;margin-bottom:14px">Registro manual</div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Cliente *</label><input class="form-control" id="ltm-cliente"></div>
-        <div class="form-group"><label class="form-label">Referencia *</label><input class="form-control" id="ltm-referencia"></div>
-        <div class="form-group"><label class="form-label">OP *</label><input class="form-control" id="ltm-op"></div>
+        <div class="form-group"><label class="form-label">Cliente *</label><input class="form-control" id="ltm-cliente" style="text-transform:uppercase" oninput="toUpperInput(this)"></div>
+        <div class="form-group"><label class="form-label">Referencia *</label><input class="form-control" id="ltm-referencia" style="text-transform:uppercase" oninput="toUpperInput(this)"></div>
+        <div class="form-group"><label class="form-label">OP *</label><input class="form-control" id="ltm-op" style="text-transform:uppercase" oninput="toUpperInput(this)"></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Tipo de prenda *</label><input class="form-control" id="ltm-tipoprenda"></div>
-        <div class="form-group"><label class="form-label">Color *</label><input class="form-control" id="ltm-color"></div>
+        <div class="form-group">
+          <label class="form-label">Tipo de prenda *</label>
+          <div class="ac-wrap">
+            <input class="form-control" id="ltm-tipoprenda" style="text-transform:uppercase" autocomplete="off"
+              oninput="toUpperInput(this);acFilter('ltm-tipoprenda','ac-tipoprenda','tipoPrenda')"
+              onfocus="acOpen('ltm-tipoprenda','ac-tipoprenda','tipoPrenda')"
+              onkeydown="acKey(event,'ac-tipoprenda','ltm-tipoprenda')">
+            <div class="ac-dropdown" id="ac-tipoprenda"></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Color *</label>
+          <div class="ac-wrap">
+            <input class="form-control" id="ltm-color" style="text-transform:uppercase" autocomplete="off"
+              oninput="toUpperInput(this);acFilter('ltm-color','ac-color','color')"
+              onfocus="acOpen('ltm-color','ac-color','color')"
+              onkeydown="acKey(event,'ac-color','ltm-color')">
+            <div class="ac-dropdown" id="ac-color"></div>
+          </div>
+        </div>
         <div class="form-group"><label class="form-label">Cantidad *</label><input class="form-control" id="ltm-cantidad" type="number" min="1"></div>
       </div>
       <div class="form-group">
@@ -248,9 +272,7 @@ table.tbl tr:hover td{background:var(--surface2)}
       <div style="font-size:12px;color:var(--text3);margin-bottom:12px">
         Columnas requeridas: <b>Cliente, Referencia, OP, Prenda, Color, Cantidad, Ubicación</b> (código exacto de la ubicación, ej. C1-Z2-P3).
       </div>
-      <div class="drop-zone" onclick="document.getElementById('excel-input').click()">
-        📥 Haz clic para elegir un archivo Excel o CSV
-      </div>
+      <button class="btn" onclick="document.getElementById('excel-input').click()">📥 Importar</button>
       <input type="file" id="excel-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleExcelImport(this)">
     </div>
   </div>
@@ -709,6 +731,81 @@ async function handleExcelImport(input){
     await cargarTodo();
   }catch(e){ toast('⚠️ Error de conexión al importar', 'error'); }
 }
+
+// Convierte a mayúsculas mientras se escribe, sin perder la posición del cursor.
+function toUpperInput(el){
+  const pos = el.selectionStart;
+  el.value = el.value.toUpperCase();
+  el.setSelectionRange(pos, pos);
+}
+
+// ── Autocompletar Tipo de prenda / Color ──────────────────────────
+// Sugiere valores ya usados en otros lotes y se va filtrando mientras se
+// escribe (mismo patrón "ac-*" que usa MMT Locativo para sus campos).
+function acValues(field){
+  const seen = new Set();
+  LOTES.forEach(l => { const v = (l[field]||'').trim(); if(v) seen.add(v); });
+  return [...seen].sort((a,b)=>a.localeCompare(b,'es'));
+}
+function acHighlight(text, query){
+  if(!query) return text;
+  const idx = text.toLowerCase().indexOf(query.toLowerCase());
+  if(idx < 0) return text;
+  return text.slice(0,idx) + '<mark>' + text.slice(idx, idx+query.length) + '</mark>' + text.slice(idx+query.length);
+}
+function acRender(dropId, inputId, field, query=''){
+  const drop = document.getElementById(dropId);
+  if(!drop) return;
+  const all = acValues(field);
+  const filtered = query ? all.filter(v => v.toLowerCase().includes(query.toLowerCase())) : all;
+  drop.innerHTML = filtered.length
+    ? filtered.map((v,i) => `<div class="ac-option" data-idx="${i}" onclick="acSelect('${inputId}','${dropId}','${v.replace(/'/g,"\\'")}')">${acHighlight(v, query)}</div>`).join('')
+    : '<div class="ac-empty">Sin sugerencias todavía</div>';
+  drop.classList.add('open');
+}
+function acOpen(inputId, dropId, field){
+  const q = document.getElementById(inputId).value;
+  acRender(dropId, inputId, field, q);
+  document.querySelectorAll('.ac-dropdown.open').forEach(d => { if(d.id !== dropId) d.classList.remove('open'); });
+}
+function acFilter(inputId, dropId, field){
+  const q = document.getElementById(inputId).value;
+  acRender(dropId, inputId, field, q);
+}
+function acSelect(inputId, dropId, value){
+  document.getElementById(inputId).value = value;
+  document.getElementById(dropId).classList.remove('open');
+}
+function acKey(event, dropId, inputId){
+  const drop = document.getElementById(dropId);
+  const options = [...drop.querySelectorAll('.ac-option')];
+  const focused = drop.querySelector('.ac-option.focused');
+  let idx = focused ? options.indexOf(focused) : -1;
+  if(event.key === 'ArrowDown'){
+    event.preventDefault();
+    if(!drop.classList.contains('open')) drop.classList.add('open');
+    if(focused) focused.classList.remove('focused');
+    idx = (idx + 1) % options.length;
+    options[idx]?.classList.add('focused');
+    options[idx]?.scrollIntoView({block:'nearest'});
+  } else if(event.key === 'ArrowUp'){
+    event.preventDefault();
+    if(focused) focused.classList.remove('focused');
+    idx = (idx - 1 + options.length) % options.length;
+    options[idx]?.classList.add('focused');
+    options[idx]?.scrollIntoView({block:'nearest'});
+  } else if(event.key === 'Enter' && focused){
+    event.preventDefault();
+    focused.click();
+  } else if(event.key === 'Escape'){
+    drop.classList.remove('open');
+  }
+}
+document.addEventListener('click', e => {
+  if(!e.target.closest('.ac-wrap')){
+    document.querySelectorAll('.ac-dropdown.open').forEach(d => d.classList.remove('open'));
+  }
+});
 
 // ══════════════════════════ ETIQUETA / ADHESIVO CON QR ══════════════════════════
 function abrirEtiqueta(loteId){
