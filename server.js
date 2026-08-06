@@ -221,6 +221,9 @@ const FILES = {
   mmt_locativo:   path.join(DATA_DIR, 'mmt_locativo.json'),
   ubicaciones:    path.join(DATA_DIR, 'ubicaciones.json'),
   lotes:          path.join(DATA_DIR, 'lotes.json'),
+  lt_clientes:    path.join(DATA_DIR, 'lt_clientes.json'),
+  lt_tipos_prenda: path.join(DATA_DIR, 'lt_tipos_prenda.json'),
+  lt_colores:     path.join(DATA_DIR, 'lt_colores.json'),
 };
 
 // ══════════════════════════════════════════════════════════════════
@@ -1524,8 +1527,11 @@ app.post('/api/lotes', (req, res) => {
     if (!clienteN || !referenciaN || !opN || !tipoPrendaN || !colorN) {
       return res.status(400).json({ error: 'Cliente, referencia, OP, tipo de prenda y color son obligatorios' });
     }
-    if (!cantidadN || cantidadN <= 0) {
-      return res.status(400).json({ error: 'La cantidad debe ser mayor a cero' });
+    if (!loteCatalogoValor(clienteN, 'lt_clientes')) return res.status(400).json({ error: `El cliente "${clienteN}" no existe. Agrégalo primero en Configuraciones.` });
+    if (!loteCatalogoValor(tipoPrendaN, 'lt_tipos_prenda')) return res.status(400).json({ error: `El tipo de prenda "${tipoPrendaN}" no existe. Agrégalo primero en Configuraciones.` });
+    if (!loteCatalogoValor(colorN, 'lt_colores')) return res.status(400).json({ error: `El color "${colorN}" no existe. Agrégalo primero en Configuraciones.` });
+    if (!cantidadN || cantidadN <= 0 || !Number.isInteger(cantidadN)) {
+      return res.status(400).json({ error: 'La cantidad debe ser un número entero mayor a cero' });
     }
     if (!ubicacionId) return res.status(400).json({ error: 'Selecciona una ubicación' });
     const ubicaciones = loadDB('ubicaciones') || [];
@@ -1557,7 +1563,7 @@ app.post('/api/lotes', (req, res) => {
 app.post('/api/lotes/:id/despachar', (req, res) => {
   try {
     const cantidad = Number(req.body && req.body.cantidad);
-    if (!cantidad || cantidad <= 0) return res.status(400).json({ error: 'La cantidad debe ser mayor a cero' });
+    if (!cantidad || cantidad <= 0 || !Number.isInteger(cantidad)) return res.status(400).json({ error: 'La cantidad debe ser un número entero mayor a cero' });
     const lista = loadDB('lotes') || [];
     const idx = lista.findIndex(l => l.id === req.params.id);
     if (idx < 0) return res.status(404).json({ error: 'Lote no encontrado' });
@@ -1613,11 +1619,11 @@ app.post('/api/lotes/importar', (req, res) => {
       filas.forEach((filaCruda, i) => {
         const fila = {};
         Object.keys(filaCruda).forEach(k => { fila[loteNormalizarHeader(k)] = filaCruda[k]; });
-        const cliente = String(fila.cliente || '').trim();
-        const referencia = String(fila.referencia || '').trim();
-        const op = String(fila.op || '').trim();
-        const tipoPrenda = String(fila.prenda || fila['tipo prenda'] || fila.tipoprenda || '').trim();
-        const color = String(fila.color || '').trim();
+        const cliente = String(fila.cliente || '').trim().toUpperCase();
+        const referencia = String(fila.referencia || '').trim().toUpperCase();
+        const op = String(fila.op || '').trim().toUpperCase();
+        const tipoPrenda = String(fila.prenda || fila['tipo prenda'] || fila.tipoprenda || '').trim().toUpperCase();
+        const color = String(fila.color || '').trim().toUpperCase();
         const cantidad = Number(fila.cantidad) || 0;
         const ubicacionCodigo = String(fila.ubicacion || fila['ubicación'] || '').trim().toUpperCase();
         const fila_n = i + 2;
@@ -1625,8 +1631,11 @@ app.post('/api/lotes/importar', (req, res) => {
         if (!cliente || !referencia || !op || !tipoPrenda || !color) {
           errores.push({ fila: fila_n, error: 'Faltan campos obligatorios (cliente, referencia, OP, prenda o color)' }); return;
         }
-        if (!cantidad || cantidad <= 0) {
-          errores.push({ fila: fila_n, error: 'Cantidad inválida' }); return;
+        if (!loteCatalogoValor(cliente, 'lt_clientes')) { errores.push({ fila: fila_n, error: `El cliente "${cliente}" no existe en Configuraciones` }); return; }
+        if (!loteCatalogoValor(tipoPrenda, 'lt_tipos_prenda')) { errores.push({ fila: fila_n, error: `El tipo de prenda "${tipoPrenda}" no existe en Configuraciones` }); return; }
+        if (!loteCatalogoValor(color, 'lt_colores')) { errores.push({ fila: fila_n, error: `El color "${color}" no existe en Configuraciones` }); return; }
+        if (!cantidad || cantidad <= 0 || !Number.isInteger(cantidad)) {
+          errores.push({ fila: fila_n, error: 'Cantidad inválida (debe ser un número entero mayor a cero)' }); return;
         }
         const ubic = ubicaciones.find(u => u.codigo === ubicacionCodigo);
         if (!ubic) { errores.push({ fila: fila_n, error: `Ubicación "${ubicacionCodigo}" no existe` }); return; }
@@ -1672,6 +1681,51 @@ app.get('/api/lotes/exportar', (req, res) => {
     res.status(500).json({ error: e.message, donde: 'GET lotes/exportar' });
   }
 });
+
+// ── Catálogos cerrados de Ubicación Lotes: Clientes / Tipos de prenda / Colores ──
+// Cada uno vive en su propia colección {id, nombre}. El cliente/tipo de prenda/
+// color de un lote SOLO puede ser uno de estos valores — se valida al crear el
+// lote (a diferencia de Referencia/OP, que siguen siendo texto libre).
+function loteCatalogoValor(nombre, filesKey) {
+  const n = String(nombre || '').trim().toUpperCase();
+  return (loadDB(filesKey) || []).some(x => x.nombre === n);
+}
+function registrarCatalogoSimple(rutaBase, filesKey, campoLote) {
+  app.get(`/api/${rutaBase}`, (req, res) => {
+    try { res.json({ items: loadDB(filesKey) || [] }); }
+    catch (e) { res.status(500).json({ error: e.message }); }
+  });
+  app.post(`/api/${rutaBase}`, (req, res) => {
+    try {
+      const nombre = String((req.body && req.body.nombre) || '').trim().toUpperCase();
+      if (!nombre) return res.status(400).json({ error: 'Escribe un nombre' });
+      const lista = loadDB(filesKey) || [];
+      if (lista.some(x => x.nombre === nombre)) return res.status(409).json({ error: 'Ya existe' });
+      const nuevo = { id: uuidv4(), nombre };
+      lista.push(nuevo);
+      if (!saveDB(filesKey, lista)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
+      res.json({ ok: true, item: nuevo });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+  app.delete(`/api/${rutaBase}/:id`, (req, res) => {
+    try {
+      const lista = loadDB(filesKey) || [];
+      const idx = lista.findIndex(x => x.id === req.params.id);
+      if (idx < 0) return res.status(404).json({ error: 'No encontrado' });
+      const nombre = lista[idx].nombre;
+      const lotes = loadDB('lotes') || [];
+      if (lotes.some(l => (l[campoLote]||'').toUpperCase() === nombre)) {
+        return res.status(409).json({ error: 'No se puede eliminar: hay lotes que usan este valor' });
+      }
+      lista.splice(idx, 1);
+      if (!saveDB(filesKey, lista)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
+      res.json({ ok: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+}
+registrarCatalogoSimple('lt-clientes', 'lt_clientes', 'cliente');
+registrarCatalogoSimple('lt-tipos-prenda', 'lt_tipos_prenda', 'tipoPrenda');
+registrarCatalogoSimple('lt-colores', 'lt_colores', 'color');
 
 // ── API Producción (Tablero Kanban) ──────────────────────────────
 app.get('/api/produccion', (req, res) => {

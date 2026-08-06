@@ -51,6 +51,7 @@ input,select,textarea{font-size:16px !important}
 .nav-item:active{background:#1e2a4a}
 .nav-item.active{background:#1c2c52;color:#fff;font-weight:600}
 .nav-icon{font-size:20px;flex-shrink:0}
+.nav-sep{height:1px;background:#1e2a4a;margin:8px 16px}
 .content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:20px;background:var(--bg)}
 .section{display:none}.section.active{display:block}
 .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px}
@@ -113,6 +114,11 @@ table.tbl tr:hover td{background:var(--surface2)}
 .ac-option mark{background:transparent;color:var(--amber-dark);font-weight:700;font-style:normal}
 .ac-empty{padding:10px 14px;font-size:13px;color:var(--text3);font-style:italic}
 .import-summary .card{text-align:center}
+.subtabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto}
+.subtab{padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;color:var(--text3);border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.subtab.active{color:var(--amber-dark);border-bottom-color:var(--amber)}
+.config-subsection{display:none}
+.config-subsection.active{display:block}
 .result-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:12px}
 .salida-form{background:var(--surface2);border-radius:var(--radius);padding:12px;margin-top:12px;display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
 .salida-form .form-group{margin-bottom:0;flex:1;min-width:120px}
@@ -174,16 +180,18 @@ table.tbl tr:hover td{background:var(--surface2)}
 
 <div class="main">
 <div class="sidebar">
-  <div class="nav-item active" id="nav-dashboard" onclick="goTo('dashboard',this)"><span class="nav-icon">⊞</span><span class="nav-label">Dashboard</span></div>
-  <div class="nav-item" id="nav-ubicaciones" onclick="goTo('ubicaciones',this)"><span class="nav-icon">📍</span><span class="nav-label">Ubicaciones</span></div>
-  <div class="nav-item" id="nav-ingresar" onclick="goTo('ingresar',this)"><span class="nav-icon">➕</span><span class="nav-label">Ingresar Lotes</span></div>
+  <div class="nav-item active" id="nav-ingresar" onclick="goTo('ingresar',this)"><span class="nav-icon">➕</span><span class="nav-label">Ingresar Lote</span></div>
+  <div class="nav-item" id="nav-buscar" onclick="goTo('buscar',this)"><span class="nav-icon">🔍</span><span class="nav-label">Buscar Lote</span></div>
+  <div class="nav-item" id="nav-salida" onclick="goTo('salida',this)"><span class="nav-icon">📤</span><span class="nav-label">Salida de Lotes</span></div>
   <div class="nav-item" id="nav-inventario" onclick="goTo('inventario',this)"><span class="nav-icon">🏷️</span><span class="nav-label">Inventario Lotes</span></div>
-  <div class="nav-item" id="nav-buscar" onclick="goTo('buscar',this)"><span class="nav-icon">🔍</span><span class="nav-label">Buscar Lotes</span></div>
+  <div class="nav-item" id="nav-dashboard" onclick="goTo('dashboard',this)"><span class="nav-icon">⊞</span><span class="nav-label">Dashboard</span></div>
+  <div class="nav-sep"></div>
+  <div class="nav-item" id="nav-config" onclick="goTo('config',this)"><span class="nav-icon">⚙️</span><span class="nav-label">Configuraciones</span></div>
 </div>
 
 <div class="content">
   <!-- DASHBOARD -->
-  <div class="section active" id="section-dashboard">
+  <div class="section" id="section-dashboard">
     <div class="page-header"><div class="page-title">Resumen del almacén</div></div>
     <div class="stats-grid" id="stats-grid"></div>
     <div class="card">
@@ -192,41 +200,8 @@ table.tbl tr:hover td{background:var(--surface2)}
     </div>
   </div>
 
-  <!-- UBICACIONES -->
-  <div class="section" id="section-ubicaciones">
-    <div class="page-header">
-      <div class="page-title">Ubicaciones físicas</div>
-      <button class="btn btn-primary" onclick="abrirModalUbicacion()">+ Nueva ubicación</button>
-    </div>
-    <div class="filters-bar">
-      <input id="ub-buscar" class="form-control" placeholder="Buscar por código, calle, zona, punto o descripción..." oninput="renderUbicaciones()" autocomplete="off">
-      <div class="filters-row">
-        <span style="font-size:12px;font-weight:600;color:var(--text3)">Filtrar por:</span>
-        <select id="ub-f-calle" class="form-control" onchange="renderUbicaciones()"><option value="">Calle</option></select>
-        <select id="ub-f-zona" class="form-control" onchange="renderUbicaciones()"><option value="">Zona</option></select>
-        <select id="ub-f-estado" class="form-control" onchange="renderUbicaciones()">
-          <option value="">Estado</option>
-          <option value="activo">✅ Activas</option>
-          <option value="inactivo">🚫 Inactivas</option>
-        </select>
-        <button class="btn btn-sm" onclick="limpiarFiltrosUbicacion()">✕ Limpiar</button>
-        <span id="ub-count" style="font-size:12px;color:var(--text3);margin-left:auto"></span>
-      </div>
-    </div>
-    <div class="tbl-wrap">
-      <table class="tbl">
-        <thead><tr><th>Código</th><th>Calle</th><th>Zona</th><th>Punto</th><th>Descripción</th><th>Lotes</th><th>Estado</th><th>Acciones</th></tr></thead>
-        <tbody id="ub-tbody"></tbody>
-      </table>
-    </div>
-    <div class="empty" id="ub-empty" style="display:none">
-      <div class="empty-icon">📍</div>
-      <div>No hay ubicaciones que coincidan con la búsqueda</div>
-    </div>
-  </div>
-
   <!-- INGRESAR LOTES -->
-  <div class="section" id="section-ingresar">
+  <div class="section active" id="section-ingresar">
     <div class="page-header">
       <div class="page-title">Ingresar lotes</div>
       <button class="btn" onclick="document.getElementById('excel-input').click()" title="Columnas requeridas: Cliente, Referencia, OP, Prenda, Color, Cantidad, Ubicación (código exacto, ej. C1-Z2-P3)">📥 Importar</button>
@@ -288,7 +263,7 @@ table.tbl tr:hover td{background:var(--surface2)}
             <div class="ac-dropdown" id="ac-color"></div>
           </div>
         </div>
-        <div class="form-group"><label class="form-label">Cantidad *</label><input class="form-control" id="ltm-cantidad" type="number" min="1"></div>
+        <div class="form-group"><label class="form-label">Cantidad *</label><input class="form-control" id="ltm-cantidad" type="number" min="1" step="1"></div>
       </div>
       <div class="form-group">
         <label class="form-label">Ubicación *</label>
@@ -317,9 +292,9 @@ table.tbl tr:hover td{background:var(--surface2)}
     </div>
   </div>
 
-  <!-- BUSCAR LOTES -->
+  <!-- BUSCAR LOTE -->
   <div class="section" id="section-buscar">
-    <div class="page-header"><div class="page-title">Buscar lotes</div></div>
+    <div class="page-header"><div class="page-title">Buscar lote</div></div>
     <div class="filters-bar">
       <input id="bl-buscar" class="form-control" placeholder="Buscar por referencia u OP..." autocomplete="off" onkeydown="if(event.key==='Enter')buscarLotes()">
       <div class="filters-row">
@@ -331,6 +306,111 @@ table.tbl tr:hover td{background:var(--surface2)}
     <div class="empty" id="bl-empty" style="display:none">
       <div class="empty-icon">🔍</div>
       <div>Escribe una referencia o una OP para buscar</div>
+    </div>
+  </div>
+
+  <!-- SALIDA DE LOTES -->
+  <div class="section" id="section-salida">
+    <div class="page-header"><div class="page-title">Salida de lotes</div></div>
+    <div id="salida-lista"></div>
+    <div class="empty" id="salida-empty" style="display:none">
+      <div class="empty-icon">📤</div>
+      <div>No hay lotes pendientes de salida</div>
+    </div>
+  </div>
+
+  <!-- CONFIGURACIONES -->
+  <div class="section" id="section-config">
+    <div class="page-header"><div class="page-title">Configuraciones</div></div>
+    <div class="subtabs">
+      <div class="subtab active" onclick="cfgGoTo('clientes',this)">Clientes</div>
+      <div class="subtab" onclick="cfgGoTo('tipos-prenda',this)">Tipos de prenda</div>
+      <div class="subtab" onclick="cfgGoTo('colores',this)">Colores</div>
+      <div class="subtab" onclick="cfgGoTo('ubicaciones',this)">Ubicaciones</div>
+    </div>
+
+    <!-- CONFIG: CLIENTES -->
+    <div class="config-subsection active" id="config-clientes">
+      <div class="card" style="margin-bottom:16px;display:flex;gap:10px;align-items:flex-end">
+        <div class="form-group" style="flex:1;margin-bottom:0">
+          <label class="form-label">Nuevo cliente</label>
+          <input class="form-control" id="cfg-cliente-nuevo" style="text-transform:uppercase" oninput="toUpperInput(this)" onkeydown="if(event.key==='Enter')agregarCatalogo('cliente')">
+        </div>
+        <button class="btn btn-primary" onclick="agregarCatalogo('cliente')">+ Agregar</button>
+      </div>
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead><tr><th>Nombre</th><th style="width:1%">Acciones</th></tr></thead>
+          <tbody id="cfg-clientes-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CONFIG: TIPOS DE PRENDA -->
+    <div class="config-subsection" id="config-tipos-prenda">
+      <div class="card" style="margin-bottom:16px;display:flex;gap:10px;align-items:flex-end">
+        <div class="form-group" style="flex:1;margin-bottom:0">
+          <label class="form-label">Nuevo tipo de prenda</label>
+          <input class="form-control" id="cfg-tipoprenda-nuevo" style="text-transform:uppercase" oninput="toUpperInput(this)" onkeydown="if(event.key==='Enter')agregarCatalogo('tipoPrenda')">
+        </div>
+        <button class="btn btn-primary" onclick="agregarCatalogo('tipoPrenda')">+ Agregar</button>
+      </div>
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead><tr><th>Nombre</th><th style="width:1%">Acciones</th></tr></thead>
+          <tbody id="cfg-tipos-prenda-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CONFIG: COLORES -->
+    <div class="config-subsection" id="config-colores">
+      <div class="card" style="margin-bottom:16px;display:flex;gap:10px;align-items:flex-end">
+        <div class="form-group" style="flex:1;margin-bottom:0">
+          <label class="form-label">Nuevo color</label>
+          <input class="form-control" id="cfg-color-nuevo" style="text-transform:uppercase" oninput="toUpperInput(this)" onkeydown="if(event.key==='Enter')agregarCatalogo('color')">
+        </div>
+        <button class="btn btn-primary" onclick="agregarCatalogo('color')">+ Agregar</button>
+      </div>
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead><tr><th>Nombre</th><th style="width:1%">Acciones</th></tr></thead>
+          <tbody id="cfg-colores-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CONFIG: UBICACIONES -->
+    <div class="config-subsection" id="config-ubicaciones">
+      <div class="page-header">
+        <div class="page-title" style="font-size:18px">Ubicaciones físicas</div>
+        <button class="btn btn-primary" onclick="abrirModalUbicacion()">+ Nueva ubicación</button>
+      </div>
+      <div class="filters-bar">
+        <input id="ub-buscar" class="form-control" placeholder="Buscar por código, calle, zona, punto o descripción..." oninput="renderUbicaciones()" autocomplete="off">
+        <div class="filters-row">
+          <span style="font-size:12px;font-weight:600;color:var(--text3)">Filtrar por:</span>
+          <select id="ub-f-calle" class="form-control" onchange="renderUbicaciones()"><option value="">Calle</option></select>
+          <select id="ub-f-zona" class="form-control" onchange="renderUbicaciones()"><option value="">Zona</option></select>
+          <select id="ub-f-estado" class="form-control" onchange="renderUbicaciones()">
+            <option value="">Estado</option>
+            <option value="activo">✅ Activas</option>
+            <option value="inactivo">🚫 Inactivas</option>
+          </select>
+          <button class="btn btn-sm" onclick="limpiarFiltrosUbicacion()">✕ Limpiar</button>
+          <span id="ub-count" style="font-size:12px;color:var(--text3);margin-left:auto"></span>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead><tr><th>Código</th><th>Calle</th><th>Zona</th><th>Punto</th><th>Descripción</th><th>Lotes</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody id="ub-tbody"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="ub-empty" style="display:none">
+        <div class="empty-icon">📍</div>
+        <div>No hay ubicaciones que coincidan con la búsqueda</div>
+      </div>
     </div>
   </div>
 </div>
@@ -462,6 +542,9 @@ table.tbl tr:hover td{background:var(--surface2)}
 <script>
 let UBICACIONES = [];
 let LOTES = [];
+let CLIENTES = [];
+let TIPOS_PRENDA = [];
+let COLORES = [];
 let editandoUbicacionId = null;
 
 function toast(msg, type){
@@ -478,6 +561,13 @@ function goTo(section, el){
   el.classList.add('active');
 }
 
+function cfgGoTo(name, el){
+  document.querySelectorAll('.config-subsection').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.subtab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('config-'+name).classList.add('active');
+  el.classList.add('active');
+}
+
 function updateHeaderClock(){
   const now = new Date();
   const dateEl = document.getElementById('hd-date');
@@ -488,10 +578,16 @@ function updateHeaderClock(){
 
 async function cargarTodo(){
   try{
-    const [rUb, rLt] = await Promise.all([ fetch('/api/ubicaciones'), fetch('/api/lotes') ]);
+    const [rUb, rLt, rCl, rTp, rCo] = await Promise.all([
+      fetch('/api/ubicaciones'), fetch('/api/lotes'),
+      fetch('/api/lt-clientes'), fetch('/api/lt-tipos-prenda'), fetch('/api/lt-colores')
+    ]);
     const dUb = await rUb.json(), dLt = await rLt.json();
     UBICACIONES = dUb.ubicaciones || [];
     LOTES = dLt.lotes || [];
+    CLIENTES = (await rCl.json()).items || [];
+    TIPOS_PRENDA = (await rTp.json()).items || [];
+    COLORES = (await rCo.json()).items || [];
   }catch(e){
     toast('⚠️ No se pudo conectar con el servidor', 'error');
   }
@@ -499,6 +595,10 @@ async function cargarTodo(){
   renderDashboard();
   renderUbicaciones();
   renderLotes();
+  renderSalidaLista();
+  renderCatalogo('cliente');
+  renderCatalogo('tipoPrenda');
+  renderCatalogo('color');
 }
 
 function lotesDe(ubicacionId){
@@ -719,7 +819,10 @@ async function guardarLote(){
   const ubicacionId = document.getElementById('ltm-ubicacion').value;
   const errEl = document.getElementById('ltm-error');
   if(!cliente || !referencia || !op || !tipoPrenda || !color){ errEl.textContent = 'Completa todos los campos obligatorios'; return; }
-  if(!cantidad || Number(cantidad) <= 0){ errEl.textContent = 'La cantidad debe ser mayor a cero'; return; }
+  if(!CLIENTES.some(x=>x.nombre===cliente)){ errEl.textContent = `El cliente "${cliente}" no existe. Agrégalo en Configuraciones.`; return; }
+  if(!TIPOS_PRENDA.some(x=>x.nombre===tipoPrenda)){ errEl.textContent = `El tipo de prenda "${tipoPrenda}" no existe. Agrégalo en Configuraciones.`; return; }
+  if(!COLORES.some(x=>x.nombre===color)){ errEl.textContent = `El color "${color}" no existe. Agrégalo en Configuraciones.`; return; }
+  if(!cantidad || Number(cantidad) <= 0 || !Number.isInteger(Number(cantidad))){ errEl.textContent = 'La cantidad debe ser un número entero mayor a cero'; return; }
   if(!ubicacionId){ errEl.textContent = 'Selecciona una ubicación'; return; }
   try{
     const r = await fetch('/api/lotes', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({cliente,referencia,op,tipoPrenda,color,cantidad,ubicacionId}) });
@@ -765,6 +868,11 @@ function toUpperInput(el){
 // Sugiere valores ya usados en otros lotes y se va filtrando mientras se
 // escribe (mismo patrón "ac-*" que usa MMT Locativo para sus campos).
 function acValues(field){
+  // Cliente/Tipo de prenda/Color son catálogo cerrado (Configuraciones) —
+  // Referencia/OP siguen siendo texto libre, sugerido desde el historial.
+  if(field === 'cliente') return CLIENTES.map(x=>x.nombre).sort((a,b)=>a.localeCompare(b,'es'));
+  if(field === 'tipoPrenda') return TIPOS_PRENDA.map(x=>x.nombre).sort((a,b)=>a.localeCompare(b,'es'));
+  if(field === 'color') return COLORES.map(x=>x.nombre).sort((a,b)=>a.localeCompare(b,'es'));
   const seen = new Set();
   LOTES.forEach(l => { const v = (l[field]||'').trim(); if(v) seen.add(v); });
   return [...seen].sort((a,b)=>a.localeCompare(b,'es'));
@@ -858,6 +966,97 @@ async function despacharLote(id, cantidad){
   return d.lote;
 }
 
+// ══════════════════════════ SALIDA DE LOTES (lista de pendientes) ══════════════════════════
+let SALIDA_MOSTRAR_FORM = null;
+
+function renderSalidaLista(){
+  const pendientes = LOTES.filter(l => (l.cantidad - (l.cantidadDespachada||0)) > 0)
+    .sort((a,b)=> new Date(a.fechaCreacion) - new Date(b.fechaCreacion));
+  document.getElementById('salida-empty').style.display = pendientes.length ? 'none' : 'flex';
+  document.getElementById('salida-lista').innerHTML = pendientes.map(l=>{
+    const ubic = UBICACIONES.find(u=>u.id===l.ubicacionId);
+    const restante = l.cantidad - (l.cantidadDespachada||0);
+    const mostrarForm = SALIDA_MOSTRAR_FORM === l.id;
+    return `<div class="result-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800">${l.codigo} — ${l.cliente}</div>
+        ${estadoLoteBadgeHTML(l.estado)}
+      </div>
+      <div class="info-row"><span class="info-label">Referencia</span><span class="info-val">${l.referencia}</span></div>
+      <div class="info-row"><span class="info-label">OP</span><span class="info-val">${l.op}</span></div>
+      <div class="info-row"><span class="info-label">Ubicación</span><span class="info-val">${ubic ? ubic.codigo : (l.ubicacionCodigo||'--')}</span></div>
+      <div class="info-row"><span class="info-label">Pendiente</span><span class="info-val">${restante} de ${l.cantidad}</span></div>
+      ${mostrarForm ? `
+        <div class="salida-form">
+          <div class="form-group">
+            <label class="form-label">Unidades a despachar</label>
+            <input type="number" class="form-control" id="sal-cant-${l.id}" min="1" step="1" max="${restante}" value="${restante}">
+          </div>
+          <button class="btn btn-sm" onclick="SALIDA_MOSTRAR_FORM=null;renderSalidaLista()">Cancelar</button>
+          <button class="btn btn-sm btn-success" onclick="confirmarSalidaLista('${l.id}')">Confirmar salida</button>
+        </div>
+      ` : `<button class="btn btn-sm btn-success" style="margin-top:10px" onclick="SALIDA_MOSTRAR_FORM='${l.id}';renderSalidaLista()">📤 Dar salida</button>`}
+    </div>`;
+  }).join('');
+}
+
+async function confirmarSalidaLista(id){
+  const input = document.getElementById('sal-cant-'+id);
+  const cantidad = Number(input.value);
+  if(!cantidad || cantidad <= 0 || !Number.isInteger(cantidad)){ toast('⚠️ Ingresa una cantidad entera válida', 'error'); return; }
+  try{
+    await despacharLote(id, cantidad);
+    toast('✅ Salida registrada', 'success');
+    SALIDA_MOSTRAR_FORM = null;
+    await cargarTodo();
+  }catch(e){ toast('⚠️ ' + e.message, 'error'); }
+}
+
+// ══════════════════════════ CONFIGURACIONES: catálogos Cliente/Tipo de prenda/Color ══════════════════════════
+const CATALOGO_CONFIG = {
+  cliente:    { ruta:'lt-clientes',     tbody:'cfg-clientes-tbody',     input:'cfg-cliente-nuevo' },
+  tipoPrenda: { ruta:'lt-tipos-prenda', tbody:'cfg-tipos-prenda-tbody', input:'cfg-tipoprenda-nuevo' },
+  color:      { ruta:'lt-colores',      tbody:'cfg-colores-tbody',      input:'cfg-color-nuevo' }
+};
+function catalogoArr(field){
+  if(field==='cliente') return CLIENTES;
+  if(field==='tipoPrenda') return TIPOS_PRENDA;
+  if(field==='color') return COLORES;
+  return [];
+}
+function renderCatalogo(field){
+  const cfg = CATALOGO_CONFIG[field];
+  const arr = [...catalogoArr(field)].sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
+  document.getElementById(cfg.tbody).innerHTML = arr.length
+    ? arr.map(x=>`<tr><td>${x.nombre}</td><td><button class="btn btn-sm btn-danger" onclick="eliminarCatalogo('${field}','${x.id}')">Eliminar</button></td></tr>`).join('')
+    : '<tr><td colspan="2" style="color:var(--text3);text-align:center;padding:20px">Sin valores todavía</td></tr>';
+}
+async function agregarCatalogo(field){
+  const cfg = CATALOGO_CONFIG[field];
+  const inp = document.getElementById(cfg.input);
+  const nombre = inp.value.trim();
+  if(!nombre){ toast('⚠️ Escribe un nombre', 'error'); return; }
+  try{
+    const r = await fetch(`/api/${cfg.ruta}`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({nombre}) });
+    const d = await r.json();
+    if(!r.ok){ toast('⚠️ ' + (d.error||'No se pudo guardar'), 'error'); return; }
+    inp.value = '';
+    toast('✅ Agregado', 'success');
+    await cargarTodo();
+  }catch(e){ toast('⚠️ Error de conexión', 'error'); }
+}
+async function eliminarCatalogo(field, id){
+  if(!confirm('¿Eliminar este valor?')) return;
+  const cfg = CATALOGO_CONFIG[field];
+  try{
+    const r = await fetch(`/api/${cfg.ruta}/${id}`, { method:'DELETE' });
+    const d = await r.json();
+    if(!r.ok){ toast('⚠️ ' + (d.error||'No se pudo eliminar'), 'error'); return; }
+    toast('✅ Eliminado', 'success');
+    await cargarTodo();
+  }catch(e){ toast('⚠️ Error de conexión', 'error'); }
+}
+
 // ══════════════════════════ BUSCAR LOTES ══════════════════════════
 let BL_RESULTADOS = [];
 let BL_MOSTRAR_FORM = null;
@@ -892,7 +1091,7 @@ function renderBlResultados(){
         <div class="salida-form">
           <div class="form-group">
             <label class="form-label">Unidades a despachar (quedan ${restante})</label>
-            <input type="number" class="form-control" id="bl-cant-${l.id}" min="1" max="${restante}" value="${restante}">
+            <input type="number" class="form-control" id="bl-cant-${l.id}" min="1" step="1" max="${restante}" value="${restante}">
           </div>
           <button class="btn btn-sm" onclick="BL_MOSTRAR_FORM=null;renderBlResultados()">Cancelar</button>
           <button class="btn btn-sm btn-success" onclick="confirmarSalidaBuscar('${l.id}')">Confirmar salida</button>
@@ -905,7 +1104,7 @@ function renderBlResultados(){
 async function confirmarSalidaBuscar(id){
   const input = document.getElementById('bl-cant-'+id);
   const cantidad = Number(input.value);
-  if(!cantidad || cantidad <= 0){ toast('⚠️ Ingresa una cantidad válida', 'error'); return; }
+  if(!cantidad || cantidad <= 0 || !Number.isInteger(cantidad)){ toast('⚠️ Ingresa una cantidad entera válida', 'error'); return; }
   try{
     await despacharLote(id, cantidad);
     toast('✅ Salida registrada', 'success');
@@ -961,7 +1160,7 @@ function abrirFormSalidaEscaneo(){
     <div class="salida-form" style="flex-direction:column;align-items:stretch">
       <div class="form-group">
         <label class="form-label">Unidades a despachar (quedan ${restante})</label>
-        <input type="number" class="form-control" id="scan-cant-salida" min="1" max="${restante}" value="${restante}">
+        <input type="number" class="form-control" id="scan-cant-salida" min="1" step="1" max="${restante}" value="${restante}">
       </div>
       <button class="btn btn-primary btn-lg" style="width:100%;justify-content:center" onclick="confirmarSalidaEscaneo()">Confirmar salida</button>
     </div>
@@ -970,7 +1169,7 @@ function abrirFormSalidaEscaneo(){
 async function confirmarSalidaEscaneo(){
   if(!window._scanLote) return;
   const cantidad = Number(document.getElementById('scan-cant-salida').value);
-  if(!cantidad || cantidad <= 0){ toast('⚠️ Ingresa una cantidad válida', 'error'); return; }
+  if(!cantidad || cantidad <= 0 || !Number.isInteger(cantidad)){ toast('⚠️ Ingresa una cantidad entera válida', 'error'); return; }
   try{
     const lote = await despacharLote(window._scanLote.id, cantidad);
     window._scanLote = lote;
