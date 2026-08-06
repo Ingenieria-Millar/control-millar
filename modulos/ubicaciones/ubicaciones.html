@@ -28,16 +28,16 @@ input,select,textarea{font-size:16px !important}
 .brand-logo-badge{width:44px;height:44px;border-radius:50%;background:#fff;box-shadow:0 0 0 1.5px #26314f;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden}
 .brand-logo-badge img{width:100%;height:100%;object-fit:contain;padding:4px}
 .hd-title-wrap{display:flex;flex-direction:column;gap:0}
-.hd-date{font-size:11px;color:#64748b;font-weight:600;margin-top:1px;text-transform:capitalize}
+.hd-date{font-size:11px;color:#64748b;font-weight:600;margin-top:1px}
 .hd-clock{font-size:11px;color:#94a3b8;font-weight:600;margin-top:0;font-family:'IBM Plex Mono',monospace;letter-spacing:.5px}
-.logo{font-family:'Barlow Condensed',sans-serif;font-size:clamp(14px,2vw,20px);font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0f172a;line-height:1.1}
+.logo{font-family:'Barlow Condensed',sans-serif;font-size:clamp(16px,2.5vw,22px);font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0f172a;line-height:1.1}
 .logo small{color:#2563eb;font-weight:800;font-size:inherit;margin-left:4px;letter-spacing:2px;text-transform:uppercase}
 .topbar-right{display:flex;align-items:center;gap:10px}
-.user-pill{display:flex;align-items:center;gap:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:30px;padding:5px 12px 5px 5px;min-height:44px}
-.avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;background:#2563eb;color:#fff}
-.uinfo{display:flex;flex-direction:column}
-.uname{font-size:13px;font-weight:600;color:#0f172a}
-.urole{font-size:11px;color:#64748b}
+.hd-user-badge{display:flex;align-items:center;gap:0;border:1.5px solid #cbd5e1;border-radius:8px;overflow:hidden;background:#fff}
+.hd-user-badge span{padding:6px 12px;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:#475569;letter-spacing:.5px;display:flex;align-items:center;gap:5px}
+.hd-user-name{text-transform:uppercase;letter-spacing:1px}
+.hd-back-btn{padding:6px 14px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#1e3a8a;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:.5px;cursor:pointer;white-space:nowrap;min-height:44px}
+.hd-back-btn:hover{background:#f1f5f9;border-color:#93c5fd}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 18px;border-radius:var(--radius);font-size:14px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:var(--surface);color:var(--text);min-height:44px;transition:all .15s;user-select:none}
 .btn:active{transform:scale(.98)}
 .btn-primary{background:var(--amber);border-color:var(--amber-dark);color:#fff}
@@ -143,7 +143,6 @@ table.tbl tr:hover td{background:var(--surface2)}
 <div id="app">
 <div class="topbar">
   <div style="display:flex;align-items:center;gap:12px">
-    <button class="btn btn-sm" onclick="window.location.href='/'">← Menú</button>
     <div class="brand-logo-badge"><img src="/logo.png" alt="Millar"></div>
     <div class="hd-title-wrap">
       <div class="logo">UBICACIÓN <small>LOTES</small></div>
@@ -152,13 +151,10 @@ table.tbl tr:hover td{background:var(--surface2)}
     </div>
   </div>
   <div class="topbar-right">
-    <div class="user-pill">
-      <div class="avatar" id="topAv">--</div>
-      <div class="uinfo">
-        <span class="uname" id="topName">--</span>
-        <span class="urole" id="topRole">Almacén</span>
-      </div>
+    <div class="hd-user-badge">
+      <span>👤 <span class="hd-user-name" id="topName">USUARIO</span></span>
     </div>
+    <button class="hd-back-btn" onclick="window.location.href='/'">← Volver</button>
   </div>
 </div>
 
@@ -218,19 +214,6 @@ table.tbl tr:hover td{background:var(--surface2)}
     <div class="page-header">
       <div class="page-title">Lotes de producción</div>
       <button class="btn btn-primary" onclick="abrirModalLote()">+ Nuevo lote</button>
-    </div>
-    <div class="filters-bar">
-      <input id="lt-buscar" class="form-control" placeholder="Buscar por código, cliente, referencia, OP o color..." oninput="renderLotes()" autocomplete="off">
-      <div class="filters-row">
-        <span style="font-size:12px;font-weight:600;color:var(--text3)">Filtrar por:</span>
-        <select id="lt-f-estado" class="form-control" onchange="renderLotes()">
-          <option value="">Estado</option>
-          <option value="en_bodega">📦 En bodega</option>
-          <option value="despachado">✅ Despachado</option>
-        </select>
-        <button class="btn btn-sm" onclick="limpiarFiltrosLote()">✕ Limpiar</button>
-        <span id="lt-count" style="font-size:12px;color:var(--text3);margin-left:auto"></span>
-      </div>
     </div>
     <div class="tbl-wrap">
       <table class="tbl">
@@ -402,8 +385,8 @@ function updateHeaderClock(){
   const now = new Date();
   const dateEl = document.getElementById('hd-date');
   const clockEl = document.getElementById('hd-clock');
-  if(dateEl) dateEl.textContent = now.toLocaleDateString('es-CO', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
-  if(clockEl) clockEl.textContent = now.toLocaleTimeString('es-CO');
+  if(dateEl) dateEl.textContent = now.toLocaleDateString('es-CO', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+  if(clockEl) clockEl.textContent = now.toLocaleTimeString('es-CO', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
 }
 
 async function cargarTodo(){
@@ -594,28 +577,12 @@ function abrirDetalle(id){
 function cerrarDetalle(){ document.getElementById('detail-ubicacion').classList.remove('show'); }
 
 // ══════════════════════════ LOTES ══════════════════════════
-function limpiarFiltrosLote(){
-  document.getElementById('lt-buscar').value = '';
-  document.getElementById('lt-f-estado').value = '';
-  renderLotes();
-}
-
 function renderLotes(){
-  const q = (document.getElementById('lt-buscar').value||'').toLowerCase().trim();
-  const fEstado = document.getElementById('lt-f-estado').value;
-  const filtrados = LOTES.filter(l=>{
-    if(fEstado && l.estado !== fEstado) return false;
-    if(q){
-      const hay = [l.codigo,l.cliente,l.referencia,l.op,l.color].join(' ').toLowerCase();
-      if(!hay.includes(q)) return false;
-    }
-    return true;
-  }).sort((a,b)=> new Date(b.fechaCreacion) - new Date(a.fechaCreacion));
+  const ordenados = [...LOTES].sort((a,b)=> new Date(b.fechaCreacion) - new Date(a.fechaCreacion));
 
-  document.getElementById('lt-count').textContent = filtrados.length + ' de ' + LOTES.length;
   document.getElementById('lt-empty').style.display = LOTES.length ? 'none' : 'flex';
 
-  document.getElementById('lt-tbody').innerHTML = filtrados.map(l=>{
+  document.getElementById('lt-tbody').innerHTML = ordenados.map(l=>{
     const ubic = UBICACIONES.find(u=>u.id===l.ubicacionId);
     const despachado = l.estado === 'despachado';
     return `<tr>
@@ -739,10 +706,7 @@ async function confirmarSalidaEscaneo(){
 (function iniciar(){
   try{
     const s = JSON.parse(localStorage.getItem('cm_session')||'{}');
-    const nombre = s.user || 'Usuario';
-    document.getElementById('topName').textContent = nombre;
-    document.getElementById('topAv').textContent = nombre.slice(0,2).toUpperCase();
-    if(s.rol) document.getElementById('topRole').textContent = s.rol;
+    document.getElementById('topName').textContent = s.user || 'Usuario';
   }catch(e){}
   updateHeaderClock();
   setInterval(updateHeaderClock, 1000);
