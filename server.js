@@ -220,7 +220,7 @@ const FILES = {
   corte_solicitudes: path.join(DATA_DIR, 'corte_solicitudes.json'),
   mmt_locativo:   path.join(DATA_DIR, 'mmt_locativo.json'),
   ubicaciones:    path.join(DATA_DIR, 'ubicaciones.json'),
-  insumos:        path.join(DATA_DIR, 'insumos.json'),
+  lotes:          path.join(DATA_DIR, 'lotes.json'),
 };
 
 // ══════════════════════════════════════════════════════════════════
@@ -1375,11 +1375,11 @@ app.post('/api/mantenimiento', (req, res) => {
   }
 });
 
-// ── API Ubicaciones (almacén físico) + catálogo de Insumos ─────────
+// ── API Ubicación Lotes: ubicaciones físicas del almacén + lotes de producción ──
 // Dos colecciones independientes (patrón "cargar todo, filtrar en JS" igual
 // que el resto de la app — no hay tablas SQL reales, ver CLAUDE.md). La
-// relación "1 insumo → 1 ubicación" vive como un solo campo `ubicacionId`
-// en cada insumo: nunca un array, así que no puede tener más de una a la vez.
+// relación "1 lote → 1 ubicación" vive como un solo campo `ubicacionId`
+// en cada lote: nunca un array, así que no puede tener más de una a la vez.
 function ubicGenerarCodigo(calle, zona, punto) {
   return `C${calle}-Z${zona}-P${punto}`.toUpperCase().replace(/\s+/g, '');
 }
@@ -1478,9 +1478,9 @@ app.delete('/api/ubicaciones/:id', (req, res) => {
     const lista = loadDB('ubicaciones') || [];
     const idx = lista.findIndex(u => u.id === req.params.id);
     if (idx < 0) return res.status(404).json({ error: 'Ubicación no encontrada' });
-    const insumos = loadDB('insumos') || [];
-    if (insumos.some(i => i.ubicacionId === req.params.id)) {
-      return res.status(409).json({ error: 'No se puede eliminar: esta ubicación tiene insumos asignados' });
+    const lotes = loadDB('lotes') || [];
+    if (lotes.some(l => l.ubicacionId === req.params.id)) {
+      return res.status(409).json({ error: 'No se puede eliminar: esta ubicación tiene lotes asignados' });
     }
     lista.splice(idx, 1);
     if (!saveDB('ubicaciones', lista)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
@@ -1491,117 +1491,83 @@ app.delete('/api/ubicaciones/:id', (req, res) => {
   }
 });
 
-app.get('/api/insumos', (req, res) => {
+app.get('/api/lotes', (req, res) => {
   try {
-    res.json({ insumos: loadDB('insumos') || [] });
+    res.json({ lotes: loadDB('lotes') || [] });
   } catch (e) {
-    console.error('Error [GET insumos]:', e.message);
-    res.status(500).json({ error: e.message, donde: 'GET insumos' });
+    console.error('Error [GET lotes]:', e.message);
+    res.status(500).json({ error: e.message, donde: 'GET lotes' });
   }
 });
 
-app.put('/api/insumos/:id', (req, res) => {
-  try {
-    const { descripcion, cantidad, proveedor, unidad } = req.body || {};
-    const lista = loadDB('insumos') || [];
-    const idx = lista.findIndex(i => i.id === req.params.id);
-    if (idx < 0) return res.status(404).json({ error: 'Insumo no encontrado' });
-    lista[idx] = {
-      ...lista[idx],
-      descripcion: descripcion != null ? String(descripcion).trim() : lista[idx].descripcion,
-      cantidad:    cantidad    != null ? Number(cantidad) || 0      : lista[idx].cantidad,
-      proveedor:   proveedor   != null ? String(proveedor).trim()   : lista[idx].proveedor,
-      unidad:      unidad      != null ? String(unidad).trim()      : lista[idx].unidad,
-      fechaActualizacion: new Date().toISOString()
-    };
-    if (!saveDB('insumos', lista)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
-    res.json({ ok: true, insumo: lista[idx] });
-  } catch (e) {
-    console.error('Error [PUT insumos]:', e.message);
-    res.status(500).json({ error: e.message, donde: 'PUT insumos' });
-  }
-});
-
-app.post('/api/insumos/:id/asignar-ubicacion', (req, res) => {
-  try {
-    const ubicacionId = req.body && req.body.ubicacionId ? String(req.body.ubicacionId) : null;
-    const insumos = loadDB('insumos') || [];
-    const idx = insumos.findIndex(i => i.id === req.params.id);
-    if (idx < 0) return res.status(404).json({ error: 'Insumo no encontrado' });
-    if (ubicacionId) {
-      const ubicaciones = loadDB('ubicaciones') || [];
-      const ubic = ubicaciones.find(u => u.id === ubicacionId);
-      if (!ubic) return res.status(400).json({ error: 'La ubicación seleccionada no existe' });
-      if (!ubic.activo) return res.status(400).json({ error: 'La ubicación seleccionada está desactivada' });
-    }
-    insumos[idx] = { ...insumos[idx], ubicacionId, fechaActualizacion: new Date().toISOString() };
-    if (!saveDB('insumos', insumos)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
-    res.json({ ok: true, insumo: insumos[idx] });
-  } catch (e) {
-    console.error('Error [POST insumos/asignar-ubicacion]:', e.message);
-    res.status(500).json({ error: e.message, donde: 'POST insumos/asignar-ubicacion' });
-  }
-});
-
-// Importa un Excel/CSV de referencias (upsert por `referencia`). Los
-// encabezados se leen sin importar mayúsculas/acentos exactos. La ubicación
-// de un insumo NUNCA se toca aquí — el usuario la asigna después desde la app.
-function ubicNormalizarHeader(h) {
-  return String(h || '').trim().toLowerCase()
-    .normalize('NFD').replace(/[̀-ͯ]/g, ''); // quita tildes
-}
-app.post('/api/insumos/importar', (req, res) => {
-  uploadExcel.single('archivo')(req, res, (err) => {
-    if (err) return res.status(400).json({ error: err.message });
-    try {
-      if (!req.file) return res.status(400).json({ error: 'No se recibió ningún archivo' });
-      const wb = xlsxLib.read(req.file.buffer, { type: 'buffer' });
-      const hoja = wb.Sheets[wb.SheetNames[0]];
-      const filas = xlsxLib.utils.sheet_to_json(hoja, { defval: '' });
-
-      const insumos = loadDB('insumos') || [];
-      const porReferencia = new Map(insumos.map(i => [String(i.referencia).trim().toLowerCase(), i]));
-      let creados = 0, actualizados = 0;
-      const errores = [];
-
-      filas.forEach((filaCruda, i) => {
-        const fila = {};
-        Object.keys(filaCruda).forEach(k => { fila[ubicNormalizarHeader(k)] = filaCruda[k]; });
-        const referencia = String(fila.referencia || fila.ref || fila.codigo || '').trim();
-        if (!referencia) { errores.push({ fila: i + 2, error: 'Sin referencia' }); return; }
-        const key = referencia.toLowerCase();
-        const descripcion = String(fila.descripcion || fila.descripción || '').trim();
-        const cantidad    = fila.cantidad !== undefined && fila.cantidad !== '' ? Number(fila.cantidad) || 0 : undefined;
-        const proveedor   = String(fila.proveedor || '').trim();
-        const unidad      = String(fila.unidad || '').trim();
-
-        if (porReferencia.has(key)) {
-          const existente = porReferencia.get(key);
-          if (descripcion) existente.descripcion = descripcion;
-          if (cantidad !== undefined) existente.cantidad = cantidad;
-          if (proveedor) existente.proveedor = proveedor;
-          if (unidad) existente.unidad = unidad;
-          existente.fechaActualizacion = new Date().toISOString();
-          actualizados++;
-        } else {
-          const nuevo = {
-            id: uuidv4(), referencia, descripcion, cantidad: cantidad || 0, proveedor, unidad,
-            ubicacionId: null,
-            fechaCreacion: new Date().toISOString(), fechaActualizacion: new Date().toISOString()
-          };
-          porReferencia.set(key, nuevo);
-          creados++;
-        }
-      });
-
-      const listaFinal = [...porReferencia.values()];
-      if (!saveDB('insumos', listaFinal)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
-      res.json({ ok: true, creados, actualizados, errores });
-    } catch (e) {
-      console.error('Error [POST insumos/importar]:', e.message);
-      res.status(500).json({ error: e.message, donde: 'POST insumos/importar' });
-    }
+// Código de lote: correlativo legible (L-000001, L-000002, ...) — se calcula
+// a partir del mayor consecutivo ya guardado, no de la cantidad de lotes
+// (así un lote borrado no hace que un código se repita).
+function loteGenerarCodigo(lista) {
+  let max = 0;
+  lista.forEach(l => {
+    const m = /^L-(\d+)$/.exec(l.codigo || '');
+    if (m) max = Math.max(max, parseInt(m[1], 10));
   });
+  return 'L-' + String(max + 1).padStart(6, '0');
+}
+
+app.post('/api/lotes', (req, res) => {
+  try {
+    const { cliente, referencia, op, tipoPrenda, color, cantidad, ubicacionId } = req.body || {};
+    const clienteN = String(cliente || '').trim();
+    const referenciaN = String(referencia || '').trim();
+    const opN = String(op || '').trim();
+    const tipoPrendaN = String(tipoPrenda || '').trim();
+    const colorN = String(color || '').trim();
+    const cantidadN = Number(cantidad);
+    if (!clienteN || !referenciaN || !opN || !tipoPrendaN || !colorN) {
+      return res.status(400).json({ error: 'Cliente, referencia, OP, tipo de prenda y color son obligatorios' });
+    }
+    if (!cantidadN || cantidadN <= 0) {
+      return res.status(400).json({ error: 'La cantidad debe ser mayor a cero' });
+    }
+    if (!ubicacionId) return res.status(400).json({ error: 'Selecciona una ubicación' });
+    const ubicaciones = loadDB('ubicaciones') || [];
+    const ubic = ubicaciones.find(u => u.id === ubicacionId);
+    if (!ubic) return res.status(400).json({ error: 'La ubicación seleccionada no existe' });
+    if (!ubic.activo) return res.status(400).json({ error: 'La ubicación seleccionada está desactivada' });
+
+    const lista = loadDB('lotes') || [];
+    const nuevo = {
+      id: uuidv4(), codigo: loteGenerarCodigo(lista),
+      cliente: clienteN, referencia: referenciaN, op: opN, tipoPrenda: tipoPrendaN, color: colorN, cantidad: cantidadN,
+      ubicacionId, ubicacionCodigo: ubic.codigo,
+      estado: 'en_bodega', fechaCreacion: new Date().toISOString(), fechaSalida: null
+    };
+    lista.push(nuevo);
+    if (!saveDB('lotes', lista)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
+    res.json({ ok: true, lote: nuevo });
+  } catch (e) {
+    console.error('Error [POST lotes]:', e.message);
+    res.status(500).json({ error: e.message, donde: 'POST lotes' });
+  }
+});
+
+// Marca el lote como despachado (acción disparada al escanear su QR o desde
+// la tabla). Idempotente: volver a escanear un lote ya despachado no es un
+// error, solo confirma que ya había salido — evita mensajes de error confusos
+// en bodega si alguien escanea dos veces por accidente.
+app.post('/api/lotes/:id/despachar', (req, res) => {
+  try {
+    const lista = loadDB('lotes') || [];
+    const idx = lista.findIndex(l => l.id === req.params.id);
+    if (idx < 0) return res.status(404).json({ error: 'Lote no encontrado' });
+    if (lista[idx].estado === 'despachado') {
+      return res.json({ ok: true, lote: lista[idx], yaEstaba: true });
+    }
+    lista[idx] = { ...lista[idx], estado: 'despachado', fechaSalida: new Date().toISOString() };
+    if (!saveDB('lotes', lista)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
+    res.json({ ok: true, lote: lista[idx] });
+  } catch (e) {
+    console.error('Error [POST lotes/despachar]:', e.message);
+    res.status(500).json({ error: e.message, donde: 'POST lotes/despachar' });
+  }
 });
 
 // ── API Producción (Tablero Kanban) ──────────────────────────────
@@ -1912,26 +1878,6 @@ const upload = multer({
       cb(null, true);
     } else {
       cb(new Error(`Tipo de archivo no permitido: ${file.mimetype}. Solo se aceptan imágenes.`));
-    }
-  }
-});
-
-// Multer en memoria para importar Excel/CSV (no se guarda el archivo en disco,
-// solo se lee el buffer una vez y se descarta) — usado por /api/insumos/importar.
-const ALLOWED_EXCEL_MIME = [
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
-  'application/vnd.ms-excel',                                          // .xls
-  'text/csv', 'application/csv'
-];
-const uploadExcel = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
-  fileFilter: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    if (ALLOWED_EXCEL_MIME.includes(file.mimetype) || ['.xlsx', '.xls', '.csv'].includes(ext)) {
-      cb(null, true);
-    } else {
-      cb(new Error(`Tipo de archivo no permitido: ${file.mimetype}. Solo se aceptan Excel o CSV.`));
     }
   }
 });

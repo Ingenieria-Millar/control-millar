@@ -6,8 +6,9 @@
 (function(){function T(){try{var s=JSON.parse(localStorage.getItem('cm_session')||'{}');return s&&s.token||'';}catch(e){return '';}}
 var F=window.fetch;window.fetch=function(u,o){o=o||{};var t=T();if(t){var h=new Headers(o.headers||{});if(!h.has('Authorization'))h.set('Authorization','Bearer '+t);o.headers=h;}return F.call(this,u,o);};})();</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Ubicaciones — MES | Millar</title>
+<title>Ubicación Lotes — MES | Millar</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Nunito:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 :root{
@@ -23,8 +24,12 @@ input,select,textarea{font-size:16px !important}
 
 #app{display:flex;flex-direction:column;height:100vh;height:100dvh}
 .topbar{background:#fff;color:#0f172a;padding:0 clamp(12px,2.5vw,24px);min-height:64px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;border-bottom:1px solid #e2e8f0;box-shadow:0 1px 6px rgba(0,0,0,.07);position:relative}
-.hd-title-wrap{display:flex;flex-direction:column;gap:0}
 .topbar::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:3px;background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa)}
+.brand-logo-badge{width:44px;height:44px;border-radius:50%;background:#fff;box-shadow:0 0 0 1.5px #26314f;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden}
+.brand-logo-badge img{width:100%;height:100%;object-fit:contain;padding:4px}
+.hd-title-wrap{display:flex;flex-direction:column;gap:0}
+.hd-date{font-size:11px;color:#64748b;font-weight:600;margin-top:1px;text-transform:capitalize}
+.hd-clock{font-size:11px;color:#94a3b8;font-weight:600;margin-top:0;font-family:'IBM Plex Mono',monospace;letter-spacing:.5px}
 .logo{font-family:'Barlow Condensed',sans-serif;font-size:clamp(14px,2vw,20px);font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0f172a;line-height:1.1}
 .logo small{color:#2563eb;font-weight:800;font-size:inherit;margin-left:4px;letter-spacing:2px;text-transform:uppercase}
 .topbar-right{display:flex;align-items:center;gap:10px}
@@ -33,7 +38,13 @@ input,select,textarea{font-size:16px !important}
 .uinfo{display:flex;flex-direction:column}
 .uname{font-size:13px;font-weight:600;color:#0f172a}
 .urole{font-size:11px;color:#64748b}
-.btn-logout{font-size:12px;color:#475569;cursor:pointer;border:1.5px solid #e2e8f0;border-radius:8px;padding:6px 10px;background:#fff;min-height:36px;white-space:nowrap;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:.5px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 18px;border-radius:var(--radius);font-size:14px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:var(--surface);color:var(--text);min-height:44px;transition:all .15s;user-select:none}
+.btn:active{transform:scale(.98)}
+.btn-primary{background:var(--amber);border-color:var(--amber-dark);color:#fff}
+.btn:disabled{opacity:.45;cursor:not-allowed;pointer-events:none}
+.btn-success{background:var(--teal);border-color:#166534;color:#fff}
+.btn-danger{background:var(--red);border-color:#dc2626;color:#fff}
+.btn-sm{padding:7px 14px;font-size:13px;min-height:38px}
 .main{display:flex;flex:1;overflow:hidden}
 .sidebar{width:200px;background:#101a33;flex-shrink:0;display:flex;flex-direction:column;padding:12px 0;border-right:1px solid #1e2a4a}
 .nav-item{display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;font-size:14px;color:#c7d0e8;border-radius:8px;margin:2px 8px;min-height:48px;transition:all .15s;user-select:none}
@@ -49,13 +60,6 @@ input,select,textarea{font-size:16px !important}
 .stat-num{font-size:28px;font-weight:600;line-height:1}
 .stat-label{font-size:12px;color:var(--text3);margin-top:2px}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;box-shadow:var(--shadow)}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 18px;border-radius:var(--radius);font-size:14px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:var(--surface);color:var(--text);min-height:44px;transition:all .15s;user-select:none}
-.btn:active{transform:scale(.98)}
-.btn-primary{background:var(--amber);border-color:var(--amber-dark);color:#fff}
-.btn:disabled{opacity:.45;cursor:not-allowed;pointer-events:none}
-.btn-success{background:var(--teal);border-color:#166534;color:#fff}
-.btn-danger{background:var(--red);border-color:#dc2626;color:#fff}
-.btn-sm{padding:7px 14px;font-size:13px;min-height:38px}
 .form-group{margin-bottom:14px}
 .form-label{display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px}
 .form-control{width:100%;padding:11px 14px;border:1px solid var(--border2);border-radius:var(--radius);font-size:14px;background:var(--surface);color:var(--text);font-family:inherit;min-height:44px;-webkit-appearance:none}
@@ -82,7 +86,8 @@ input,select,textarea{font-size:16px !important}
 .badge{font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0;display:inline-block}
 .b-activo{background:#f0fdf4;color:#15803d}
 .b-inactivo{background:#fef2f2;color:#dc2626}
-.b-sin-ubicar{background:#fffbeb;color:#b45309}
+.b-en-bodega{background:#fffbeb;color:#b45309}
+.b-despachado{background:#f0fdf4;color:#15803d}
 .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 20px;color:var(--text3);text-align:center}
 .empty-icon{font-size:44px;margin-bottom:12px;opacity:.4}
 .tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface)}
@@ -97,24 +102,39 @@ table.tbl tr:hover td{background:var(--surface2)}
 .filters-row .form-control{width:auto;min-width:140px;font-size:13px;padding:6px 10px;min-height:38px}
 .reserved-box{border:1px dashed var(--border2);border-radius:var(--radius);background:var(--surface2);padding:12px 14px;margin-top:6px}
 .reserved-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
-.drop-zone{border:2px dashed var(--border2);border-radius:var(--radius-lg);padding:40px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface2)}
-.drop-zone:hover{border-color:var(--amber);background:var(--amber-bg)}
-.import-summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:14px}
-.import-summary .card{text-align:center}
 .toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(80px);background:#101a33;color:#fff;padding:12px 20px;border-radius:30px;font-size:14px;z-index:999;transition:transform .3s;white-space:nowrap;box-shadow:var(--shadow-md);max-width:90vw;overflow:hidden;text-overflow:ellipsis}
 .toast.show{transform:translateX(-50%) translateY(0)}
 .toast.success{border-left:4px solid #15803d}
 .toast.error{border-left:4px solid #dc2626}
+
+/* ETIQUETA / ADHESIVO — pensada para impresora térmica 10x15cm */
+#etiqueta-preview{width:280px;margin:0 auto;background:#fff;border:1px solid var(--border);border-radius:8px;padding:16px;font-family:'Nunito',sans-serif;color:#000}
+#etiqueta-preview .et-cliente{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;text-transform:uppercase;text-align:center;margin-bottom:8px}
+#etiqueta-preview .et-codigo{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;text-align:center;color:var(--amber-dark);margin-bottom:10px}
+#etiqueta-preview .et-row{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px dashed #ddd}
+#etiqueta-preview .et-row b{font-weight:700}
+#etiqueta-preview .et-qr{display:flex;justify-content:center;margin-top:12px}
+
+/* PANTALLA DE ESCANEO (?escanear=) */
+#scan-screen{position:fixed;inset:0;background:var(--bg);z-index:600;display:none;flex-direction:column;align-items:center;padding:24px;overflow-y:auto}
+#scan-screen.show{display:flex}
+.scan-card{background:var(--surface);border-radius:var(--radius-lg);padding:24px;max-width:420px;width:100%;box-shadow:var(--shadow-md);margin-top:24px}
+
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 @media(max-width:768px){
   .stats-grid{grid-template-columns:1fr 1fr}
   .form-row{grid-template-columns:1fr}
-  .import-summary{grid-template-columns:1fr}
   .sidebar{width:64px}
   .nav-label{display:none}
   .nav-item{justify-content:center;padding:14px}
   .detail-panel{width:100%}
+}
+@media print{
+  body *{visibility:hidden}
+  #etiqueta-preview, #etiqueta-preview *{visibility:visible}
+  #etiqueta-preview{position:fixed;top:0;left:0;width:10cm;border:none;margin:0}
+  @page{size:10cm 15cm;margin:0}
 }
 </style>
 </head>
@@ -124,8 +144,11 @@ table.tbl tr:hover td{background:var(--surface2)}
 <div class="topbar">
   <div style="display:flex;align-items:center;gap:12px">
     <button class="btn btn-sm" onclick="window.location.href='/'">← Menú</button>
+    <div class="brand-logo-badge"><img src="/logo.png" alt="Millar"></div>
     <div class="hd-title-wrap">
-      <div class="logo">📍 UBICACIONES</div>
+      <div class="logo">UBICACIÓN <small>LOTES</small></div>
+      <p class="hd-date" id="hd-date"></p>
+      <p class="hd-clock" id="hd-clock"></p>
     </div>
   </div>
   <div class="topbar-right">
@@ -133,7 +156,7 @@ table.tbl tr:hover td{background:var(--surface2)}
       <div class="avatar" id="topAv">--</div>
       <div class="uinfo">
         <span class="uname" id="topName">--</span>
-        <span class="urole">Almacén</span>
+        <span class="urole" id="topRole">Almacén</span>
       </div>
     </div>
   </div>
@@ -143,7 +166,7 @@ table.tbl tr:hover td{background:var(--surface2)}
 <div class="sidebar">
   <div class="nav-item active" id="nav-dashboard" onclick="goTo('dashboard',this)"><span class="nav-icon">⊞</span><span class="nav-label">Dashboard</span></div>
   <div class="nav-item" id="nav-ubicaciones" onclick="goTo('ubicaciones',this)"><span class="nav-icon">📍</span><span class="nav-label">Ubicaciones</span></div>
-  <div class="nav-item" id="nav-insumos" onclick="goTo('insumos',this)"><span class="nav-icon">📦</span><span class="nav-label">Insumos</span></div>
+  <div class="nav-item" id="nav-lotes" onclick="goTo('lotes',this)"><span class="nav-icon">🏷️</span><span class="nav-label">Lotes</span></div>
 </div>
 
 <div class="content">
@@ -152,7 +175,7 @@ table.tbl tr:hover td{background:var(--surface2)}
     <div class="page-header"><div class="page-title">Resumen del almacén</div></div>
     <div class="stats-grid" id="stats-grid"></div>
     <div class="card">
-      <div style="font-size:13px;font-weight:600;margin-bottom:12px">Ocupación por calle</div>
+      <div style="font-size:13px;font-weight:600;margin-bottom:12px">Lotes en bodega por calle</div>
       <div id="dash-ocupacion"></div>
     </div>
   </div>
@@ -164,9 +187,7 @@ table.tbl tr:hover td{background:var(--surface2)}
       <button class="btn btn-primary" onclick="abrirModalUbicacion()">+ Nueva ubicación</button>
     </div>
     <div class="filters-bar">
-      <div style="position:relative">
-        <input id="ub-buscar" class="form-control" placeholder="Buscar por código, calle, zona, punto o descripción..." oninput="renderUbicaciones()" autocomplete="off">
-      </div>
+      <input id="ub-buscar" class="form-control" placeholder="Buscar por código, calle, zona, punto o descripción..." oninput="renderUbicaciones()" autocomplete="off">
       <div class="filters-row">
         <span style="font-size:12px;font-weight:600;color:var(--text3)">Filtrar por:</span>
         <select id="ub-f-calle" class="form-control" onchange="renderUbicaciones()"><option value="">Calle</option></select>
@@ -182,7 +203,7 @@ table.tbl tr:hover td{background:var(--surface2)}
     </div>
     <div class="tbl-wrap">
       <table class="tbl">
-        <thead><tr><th>Código</th><th>Calle</th><th>Zona</th><th>Punto</th><th>Descripción</th><th>Insumos</th><th>Estado</th><th>Acciones</th></tr></thead>
+        <thead><tr><th>Código</th><th>Calle</th><th>Zona</th><th>Punto</th><th>Descripción</th><th>Lotes</th><th>Estado</th><th>Acciones</th></tr></thead>
         <tbody id="ub-tbody"></tbody>
       </table>
     </div>
@@ -192,31 +213,34 @@ table.tbl tr:hover td{background:var(--surface2)}
     </div>
   </div>
 
-  <!-- INSUMOS -->
-  <div class="section" id="section-insumos">
+  <!-- LOTES -->
+  <div class="section" id="section-lotes">
     <div class="page-header">
-      <div class="page-title">Catálogo de insumos</div>
-      <button class="btn" onclick="document.getElementById('excel-input').click()">📥 Importar Excel</button>
-      <input type="file" id="excel-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleExcelImport(this)">
+      <div class="page-title">Lotes de producción</div>
+      <button class="btn btn-primary" onclick="abrirModalLote()">+ Nuevo lote</button>
     </div>
     <div class="filters-bar">
-      <input id="in-buscar" class="form-control" placeholder="Buscar por referencia, descripción o proveedor..." oninput="renderInsumos()" autocomplete="off">
+      <input id="lt-buscar" class="form-control" placeholder="Buscar por código, cliente, referencia, OP o color..." oninput="renderLotes()" autocomplete="off">
       <div class="filters-row">
-        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text2);cursor:pointer">
-          <input type="checkbox" id="in-f-sinubicar" onchange="renderInsumos()"> Solo sin ubicación
-        </label>
-        <span id="in-count" style="font-size:12px;color:var(--text3);margin-left:auto"></span>
+        <span style="font-size:12px;font-weight:600;color:var(--text3)">Filtrar por:</span>
+        <select id="lt-f-estado" class="form-control" onchange="renderLotes()">
+          <option value="">Estado</option>
+          <option value="en_bodega">📦 En bodega</option>
+          <option value="despachado">✅ Despachado</option>
+        </select>
+        <button class="btn btn-sm" onclick="limpiarFiltrosLote()">✕ Limpiar</button>
+        <span id="lt-count" style="font-size:12px;color:var(--text3);margin-left:auto"></span>
       </div>
     </div>
     <div class="tbl-wrap">
       <table class="tbl">
-        <thead><tr><th>Referencia</th><th>Descripción</th><th>Cantidad</th><th>Proveedor</th><th>Unidad</th><th>Ubicación</th><th>Acciones</th></tr></thead>
-        <tbody id="in-tbody"></tbody>
+        <thead><tr><th>Código</th><th>Cliente</th><th>Referencia</th><th>OP</th><th>Prenda</th><th>Color</th><th>Cant.</th><th>Ubicación</th><th>Estado</th><th>Acciones</th></tr></thead>
+        <tbody id="lt-tbody"></tbody>
       </table>
     </div>
-    <div class="empty" id="in-empty" style="display:none">
-      <div class="empty-icon">📦</div>
-      <div>Todavía no hay insumos importados</div>
+    <div class="empty" id="lt-empty" style="display:none">
+      <div class="empty-icon">🏷️</div>
+      <div>Todavía no hay lotes registrados</div>
     </div>
   </div>
 </div>
@@ -249,25 +273,56 @@ table.tbl tr:hover td{background:var(--surface2)}
   </div>
 </div>
 
-<!-- MODAL: ASIGNAR INSUMO A UBICACIÓN -->
-<div class="modal-overlay" id="modal-asignar">
-  <div class="modal" style="max-width:480px">
+<!-- MODAL: NUEVO LOTE -->
+<div class="modal-overlay" id="modal-lote">
+  <div class="modal">
     <div class="modal-header">
-      <div class="modal-title">Asignar ubicación</div>
-      <div class="modal-close" onclick="cerrarModalAsignar()">✕</div>
+      <div class="modal-title">Nuevo lote de producción</div>
+      <div class="modal-close" onclick="cerrarModalLote()">✕</div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Cliente *</label><input class="form-control" id="ltm-cliente"></div>
+      <div class="form-group"><label class="form-label">Referencia *</label><input class="form-control" id="ltm-referencia"></div>
+      <div class="form-group"><label class="form-label">OP *</label><input class="form-control" id="ltm-op"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Tipo de prenda *</label><input class="form-control" id="ltm-tipoprenda"></div>
+      <div class="form-group"><label class="form-label">Color *</label><input class="form-control" id="ltm-color"></div>
+      <div class="form-group"><label class="form-label">Cantidad *</label><input class="form-control" id="ltm-cantidad" type="number" min="1"></div>
     </div>
     <div class="form-group">
-      <label class="form-label">Insumo</label>
-      <div class="card" id="asig-insumo-info" style="font-size:13px"></div>
+      <label class="form-label">Ubicación *</label>
+      <select class="form-control" id="ltm-ubicacion"><option value="">— Selecciona una ubicación —</option></select>
     </div>
-    <div class="form-group">
-      <label class="form-label">Ubicación</label>
-      <select class="form-control" id="asig-ubicacion-select"><option value="">— Sin asignar —</option></select>
-    </div>
-    <div class="form-group" id="asig-error" style="color:var(--red);font-size:13px;font-weight:600;min-height:18px"></div>
+    <div class="form-group" id="ltm-error" style="color:var(--red);font-size:13px;font-weight:600;min-height:18px"></div>
     <div style="display:flex;gap:10px;justify-content:flex-end">
-      <button class="btn" onclick="cerrarModalAsignar()">Cancelar</button>
-      <button class="btn btn-primary" onclick="guardarAsignacion()">Guardar</button>
+      <button class="btn" onclick="cerrarModalLote()">Cancelar</button>
+      <button class="btn btn-primary" onclick="guardarLote()">Guardar y generar etiqueta</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: ETIQUETA / ADHESIVO CON QR -->
+<div class="modal-overlay" id="modal-etiqueta">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-header">
+      <div class="modal-title">Etiqueta del lote</div>
+      <div class="modal-close" onclick="document.getElementById('modal-etiqueta').classList.remove('show')">✕</div>
+    </div>
+    <div id="etiqueta-preview">
+      <div class="et-cliente" id="et-cliente">--</div>
+      <div class="et-codigo" id="et-codigo">--</div>
+      <div class="et-row"><span>Referencia</span><b id="et-referencia">--</b></div>
+      <div class="et-row"><span>OP</span><b id="et-op">--</b></div>
+      <div class="et-row"><span>Prenda</span><b id="et-prenda">--</b></div>
+      <div class="et-row"><span>Color</span><b id="et-color">--</b></div>
+      <div class="et-row"><span>Cantidad</span><b id="et-cantidad">--</b></div>
+      <div class="et-row"><span>Ubicación</span><b id="et-ubicacion">--</b></div>
+      <div class="et-qr" id="et-qr"></div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
+      <button class="btn" onclick="document.getElementById('modal-etiqueta').classList.remove('show')">Cerrar</button>
+      <button class="btn btn-primary" onclick="window.print()">🖨️ Imprimir</button>
     </div>
   </div>
 </div>
@@ -289,29 +344,36 @@ table.tbl tr:hover td{background:var(--surface2)}
         <div class="info-row"><span class="info-label">Estado</span><span class="info-val" id="det-estado">--</span></div>
       </div>
       <div class="detail-section">
-        <div class="ds-title">Insumos almacenados (<span id="det-insumos-count">0</span>)</div>
-        <div id="det-insumos-list"></div>
+        <div class="ds-title">Lotes almacenados (<span id="det-lotes-count">0</span>)</div>
+        <div id="det-lotes-list"></div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- RESUMEN DE IMPORTACIÓN -->
-<div class="modal-overlay" id="modal-importar">
-  <div class="modal" style="max-width:480px">
-    <div class="modal-header">
-      <div class="modal-title">Resultado de la importación</div>
-      <div class="modal-close" onclick="document.getElementById('modal-importar').classList.remove('show')">✕</div>
+<!-- PANTALLA DE ESCANEO — se abre con ?escanear=<id> -->
+<div id="scan-screen">
+  <div class="brand-logo-badge" style="width:56px;height:56px"><img src="/logo.png" alt="Millar"></div>
+  <div class="scan-card">
+    <div id="scan-cargando" style="text-align:center;color:var(--text3)">Cargando lote…</div>
+    <div id="scan-contenido" style="display:none">
+      <div class="page-title" style="margin-bottom:14px" id="scan-cliente">--</div>
+      <div class="info-row"><span class="info-label">Código</span><span class="info-val" id="scan-codigo">--</span></div>
+      <div class="info-row"><span class="info-label">Referencia</span><span class="info-val" id="scan-referencia">--</span></div>
+      <div class="info-row"><span class="info-label">OP</span><span class="info-val" id="scan-op">--</span></div>
+      <div class="info-row"><span class="info-label">Prenda</span><span class="info-val" id="scan-prenda">--</span></div>
+      <div class="info-row"><span class="info-label">Color</span><span class="info-val" id="scan-color">--</span></div>
+      <div class="info-row"><span class="info-label">Cantidad</span><span class="info-val" id="scan-cantidad">--</span></div>
+      <div class="info-row"><span class="info-label">Ubicación</span><span class="info-val" id="scan-ubicacion">--</span></div>
+      <div class="info-row"><span class="info-label">Estado</span><span class="info-val" id="scan-estado">--</span></div>
+      <div style="margin-top:18px">
+        <button class="btn btn-primary btn-lg" id="scan-btn-salida" style="width:100%;justify-content:center" onclick="confirmarSalidaEscaneo()">📤 Dar salida</button>
+      </div>
+      <div style="margin-top:10px;text-align:center">
+        <a href="/" style="font-size:13px;color:var(--text3)">← Volver al menú</a>
+      </div>
     </div>
-    <div class="import-summary">
-      <div class="card"><div class="stat-num" style="color:var(--teal)" id="imp-creados">0</div><div class="stat-label">Creados</div></div>
-      <div class="card"><div class="stat-num" style="color:var(--amber)" id="imp-actualizados">0</div><div class="stat-label">Actualizados</div></div>
-      <div class="card"><div class="stat-num" style="color:var(--red)" id="imp-errores">0</div><div class="stat-label">Errores</div></div>
-    </div>
-    <div id="imp-errores-list" style="margin-top:14px;font-size:12px;color:var(--text2);max-height:160px;overflow-y:auto"></div>
-    <div style="display:flex;justify-content:flex-end;margin-top:16px">
-      <button class="btn btn-primary" onclick="document.getElementById('modal-importar').classList.remove('show')">Cerrar</button>
-    </div>
+    <div id="scan-error" style="display:none;text-align:center;color:var(--red)">No se encontró este lote.</div>
   </div>
 </div>
 
@@ -319,9 +381,8 @@ table.tbl tr:hover td{background:var(--surface2)}
 
 <script>
 let UBICACIONES = [];
-let INSUMOS = [];
+let LOTES = [];
 let editandoUbicacionId = null;
-let asignandoInsumoId = null;
 
 function toast(msg, type){
   const t = document.getElementById('toast');
@@ -337,46 +398,54 @@ function goTo(section, el){
   el.classList.add('active');
 }
 
+function updateHeaderClock(){
+  const now = new Date();
+  const dateEl = document.getElementById('hd-date');
+  const clockEl = document.getElementById('hd-clock');
+  if(dateEl) dateEl.textContent = now.toLocaleDateString('es-CO', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+  if(clockEl) clockEl.textContent = now.toLocaleTimeString('es-CO');
+}
+
 async function cargarTodo(){
   try{
-    const [rUb, rIn] = await Promise.all([ fetch('/api/ubicaciones'), fetch('/api/insumos') ]);
-    const dUb = await rUb.json(), dIn = await rIn.json();
+    const [rUb, rLt] = await Promise.all([ fetch('/api/ubicaciones'), fetch('/api/lotes') ]);
+    const dUb = await rUb.json(), dLt = await rLt.json();
     UBICACIONES = dUb.ubicaciones || [];
-    INSUMOS = dIn.insumos || [];
+    LOTES = dLt.lotes || [];
   }catch(e){
     toast('⚠️ No se pudo conectar con el servidor', 'error');
   }
   poblarFiltros();
   renderDashboard();
   renderUbicaciones();
-  renderInsumos();
+  renderLotes();
 }
 
-function insumosDe(ubicacionId){
-  return INSUMOS.filter(i => i.ubicacionId === ubicacionId);
+function lotesDe(ubicacionId){
+  return LOTES.filter(l => l.ubicacionId === ubicacionId);
 }
 
 // ══════════════════════════ DASHBOARD ══════════════════════════
 function renderDashboard(){
   const activas = UBICACIONES.filter(u=>u.activo).length;
-  const inactivas = UBICACIONES.length - activas;
-  const sinAsignar = INSUMOS.filter(i=>!i.ubicacionId).length;
+  const enBodega = LOTES.filter(l=>l.estado==='en_bodega').length;
+  const despachados = LOTES.filter(l=>l.estado==='despachado').length;
   const grid = document.getElementById('stats-grid');
   grid.innerHTML = `
-    <div class="stat-card"><div class="stat-num">${UBICACIONES.length}</div><div class="stat-label">Ubicaciones totales</div></div>
-    <div class="stat-card"><div class="stat-num" style="color:var(--teal)">${activas}</div><div class="stat-label">Activas</div></div>
-    <div class="stat-card"><div class="stat-num" style="color:var(--red)">${inactivas}</div><div class="stat-label">Inactivas</div></div>
-    <div class="stat-card"><div class="stat-num" style="color:var(--amber)">${sinAsignar}</div><div class="stat-label">Insumos sin ubicar</div></div>
+    <div class="stat-card"><div class="stat-num">${UBICACIONES.length}</div><div class="stat-label">Ubicaciones totales (${activas} activas)</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--amber)">${enBodega}</div><div class="stat-label">Lotes en bodega</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--teal)">${despachados}</div><div class="stat-label">Lotes despachados</div></div>
+    <div class="stat-card"><div class="stat-num">${LOTES.length}</div><div class="stat-label">Lotes totales</div></div>
   `;
   const porCalle = {};
-  UBICACIONES.forEach(u=>{ porCalle[u.calle] = (porCalle[u.calle]||0) + insumosDe(u.id).length; });
+  UBICACIONES.forEach(u=>{ porCalle[u.calle] = (porCalle[u.calle]||0) + lotesDe(u.id).filter(l=>l.estado==='en_bodega').length; });
   const calles = Object.keys(porCalle).sort();
   const cont = document.getElementById('dash-ocupacion');
   if(!calles.length){ cont.innerHTML = '<div style="color:var(--text3);font-size:13px">Aún no hay ubicaciones creadas.</div>'; return; }
   const max = Math.max(1, ...calles.map(c=>porCalle[c]));
   cont.innerHTML = calles.map(c => `
     <div class="prog-row" style="margin-bottom:12px">
-      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>Calle ${c}</span><span style="color:var(--text3)">${porCalle[c]} insumos</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>Calle ${c}</span><span style="color:var(--text3)">${porCalle[c]} lotes</span></div>
       <div style="height:8px;background:var(--surface2);border-radius:4px;overflow:hidden"><div style="height:100%;background:var(--amber);width:${(porCalle[c]/max*100).toFixed(0)}%"></div></div>
     </div>
   `).join('');
@@ -392,6 +461,12 @@ function poblarFiltros(){
   selCalle.innerHTML = '<option value="">Calle</option>' + calles.map(c=>`<option value="${c}">Calle ${c}</option>`).join('');
   selZona.innerHTML  = '<option value="">Zona</option>' + zonas.map(z=>`<option value="${z}">Zona ${z}</option>`).join('');
   selCalle.value = vCalle; selZona.value = vZona;
+
+  const selLoteUbic = document.getElementById('ltm-ubicacion');
+  const activas = UBICACIONES.filter(u=>u.activo).sort((a,b)=>a.codigo.localeCompare(b.codigo));
+  const vSel = selLoteUbic.value;
+  selLoteUbic.innerHTML = '<option value="">— Selecciona una ubicación —</option>' + activas.map(u=>`<option value="${u.id}">${u.codigo}${u.descripcion?' — '+u.descripcion:''}</option>`).join('');
+  selLoteUbic.value = vSel;
 }
 
 function limpiarFiltrosUbicacion(){
@@ -423,12 +498,12 @@ function renderUbicaciones(){
   document.getElementById('ub-empty').style.display = filtradas.length ? 'none' : 'flex';
 
   document.getElementById('ub-tbody').innerHTML = filtradas.map(u=>{
-    const nIns = insumosDe(u.id).length;
+    const nLotes = lotesDe(u.id).length;
     return `<tr>
       <td style="font-weight:700">${u.codigo}</td>
       <td>${u.calle}</td><td>${u.zona}</td><td>${u.punto}</td>
       <td>${u.descripcion || '<span style="color:var(--text3)">--</span>'}</td>
-      <td><span style="cursor:pointer;text-decoration:underline" onclick="abrirDetalle('${u.id}')">${nIns}</span></td>
+      <td><span style="cursor:pointer;text-decoration:underline" onclick="abrirDetalle('${u.id}')">${nLotes}</span></td>
       <td><span class="badge ${u.activo?'b-activo':'b-inactivo'}">${u.activo?'Activa':'Inactiva'}</span></td>
       <td><div class="row-actions">
         <button class="btn btn-sm" onclick="abrirDetalle('${u.id}')">Ver</button>
@@ -509,89 +584,155 @@ function abrirDetalle(id){
   document.getElementById('det-punto').textContent = u.punto;
   document.getElementById('det-descripcion').textContent = u.descripcion || '--';
   document.getElementById('det-estado').innerHTML = `<span class="badge ${u.activo?'b-activo':'b-inactivo'}">${u.activo?'Activa':'Inactiva'}</span>`;
-  const insumos = insumosDe(u.id);
-  document.getElementById('det-insumos-count').textContent = insumos.length;
-  document.getElementById('det-insumos-list').innerHTML = insumos.length
-    ? insumos.map(i=>`<div class="info-row"><span class="info-val">${i.referencia}${i.descripcion?' — '+i.descripcion:''}</span></div>`).join('')
-    : '<div style="color:var(--text3);font-size:13px">Sin insumos asignados</div>';
+  const lotes = lotesDe(u.id);
+  document.getElementById('det-lotes-count').textContent = lotes.length;
+  document.getElementById('det-lotes-list').innerHTML = lotes.length
+    ? lotes.map(l=>`<div class="info-row"><span class="info-val">${l.codigo} — ${l.cliente} · ${l.referencia} <span class="badge ${l.estado==='despachado'?'b-despachado':'b-en-bodega'}" style="margin-left:6px">${l.estado==='despachado'?'Despachado':'En bodega'}</span></span></div>`).join('')
+    : '<div style="color:var(--text3);font-size:13px">Sin lotes asignados</div>';
   document.getElementById('detail-ubicacion').classList.add('show');
 }
 function cerrarDetalle(){ document.getElementById('detail-ubicacion').classList.remove('show'); }
 
-// ══════════════════════════ INSUMOS ══════════════════════════
-function renderInsumos(){
-  const q = (document.getElementById('in-buscar').value||'').toLowerCase().trim();
-  const soloSinUbicar = document.getElementById('in-f-sinubicar').checked;
-  const filtrados = INSUMOS.filter(i=>{
-    if(soloSinUbicar && i.ubicacionId) return false;
+// ══════════════════════════ LOTES ══════════════════════════
+function limpiarFiltrosLote(){
+  document.getElementById('lt-buscar').value = '';
+  document.getElementById('lt-f-estado').value = '';
+  renderLotes();
+}
+
+function renderLotes(){
+  const q = (document.getElementById('lt-buscar').value||'').toLowerCase().trim();
+  const fEstado = document.getElementById('lt-f-estado').value;
+  const filtrados = LOTES.filter(l=>{
+    if(fEstado && l.estado !== fEstado) return false;
     if(q){
-      const hay = [i.referencia,i.descripcion,i.proveedor].join(' ').toLowerCase();
+      const hay = [l.codigo,l.cliente,l.referencia,l.op,l.color].join(' ').toLowerCase();
       if(!hay.includes(q)) return false;
     }
     return true;
-  }).sort((a,b)=>a.referencia.localeCompare(b.referencia));
+  }).sort((a,b)=> new Date(b.fechaCreacion) - new Date(a.fechaCreacion));
 
-  document.getElementById('in-count').textContent = filtrados.length + ' de ' + INSUMOS.length;
-  document.getElementById('in-empty').style.display = INSUMOS.length ? 'none' : 'flex';
+  document.getElementById('lt-count').textContent = filtrados.length + ' de ' + LOTES.length;
+  document.getElementById('lt-empty').style.display = LOTES.length ? 'none' : 'flex';
 
-  document.getElementById('in-tbody').innerHTML = filtrados.map(i=>{
-    const ubic = i.ubicacionId ? UBICACIONES.find(u=>u.id===i.ubicacionId) : null;
+  document.getElementById('lt-tbody').innerHTML = filtrados.map(l=>{
+    const ubic = UBICACIONES.find(u=>u.id===l.ubicacionId);
+    const despachado = l.estado === 'despachado';
     return `<tr>
-      <td style="font-weight:700">${i.referencia}</td>
-      <td>${i.descripcion || '<span style="color:var(--text3)">--</span>'}</td>
-      <td>${i.cantidad ?? 0}</td>
-      <td>${i.proveedor || '--'}</td>
-      <td>${i.unidad || '--'}</td>
-      <td>${ubic ? `<span style="cursor:pointer;text-decoration:underline" onclick="abrirDetalle('${ubic.id}')">${ubic.codigo}</span>` : '<span class="badge b-sin-ubicar">Sin ubicar</span>'}</td>
-      <td><button class="btn btn-sm" onclick="abrirModalAsignar('${i.id}')">${ubic?'Reasignar':'Asignar'}</button></td>
+      <td style="font-weight:700">${l.codigo}</td>
+      <td>${l.cliente}</td><td>${l.referencia}</td><td>${l.op}</td>
+      <td>${l.tipoPrenda}</td><td>${l.color}</td><td>${l.cantidad}</td>
+      <td>${ubic ? ubic.codigo : (l.ubicacionCodigo||'--')}</td>
+      <td><span class="badge ${despachado?'b-despachado':'b-en-bodega'}">${despachado?'Despachado':'En bodega'}</span></td>
+      <td><div class="row-actions">
+        <button class="btn btn-sm" onclick="abrirEtiqueta('${l.id}')">🏷️ Etiqueta</button>
+        ${despachado ? '' : `<button class="btn btn-sm btn-success" onclick="darSalidaLote('${l.id}')">📤 Dar salida</button>`}
+      </div></td>
     </tr>`;
   }).join('');
 }
 
-function abrirModalAsignar(insumoId){
-  asignandoInsumoId = insumoId;
-  const i = INSUMOS.find(x=>x.id===insumoId);
-  if(!i) return;
-  document.getElementById('asig-error').textContent = '';
-  document.getElementById('asig-insumo-info').innerHTML = `<b>${i.referencia}</b>${i.descripcion?' — '+i.descripcion:''}`;
-  const sel = document.getElementById('asig-ubicacion-select');
-  const activas = UBICACIONES.filter(u=>u.activo).sort((a,b)=>a.codigo.localeCompare(b.codigo));
-  sel.innerHTML = '<option value="">— Sin asignar —</option>' + activas.map(u=>`<option value="${u.id}" ${u.id===i.ubicacionId?'selected':''}>${u.codigo}${u.descripcion?' — '+u.descripcion:''}</option>`).join('');
-  document.getElementById('modal-asignar').classList.add('show');
+function abrirModalLote(){
+  document.getElementById('ltm-error').textContent = '';
+  ['ltm-cliente','ltm-referencia','ltm-op','ltm-tipoprenda','ltm-color','ltm-cantidad'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('ltm-ubicacion').value = '';
+  document.getElementById('modal-lote').classList.add('show');
 }
-function cerrarModalAsignar(){ document.getElementById('modal-asignar').classList.remove('show'); }
+function cerrarModalLote(){ document.getElementById('modal-lote').classList.remove('show'); }
 
-async function guardarAsignacion(){
-  const ubicacionId = document.getElementById('asig-ubicacion-select').value || null;
+async function guardarLote(){
+  const cliente = document.getElementById('ltm-cliente').value.trim();
+  const referencia = document.getElementById('ltm-referencia').value.trim();
+  const op = document.getElementById('ltm-op').value.trim();
+  const tipoPrenda = document.getElementById('ltm-tipoprenda').value.trim();
+  const color = document.getElementById('ltm-color').value.trim();
+  const cantidad = document.getElementById('ltm-cantidad').value;
+  const ubicacionId = document.getElementById('ltm-ubicacion').value;
+  const errEl = document.getElementById('ltm-error');
+  if(!cliente || !referencia || !op || !tipoPrenda || !color){ errEl.textContent = 'Completa todos los campos obligatorios'; return; }
+  if(!cantidad || Number(cantidad) <= 0){ errEl.textContent = 'La cantidad debe ser mayor a cero'; return; }
+  if(!ubicacionId){ errEl.textContent = 'Selecciona una ubicación'; return; }
   try{
-    const r = await fetch(`/api/insumos/${asignandoInsumoId}/asignar-ubicacion`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ubicacionId}) });
+    const r = await fetch('/api/lotes', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({cliente,referencia,op,tipoPrenda,color,cantidad,ubicacionId}) });
     const d = await r.json();
-    if(!r.ok){ document.getElementById('asig-error').textContent = d.error || 'No se pudo asignar'; return; }
-    cerrarModalAsignar();
-    toast('✅ Ubicación asignada', 'success');
+    if(!r.ok){ errEl.textContent = d.error || 'No se pudo guardar'; return; }
+    cerrarModalLote();
+    toast('✅ Lote registrado', 'success');
     await cargarTodo();
-  }catch(e){ document.getElementById('asig-error').textContent = 'Error de conexión'; }
+    abrirEtiqueta(d.lote.id);
+  }catch(e){ errEl.textContent = 'Error de conexión'; }
 }
 
-async function handleExcelImport(input){
-  const file = input.files[0];
-  if(!file) return;
-  const fd = new FormData();
-  fd.append('archivo', file);
+function abrirEtiqueta(loteId){
+  const l = LOTES.find(x=>x.id===loteId);
+  if(!l) return;
+  const ubic = UBICACIONES.find(u=>u.id===l.ubicacionId);
+  document.getElementById('et-cliente').textContent = l.cliente;
+  document.getElementById('et-codigo').textContent = l.codigo;
+  document.getElementById('et-referencia').textContent = l.referencia;
+  document.getElementById('et-op').textContent = l.op;
+  document.getElementById('et-prenda').textContent = l.tipoPrenda;
+  document.getElementById('et-color').textContent = l.color;
+  document.getElementById('et-cantidad').textContent = l.cantidad;
+  document.getElementById('et-ubicacion').textContent = ubic ? ubic.codigo : (l.ubicacionCodigo||'--');
+  const qrEl = document.getElementById('et-qr');
+  qrEl.innerHTML = '';
+  const url = location.origin + '/ubicaciones?escanear=' + l.id;
+  new QRCode(qrEl, { text: url, width: 120, height: 120, correctLevel: QRCode.CorrectLevel.M });
+  document.getElementById('modal-etiqueta').classList.add('show');
+}
+
+async function darSalidaLote(id){
+  if(!confirm('¿Marcar este lote como despachado?')) return;
   try{
-    const r = await fetch('/api/insumos/importar', { method:'POST', body: fd });
+    const r = await fetch(`/api/lotes/${id}/despachar`, { method:'POST' });
     const d = await r.json();
-    input.value = '';
-    if(!r.ok){ toast('⚠️ ' + (d.error||'No se pudo importar'), 'error'); return; }
-    document.getElementById('imp-creados').textContent = d.creados;
-    document.getElementById('imp-actualizados').textContent = d.actualizados;
-    document.getElementById('imp-errores').textContent = d.errores.length;
-    document.getElementById('imp-errores-list').innerHTML = d.errores.length
-      ? '<b>Filas con error:</b><br>' + d.errores.map(e=>`Fila ${e.fila}: ${e.error}`).join('<br>')
-      : '';
-    document.getElementById('modal-importar').classList.add('show');
+    if(!r.ok){ toast('⚠️ ' + (d.error||'No se pudo actualizar'), 'error'); return; }
+    toast('✅ Lote despachado', 'success');
     await cargarTodo();
-  }catch(e){ toast('⚠️ Error de conexión al importar', 'error'); }
+  }catch(e){ toast('⚠️ Error de conexión', 'error'); }
+}
+
+// ══════════════════════════ PANTALLA DE ESCANEO (?escanear=) ══════════════════════════
+async function iniciarPantallaEscaneo(loteId){
+  document.getElementById('scan-screen').classList.add('show');
+  try{
+    const r = await fetch('/api/lotes');
+    const d = await r.json();
+    const lote = (d.lotes||[]).find(l=>l.id===loteId);
+    document.getElementById('scan-cargando').style.display = 'none';
+    if(!lote){ document.getElementById('scan-error').style.display='block'; return; }
+    window._scanLote = lote;
+    document.getElementById('scan-contenido').style.display = 'block';
+    document.getElementById('scan-cliente').textContent = lote.cliente;
+    document.getElementById('scan-codigo').textContent = lote.codigo;
+    document.getElementById('scan-referencia').textContent = lote.referencia;
+    document.getElementById('scan-op').textContent = lote.op;
+    document.getElementById('scan-prenda').textContent = lote.tipoPrenda;
+    document.getElementById('scan-color').textContent = lote.color;
+    document.getElementById('scan-cantidad').textContent = lote.cantidad;
+    document.getElementById('scan-ubicacion').textContent = lote.ubicacionCodigo || '--';
+    const despachado = lote.estado === 'despachado';
+    document.getElementById('scan-estado').innerHTML = `<span class="badge ${despachado?'b-despachado':'b-en-bodega'}">${despachado?'Despachado':'En bodega'}</span>`;
+    const btn = document.getElementById('scan-btn-salida');
+    if(despachado){ btn.textContent = '✅ Ya fue despachado'; btn.disabled = true; }
+  }catch(e){
+    document.getElementById('scan-cargando').style.display = 'none';
+    document.getElementById('scan-error').style.display = 'block';
+  }
+}
+async function confirmarSalidaEscaneo(){
+  if(!window._scanLote) return;
+  const btn = document.getElementById('scan-btn-salida');
+  btn.disabled = true;
+  try{
+    const r = await fetch(`/api/lotes/${window._scanLote.id}/despachar`, { method:'POST' });
+    const d = await r.json();
+    if(!r.ok){ toast('⚠️ ' + (d.error||'No se pudo actualizar'), 'error'); btn.disabled = false; return; }
+    document.getElementById('scan-estado').innerHTML = '<span class="badge b-despachado">Despachado</span>';
+    btn.textContent = '✅ Salida confirmada';
+    toast('✅ Lote despachado', 'success');
+  }catch(e){ toast('⚠️ Error de conexión', 'error'); btn.disabled = false; }
 }
 
 // ══════════════════════════ INICIO ══════════════════════════
@@ -601,8 +742,18 @@ async function handleExcelImport(input){
     const nombre = s.user || 'Usuario';
     document.getElementById('topName').textContent = nombre;
     document.getElementById('topAv').textContent = nombre.slice(0,2).toUpperCase();
+    if(s.rol) document.getElementById('topRole').textContent = s.rol;
   }catch(e){}
-  cargarTodo();
+  updateHeaderClock();
+  setInterval(updateHeaderClock, 1000);
+
+  const params = new URLSearchParams(location.search);
+  const escanear = params.get('escanear');
+  if(escanear){
+    iniciarPantallaEscaneo(escanear);
+  } else {
+    cargarTodo();
+  }
 })();
 </script>
 </body>
