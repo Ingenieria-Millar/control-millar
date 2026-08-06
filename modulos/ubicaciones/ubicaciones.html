@@ -56,7 +56,7 @@ input,select,textarea{font-size:16px !important}
 .section{display:none}.section.active{display:block}
 .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px}
 .page-title{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800;letter-spacing:.5px;color:var(--text)}
-.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px}
 .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;display:flex;flex-direction:column;gap:4px}
 .stat-num{font-size:28px;font-weight:600;line-height:1}
 .stat-label{font-size:12px;color:var(--text3);margin-top:2px}
@@ -94,10 +94,15 @@ input,select,textarea{font-size:16px !important}
 .empty-icon{font-size:44px;margin-bottom:12px;opacity:.4}
 .tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface)}
 table.tbl{width:100%;border-collapse:collapse;font-size:13px;min-width:640px}
-table.tbl th{background:#101a33;color:#f1f5fb;padding:10px 12px;text-align:left;white-space:nowrap;font-weight:600;position:sticky;top:0}
-table.tbl td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+table.tbl th{background:#101a33;color:#f1f5fb;padding:10px 12px;text-align:left;white-space:nowrap;font-weight:600;position:sticky;top:0;border-right:1px solid #26314f}
+table.tbl th:last-child{border-right:none}
+table.tbl td{padding:9px 12px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);vertical-align:middle}
+table.tbl td:last-child{border-right:none}
 table.tbl tr:last-child td{border-bottom:none}
 table.tbl tr:hover td{background:var(--surface2)}
+table.tbl tr.filter-row td{background:var(--surface2);padding:6px 8px;border-bottom:2px solid var(--border2)}
+table.tbl tr.filter-row input,table.tbl tr.filter-row select{width:100%;padding:6px 8px;border:1.5px solid var(--border2);border-radius:7px;font-size:12px;font-family:inherit;outline:none;background:#fff;box-sizing:border-box}
+table.tbl tr.filter-row input:focus,table.tbl tr.filter-row select:focus{border-color:var(--amber)}
 .row-actions{display:flex;gap:6px;flex-wrap:wrap}
 .filters-bar{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:14px;display:flex;flex-direction:column;gap:10px}
 .filters-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
@@ -282,13 +287,34 @@ table.tbl tr:hover td{background:var(--surface2)}
     </div>
     <div class="tbl-wrap">
       <table class="tbl">
-        <thead><tr><th>Código</th><th>Cliente</th><th>Referencia</th><th>OP</th><th>Prenda</th><th>Color</th><th>Cant.</th><th>Despachado</th><th>Ubicación</th><th>Estado</th><th>Acciones</th></tr></thead>
+        <thead>
+          <tr><th>Cliente</th><th>Referencia</th><th>OP</th><th>Prenda</th><th>Color</th><th>Cant.</th><th>Despachado</th><th>Ubicación</th><th>Estado</th><th>Acciones</th></tr>
+          <tr class="filter-row">
+            <td><input id="lt-f-cliente" type="text" placeholder="Buscar…" oninput="renderLotes()"></td>
+            <td><input id="lt-f-referencia" type="text" placeholder="Buscar…" oninput="renderLotes()"></td>
+            <td><input id="lt-f-op" type="text" placeholder="Buscar…" oninput="renderLotes()"></td>
+            <td><input id="lt-f-prenda" type="text" placeholder="Buscar…" oninput="renderLotes()"></td>
+            <td><input id="lt-f-color" type="text" placeholder="Buscar…" oninput="renderLotes()"></td>
+            <td></td>
+            <td></td>
+            <td><input id="lt-f-ubicacion" type="text" placeholder="Buscar…" oninput="renderLotes()"></td>
+            <td>
+              <select id="lt-f-estado" onchange="renderLotes()">
+                <option value="">Todos</option>
+                <option value="en_bodega">En bodega</option>
+                <option value="parcial">Parcial</option>
+                <option value="despachado">Despachado</option>
+              </select>
+            </td>
+            <td></td>
+          </tr>
+        </thead>
         <tbody id="lt-tbody"></tbody>
       </table>
     </div>
     <div class="empty" id="lt-empty" style="display:none">
       <div class="empty-icon">🏷️</div>
-      <div>Todavía no hay lotes registrados</div>
+      <div>No hay lotes que coincidan con los filtros</div>
     </div>
   </div>
 
@@ -621,12 +647,14 @@ function renderDashboard(){
   const enBodega = LOTES.filter(l=>l.estado==='en_bodega').length;
   const parciales = LOTES.filter(l=>l.estado==='parcial').length;
   const despachados = LOTES.filter(l=>l.estado==='despachado').length;
+  const unidadesPendientes = LOTES.reduce((sum,l)=> sum + Math.max(0, l.cantidad - (l.cantidadDespachada||0)), 0);
   const grid = document.getElementById('stats-grid');
   grid.innerHTML = `
     <div class="stat-card"><div class="stat-num">${UBICACIONES.length}</div><div class="stat-label">Ubicaciones totales (${activas} activas)</div></div>
     <div class="stat-card"><div class="stat-num" style="color:var(--amber)">${enBodega}</div><div class="stat-label">Lotes en bodega</div></div>
     <div class="stat-card"><div class="stat-num" style="color:var(--amber-dark)">${parciales}</div><div class="stat-label">Lotes con salida parcial</div></div>
     <div class="stat-card"><div class="stat-num" style="color:var(--teal)">${despachados}</div><div class="stat-label">Lotes despachados</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--red)">${unidadesPendientes.toLocaleString('es-CO')}</div><div class="stat-label">Unidades pendientes de despacho</div></div>
   `;
   const porCalle = {};
   UBICACIONES.forEach(u=>{ porCalle[u.calle] = (porCalle[u.calle]||0) + lotesDe(u.id).filter(l=>l.estado!=='despachado').length; });
@@ -786,14 +814,33 @@ function cerrarDetalle(){ document.getElementById('detail-ubicacion').classList.
 
 // ══════════════════════════ INVENTARIO LOTES (solo consulta) ══════════════════════════
 function renderLotes(){
-  const ordenados = [...LOTES].sort((a,b)=> new Date(b.fechaCreacion) - new Date(a.fechaCreacion));
+  const fCliente    = (document.getElementById('lt-f-cliente').value||'').toLowerCase().trim();
+  const fReferencia = (document.getElementById('lt-f-referencia').value||'').toLowerCase().trim();
+  const fOp         = (document.getElementById('lt-f-op').value||'').toLowerCase().trim();
+  const fPrenda     = (document.getElementById('lt-f-prenda').value||'').toLowerCase().trim();
+  const fColor      = (document.getElementById('lt-f-color').value||'').toLowerCase().trim();
+  const fUbicacion  = (document.getElementById('lt-f-ubicacion').value||'').toLowerCase().trim();
+  const fEstado     = document.getElementById('lt-f-estado').value;
 
-  document.getElementById('lt-empty').style.display = LOTES.length ? 'none' : 'flex';
+  const filtrados = LOTES.filter(l=>{
+    const ubic = UBICACIONES.find(u=>u.id===l.ubicacionId);
+    const ubicCodigo = (ubic ? ubic.codigo : (l.ubicacionCodigo||'')).toLowerCase();
+    if(fCliente && !l.cliente.toLowerCase().includes(fCliente)) return false;
+    if(fReferencia && !l.referencia.toLowerCase().includes(fReferencia)) return false;
+    if(fOp && !l.op.toLowerCase().includes(fOp)) return false;
+    if(fPrenda && !l.tipoPrenda.toLowerCase().includes(fPrenda)) return false;
+    if(fColor && !l.color.toLowerCase().includes(fColor)) return false;
+    if(fUbicacion && !ubicCodigo.includes(fUbicacion)) return false;
+    if(fEstado && l.estado !== fEstado) return false;
+    return true;
+  });
+  const ordenados = filtrados.sort((a,b)=> new Date(b.fechaCreacion) - new Date(a.fechaCreacion));
+
+  document.getElementById('lt-empty').style.display = ordenados.length ? 'none' : 'flex';
 
   document.getElementById('lt-tbody').innerHTML = ordenados.map(l=>{
     const ubic = UBICACIONES.find(u=>u.id===l.ubicacionId);
     return `<tr>
-      <td style="font-weight:700">${l.codigo}</td>
       <td>${l.cliente}</td><td>${l.referencia}</td><td>${l.op}</td>
       <td>${l.tipoPrenda}</td><td>${l.color}</td><td>${l.cantidad}</td>
       <td>${l.cantidadDespachada || 0}</td>
