@@ -1537,6 +1537,7 @@ app.post('/api/lotes', (req, res) => {
     const nuevo = {
       id: uuidv4(), codigo: loteGenerarCodigo(lista),
       cliente: clienteN, referencia: referenciaN, op: opN, tipoPrenda: tipoPrendaN, color: colorN, cantidad: cantidadN,
+      cantidadDespachada: 0, salidas: [],
       ubicacionId, ubicacionCodigo: ubic.codigo,
       estado: 'en_bodega', fechaCreacion: new Date().toISOString(), fechaSalida: null
     };
@@ -1549,24 +1550,126 @@ app.post('/api/lotes', (req, res) => {
   }
 });
 
-// Marca el lote como despachado (acción disparada al escanear su QR o desde
-// la tabla). Idempotente: volver a escanear un lote ya despachado no es un
-// error, solo confirma que ya había salido — evita mensajes de error confusos
-// en bodega si alguien escanea dos veces por accidente.
+// Da salida a N unidades del lote (acción disparada al escanear su QR o desde
+// Buscar Lotes). Admite salidas parciales — un mismo lote puede despacharse en
+// varias veces hasta completar la cantidad total. `salidas` guarda el historial
+// de cada salida para trazabilidad.
 app.post('/api/lotes/:id/despachar', (req, res) => {
   try {
+    const cantidad = Number(req.body && req.body.cantidad);
+    if (!cantidad || cantidad <= 0) return res.status(400).json({ error: 'La cantidad debe ser mayor a cero' });
     const lista = loadDB('lotes') || [];
     const idx = lista.findIndex(l => l.id === req.params.id);
     if (idx < 0) return res.status(404).json({ error: 'Lote no encontrado' });
-    if (lista[idx].estado === 'despachado') {
-      return res.json({ ok: true, lote: lista[idx], yaEstaba: true });
+    const lote = lista[idx];
+    const yaDespachada = lote.cantidadDespachada || 0;
+    const restante = lote.cantidad - yaDespachada;
+    if (lote.estado === 'despachado' || restante <= 0) {
+      return res.status(409).json({ error: 'Este lote ya fue despachado por completo' });
     }
-    lista[idx] = { ...lista[idx], estado: 'despachado', fechaSalida: new Date().toISOString() };
+    if (cantidad > restante) {
+      return res.status(400).json({ error: `Solo quedan ${restante} unidades pendientes de salida` });
+    }
+    const nuevaCantidadDespachada = yaDespachada + cantidad;
+    const nuevoEstado = nuevaCantidadDespachada >= lote.cantidad ? 'despachado' : 'parcial';
+    const salida = { cantidad, fecha: new Date().toISOString() };
+    lista[idx] = {
+      ...lote,
+      cantidadDespachada: nuevaCantidadDespachada,
+      estado: nuevoEstado,
+      fechaSalida: salida.fecha,
+      salidas: [...(lote.salidas || []), salida]
+    };
     if (!saveDB('lotes', lista)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
     res.json({ ok: true, lote: lista[idx] });
   } catch (e) {
     console.error('Error [POST lotes/despachar]:', e.message);
     res.status(500).json({ error: e.message, donde: 'POST lotes/despachar' });
+  }
+});
+
+// Importa un Excel/CSV para crear lotes en bloque (pestaña "Ingresar Lotes").
+// A diferencia del catálogo de insumos que existió antes, aquí cada fila es un
+// lote NUEVO (no hay upsert): cada lote de producción es un evento distinto.
+// Columnas esperadas (sin importar mayúsculas/acentos): CLIENTE, REFERENCIA, OP,
+// PRENDA o TIPO PRENDA, COLOR, CANTIDAD, UBICACION (código exacto, ej. C1-Z2-P3).
+function loteNormalizarHeader(h) {
+  return String(h || '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+}
+app.post('/api/lotes/importar', (req, res) => {
+  uploadExcel.single('archivo')(req, res, (err) => {
+    if (err) return res.status(400).json({ error: err.message });
+    try {
+      if (!req.file) return res.status(400).json({ error: 'No se recibió ningún archivo' });
+      const wb = xlsxLib.read(req.file.buffer, { type: 'buffer' });
+      const hoja = wb.Sheets[wb.SheetNames[0]];
+      const filas = xlsxLib.utils.sheet_to_json(hoja, { defval: '' });
+
+      const ubicaciones = loadDB('ubicaciones') || [];
+      const lista = loadDB('lotes') || [];
+      let creados = 0;
+      const errores = [];
+
+      filas.forEach((filaCruda, i) => {
+        const fila = {};
+        Object.keys(filaCruda).forEach(k => { fila[loteNormalizarHeader(k)] = filaCruda[k]; });
+        const cliente = String(fila.cliente || '').trim();
+        const referencia = String(fila.referencia || '').trim();
+        const op = String(fila.op || '').trim();
+        const tipoPrenda = String(fila.prenda || fila['tipo prenda'] || fila.tipoprenda || '').trim();
+        const color = String(fila.color || '').trim();
+        const cantidad = Number(fila.cantidad) || 0;
+        const ubicacionCodigo = String(fila.ubicacion || fila['ubicación'] || '').trim().toUpperCase();
+        const fila_n = i + 2;
+
+        if (!cliente || !referencia || !op || !tipoPrenda || !color) {
+          errores.push({ fila: fila_n, error: 'Faltan campos obligatorios (cliente, referencia, OP, prenda o color)' }); return;
+        }
+        if (!cantidad || cantidad <= 0) {
+          errores.push({ fila: fila_n, error: 'Cantidad inválida' }); return;
+        }
+        const ubic = ubicaciones.find(u => u.codigo === ubicacionCodigo);
+        if (!ubic) { errores.push({ fila: fila_n, error: `Ubicación "${ubicacionCodigo}" no existe` }); return; }
+        if (!ubic.activo) { errores.push({ fila: fila_n, error: `Ubicación "${ubicacionCodigo}" está desactivada` }); return; }
+
+        lista.push({
+          id: uuidv4(), codigo: loteGenerarCodigo(lista),
+          cliente, referencia, op, tipoPrenda, color, cantidad,
+          cantidadDespachada: 0, salidas: [],
+          ubicacionId: ubic.id, ubicacionCodigo: ubic.codigo,
+          estado: 'en_bodega', fechaCreacion: new Date().toISOString(), fechaSalida: null
+        });
+        creados++;
+      });
+
+      if (!saveDB('lotes', lista)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
+      res.json({ ok: true, creados, errores });
+    } catch (e) {
+      console.error('Error [POST lotes/importar]:', e.message);
+      res.status(500).json({ error: e.message, donde: 'POST lotes/importar' });
+    }
+  });
+});
+
+app.get('/api/lotes/exportar', (req, res) => {
+  try {
+    const lotes = loadDB('lotes') || [];
+    const rows = lotes.map(l => ({
+      'Código': l.codigo, 'Cliente': l.cliente, 'Referencia': l.referencia, 'OP': l.op,
+      'Tipo de prenda': l.tipoPrenda, 'Color': l.color, 'Cantidad': l.cantidad,
+      'Cantidad despachada': l.cantidadDespachada || 0, 'Ubicación': l.ubicacionCodigo || '',
+      'Estado': l.estado === 'despachado' ? 'Despachado' : (l.estado === 'parcial' ? 'Parcial' : 'En bodega'),
+      'Fecha creación': l.fechaCreacion || '', 'Fecha última salida': l.fechaSalida || ''
+    }));
+    const wb = xlsxLib.utils.book_new();
+    xlsxLib.utils.book_append_sheet(wb, xlsxLib.utils.json_to_sheet(rows), 'Inventario Lotes');
+    const buf = xlsxLib.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    res.setHeader('Content-Disposition', `attachment; filename="InventarioLotes_${new Date().toISOString().split('T')[0]}.xlsx"`);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(buf);
+  } catch (e) {
+    console.error('Error [GET lotes/exportar]:', e.message);
+    res.status(500).json({ error: e.message, donde: 'GET lotes/exportar' });
   }
 });
 
@@ -1878,6 +1981,26 @@ const upload = multer({
       cb(null, true);
     } else {
       cb(new Error(`Tipo de archivo no permitido: ${file.mimetype}. Solo se aceptan imágenes.`));
+    }
+  }
+});
+
+// Multer en memoria para importar Excel/CSV (no se guarda el archivo en disco,
+// solo se lee el buffer una vez y se descarta) — usado por /api/lotes/importar.
+const ALLOWED_EXCEL_MIME = [
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+  'application/vnd.ms-excel',                                          // .xls
+  'text/csv', 'application/csv'
+];
+const uploadExcel = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+  fileFilter: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (ALLOWED_EXCEL_MIME.includes(file.mimetype) || ['.xlsx', '.xls', '.csv'].includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`Tipo de archivo no permitido: ${file.mimetype}. Solo se aceptan Excel o CSV.`));
     }
   }
 });
