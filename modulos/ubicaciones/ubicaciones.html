@@ -87,7 +87,7 @@ input,select,textarea{font-size:16px !important}
 .badge{font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0;display:inline-block}
 .b-activo{background:#f0fdf4;color:#15803d}
 .b-inactivo{background:#fef2f2;color:#dc2626}
-.b-en-bodega{background:#fffbeb;color:#b45309}
+.b-en-ci{background:#fffbeb;color:#b45309}
 .b-parcial{background:#eff6ff;color:#1d4ed8}
 .b-despachado{background:#f0fdf4;color:#15803d}
 .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 20px;color:var(--text3);text-align:center}
@@ -301,7 +301,7 @@ table.tbl tr.filter-row input:focus,table.tbl tr.filter-row select:focus{border-
             <td>
               <select id="lt-f-estado" onchange="renderLotes()">
                 <option value="">Todos</option>
-                <option value="en_bodega">En bodega</option>
+                <option value="en_ci">En CI</option>
                 <option value="parcial">Parcial</option>
                 <option value="despachado">Despachado</option>
               </select>
@@ -457,9 +457,10 @@ table.tbl tr.filter-row input:focus,table.tbl tr.filter-row select:focus{border-
       <div class="form-group"><label class="form-label">Punto *</label><input class="form-control" id="ubm-punto" oninput="actualizarPreviewCodigo()"></div>
     </div>
     <div class="form-group"><label class="form-label">Descripción</label><textarea class="form-control" id="ubm-descripcion" style="min-height:70px;resize:vertical"></textarea></div>
-    <div class="reserved-box">
-      <div class="reserved-title">Reservado — Pick-to-Light (próximamente)</div>
-      <div style="font-size:12px;color:var(--text3)">Dispositivo, canal y estado de luz se preparan en esta ubicación pero no se usan todavía.</div>
+    <div class="form-group">
+      <label class="form-label">Canal Pick-to-Light (número ESP32)</label>
+      <input class="form-control" id="ubm-canal" type="number" min="1" step="1" placeholder="Ej: 1, 2, 3...">
+      <div style="font-size:12px;color:var(--text3);margin-top:4px">Deja vacío si esta ubicación todavía no tiene luz asignada.</div>
     </div>
     <div class="form-group" id="ubm-error" style="color:var(--red);font-size:13px;font-weight:600;min-height:18px;margin-top:10px"></div>
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:6px">
@@ -634,7 +635,7 @@ function lotesDe(ubicacionId){
 function estadoLoteBadge(estado){
   if(estado === 'despachado') return { clase:'b-despachado', texto:'Despachado' };
   if(estado === 'parcial')    return { clase:'b-parcial', texto:'Salida parcial' };
-  return { clase:'b-en-bodega', texto:'En bodega' };
+  return { clase:'b-en-ci', texto:'En CI' };
 }
 function estadoLoteBadgeHTML(estado){
   const b = estadoLoteBadge(estado);
@@ -644,14 +645,14 @@ function estadoLoteBadgeHTML(estado){
 // ══════════════════════════ DASHBOARD ══════════════════════════
 function renderDashboard(){
   const activas = UBICACIONES.filter(u=>u.activo).length;
-  const enBodega = LOTES.filter(l=>l.estado==='en_bodega').length;
+  const enCi = LOTES.filter(l=>l.estado==='en_ci').length;
   const parciales = LOTES.filter(l=>l.estado==='parcial').length;
   const despachados = LOTES.filter(l=>l.estado==='despachado').length;
   const unidadesPendientes = LOTES.reduce((sum,l)=> sum + Math.max(0, l.cantidad - (l.cantidadDespachada||0)), 0);
   const grid = document.getElementById('stats-grid');
   grid.innerHTML = `
     <div class="stat-card"><div class="stat-num">${UBICACIONES.length}</div><div class="stat-label">Ubicaciones totales (${activas} activas)</div></div>
-    <div class="stat-card"><div class="stat-num" style="color:var(--amber)">${enBodega}</div><div class="stat-label">Lotes en bodega</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--amber)">${enCi}</div><div class="stat-label">Lotes en CI</div></div>
     <div class="stat-card"><div class="stat-num" style="color:var(--amber-dark)">${parciales}</div><div class="stat-label">Lotes con salida parcial</div></div>
     <div class="stat-card"><div class="stat-num" style="color:var(--teal)">${despachados}</div><div class="stat-label">Lotes despachados</div></div>
     <div class="stat-card"><div class="stat-num" style="color:var(--red)">${unidadesPendientes.toLocaleString('es-CO')}</div><div class="stat-label">Unidades pendientes de despacho</div></div>
@@ -750,6 +751,7 @@ function abrirModalUbicacion(id){
   document.getElementById('ubm-zona').value = u ? u.zona : '';
   document.getElementById('ubm-punto').value = u ? u.punto : '';
   document.getElementById('ubm-descripcion').value = u ? (u.descripcion||'') : '';
+  document.getElementById('ubm-canal').value = u && u.canal ? u.canal : '';
   actualizarPreviewCodigo();
   document.getElementById('modal-ubicacion').classList.add('show');
 }
@@ -760,12 +762,13 @@ async function guardarUbicacion(){
   const zona = document.getElementById('ubm-zona').value.trim();
   const punto = document.getElementById('ubm-punto').value.trim();
   const descripcion = document.getElementById('ubm-descripcion').value.trim();
+  const canal = document.getElementById('ubm-canal').value.trim();
   const errEl = document.getElementById('ubm-error');
   if(!calle || !zona || !punto){ errEl.textContent = 'Calle, zona y punto son obligatorios'; return; }
   try{
     const url = editandoUbicacionId ? `/api/ubicaciones/${editandoUbicacionId}` : '/api/ubicaciones';
     const method = editandoUbicacionId ? 'PUT' : 'POST';
-    const r = await fetch(url, { method, headers:{'Content-Type':'application/json'}, body: JSON.stringify({calle,zona,punto,descripcion}) });
+    const r = await fetch(url, { method, headers:{'Content-Type':'application/json'}, body: JSON.stringify({calle,zona,punto,descripcion,canal}) });
     const d = await r.json();
     if(!r.ok){ errEl.textContent = d.error || 'No se pudo guardar'; return; }
     cerrarModalUbicacion();
@@ -1013,6 +1016,12 @@ async function despacharLote(id, cantidad){
   return d.lote;
 }
 
+// Enciende/apaga la luz Pick-to-Light del lote (apoyo visual en bodega).
+// Fire-and-forget: si falla, no debe interrumpir ni avisar error al usuario.
+function pedirLuz(loteId, accion){
+  fetch(`/api/lotes/${loteId}/luz`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({accion}) }).catch(()=>{});
+}
+
 // ══════════════════════════ SALIDA DE LOTES (lista de pendientes) ══════════════════════════
 let SALIDA_MOSTRAR_FORM = null;
 
@@ -1039,10 +1048,10 @@ function renderSalidaLista(){
             <label class="form-label">Unidades a despachar</label>
             <input type="number" class="form-control" id="sal-cant-${l.id}" min="1" step="1" max="${restante}" value="${restante}">
           </div>
-          <button class="btn btn-sm" onclick="SALIDA_MOSTRAR_FORM=null;renderSalidaLista()">Cancelar</button>
+          <button class="btn btn-sm" onclick="pedirLuz('${l.id}','apagar');SALIDA_MOSTRAR_FORM=null;renderSalidaLista()">Cancelar</button>
           <button class="btn btn-sm btn-success" onclick="confirmarSalidaLista('${l.id}')">Confirmar salida</button>
         </div>
-      ` : `<button class="btn btn-sm btn-success" style="margin-top:10px" onclick="SALIDA_MOSTRAR_FORM='${l.id}';renderSalidaLista()">📤 Dar salida</button>`}
+      ` : `<button class="btn btn-sm btn-success" style="margin-top:10px" onclick="pedirLuz('${l.id}','encender');SALIDA_MOSTRAR_FORM='${l.id}';renderSalidaLista()">📤 Dar salida</button>`}
     </div>`;
   }).join('');
 }
@@ -1140,10 +1149,10 @@ function renderBlResultados(){
             <label class="form-label">Unidades a despachar (quedan ${restante})</label>
             <input type="number" class="form-control" id="bl-cant-${l.id}" min="1" step="1" max="${restante}" value="${restante}">
           </div>
-          <button class="btn btn-sm" onclick="BL_MOSTRAR_FORM=null;renderBlResultados()">Cancelar</button>
+          <button class="btn btn-sm" onclick="pedirLuz('${l.id}','apagar');BL_MOSTRAR_FORM=null;renderBlResultados()">Cancelar</button>
           <button class="btn btn-sm btn-success" onclick="confirmarSalidaBuscar('${l.id}')">Confirmar salida</button>
         </div>
-      ` : `<button class="btn btn-sm btn-success" style="margin-top:10px" onclick="BL_MOSTRAR_FORM='${l.id}';renderBlResultados()">📤 ¿Dar salida?</button>`}
+      ` : `<button class="btn btn-sm btn-success" style="margin-top:10px" onclick="pedirLuz('${l.id}','encender');BL_MOSTRAR_FORM='${l.id}';renderBlResultados()">📤 ¿Dar salida?</button>`}
     </div>`;
   }).join('');
 }
@@ -1202,6 +1211,7 @@ function renderScanSalidaWrap(lote){
 function abrirFormSalidaEscaneo(){
   const lote = window._scanLote;
   if(!lote) return;
+  pedirLuz(lote.id, 'encender');
   const restante = lote.cantidad - (lote.cantidadDespachada||0);
   document.getElementById('scan-salida-wrap').innerHTML = `
     <div class="salida-form" style="flex-direction:column;align-items:stretch">

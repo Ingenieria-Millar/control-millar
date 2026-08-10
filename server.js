@@ -30,6 +30,36 @@ const { v4: uuidv4 } = require('uuid');
 const compression = require('compression');
 const bcrypt   = require('bcryptjs');
 const crypto   = require('crypto');
+const mqtt     = require('mqtt');
+
+// ── MQTT: Pick-to-Light (ESP32) ────────────────────────────────────
+// Cliente persistente al broker público broker.hivemq.com. Topic único
+// "millar/luces", payload JSON {modulo,accion,ubicacion}. Si el broker no
+// responde o se cae, la app sigue funcionando normal — publicarLuz() nunca
+// bloquea ni lanza, solo intenta avisarle al ESP32.
+const MQTT_BROKER_URL = 'mqtt://broker.hivemq.com:1883';
+const MQTT_TOPIC_LUCES = 'millar/luces';
+let mqttClient = null;
+try {
+  mqttClient = mqtt.connect(MQTT_BROKER_URL, { reconnectPeriod: 5000 });
+  mqttClient.on('connect',   () => console.log('[MQTT] Conectado a', MQTT_BROKER_URL));
+  mqttClient.on('reconnect', () => console.log('[MQTT] Reintentando conexión...'));
+  mqttClient.on('close',     () => console.warn('[MQTT] Conexión cerrada'));
+  mqttClient.on('error',     (e) => console.error('[MQTT] Error:', e.message));
+} catch (e) {
+  console.error('[MQTT] No se pudo iniciar el cliente:', e.message);
+}
+function publicarLuz(canal, accion) {
+  try {
+    if (!mqttClient || !mqttClient.connected) return;
+    const canalN = Number(canal);
+    if (!canalN || canalN <= 0) return;
+    const payload = { modulo: 'PICK_TO_LIGHT_MILLAR', accion, ubicacion: canalN };
+    mqttClient.publish(MQTT_TOPIC_LUCES, JSON.stringify(payload), err => {
+      if (err) console.error('[MQTT] Error publicando:', err.message);
+    });
+  } catch (e) { console.error('[MQTT] Error en publicarLuz:', e.message); }
+}
 
 // ── WhatsApp via Baileys (sin Chrome) ─────────────────────────────
 // WA_DIR guarda las claves de sesión (useMultiFileAuthState). Mientras el
@@ -1403,12 +1433,19 @@ app.get('/api/ubicaciones', (req, res) => {
 
 app.post('/api/ubicaciones', (req, res) => {
   try {
-    const { calle, zona, punto, descripcion } = req.body || {};
+    const { calle, zona, punto, descripcion, canal } = req.body || {};
     const calleN = String(calle == null ? '' : calle).trim();
     const zonaN  = String(zona  == null ? '' : zona).trim();
     const puntoN = String(punto == null ? '' : punto).trim();
     if (!calleN || !zonaN || !puntoN) {
       return res.status(400).json({ error: 'Calle, zona y punto son obligatorios' });
+    }
+    let canalN = '';
+    if (canal !== undefined && canal !== null && String(canal).trim() !== '') {
+      canalN = Number(canal);
+      if (!Number.isInteger(canalN) || canalN <= 0) {
+        return res.status(400).json({ error: 'El canal debe ser un número entero mayor a cero' });
+      }
     }
     const lista = loadDB('ubicaciones') || [];
     if (ubicComboExiste(lista, calleN, zonaN, puntoN)) {
@@ -1422,8 +1459,8 @@ app.post('/api/ubicaciones', (req, res) => {
       id: uuidv4(), codigo, calle: calleN, zona: zonaN, punto: puntoN,
       descripcion: String(descripcion || '').trim(), activo: true,
       fechaCreacion: new Date().toISOString(),
-      // Reservado — futura integración Pick-to-Light (ESP32 + MQTT). Sin uso todavía.
-      dispositivo: '', canal: '', estadoLuz: 'OFF'
+      // dispositivo queda reservado sin uso; canal = número de ubicación del ESP32 (Pick-to-Light).
+      dispositivo: '', canal: canalN, estadoLuz: 'OFF'
     };
     lista.push(nueva);
     if (!saveDB('ubicaciones', lista)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
@@ -1436,12 +1473,19 @@ app.post('/api/ubicaciones', (req, res) => {
 
 app.put('/api/ubicaciones/:id', (req, res) => {
   try {
-    const { calle, zona, punto, descripcion } = req.body || {};
+    const { calle, zona, punto, descripcion, canal } = req.body || {};
     const calleN = String(calle == null ? '' : calle).trim();
     const zonaN  = String(zona  == null ? '' : zona).trim();
     const puntoN = String(punto == null ? '' : punto).trim();
     if (!calleN || !zonaN || !puntoN) {
       return res.status(400).json({ error: 'Calle, zona y punto son obligatorios' });
+    }
+    let canalN = '';
+    if (canal !== undefined && canal !== null && String(canal).trim() !== '') {
+      canalN = Number(canal);
+      if (!Number.isInteger(canalN) || canalN <= 0) {
+        return res.status(400).json({ error: 'El canal debe ser un número entero mayor a cero' });
+      }
     }
     const lista = loadDB('ubicaciones') || [];
     const idx = lista.findIndex(u => u.id === req.params.id);
@@ -1453,7 +1497,7 @@ app.put('/api/ubicaciones/:id', (req, res) => {
     if (lista.some(u => u.id !== req.params.id && u.codigo === codigo)) {
       return res.status(409).json({ error: 'Ya existe una ubicación con ese código' });
     }
-    lista[idx] = { ...lista[idx], calle: calleN, zona: zonaN, punto: puntoN, codigo, descripcion: String(descripcion || '').trim() };
+    lista[idx] = { ...lista[idx], calle: calleN, zona: zonaN, punto: puntoN, codigo, descripcion: String(descripcion || '').trim(), canal: canalN };
     if (!saveDB('ubicaciones', lista)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
     res.json({ ok: true, ubicacion: lista[idx] });
   } catch (e) {
@@ -1545,7 +1589,7 @@ app.post('/api/lotes', (req, res) => {
       cliente: clienteN, referencia: referenciaN, op: opN, tipoPrenda: tipoPrendaN, color: colorN, cantidad: cantidadN,
       cantidadDespachada: 0, salidas: [],
       ubicacionId, ubicacionCodigo: ubic.codigo,
-      estado: 'en_bodega', fechaCreacion: new Date().toISOString(), fechaSalida: null
+      estado: 'en_ci', fechaCreacion: new Date().toISOString(), fechaSalida: null
     };
     lista.push(nuevo);
     if (!saveDB('lotes', lista)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
@@ -1587,10 +1631,34 @@ app.post('/api/lotes/:id/despachar', (req, res) => {
       salidas: [...(lote.salidas || []), salida]
     };
     if (!saveDB('lotes', lista)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
+    try {
+      const ubicaciones = loadDB('ubicaciones') || [];
+      const ubic = ubicaciones.find(u => u.id === lote.ubicacionId);
+      if (ubic && ubic.canal) publicarLuz(ubic.canal, 'apagar');
+    } catch (e) { console.error('[MQTT] Error al apagar luz tras despachar:', e.message); }
     res.json({ ok: true, lote: lista[idx] });
   } catch (e) {
     console.error('Error [POST lotes/despachar]:', e.message);
     res.status(500).json({ error: e.message, donde: 'POST lotes/despachar' });
+  }
+});
+
+// Enciende/apaga la luz Pick-to-Light de la ubicación de un lote. Se dispara
+// al abrir/cancelar el formulario de "dar salida" (Buscar Lote, Salida de
+// Lotes, escaneo QR) — es solo un apoyo visual, nunca condiciona la salida.
+app.post('/api/lotes/:id/luz', (req, res) => {
+  try {
+    const accion = (req.body && req.body.accion) === 'apagar' ? 'apagar' : 'encender';
+    const lista = loadDB('lotes') || [];
+    const lote = lista.find(l => l.id === req.params.id);
+    if (!lote) return res.status(404).json({ error: 'Lote no encontrado' });
+    const ubicaciones = loadDB('ubicaciones') || [];
+    const ubic = ubicaciones.find(u => u.id === lote.ubicacionId);
+    if (ubic && ubic.canal) publicarLuz(ubic.canal, accion);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('Error [POST lotes/luz]:', e.message);
+    res.status(500).json({ error: e.message, donde: 'POST lotes/luz' });
   }
 });
 
@@ -1646,7 +1714,7 @@ app.post('/api/lotes/importar', (req, res) => {
           cliente, referencia, op, tipoPrenda, color, cantidad,
           cantidadDespachada: 0, salidas: [],
           ubicacionId: ubic.id, ubicacionCodigo: ubic.codigo,
-          estado: 'en_bodega', fechaCreacion: new Date().toISOString(), fechaSalida: null
+          estado: 'en_ci', fechaCreacion: new Date().toISOString(), fechaSalida: null
         });
         creados++;
       });
@@ -1667,7 +1735,7 @@ app.get('/api/lotes/exportar', (req, res) => {
       'Código': l.codigo, 'Cliente': l.cliente, 'Referencia': l.referencia, 'OP': l.op,
       'Tipo de prenda': l.tipoPrenda, 'Color': l.color, 'Cantidad': l.cantidad,
       'Cantidad despachada': l.cantidadDespachada || 0, 'Ubicación': l.ubicacionCodigo || '',
-      'Estado': l.estado === 'despachado' ? 'Despachado' : (l.estado === 'parcial' ? 'Parcial' : 'En bodega'),
+      'Estado': l.estado === 'despachado' ? 'Despachado' : (l.estado === 'parcial' ? 'Parcial' : 'En CI'),
       'Fecha creación': l.fechaCreacion || '', 'Fecha última salida': l.fechaSalida || ''
     }));
     const wb = xlsxLib.utils.book_new();
