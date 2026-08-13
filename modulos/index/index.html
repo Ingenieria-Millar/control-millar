@@ -2606,7 +2606,12 @@ function onImpProd(){
 
 // Función para usuario Módulos: muestra login de módulo con listado
 
-function elegirArea(area){
+// Destino del login de módulo: a qué pantalla redirigir tras elegir módulo +
+// contraseña. Contador Producción es el destino por defecto (punto de entrada
+// diario); Contador Módulos se pide explícitamente pasando el 2º argumento.
+window._moduloLoginDestino = '/contador-produccion';
+function elegirArea(area, destino){
+  window._moduloLoginDestino = destino || '/contador-produccion';
   document.getElementById('area-screen').classList.add('hidden');
   if(area==='mecanicos'){
     entrarTablero('mecanicos');
@@ -2648,10 +2653,9 @@ function submitModuloLogin(){
   document.getElementById('modulo-login-screen').classList.add('hidden');
   document.getElementById('modulo-pass').value='';
   document.getElementById('modulo-error').textContent='';
-  // Redirigir al archivo independiente del módulo (Contador Producción,
-  // el punto de entrada diario del operario; Contador Módulos sigue activo
-  // y accesible por URL directa para quien todavía lo necesite).
-  location.href = '/contador-produccion?modulo=' + encodeURIComponent(modulo);
+  // Redirigir al archivo independiente del módulo elegido (Contador
+  // Producción por defecto; Contador Módulos si se entró desde esa tarjeta).
+  location.href = (window._moduloLoginDestino||'/contador-produccion') + '?modulo=' + encodeURIComponent(modulo);
 }
 
 // ── NAVEGACIÓN ────────────────────────────────────────────────────
@@ -2826,7 +2830,7 @@ function abrirModtable(){
     const btn=document.createElement('button');btn.className='sp-mod-btn';btn.textContent=id;
     // Siempre usar la página independiente y real (nunca el motor legado embebido
     // aquí), para que no existan dos caminos creando la misma solicitud.
-    btn.addEventListener('click',()=>{ location.href = '/contador-produccion?modulo=' + encodeURIComponent(id); });
+    btn.addEventListener('click',()=>{ location.href = (window._moduloLoginDestino||'/contador-produccion') + '?modulo=' + encodeURIComponent(id); });
     grid.appendChild(btn);
   });
   ['p2','p3','p4'].forEach(id=>{
@@ -3720,6 +3724,8 @@ const MENU_MODULE_CARDS = [
     visible:()=>hasPerm('area_asistencia'), action:()=>{ window.location.href='/ingresos?user='+encodeURIComponent(currentUser); } },
   { key:'modulos', icon:'🏭', name:'Contador Producción', desc:'Producción · calidad · improductivos por módulo', color:'ac-green',
     visible:()=>hasPerm('modulos'), action:()=>elegirArea('produccion') },
+  { key:'modulos', icon:'📱', name:'Contador Módulos', desc:'Solo improductivos · sin conteo de producción', color:'ac-blue',
+    visible:()=>hasPerm('modulos'), action:()=>elegirArea('produccion', '/contador-modulos') },
   { key:'area_montajes', icon:'🔧', name:'Registro MMT Mecánico', desc:'Alistamiento · Mantenimiento · Multitareas', color:'ac-orange',
     visible:()=>hasPerm('area_montajes')||hasPerm('mantenimiento'), action:()=>{ window.location.href='/registro-mecanicos'; } },
   { key:'hoja_vida', icon:'🗂️', name:'Hoja de Vida de Máquina', desc:'Historial de intervenciones por máquina', color:'ac-teal',
