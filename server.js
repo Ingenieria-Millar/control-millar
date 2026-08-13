@@ -254,6 +254,7 @@ const FILES = {
   lt_clientes:    path.join(DATA_DIR, 'lt_clientes.json'),
   lt_tipos_prenda: path.join(DATA_DIR, 'lt_tipos_prenda.json'),
   lt_colores:     path.join(DATA_DIR, 'lt_colores.json'),
+  contador_produccion: path.join(DATA_DIR, 'contador_produccion.json'),
 };
 
 // ══════════════════════════════════════════════════════════════════
@@ -954,6 +955,12 @@ app.get('/ordenes', (req, res) =>
 
 app.get('/contador-modulos', (req, res) =>
   res.sendFile(path.join(__dirname, 'modulos/contador-modulos/contador_modulos.html'))
+);
+app.get('/contador-produccion', (req, res) =>
+  res.sendFile(path.join(__dirname, 'modulos/contador-produccion/contador_produccion.html'))
+);
+app.get('/contador-produccion/admin', (req, res) =>
+  res.sendFile(path.join(__dirname, 'modulos/contador-produccion/contador_produccion_admin.html'))
 );
 
 // ── Recogedores ───────────────────────────────────────────────────
@@ -1794,6 +1801,127 @@ function registrarCatalogoSimple(rutaBase, filesKey, campoLote) {
 registrarCatalogoSimple('lt-clientes', 'lt_clientes', 'cliente');
 registrarCatalogoSimple('lt-tipos-prenda', 'lt_tipos_prenda', 'tipoPrenda');
 registrarCatalogoSimple('lt-colores', 'lt_colores', 'color');
+
+// ── API Contador Producción ──────────────────────────────────────
+// Cada registro es un evento inmutable (una toma de producción o de mala
+// calidad). El operario SOLO puede crear registros — nunca editar ni borrar
+// (condición explícita del usuario). Únicamente el perfil Programador/Admin
+// puede corregir, vía PUT/DELETE protegidos con requireAuth + rol.
+// Meta/SAM/operarios se leen en vivo de la misma colección que ya usa el
+// módulo Producción (Cap = Operarios × 60 × minutos) — no se duplica el dato.
+app.get('/api/contador-produccion/meta', (req, res) => {
+  try {
+    const modulo = String(req.query.modulo || '').trim();
+    const op = String(req.query.op || '').trim();
+    if (!modulo || !op) return res.status(400).json({ error: 'Faltan modulo y op' });
+    const { boards } = loadDB('produccion') || { boards: {} };
+    let sam = null, operarios = null, ref = null, cliente = null, cantidad = null;
+    Object.values(boards || {}).forEach(b => {
+      const md = b.moduleData && b.moduleData[modulo];
+      if (!md) return;
+      if (operarios == null) operarios = md.operarios || 2;
+      const card = (md.cards || []).find(c => (c.op || '').trim() === op);
+      if (card) { sam = card.sam; ref = card.ref; cliente = card.cliente || null; cantidad = card.cantidad; }
+    });
+    if (sam == null) {
+      return res.status(404).json({ error: `No se encontró la OP "${op}" en el módulo ${modulo} dentro de Producción. Verifica que esté programada allí con su SAM.` });
+    }
+    const metaPorHora = sam > 0 ? Math.round((operarios || 2) * 60 / sam) : 0;
+    res.json({ ok: true, sam, operarios: operarios || 2, ref, cliente, cantidad, metaPorHora });
+  } catch (e) {
+    console.error('Error [GET contador-produccion/meta]:', e.message);
+    res.status(500).json({ error: e.message, donde: 'GET contador-produccion/meta' });
+  }
+});
+
+app.get('/api/contador-produccion/registros', (req, res) => {
+  try {
+    const { modulo, fecha, op } = req.query;
+    let lista = loadDB('contador_produccion') || [];
+    if (modulo) lista = lista.filter(r => r.modulo === modulo);
+    if (fecha)  lista = lista.filter(r => r.fecha === fecha);
+    if (op)     lista = lista.filter(r => r.op === op);
+    res.json({ registros: lista });
+  } catch (e) {
+    console.error('Error [GET contador-produccion/registros]:', e.message);
+    res.status(500).json({ error: e.message, donde: 'GET contador-produccion/registros' });
+  }
+});
+
+app.post('/api/contador-produccion/registro', (req, res) => {
+  try {
+    const { modulo, operario, turno, op, ref, cliente, tipo, cantidad } = req.body || {};
+    const moduloN = String(modulo || '').trim();
+    const operarioN = String(operario || '').trim();
+    const opN = String(op || '').trim();
+    const cantidadN = Number(cantidad);
+    if (!moduloN || !operarioN || !opN) {
+      return res.status(400).json({ error: 'Módulo, operario y OP son obligatorios' });
+    }
+    if (tipo !== 'produccion' && tipo !== 'calidad') {
+      return res.status(400).json({ error: 'Tipo inválido' });
+    }
+    if (!cantidadN || cantidadN <= 0 || !Number.isInteger(cantidadN)) {
+      return res.status(400).json({ error: 'La cantidad debe ser un número entero mayor a cero' });
+    }
+    const ahora = new Date();
+    const nuevo = {
+      id: uuidv4(),
+      modulo: moduloN, operario: operarioN, turno: String(turno || '').trim(),
+      op: opN, ref: String(ref || '').trim(), cliente: String(cliente || '').trim(),
+      tipo, cantidad: cantidadN,
+      fecha: ahora.toISOString().split('T')[0],
+      hora: ahora.toTimeString().slice(0, 5),
+      timestamp: ahora.toISOString()
+    };
+    const lista = loadDB('contador_produccion') || [];
+    lista.push(nuevo);
+    if (!saveDB('contador_produccion', lista)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
+    res.json({ ok: true, registro: nuevo });
+  } catch (e) {
+    console.error('Error [POST contador-produccion/registro]:', e.message);
+    res.status(500).json({ error: e.message, donde: 'POST contador-produccion/registro' });
+  }
+});
+
+function requireProgramador(req, res, next) {
+  requireAuth(req, res, () => {
+    if (req.auth && req.auth.rol === 'programador') return next();
+    return res.status(403).json({ error: 'Solo el perfil Programador/Admin puede modificar registros' });
+  });
+}
+
+app.put('/api/contador-produccion/registro/:id', requireProgramador, (req, res) => {
+  try {
+    const lista = loadDB('contador_produccion') || [];
+    const idx = lista.findIndex(r => r.id === req.params.id);
+    if (idx < 0) return res.status(404).json({ error: 'Registro no encontrado' });
+    const cantidad = Number(req.body && req.body.cantidad);
+    if (!cantidad || cantidad <= 0 || !Number.isInteger(cantidad)) {
+      return res.status(400).json({ error: 'La cantidad debe ser un número entero mayor a cero' });
+    }
+    lista[idx] = { ...lista[idx], cantidad, editadoPor: req.auth.user, editadoEn: new Date().toISOString() };
+    if (!saveDB('contador_produccion', lista)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
+    res.json({ ok: true, registro: lista[idx] });
+  } catch (e) {
+    console.error('Error [PUT contador-produccion/registro]:', e.message);
+    res.status(500).json({ error: e.message, donde: 'PUT contador-produccion/registro' });
+  }
+});
+
+app.delete('/api/contador-produccion/registro/:id', requireProgramador, (req, res) => {
+  try {
+    const lista = loadDB('contador_produccion') || [];
+    const idx = lista.findIndex(r => r.id === req.params.id);
+    if (idx < 0) return res.status(404).json({ error: 'Registro no encontrado' });
+    lista.splice(idx, 1);
+    if (!saveDB('contador_produccion', lista)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('Error [DELETE contador-produccion/registro]:', e.message);
+    res.status(500).json({ error: e.message, donde: 'DELETE contador-produccion/registro' });
+  }
+});
 
 // ── API Producción (Tablero Kanban) ──────────────────────────────
 app.get('/api/produccion', (req, res) => {

@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<script>/* millar-auth: adjunta token de sesión a fetch y WebSocket (transparente si no hay token) */
+(function(){function T(){try{var s=JSON.parse(localStorage.getItem('cm_session')||'{}');return s&&s.token||'';}catch(e){return '';}}
+var F=window.fetch;window.fetch=function(u,o){o=o||{};var t=T();if(t){var h=new Headers(o.headers||{});if(!h.has('Authorization'))h.set('Authorization','Bearer '+t);o.headers=h;}return F.call(this,u,o);};
+var W=window.WebSocket;function MW(u,p){try{var t=T();if(t&&typeof u==='string'&&u.indexOf('token=')<0){u+=(u.indexOf('?')<0?'?':'&')+'token='+encodeURIComponent(t);}}catch(e){}return p!==undefined?new W(u,p):new W(u);}MW.prototype=W.prototype;MW.CONNECTING=W.CONNECTING;MW.OPEN=W.OPEN;MW.CLOSING=W.CLOSING;MW.CLOSED=W.CLOSED;window.WebSocket=MW;})();</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Contador Producción — MES | Millar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800&family=Nunito:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+
+:root{
+  --bg:#080a10; --surface:#12151d; --surface2:#181c26; --border:#232838;
+  --text:#eef2fb; --text-muted:#8791ab; --text-faint:#4c5470;
+  --accent:#2563eb; --accent2:#1e3a8a; --accent-soft:#12203f;
+  --cyan:#22d3ee; --cyan-soft:#0d2530;
+  --good:#22c55e; --good-bg:#0c2118; --good-border:#1c4a2f;
+  --bad:#ef4444; --bad-bg:#2a1216; --bad-border:#5c2229;
+  --warn:#fbbf24; --warn-bg:#241b0a; --warn-border:#4d3a12;
+  --purple:#a78bfa; --purple-bg:#1e1a33; --purple-border:#382f5c; --purple-hover:#241f42;
+  --overlay:rgba(0,0,0,.75);
+  --shadow-card:0 2px 16px rgba(0,0,0,.4);
+  --font-display:'Barlow Condensed','Bahnschrift','Arial Narrow',sans-serif;
+  --font-body:'Nunito','Segoe UI',system-ui,sans-serif;
+  --font-mono:'IBM Plex Mono','Consolas','SFMono-Regular',monospace;
+}
+html,body{height:100%;}
+body{background:
+    radial-gradient(circle at 1px 1px, rgba(34,211,238,.09) 1px, transparent 0) 0 0/26px 26px,
+    radial-gradient(ellipse 900px 500px at 80% -10%, rgba(37,99,235,.16), transparent 60%),
+    var(--bg);
+  font-family:var(--font-body);color:var(--text);overflow:hidden;
+  display:flex;flex-direction:column;height:100vh;}
+input,select,textarea,button{font-family:inherit;}
+button{-webkit-tap-highlight-color:transparent;}
+:focus-visible{outline:2.5px solid var(--cyan);outline-offset:2px;}
+
+/* HUD corner brackets */
+.hud{position:relative;}
+.hud::before,.hud::after{content:'';position:absolute;width:12px;height:12px;pointer-events:none;opacity:.85;}
+.hud::before{top:-1px;left:-1px;border-top:2px solid var(--cyan);border-left:2px solid var(--cyan);border-radius:3px 0 0 0;}
+.hud::after{bottom:-1px;right:-1px;border-bottom:2px solid var(--cyan);border-right:2px solid var(--cyan);border-radius:0 0 3px 0;}
+
+header{flex-shrink:0;background:var(--surface);border-bottom:1px solid var(--border);
+  box-shadow:0 1px 6px rgba(0,0,0,.25);padding:0 clamp(12px,2.5vw,24px);min-height:52px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;position:relative;flex-wrap:wrap;row-gap:6px;overflow:hidden;}
+header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--accent2),var(--accent),var(--cyan));}
+header::before{content:'';position:absolute;top:0;left:-30%;width:30%;height:2px;
+  background:linear-gradient(90deg,transparent,var(--cyan),transparent);animation:scan 3.2s linear infinite;}
+@keyframes scan{0%{left:-30%;}100%{left:100%;}}
+.hd-left{display:flex;align-items:center;gap:10px;padding:6px 0;}
+.hd-logo{width:38px;height:38px;border-radius:10px;background:#0c1a3a;display:flex;align-items:center;
+  justify-content:center;overflow:hidden;box-shadow:0 0 0 1px var(--border),0 0 14px rgba(34,211,238,.25);flex-shrink:0;}
+.hd-logo img{width:100%;height:100%;object-fit:contain;padding:4px;}
+.hd-title-wrap{display:flex;flex-direction:column;gap:0;}
+.hd-title{font-family:var(--font-display);font-size:clamp(13px,1.8vw,18px);font-weight:800;
+  letter-spacing:1.5px;text-transform:uppercase;color:var(--text);line-height:1.1;}
+.hd-title span{color:var(--cyan);}
+.hd-fecha{font-size:10px;color:var(--text-muted);font-weight:600;margin-top:1px;}
+.hd-clock{font-size:10px;color:var(--cyan);font-weight:600;margin-top:0;font-family:var(--font-mono);letter-spacing:1px;font-variant-numeric:tabular-nums;}
+.hd-right{display:flex;align-items:center;gap:7px;flex-wrap:wrap;padding:6px 0;}
+.hd-badge{display:flex;align-items:center;gap:6px;padding:5px 11px;border-radius:7px;border:1.5px solid var(--border);
+  background:var(--surface2);font-family:var(--font-mono);font-size:10.5px;font-weight:600;color:var(--text-muted);letter-spacing:.3px;}
+.hd-badge b{color:var(--cyan);font-weight:700;}
+.hd-badge.turno-dia{border-color:var(--warn-border);background:var(--warn-bg);color:var(--warn);}
+.hd-badge.turno-dia b{color:var(--warn);}
+.hd-badge.turno-noche{border-color:#382f5c;background:#1e1a33;color:#c4b5fd;}
+.hd-badge.turno-noche b{color:#c4b5fd;}
+.hd-back-btn{padding:6px 14px;border-radius:7px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-muted);
+  font-family:var(--font-display);font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.hd-back-btn:hover{background:var(--surface2);border-color:var(--cyan);}
+
+#login-screen{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto;}
+.login-card{background:var(--surface);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.5);
+  padding:clamp(20px,4vh,40px);width:100%;max-width:420px;position:relative;overflow:hidden;border:1px solid var(--border);}
+.login-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent2),var(--accent),var(--cyan));}
+.login-step-label{font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:2.5px;
+  text-transform:uppercase;color:var(--cyan);margin-bottom:6px;}
+.login-title{font-family:var(--font-display);font-size:clamp(22px,4vh,30px);font-weight:800;color:var(--text);margin-bottom:18px;letter-spacing:.5px;}
+.login-field{margin-bottom:14px;}
+.login-field label{display:block;font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:5px;letter-spacing:.3px;}
+.login-select,.login-input{width:100%;padding:12px 14px;border-radius:9px;border:1.5px solid var(--border);
+  font-size:16px;font-weight:600;color:var(--text);background:var(--surface2);}
+.login-select:focus,.login-input:focus{outline:none;border-color:var(--cyan);}
+.login-turno-preview{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;background:var(--cyan-soft);
+  border:1.5px solid var(--cyan);margin-bottom:16px;}
+.login-turno-preview .dot{width:10px;height:10px;border-radius:50%;background:var(--warn);flex-shrink:0;box-shadow:0 0 8px var(--warn);}
+.login-turno-preview span{font-size:12.5px;font-weight:700;color:var(--text);}
+.login-turno-preview small{display:block;font-size:10.5px;font-weight:500;color:var(--text-muted);}
+.btn-login-continue{width:100%;padding:14px;border-radius:9px;border:none;background:linear-gradient(135deg,var(--accent2),var(--accent),var(--cyan));
+  color:#fff;font-family:var(--font-display);font-size:15px;font-weight:800;letter-spacing:1.5px;cursor:pointer;
+  box-shadow:0 8px 24px rgba(37,99,235,.35);}
+.btn-login-continue:disabled{opacity:.5;cursor:not-allowed;}
+.login-dots{display:flex;gap:6px;justify-content:center;margin-top:18px;}
+.login-dots span{width:7px;height:7px;border-radius:50%;background:var(--border);}
+.login-dots span.active{background:var(--cyan);width:22px;border-radius:4px;}
+.login-error{color:var(--bad);font-size:12.5px;font-weight:700;margin-top:8px;min-height:16px;}
+
+#main-screen{display:none;flex-direction:column;flex:1 1 auto;min-height:0;overflow:hidden;
+  padding:clamp(6px,1.2vh,14px) clamp(10px,2.5vw,24px);gap:clamp(6px,1.1vh,12px);max-width:640px;width:100%;margin:0 auto;}
+
+.info-bar{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;
+  background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:9px 14px;box-shadow:var(--shadow-card);}
+.info-bar-fields{display:flex;align-items:center;gap:12px;flex-wrap:wrap;row-gap:4px;}
+.info-field{display:flex;flex-direction:column;gap:0;}
+.info-lbl{font-size:9px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;color:var(--text-faint);}
+.info-val{font-size:12.5px;font-weight:700;color:var(--text);font-family:var(--font-mono);}
+.info-sep{width:1px;height:20px;background:var(--border);}
+.btn-cambiar-op{padding:7px 14px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);
+  color:var(--text-muted);font-family:var(--font-display);font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;}
+.btn-cambiar-op:hover{background:var(--border);border-color:var(--cyan);color:var(--cyan);}
+
+.improd-panel{flex-shrink:0;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:10px 14px;
+  box-shadow:var(--shadow-card);display:none;}
+.improd-panel.show{display:block;}
+.improd-panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;}
+.improd-panel-head span:first-child{font-family:var(--font-mono);font-size:10.5px;font-weight:700;letter-spacing:1.5px;color:var(--text-muted);}
+.improd-count{background:var(--warn-bg);color:var(--warn);font-family:var(--font-mono);font-weight:700;font-size:11px;padding:1px 8px;border-radius:20px;}
+.improd-list{max-height:clamp(60px,14vh,120px);overflow-y:auto;}
+.improd-item{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:9px;border-left:3px solid var(--warn);
+  background:var(--surface2);margin-bottom:6px;cursor:default;}
+.improd-item:last-child{margin-bottom:0;}
+.improd-item.cumplido{border-left-color:var(--cyan);cursor:pointer;animation:improd-pulse 2s ease-in-out infinite;}
+@keyframes improd-pulse{0%,100%{box-shadow:0 0 0 0 rgba(34,211,238,.3);}50%{box-shadow:0 0 0 6px rgba(34,211,238,0);}}
+.improd-icon{font-size:15px;flex-shrink:0;}
+.improd-txt{font-size:12px;font-weight:700;color:var(--text);flex:1;}
+.improd-status{font-size:10px;font-weight:700;letter-spacing:.3px;padding:2px 8px;border-radius:20px;white-space:nowrap;font-family:var(--font-mono);}
+.improd-status.espera{background:var(--warn-bg);color:var(--warn);}
+.improd-status.cumplido{background:var(--cyan-soft);color:var(--cyan);}
+.improd-expand{display:none;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);}
+.improd-expand.show{display:flex;}
+.improd-item .btn-cumplido{padding:7px 14px;border-radius:8px;border:none;font-family:var(--font-display);
+  font-size:12px;font-weight:800;letter-spacing:.4px;cursor:pointer;flex:1;}
+.improd-item .btn-cumplido.ok{background:var(--good);color:#06210f;}
+.improd-item .btn-cumplido.no{background:var(--bg);color:var(--bad);border:1.5px solid var(--bad-border);}
+
+.main-gauge-panel{flex:1 1 auto;min-height:0;background:var(--surface);border:1.5px solid var(--border);border-radius:16px;
+  padding:clamp(6px,1.5vh,20px) 16px;box-shadow:var(--shadow-card);display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.mala-badge{flex-shrink:0;display:flex;align-items:center;gap:8px;padding:6px 14px;border-radius:30px;background:var(--bad-bg);
+  border:1.5px solid var(--bad-border);margin-bottom:clamp(6px,1.4vh,14px);cursor:pointer;user-select:none;-webkit-user-select:none;
+  touch-action:manipulation;transition:transform .12s ease;}
+.mala-badge:active{transform:scale(.95);}
+.mala-badge.holding{transform:scale(.92);filter:brightness(1.3);}
+.mala-badge-lbl{font-family:var(--font-mono);font-size:10px;font-weight:700;letter-spacing:1.2px;color:var(--bad);}
+.mala-badge-num{font-family:var(--font-mono);font-size:17px;font-weight:700;color:var(--bad);
+  background:var(--bad-border);width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums;}
+.main-gauge{flex-shrink:1;position:relative;width:clamp(110px,min(30vh,45vw),230px);height:clamp(110px,min(30vh,45vw),230px);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;-webkit-user-select:none;
+  touch-action:manipulation;transition:transform .12s ease;}
+.main-gauge:active{transform:scale(.97);}
+.main-gauge.holding{transform:scale(.94);}
+.main-gauge.holding .main-gauge-center{animation:gauge-charge .55s ease forwards;}
+@keyframes gauge-charge{from{filter:brightness(1);}to{filter:brightness(1.5);}}
+.main-gauge svg{width:100%;height:100%;transform:rotate(-90deg);pointer-events:none;}
+.main-gauge svg circle{fill:none;}
+.main-gauge svg .ticks{stroke:var(--border);stroke-width:2;stroke-dasharray:1 11.5;}
+.main-gauge svg .track{stroke:var(--surface2);stroke-width:11;}
+.main-gauge svg .fill{stroke:url(#gaugeGrad);stroke-width:11;stroke-linecap:round;transition:stroke-dashoffset .5s ease;
+  filter:drop-shadow(0 0 10px rgba(34,211,238,.6));}
+.main-gauge-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;}
+.main-gauge-num{font-family:var(--font-mono);font-size:clamp(30px,8.5vh,58px);font-weight:700;line-height:1;color:var(--text);font-variant-numeric:tabular-nums;}
+.main-gauge-sub{font-size:10.5px;font-weight:700;letter-spacing:3px;color:var(--cyan);font-family:var(--font-mono);}
+.main-gauge-label{flex-shrink:0;font-family:var(--font-display);font-size:13px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;
+  color:var(--cyan);margin-top:clamp(6px,1.2vh,12px);}
+.gauge-hint{flex-shrink:0;font-size:9.5px;font-weight:600;color:var(--text-faint);letter-spacing:.2px;text-align:center;margin-top:3px;font-family:var(--font-mono);}
+
+.lote-trio{flex-shrink:0;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.lote-stat{background:var(--surface);border:1.5px solid var(--border);border-radius:11px;padding:clamp(6px,1.2vh,12px) 6px;text-align:center;box-shadow:var(--shadow-card);}
+.lote-num{font-family:var(--font-mono);font-size:clamp(18px,3.8vh,25px);font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;}
+.lote-num.good{color:var(--good);}
+.lote-num.bad{color:var(--warn);}
+.lote-lbl{font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text-muted);margin-top:2px;}
+
+.efic-row{flex-shrink:0;display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.efic-card{background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:clamp(8px,1.4vh,14px) 14px;box-shadow:var(--shadow-card);}
+.efic-card-lbl{font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-muted);}
+.efic-card-note{font-size:9px;font-weight:600;color:var(--text-faint);font-family:var(--font-mono);}
+.efic-card-num{font-family:var(--font-mono);font-size:clamp(20px,3.8vh,28px);font-weight:700;font-variant-numeric:tabular-nums;}
+.efic-card-num.alta{color:var(--good);}
+.efic-card-num.media{color:var(--warn);}
+.efic-card-num.baja{color:var(--bad);}
+
+.action-row-2{flex-shrink:0;display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.action-btn{border:none;border-radius:11px;cursor:pointer;transition:transform .15s;display:flex;font-family:var(--font-display);width:100%;}
+.action-btn:active{transform:scale(.97);}
+.action-btn.compact{flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:clamp(8px,1.4vh,14px) 6px;}
+.action-btn.compact .a-icon{font-size:19px;}
+.action-btn.compact .a-lbl{font-size:11px;font-weight:800;letter-spacing:.5px;text-align:center;line-height:1.2;}
+.action-btn.improd{background:var(--surface);border:1.5px solid var(--purple-border);color:var(--purple);box-shadow:0 4px 16px rgba(139,92,246,.12);}
+.action-btn.historial{background:var(--surface);border:1.5px solid var(--cyan);color:var(--cyan);box-shadow:0 4px 16px rgba(34,211,238,.15);}
+
+.modal-overlay{display:none;position:fixed;inset:0;background:var(--overlay);z-index:500;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);}
+.modal-overlay.show{display:flex;}
+@media(min-width:640px){.modal-overlay{align-items:center;}}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:18px 18px 0 0;padding:24px 22px 26px;width:100%;max-width:420px;
+  max-height:85vh;overflow-y:auto;}
+@media(min-width:640px){.modal{border-radius:16px;}}
+.modal-icon{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 12px;}
+.modal-icon.prod{background:var(--cyan-soft);}
+.modal-icon.calidad{background:var(--bad-bg);}
+.modal-title{font-family:var(--font-display);font-size:20px;font-weight:800;text-align:center;color:var(--text);margin-bottom:4px;}
+.modal-sub{font-size:12.5px;color:var(--text-muted);text-align:center;margin-bottom:18px;font-weight:600;}
+.qty-input-wrap{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:20px;}
+.qty-btn{width:48px;height:48px;border-radius:11px;border:1.5px solid var(--border);background:var(--surface2);
+  font-size:22px;font-weight:700;color:var(--text-muted);cursor:pointer;flex-shrink:0;}
+.qty-btn:active{background:var(--border);}
+.qty-display{font-family:var(--font-mono);font-size:48px;font-weight:700;color:var(--text);min-width:90px;text-align:center;font-variant-numeric:tabular-nums;}
+.modal-btn-row{display:flex;gap:10px;}
+.btn-modal-cancel{flex:1;padding:14px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);
+  color:var(--text-muted);font-family:var(--font-display);font-size:14px;font-weight:700;cursor:pointer;}
+.btn-modal-confirm{flex:2;padding:14px;border-radius:10px;border:none;color:#fff;font-family:var(--font-display);
+  font-size:14px;font-weight:800;letter-spacing:.5px;cursor:pointer;}
+.btn-modal-confirm.prod{background:linear-gradient(135deg,var(--accent2),var(--accent),var(--cyan));}
+.btn-modal-confirm.calidad{background:linear-gradient(135deg,#ef4444,#b91c1c);}
+.btn-modal-confirm:disabled{opacity:.5;cursor:not-allowed;}
+
+.improd-opt{display:flex;align-items:center;gap:14px;padding:14px;border-radius:11px;border:1.5px solid var(--border);
+  background:var(--surface);cursor:pointer;margin-bottom:10px;text-align:left;width:100%;}
+.improd-opt:hover{border-color:var(--purple-border);background:var(--purple-hover);}
+.improd-opt .io-icon{font-size:22px;width:40px;height:40px;border-radius:10px;background:var(--surface2);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.improd-opt .io-txt b{display:block;font-size:13.5px;color:var(--text);font-family:var(--font-display);font-weight:800;letter-spacing:.3px;}
+.improd-opt .io-txt small{font-size:11.5px;color:var(--text-muted);font-weight:500;}
+
+.hora-chip-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:14px;}
+.hora-chip{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;padding:9px 13px;
+  border-radius:10px;border:1.5px solid var(--border);background:var(--surface2);cursor:pointer;}
+.hora-chip.sel{border-color:var(--cyan);background:var(--cyan-soft);}
+.hc-n{font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--text);white-space:nowrap;}
+.hora-detail-range{font-size:11.5px;font-weight:700;color:var(--text-muted);margin-bottom:10px;text-align:center;font-family:var(--font-mono);}
+.hora-op-row{display:flex;align-items:center;gap:10px;padding:10px;border-radius:11px;background:var(--surface2);margin-bottom:8px;}
+.hora-op-row:last-child{margin-bottom:0;}
+.hor-ref{flex:1;min-width:0;}
+.hor-ref b{display:block;font-size:12.5px;color:var(--text);font-family:var(--font-display);font-weight:800;letter-spacing:.2px;}
+.hor-ref small{font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);}
+.hor-nums{display:flex;flex-direction:column;gap:1px;text-align:right;font-size:10.5px;color:var(--text-muted);font-weight:600;white-space:nowrap;font-family:var(--font-mono);}
+.hor-nums b{color:var(--text);font-family:var(--font-mono);font-size:12.5px;}
+.efic-pill{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;font-family:var(--font-mono);}
+.efic-pill.alta{background:var(--good-bg);color:var(--good);}
+.efic-pill.media{background:var(--warn-bg);color:var(--warn);}
+.efic-pill.baja{background:var(--bad-bg);color:var(--bad);}
+.efic-pill.curso{background:var(--surface2);color:var(--text-faint);}
+.hora-empty{text-align:center;color:var(--text-faint);font-size:12.5px;padding:20px 0;}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--accent);color:#fff;
+  padding:11px 20px;border-radius:10px;font-size:13px;font-weight:700;font-family:var(--font-mono);letter-spacing:.3px;
+  opacity:0;transition:all .3s;z-index:600;box-shadow:0 8px 24px rgba(0,0,0,.4);white-space:nowrap;pointer-events:none;max-width:90vw;overflow:hidden;text-overflow:ellipsis;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast.error{background:var(--bad);}
+
+/* Formulario Solicitud de Insumos — reutiliza la lógica de Contador Módulos */
+#si-overlay{display:none;position:fixed;inset:0;z-index:9000;background:var(--overlay);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:16px;}
+.si-box{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:24px 20px 20px;width:100%;max-width:420px;max-height:90vh;overflow-y:auto;position:relative;}
+.si-close{position:absolute;top:12px;right:14px;background:none;border:none;font-size:18px;color:var(--text-muted);cursor:pointer;}
+.si-title{font-family:var(--font-display);font-size:20px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--text);margin-bottom:14px;}
+.si-lbl{font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;}
+.si-input,.si-select{width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:9px;font-size:14px;color:var(--text);background:var(--surface2);outline:none;margin-bottom:12px;}
+.si-list{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;}
+.si-list-row{display:flex;align-items:center;justify-content:space-between;padding:7px 11px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);font-size:12.5px;gap:8px;}
+.si-add-btn{width:100%;padding:11px;border-radius:9px;border:1.5px dashed var(--cyan);background:var(--cyan-soft);color:var(--cyan);
+  font-family:var(--font-display);font-size:13.5px;font-weight:700;letter-spacing:1px;cursor:pointer;margin-bottom:16px;}
+.si-obs-wrap{position:relative;margin-bottom:14px;}
+.si-obs-btn{width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:9px;background:var(--surface2);color:var(--text);
+  text-align:left;cursor:pointer;display:flex;align-items:center;justify-content:space-between;font-size:14px;}
+.si-obs-menu{display:none;position:absolute;bottom:105%;left:0;right:0;z-index:200;background:var(--surface2);border:1.5px solid var(--border);
+  border-radius:9px;padding:4px 0;max-height:180px;overflow-y:auto;}
+.si-obs-menu div{padding:9px 14px;cursor:pointer;font-size:12.5px;}
+.si-obs-menu div:hover{background:var(--border);}
+.si-error{color:var(--bad);font-size:12px;font-weight:700;margin-bottom:10px;display:none;text-align:center;}
+.si-send{width:100%;padding:15px;border-radius:11px;border:none;background:linear-gradient(135deg,var(--accent2),var(--accent),var(--cyan));
+  color:#fff;font-family:var(--font-display);font-size:15px;font-weight:700;letter-spacing:1.5px;cursor:pointer;}
+
+@media(max-width:480px){.info-sep{display:none;}}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22d3ee"/>
+      <stop offset="100%" stop-color="#3b82f6"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<header>
+  <div class="hd-left">
+    <div class="hd-logo"><img src="/logo.png" alt="Millar"></div>
+    <div class="hd-title-wrap">
+      <div class="hd-title">CONTADOR <span>PRODUCCIÓN</span></div>
+      <div class="hd-fecha" id="hd-fecha"></div>
+      <div class="hd-clock" id="hd-clock"></div>
+    </div>
+  </div>
+  <div class="hd-right" id="hd-badges" style="display:none">
+    <div class="hd-badge">📍 <b id="hd-modulo"></b></div>
+    <div class="hd-badge">👤 <b id="hd-operario"></b></div>
+    <div class="hd-badge" id="hd-turno-badge"><span id="hd-turno-icon">☀️</span> <b id="hd-turno-txt"></b></div>
+    <button class="hd-back-btn" onclick="location.href='/'">← Salir</button>
+  </div>
+</header>
+
+<div id="login-screen">
+  <div class="login-card">
+    <div id="step-operario">
+      <div class="login-step-label">// Paso 1 de 2</div>
+      <div class="login-title">¿Quién eres?</div>
+      <div class="login-field">
+        <label for="sel-operario">Operario (según asistencia de hoy)</label>
+        <select class="login-select" id="sel-operario"><option value="">— Cargando… —</option></select>
+      </div>
+      <div class="login-turno-preview">
+        <div class="dot" id="turno-dot"></div>
+        <div>
+          <span id="turno-preview-txt">Detectando turno…</span>
+          <small id="turno-preview-sub"></small>
+        </div>
+      </div>
+      <button class="btn-login-continue" id="btn-paso1" onclick="irPasoOP()" disabled>CONTINUAR →</button>
+      <div class="login-error" id="op-error"></div>
+      <div class="login-dots"><span class="active"></span><span></span></div>
+    </div>
+
+    <div id="step-op" style="display:none">
+      <div class="login-step-label">// Paso 2 de 2</div>
+      <div class="login-title">Selecciona la OP activa</div>
+      <div class="login-field">
+        <label for="sel-op">Orden de producción programada en este módulo</label>
+        <select class="login-select" id="sel-op"><option value="">— Cargando… —</option></select>
+      </div>
+      <button class="btn-login-continue" id="btn-paso2" onclick="confirmarLogin()" disabled>INGRESAR AL CONTADOR →</button>
+      <div class="login-error" id="login-error"></div>
+      <div class="login-dots"><span></span><span class="active"></span></div>
+    </div>
+  </div>
+</div>
+
+<div id="main-screen">
+
+  <div class="info-bar hud">
+    <div class="info-bar-fields">
+      <div class="info-field"><span class="info-lbl">Cliente</span><span class="info-val" id="info-cliente">—</span></div>
+      <div class="info-sep"></div>
+      <div class="info-field"><span class="info-lbl">Referencia</span><span class="info-val" id="info-ref">—</span></div>
+      <div class="info-sep"></div>
+      <div class="info-field"><span class="info-lbl">OP</span><span class="info-val" id="info-op">—</span></div>
+    </div>
+    <button class="btn-cambiar-op" onclick="abrirCambiarOP()">Cambiar OP</button>
+  </div>
+
+  <div class="improd-panel" id="improd-panel">
+    <div class="improd-panel-head">
+      <span>⚡ IMPRODUCTIVOS ACTIVOS</span>
+      <span class="improd-count" id="improd-count">0</span>
+    </div>
+    <div class="improd-list" id="improd-list"></div>
+  </div>
+
+  <div class="main-gauge-panel hud">
+    <div class="mala-badge" id="mala-badge" role="button" tabindex="0" aria-label="Registrar mala calidad">
+      <span class="mala-badge-lbl">⚠️ MALA CALIDAD</span>
+      <span class="mala-badge-num" id="mala-num">0</span>
+    </div>
+    <div class="main-gauge" id="gauge-prod-el" role="button" tabindex="0" aria-label="Registrar producción">
+      <svg viewBox="0 0 200 200">
+        <circle class="ticks" cx="100" cy="100" r="96"></circle>
+        <circle class="track" cx="100" cy="100" r="84"></circle>
+        <circle class="fill" id="gauge-prod-fill" cx="100" cy="100" r="84" stroke-dasharray="527.8" stroke-dashoffset="527.8"></circle>
+      </svg>
+      <div class="main-gauge-center">
+        <div class="main-gauge-num" id="gauge-prod-num">0</div>
+        <div class="main-gauge-sub">UNIDADES</div>
+      </div>
+    </div>
+    <div class="main-gauge-label">Producción</div>
+    <div class="gauge-hint">TOCA +1 · MANTÉN PRESIONADO = CANTIDAD</div>
+  </div>
+
+  <div class="lote-trio">
+    <div class="lote-stat"><div class="lote-num" id="lote-cantidad">0</div><div class="lote-lbl">Cantidad lote</div></div>
+    <div class="lote-stat"><div class="lote-num good" id="lote-producidas">0</div><div class="lote-lbl">Und. producidas</div></div>
+    <div class="lote-stat"><div class="lote-num bad" id="lote-faltantes">0</div><div class="lote-lbl">Und. faltantes</div></div>
+  </div>
+
+  <div class="efic-row">
+    <div class="efic-card">
+      <div class="efic-card-lbl">Eficiencia · Hora</div>
+      <div class="efic-card-num alta" id="efic-hora-num">—</div>
+      <div class="efic-card-note">se reinicia cada hora</div>
+    </div>
+    <div class="efic-card">
+      <div class="efic-card-lbl">Eficiencia · Día</div>
+      <div class="efic-card-num alta" id="efic-dia-num">—</div>
+      <div class="efic-card-note" id="efic-dia-note">acumulada desde inicio de turno</div>
+    </div>
+  </div>
+
+  <div class="action-row-2">
+    <button class="action-btn improd compact" onclick="abrirModalImprod()">
+      <div class="a-icon">📋</div><div class="a-lbl">REPORTAR<br>IMPRODUCTIVO</div>
+    </button>
+    <button class="action-btn historial compact" onclick="abrirHistorialModal()">
+      <div class="a-icon">📊</div><div class="a-lbl">VER<br>HISTORIAL</div>
+    </button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-registro">
+  <div class="modal">
+    <div class="modal-icon" id="reg-icon">➕</div>
+    <div class="modal-title" id="reg-title">Registrar producción</div>
+    <div class="modal-sub" id="reg-sub">¿Cuántas unidades acabas de producir?</div>
+    <div class="qty-input-wrap">
+      <button class="qty-btn" onclick="qtyStep(-1)" aria-label="Restar">−</button>
+      <div class="qty-display" id="qty-display">5</div>
+      <button class="qty-btn" onclick="qtyStep(1)" aria-label="Sumar">+</button>
+    </div>
+    <div class="modal-btn-row">
+      <button class="btn-modal-cancel" onclick="closeModal('modal-registro')">Cancelar</button>
+      <button class="btn-modal-confirm prod" id="reg-confirm-btn" onclick="confirmarRegistro()">Registrar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-improd">
+  <div class="modal">
+    <div class="modal-title" style="margin-bottom:18px">¿Qué necesitas solicitar?</div>
+    <button class="improd-opt" onclick="reportarFaltaProduccion()">
+      <div class="io-icon">🛑</div>
+      <div class="io-txt"><b>Falta de Producción</b><small>Avisa a CI que el módulo se quedó sin trabajo</small></div>
+    </button>
+    <button class="improd-opt" onclick="closeModal('modal-improd');siOpen();">
+      <div class="io-icon">🧵</div>
+      <div class="io-txt"><b>Solicitud de Insumos</b><small>Pide elástico, hilo u otro insumo a CI</small></div>
+    </button>
+    <button class="btn-modal-cancel" style="width:100%;margin-top:4px" onclick="closeModal('modal-improd')">Cancelar</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-cambiar-op">
+  <div class="modal">
+    <div class="modal-title" style="margin-bottom:14px">Cambiar OP</div>
+    <div class="login-field">
+      <label for="sel-op-cambio">Nueva orden de producción</label>
+      <select class="login-select" id="sel-op-cambio"></select>
+    </div>
+    <div class="modal-btn-row">
+      <button class="btn-modal-cancel" onclick="closeModal('modal-cambiar-op')">Cancelar</button>
+      <button class="btn-modal-confirm prod" onclick="confirmarCambioOP()">Cambiar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-historial">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title" style="margin-bottom:4px">Historial por hora</div>
+    <div class="modal-sub">Selecciona la hora que quieres revisar</div>
+    <div class="hora-chip-row" id="hora-chip-row"></div>
+    <div class="hora-detail" id="hora-detail"></div>
+    <button class="btn-modal-cancel" style="width:100%;margin-top:14px" onclick="closeModal('modal-historial')">Cerrar</button>
+  </div>
+</div>
+
+<!-- Formulario Solicitud de Insumos — reutiliza campos/flujo de Contador Módulos -->
+<div id="si-overlay">
+  <div class="si-box">
+    <button class="si-close" onclick="siClose()">✕</button>
+    <div class="si-title">Solicitar Insumo</div>
+    <div class="si-lbl">1. INSUMOS *</div>
+    <div class="si-list" id="si-insumos-list"></div>
+    <div class="si-lbl">TIPO DE INSUMO *</div>
+    <select class="si-select" id="si-tipo"><option value="">— Seleccionar —</option></select>
+    <div class="si-lbl">CANTIDAD *</div>
+    <input class="si-input" id="si-qty" type="number" min="1">
+    <div class="si-lbl">TALLA O COLOR</div>
+    <input class="si-input" id="si-talla" type="text">
+    <button class="si-add-btn" onclick="siAgregarInsumo()">＋ AGREGAR INSUMO A LA LISTA</button>
+    <div class="si-lbl">2. OBSERVACIÓN *</div>
+    <div class="si-obs-wrap" id="si-obs-wrap">
+      <button type="button" class="si-obs-btn" onclick="siToggleObsMenu()"><span id="si-obs-label">— Seleccionar —</span><span>▾</span></button>
+      <div class="si-obs-menu" id="si-obs-menu"></div>
+    </div>
+    <div class="si-error" id="si-error"></div>
+    <button class="si-send" onclick="siEnviar()">📦 ENVIAR SOLICITUD</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+//  CONTADOR PRODUCCIÓN — módulo nuevo, independiente de Contador Módulos.
+//  Reutiliza tal cual el protocolo de improductivos (ci_new_request /
+//  ci_update_request / ci_cumplido_request) para no crear una segunda
+//  lógica — solo agrega registro de producción/calidad con meta real
+//  (SAM + operarios ya existentes en Producción).
+// ══════════════════════════════════════════════════════════════════
+
+const _params = new URLSearchParams(location.search);
+const selectedMod = _params.get('modulo') || '';
+if (!selectedMod) location.href = '/';
+
+function tick(){
+  const d=new Date();
+  document.getElementById('hd-fecha').textContent = d.toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('hd-clock').textContent = d.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+setInterval(tick,1000); tick();
+
+let toastTimer;
+function showToast(msg, isError){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast show'+(isError?' error':'');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),3000);
+}
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+document.querySelectorAll('.modal-overlay').forEach(ov=>{
+  ov.addEventListener('click',e=>{ if(e.target===ov) ov.classList.remove('show'); });
+});
+
+// ── Turno: regla local (misma que usa Revisión de Telas — sin helper
+// compartido, cada módulo la resuelve por su cuenta según el patrón ya
+// establecido en la app). Cambia a Noche a las 17:45.
+function detectarTurno(){
+  const d=new Date();
+  const mins=d.getHours()*60+d.getMinutes();
+  const esDia = mins>=360 && mins<1065; // 06:00–17:45
+  return { turno: esDia?'dia':'noche', inicioMin: esDia?360:1065 };
+}
+const _turno = detectarTurno();
+
+// ── Paso 1: operario (asistencia de hoy en este módulo) ──────────
+let selectedOperario = '';
+async function cargarOperarios(){
+  const sel=document.getElementById('sel-operario');
+  try{
+    const r=await fetch('/api/ia-records');
+    const recs=await r.json();
+    const hoy=new Date().toISOString().split('T')[0];
+    const presentes=(recs||[]).filter(x=>x.area===selectedMod && x.status==='presente' && x.date===hoy);
+    sel.innerHTML='<option value="">— Selecciona tu nombre —</option>'+
+      presentes.map(p=>`<option value="${p.empName}">${p.empName}</option>`).join('');
+    if(!presentes.length) sel.innerHTML='<option value="">— Sin asistencia registrada hoy —</option>';
+  }catch(e){ sel.innerHTML='<option value="">— Error al cargar —</option>'; }
+  sel.onchange=()=>{ selectedOperario=sel.value; document.getElementById('btn-paso1').disabled=!sel.value; };
+}
+document.getElementById('turno-dot').style.background = _turno.turno==='dia' ? '#fbbf24' : '#a78bfa';
+document.getElementById('turno-preview-txt').textContent = 'Turno detectado automáticamente: '+(_turno.turno==='dia'?'Día ☀️':'Noche 🌙');
+document.getElementById('turno-preview-sub').textContent = _turno.turno==='dia' ? '06:00 a. m. – 05:45 p. m.' : '05:45 p. m. – 06:00 a. m.';
+cargarOperarios();
+
+function irPasoOP(){
+  if(!selectedOperario) return;
+  document.getElementById('step-operario').style.display='none';
+  document.getElementById('step-op').style.display='block';
+  cargarOrdenesModulo();
+}
+
+// ── Paso 2: OP activa (tomada de las tarjetas de Producción para este módulo) ──
+let opCache = {}; // op -> {ref, op, cliente, cantidad, sam}
+async function cargarOrdenesModulo(){
+  const sel=document.getElementById('sel-op');
+  sel.innerHTML='<option value="">— Cargando… —</option>';
+  try{
+    const r=await fetch('/api/produccion');
+    const data=await r.json();
+    opCache={};
+    let operariosModulo=2;
+    Object.values(data.boards||{}).forEach(b=>{
+      const md=b.moduleData && b.moduleData[selectedMod];
+      if(!md) return;
+      operariosModulo = md.operarios || operariosModulo;
+      (md.cards||[]).forEach(c=>{
+        if(!c.op) return;
+        opCache[c.op] = { op:c.op, ref:c.ref, cliente:c.cliente||'', cantidad:c.cantidad, sam:c.sam, operarios:operariosModulo };
+      });
+    });
+    window._operariosModulo = operariosModulo;
+    const ops=Object.values(opCache);
+    sel.innerHTML='<option value="">— Selecciona una OP —</option>'+
+      ops.map(o=>`<option value="${o.op}">${o.op} — ${o.ref}${o.cliente?' — '+o.cliente:''} (${o.cantidad} uds)</option>`).join('');
+    if(!ops.length) sel.innerHTML='<option value="">— No hay OP programadas en este módulo en Producción —</option>';
+  }catch(e){ sel.innerHTML='<option value="">— Error al cargar —</option>'; }
+  sel.onchange=()=>{ document.getElementById('btn-paso2').disabled=!sel.value; };
+}
+
+let opActiva = null;
+async function confirmarLogin(){
+  const op=document.getElementById('sel-op').value;
+  if(!op) return;
+  opActiva = opCache[op];
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('main-screen').style.display='flex';
+  document.getElementById('hd-badges').style.display='flex';
+  document.getElementById('hd-modulo').textContent=selectedMod;
+  document.getElementById('hd-operario').textContent=selectedOperario;
+  const tb=document.getElementById('hd-turno-badge');
+  tb.className='hd-badge turno-'+_turno.turno;
+  document.getElementById('hd-turno-icon').textContent = _turno.turno==='dia'?'☀️':'🌙';
+  document.getElementById('hd-turno-txt').textContent = _turno.turno==='dia'?'Día':'Noche';
+  await inicializarDashboard();
+  connectWS();
+}
+
+function renderInfoBar(){
+  document.getElementById('info-cliente').textContent = opActiva.cliente || '—';
+  document.getElementById('info-ref').textContent = opActiva.ref || '—';
+  document.getElementById('info-op').textContent = opActiva.op || '—';
+}
+
+// ── Estado de producción/calidad (real, desde el servidor) ───────
+let registrosLote = [];  // todos los registros de esta OP (nunca se reinicia)
+let registrosHoy  = [];  // registros de hoy en este módulo (para historial por hora)
+
+async function inicializarDashboard(){
+  renderInfoBar();
+  await Promise.all([cargarRegistrosLote(), cargarRegistrosHoy()]);
+  refreshStats();
+}
+async function cargarRegistrosLote(){
+  try{
+    const r=await fetch(`/api/contador-produccion/registros?modulo=${encodeURIComponent(selectedMod)}&op=${encodeURIComponent(opActiva.op)}`);
+    const d=await r.json();
+    registrosLote = d.registros||[];
+  }catch(e){ registrosLote=[]; }
+}
+async function cargarRegistrosHoy(){
+  try{
+    const hoy=new Date().toISOString().split('T')[0];
+    const r=await fetch(`/api/contador-produccion/registros?modulo=${encodeURIComponent(selectedMod)}&fecha=${hoy}`);
+    const d=await r.json();
+    registrosHoy = d.registros||[];
+  }catch(e){ registrosHoy=[]; }
+}
+
+const CIRC=527.8; // 2·π·84
+function eficClase(pct){ return pct>=95?'alta':pct>=80?'media':'baja'; }
+function minutosDeHora(hhmm){ const [h,m]=hhmm.split(':').map(Number); return h*60+m; }
+
+function refreshStats(){
+  const producidas = registrosLote.filter(r=>r.tipo==='produccion').reduce((s,r)=>s+r.cantidad,0);
+  const mala       = registrosLote.filter(r=>r.tipo==='calidad').reduce((s,r)=>s+r.cantidad,0);
+  const cantidadLote = opActiva.cantidad || 0;
+  const faltan = Math.max(0, cantidadLote-producidas);
+
+  document.getElementById('gauge-prod-num').textContent=producidas;
+  document.getElementById('gauge-prod-fill').setAttribute('stroke-dashoffset',
+    CIRC-(cantidadLote>0?Math.min(1,producidas/cantidadLote):0)*CIRC);
+  document.getElementById('mala-num').textContent=mala;
+  document.getElementById('lote-cantidad').textContent=cantidadLote;
+  document.getElementById('lote-producidas').textContent=producidas;
+  document.getElementById('lote-faltantes').textContent=faltan;
+
+  // Eficiencia hora: producción de ESTA hora de turno / minutos transcurridos en ella,
+  // contra el ritmo esperado (operarios×60/SAM). Eficiencia día: acumulada desde inicio de turno.
+  const ahora=new Date();
+  const minAhora = ahora.getHours()*60+ahora.getMinutes();
+  const minEnHora = Math.max(1, (minAhora-_turno.inicioMin) % 60 || (minAhora>=_turno.inicioMin?  (minAhora-_turno.inicioMin)%60 : 1));
+  const minDesdeTurno = Math.max(1, minAhora>=_turno.inicioMin ? (minAhora-_turno.inicioMin) : (minAhora+1440-_turno.inicioMin));
+  const horaActualStr = ahora.toTimeString().slice(0,5);
+  const nHoraActual = Math.floor(minDesdeTurno/60)+1;
+
+  const prodEstaHora = registrosHoy.filter(r=>{
+    if(r.tipo!=='produccion') return false;
+    const n=Math.floor((minutosDeHora(r.hora)-_turno.inicioMin+1440)%1440/60)+1;
+    return n===nHoraActual;
+  }).reduce((s,r)=>s+r.cantidad,0);
+  const prodHoy = registrosHoy.filter(r=>r.tipo==='produccion').reduce((s,r)=>s+r.cantidad,0);
+
+  const sam = opActiva.sam, operarios = opActiva.operarios || 2;
+  let pctHora='—', pctDia='—', claseHora='alta', claseDia='alta';
+  if(sam>0){
+    const p1=Math.round(prodEstaHora*sam/(minEnHora*operarios)*100);
+    const p2=Math.round(prodHoy*sam/(minDesdeTurno*operarios)*100);
+    pctHora=p1+'%'; pctDia=p2+'%'; claseHora=eficClase(p1); claseDia=eficClase(p2);
+  }
+  const hEl=document.getElementById('efic-hora-num'), dEl=document.getElementById('efic-dia-num');
+  hEl.textContent=pctHora; hEl.className='efic-card-num '+claseHora;
+  dEl.textContent=pctDia; dEl.className='efic-card-num '+claseDia;
+}
+
+// ── Registrar producción / mala calidad (toca +1 · mantén = cantidad) ──
+const HOLD_MS=500;
+function wireTap(el, tipo){
+  let holdTimer=null, longPressed=false;
+  function start(e){
+    e.preventDefault(); longPressed=false; el.classList.add('holding');
+    holdTimer=setTimeout(()=>{ longPressed=true; el.classList.remove('holding'); abrirModalRegistro(tipo); }, HOLD_MS);
+  }
+  function end(){ clearTimeout(holdTimer); el.classList.remove('holding'); if(!longPressed) enviarRegistro(tipo,1); }
+  function cancel(){ clearTimeout(holdTimer); el.classList.remove('holding'); }
+  el.addEventListener('pointerdown', start);
+  el.addEventListener('pointerup', end);
+  el.addEventListener('pointerleave', cancel);
+  el.addEventListener('pointercancel', cancel);
+  el.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); enviarRegistro(tipo,1); } });
+}
+wireTap(document.getElementById('gauge-prod-el'), 'produccion');
+wireTap(document.getElementById('mala-badge'), 'calidad');
+
+let qty=5, modoActivo='produccion';
+function abrirModalRegistro(tipo){
+  modoActivo=tipo; qty=5;
+  document.getElementById('qty-display').textContent=qty;
+  const icon=document.getElementById('reg-icon'), title=document.getElementById('reg-title'),
+        sub=document.getElementById('reg-sub'), btn=document.getElementById('reg-confirm-btn');
+  const claseCss = tipo==='produccion'?'prod':'calidad';
+  icon.className='modal-icon '+claseCss; btn.className='btn-modal-confirm '+claseCss;
+  if(tipo==='produccion'){
+    icon.textContent='➕'; title.textContent='Registrar producción';
+    sub.textContent='¿Cuántas unidades acabas de producir?'; btn.textContent='Registrar producción';
+  } else {
+    icon.textContent='⚠️'; title.textContent='Registrar mala calidad';
+    sub.textContent='¿Cuántas unidades presentan mala calidad?'; btn.textContent='Registrar mala calidad';
+  }
+  document.getElementById('modal-registro').classList.add('show');
+}
+function qtyStep(d){ qty=Math.max(1,qty+d); document.getElementById('qty-display').textContent=qty; }
+function confirmarRegistro(){ enviarRegistro(modoActivo, qty); closeModal('modal-registro'); }
+
+async function enviarRegistro(tipo, cantidad){
+  try{
+    const r=await fetch('/api/contador-produccion/registro', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        modulo:selectedMod, operario:selectedOperario, turno:_turno.turno,
+        op:opActiva.op, ref:opActiva.ref, cliente:opActiva.cliente, tipo, cantidad
+      })
+    });
+    const d=await r.json();
+    if(!r.ok){ showToast('⚠️ '+(d.error||'No se pudo registrar'), true); return; }
+    registrosLote.push(d.registro); registrosHoy.push(d.registro);
+    refreshStats();
+    showToast(tipo==='produccion' ? `✅ +${cantidad} unidades registradas` : `⚠️ +${cantidad} unidades de mala calidad`);
+  }catch(e){ showToast('⚠️ Error de conexión', true); }
+}
+
+// ── Cambiar OP ─────────────────────────────────────────────────────
+function abrirCambiarOP(){
+  const sel=document.getElementById('sel-op-cambio');
+  sel.innerHTML=Object.values(opCache).map(o=>
+    `<option value="${o.op}"${o.op===opActiva.op?' selected':''}>${o.op} — ${o.ref} (${o.cantidad} uds)</option>`).join('');
+  document.getElementById('modal-cambiar-op').classList.add('show');
+}
+async function confirmarCambioOP(){
+  const op=document.getElementById('sel-op-cambio').value;
+  if(!op || !opCache[op]) return;
+  opActiva = opCache[op];
+  closeModal('modal-cambiar-op');
+  await inicializarDashboard();
+  showToast('✅ OP cambiada a '+op);
+}
+
+// ── Historial por hora (una hora puede tener varias OP) ───────────
+function construirHistorialHoras(){
+  const porHora={};
+  registrosHoy.filter(r=>r.tipo==='produccion').forEach(r=>{
+    const n=Math.floor((minutosDeHora(r.hora)-_turno.inicioMin+1440)%1440/60)+1;
+    if(!porHora[n]) porHora[n]={n, ops:{}};
+    if(!porHora[n].ops[r.op]) porHora[n].ops[r.op]={ref:r.ref||opCache[r.op]?.ref||r.op, op:r.op, real:0};
+    porHora[n].ops[r.op].real += r.cantidad;
+  });
+  return Object.values(porHora).sort((a,b)=>a.n-b.n).map(h=>{
+    const rangoIni = new Date(0,0,0,0,_turno.inicioMin + (h.n-1)*60);
+    const rangoFin = new Date(0,0,0,0,_turno.inicioMin + h.n*60);
+    const fmt=d=>String(d.getHours()%24).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+    const ops=Object.values(h.ops).map(o=>{
+      const info=opCache[o.op];
+      const meta = info && info.sam>0 ? Math.round((info.operarios||2)*60/info.sam) : 0;
+      return {...o, meta};
+    });
+    return {n:h.n, rango: fmt(rangoIni)+' – '+fmt(rangoFin), ops};
+  });
+}
+let horaSeleccionada=null;
+function abrirHistorialModal(){
+  const horas=construirHistorialHoras();
+  if(!horas.length){
+    document.getElementById('hora-chip-row').innerHTML='';
+    document.getElementById('hora-detail').innerHTML='<div class="hora-empty">Todavía no hay producción registrada hoy.</div>';
+    document.getElementById('modal-historial').classList.add('show');
+    return;
+  }
+  horaSeleccionada = horas[horas.length-1].n;
+  renderHoraChips(horas);
+  renderHoraDetail(horas);
+  document.getElementById('modal-historial').classList.add('show');
+}
+function renderHoraChips(horas){
+  document.getElementById('hora-chip-row').innerHTML = horas.map(h=>{
+    const totMeta=h.ops.reduce((s,o)=>s+o.meta,0), totReal=h.ops.reduce((s,o)=>s+o.real,0);
+    const pct = totMeta? Math.round(totReal/totMeta*100) : 0;
+    const sel = h.n===horaSeleccionada?'sel':'';
+    return `<button class="hora-chip ${sel}" onclick="seleccionarHora(${h.n})">
+      <span class="hc-n">${h.n}ª Hora</span><span class="efic-pill ${eficClase(pct)}">${pct}%</span>
+    </button>`;
+  }).join('');
+}
+function seleccionarHora(n){
+  horaSeleccionada=n;
+  const horas=construirHistorialHoras();
+  renderHoraChips(horas); renderHoraDetail(horas);
+}
+function renderHoraDetail(horas){
+  const h=horas.find(x=>x.n===horaSeleccionada); if(!h) return;
+  document.getElementById('hora-detail').innerHTML = `
+    <div class="hora-detail-range">${h.rango}</div>
+    ${h.ops.map(o=>{
+      const pct = o.meta ? Math.round(o.real/o.meta*100) : 0;
+      return `<div class="hora-op-row">
+        <div class="hor-ref"><b>${o.ref}</b><small>${o.op}</small></div>
+        <div class="hor-nums"><span>Meta <b>${o.meta||'—'}</b></span><span>Hizo <b>${o.real}</b></span></div>
+        <span class="efic-pill ${o.meta?eficClase(pct):'curso'}">${o.meta?pct+'%':'—'}</span>
+      </div>`;
+    }).join('')}
+  `;
+}
+
+// ── Improductivos: WebSocket real, protocolo ci_* sin cambios ─────
+let ws=null, _wsQueue=[];
+function wsSend(msg){
+  if(ws && ws.readyState===WebSocket.OPEN) ws.send(JSON.stringify(msg));
+  else _wsQueue.push(msg);
+}
+let improductivosActivos=[];
+function upsertImprod(req){
+  const idx=improductivosActivos.findIndex(r=>r._id===req._id);
+  if(req.status==='done'){ if(idx>-1) improductivosActivos.splice(idx,1); return; }
+  if(idx>-1) improductivosActivos[idx]=req; else improductivosActivos.push(req);
+}
+function iconoImprod(req){
+  if(req.esMecanico) return '🔧';
+  if(req.categoria==='Falta de Insumos') return '📦';
+  return '🏭';
+}
+function renderImproductivos(){
+  const panel=document.getElementById('improd-panel');
+  const list=document.getElementById('improd-list');
+  document.getElementById('improd-count').textContent=improductivosActivos.length;
+  if(!improductivosActivos.length){ panel.classList.remove('show'); return; }
+  panel.classList.add('show');
+  list.innerHTML = improductivosActivos.map(req=>{
+    const cumplido = req.status==='cumplido';
+    return `<div class="improd-item ${cumplido?'cumplido':''}" ${cumplido?`onclick="toggleImprodExpand('${req._id}')"`:''}>
+      <span class="improd-icon">${iconoImprod(req)}</span>
+      <span class="improd-txt">${req.categoria||req.tipo||'Improductivo'}</span>
+      <span class="improd-status ${cumplido?'cumplido':'espera'}">${cumplido?'Pendiente de aceptación':'En espera'}</span>
+    </div>
+    ${cumplido?`<div class="improd-expand" id="expand-${req._id}">
+      <button class="btn-cumplido no" onclick="event.stopPropagation();resolverCumplido('${req._id}',false)">Rechazar</button>
+      <button class="btn-cumplido ok" onclick="event.stopPropagation();resolverCumplido('${req._id}',true)">✓ Recibido</button>
+    </div>`:''}`;
+  }).join('');
+}
+function toggleImprodExpand(id){ document.getElementById('expand-'+id)?.classList.toggle('show'); }
+function resolverCumplido(id, aceptado){
+  const req=improductivosActivos.find(r=>r._id===id); if(!req) return;
+  if(aceptado){
+    wsSend({type:'ci_update_request', request:{_id:id, status:'done', resolvedAt:new Date().toISOString(), waitTime:null}});
+  } else {
+    wsSend({type:'ci_update_request', request:{_id:id, status:'alert', waitTime:null}});
+    wsSend({type:'ci_reactivar_alerta', reqId:id});
+  }
+  const idx=improductivosActivos.findIndex(r=>r._id===id);
+  if(idx>-1) improductivosActivos.splice(idx,1);
+  renderImproductivos();
+  showToast(aceptado?'✅ Recepción confirmada':'↩️ Solicitud reactivada en Tablero CI');
+}
+
+function abrirModalImprod(){ document.getElementById('modal-improd').classList.add('show'); }
+function reportarFaltaProduccion(){
+  closeModal('modal-improd');
+  const now=new Date();
+  const newReq={
+    _id: Date.now()+'-'+Math.random().toString(36).slice(2),
+    n: Date.now(), module: selectedMod,
+    ref: opActiva.ref||'', op: opActiva.op||'', opoc: opActiva.op||'',
+    tipo:'Solicitud de Producción', qty:'1', categoria:'Solicitud de Producción',
+    fecha: now.toLocaleDateString('es-CO'), hora: now.toLocaleTimeString('es-CO'),
+    datetime: now.toLocaleDateString('es-CO')+' '+now.toLocaleTimeString('es-CO'),
+    status:'alert', waitTime:null, resolvedAt:null, obs:'', alertStart: now.getTime(), esMecanico:false
+  };
+  wsSend({type:'ci_new_request', request:newReq});
+  upsertImprod(newReq); renderImproductivos();
+  showToast('🏭 Solicitud de producción enviada a CI');
+}
+
+function connectWS(){
+  const proto = location.protocol==='https:'?'wss':'ws';
+  ws = new window.WebSocket(`${proto}://${location.host}`);
+  ws.onopen=()=>{
+    ws.send(JSON.stringify({type:'subscribe', topics:['modulos','ci']}));
+    while(_wsQueue.length>0 && ws.readyState===WebSocket.OPEN) ws.send(JSON.stringify(_wsQueue.shift()));
+  };
+  ws.onclose=()=>{ setTimeout(connectWS, 2000); };
+  ws.onerror=()=>{};
+  ws.onmessage=(e)=>{
+    let msg; try{ msg=JSON.parse(e.data); }catch(err){ return; }
+    if(msg.type==='server_reset'){ location.reload(); return; }
+    if(msg.type==='init'){
+      improductivosActivos=[];
+      (msg.ciAbiertas||[]).filter(r=>r.module===selectedMod).forEach(upsertImprod);
+      (msg.ciCumplido||[]).filter(r=>r.module===selectedMod).forEach(upsertImprod);
+      renderImproductivos();
+      return;
+    }
+    if(msg.type==='ci_cumplido_request'){
+      const req=msg.request;
+      if(req && req.module===selectedMod){ upsertImprod(req); renderImproductivos(); showToast('🔔 CI marcó una solicitud como lista'); }
+      return;
+    }
+    if(msg.type==='ci_update_request'){
+      const req=msg.request; if(!req || req.module!==selectedMod) return;
+      upsertImprod(req); renderImproductivos();
+      return;
+    }
+  };
+}
+
+// ── Solicitud de Insumos — mismo flujo que Contador Módulos ───────
+window._siInsumosTemp=[]; window._siObsSelected=''; window._siObsList=['Pérdida','Faltante','Defectos'];
+function siOpen(){
+  window._siInsumosTemp=[];
+  document.getElementById('si-insumos-list').innerHTML='';
+  document.getElementById('si-error').style.display='none';
+  const tipoSel=document.getElementById('si-tipo');
+  tipoSel.innerHTML='<option value="">— Cargando… —</option>';
+  fetch('/api/ci-config').then(r=>r.json()).then(data=>{
+    tipoSel.innerHTML='<option value="">— Seleccionar —</option>';
+    (data.tipoInsumoList||[]).forEach(t=>{
+      const o=document.createElement('option');
+      o.value=t.name; o.dataset.flow=t.flow||'qty_only'; o.textContent=t.name;
+      tipoSel.appendChild(o);
+    });
+    window._siObsList = (data.obsList&&data.obsList.length) ? data.obsList : ['Pérdida','Faltante','Defectos'];
+  }).catch(()=>{ tipoSel.innerHTML='<option value="">— Error al cargar —</option>'; });
+  window._siObsSelected='';
+  document.getElementById('si-obs-label').textContent='— Seleccionar —';
+  document.getElementById('si-overlay').style.display='flex';
+}
+function siClose(){ document.getElementById('si-overlay').style.display='none'; window._siInsumosTemp=[]; }
+function siAgregarInsumo(){
+  const tipoSel=document.getElementById('si-tipo');
+  const tipo=tipoSel.value.trim();
+  const flow=tipoSel.options[tipoSel.selectedIndex]?.dataset?.flow||'';
+  const qty=document.getElementById('si-qty').value.trim();
+  const talla=document.getElementById('si-talla').value.trim();
+  const errEl=document.getElementById('si-error');
+  if(!tipo){ errEl.textContent='Selecciona el tipo de insumo'; errEl.style.display='block'; return; }
+  if(!qty){ errEl.textContent='Ingresa la cantidad'; errEl.style.display='block'; return; }
+  errEl.style.display='none';
+  const tipoFinal = flow==='elastico' ? tipo+' · '+talla : tipo;
+  window._siInsumosTemp.push({tipo:tipoFinal, qty, talla:talla||''});
+  tipoSel.value=''; document.getElementById('si-qty').value=''; document.getElementById('si-talla').value='';
+  siRenderInsumosList();
+}
+function siRenderInsumosList(){
+  document.getElementById('si-insumos-list').innerHTML = window._siInsumosTemp.map((ins,i)=>
+    `<div class="si-list-row"><span style="flex:1">${ins.tipo}${ins.talla?' · '+ins.talla:''}</span><span style="font-weight:700;color:var(--cyan)">${ins.qty}</span><button onclick="siEliminarInsumo(${i})" style="background:none;border:none;color:var(--bad);cursor:pointer;font-size:15px;">✕</button></div>`
+  ).join('');
+}
+function siEliminarInsumo(i){ window._siInsumosTemp.splice(i,1); siRenderInsumosList(); }
+function siToggleObsMenu(){
+  const menu=document.getElementById('si-obs-menu');
+  const abierto = menu.style.display==='block';
+  menu.style.display = abierto?'none':'block';
+  if(!abierto){
+    menu.innerHTML = window._siObsList.map(o=>`<div onclick="siSeleccionarObs('${o}')">${o}</div>`).join('')+
+      `<div onclick="siSeleccionarObs('')" style="color:var(--text-faint)">✕ Sin observación</div>`;
+  }
+}
+function siSeleccionarObs(obs){
+  window._siObsSelected=obs;
+  document.getElementById('si-obs-menu').style.display='none';
+  document.getElementById('si-obs-label').textContent = obs||'— Seleccionar —';
+}
+document.addEventListener('click', e=>{
+  if(!e.target.closest('#si-obs-wrap')){ const m=document.getElementById('si-obs-menu'); if(m) m.style.display='none'; }
+});
+function siEnviar(){
+  const errEl=document.getElementById('si-error');
+  const tipoSel=document.getElementById('si-tipo');
+  const tipoVal=tipoSel.value.trim(), qtyVal=document.getElementById('si-qty').value.trim(),
+        tallaVal=document.getElementById('si-talla').value.trim(),
+        flowVal=tipoSel.options[tipoSel.selectedIndex]?.dataset?.flow||'';
+  if(tipoVal && qtyVal){
+    const tf = flowVal==='elastico' ? tipoVal+' · '+tallaVal : tipoVal;
+    window._siInsumosTemp.push({tipo:tf, qty:qtyVal, talla:tallaVal||''});
+  }
+  if(!window._siInsumosTemp.length){ errEl.textContent='Agrega al menos un insumo'; errEl.style.display='block'; return; }
+  if(!window._siObsSelected){ errEl.textContent='Selecciona una observación'; errEl.style.display='block'; return; }
+  errEl.style.display='none';
+  const now=new Date();
+  const primerIns=window._siInsumosTemp[0];
+  const newReq={
+    _id: Date.now()+'-'+Math.random().toString(36).slice(2),
+    n: Date.now(), module: selectedMod,
+    categoria:'Falta de Insumos', ref: opActiva.ref||'', opoc: opActiva.op||'', op: opActiva.op||'',
+    tipo: primerIns.tipo, qty: primerIns.qty, talla: primerIns.talla,
+    insumos: window._siInsumosTemp,
+    fecha: now.toLocaleDateString('es-CO'), hora: now.toLocaleTimeString('es-CO'),
+    datetime: now.toLocaleDateString('es-CO')+' '+now.toLocaleTimeString('es-CO'),
+    status:'alert', waitTime:null, resolvedAt:null, obs: window._siObsSelected, alertStart: now.getTime()
+  };
+  wsSend({type:'ci_new_request', request:newReq});
+  upsertImprod(newReq); renderImproductivos();
+  siClose();
+  showToast('📦 Solicitud de insumos enviada a CI');
+}
+</script>
+</body>
+</html>

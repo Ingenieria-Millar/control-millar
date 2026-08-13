@@ -2648,8 +2648,10 @@ function submitModuloLogin(){
   document.getElementById('modulo-login-screen').classList.add('hidden');
   document.getElementById('modulo-pass').value='';
   document.getElementById('modulo-error').textContent='';
-  // Redirigir al archivo independiente del módulo
-  location.href = '/contador-modulos?modulo=' + encodeURIComponent(modulo);
+  // Redirigir al archivo independiente del módulo (Contador Producción,
+  // el punto de entrada diario del operario; Contador Módulos sigue activo
+  // y accesible por URL directa para quien todavía lo necesite).
+  location.href = '/contador-produccion?modulo=' + encodeURIComponent(modulo);
 }
 
 // ── NAVEGACIÓN ────────────────────────────────────────────────────
@@ -2822,9 +2824,9 @@ function abrirModtable(){
   const grid=document.getElementById('modtable-grid');grid.innerHTML='';
   MODULES.forEach(id=>{
     const btn=document.createElement('button');btn.className='sp-mod-btn';btn.textContent=id;
-    // Siempre usar la página independiente y real de Contador Módulos (nunca el motor
-    // legado embebido aquí), para que no existan dos caminos creando la misma solicitud.
-    btn.addEventListener('click',()=>{ location.href = '/contador-modulos?modulo=' + encodeURIComponent(id); });
+    // Siempre usar la página independiente y real (nunca el motor legado embebido
+    // aquí), para que no existan dos caminos creando la misma solicitud.
+    btn.addEventListener('click',()=>{ location.href = '/contador-produccion?modulo=' + encodeURIComponent(id); });
     grid.appendChild(btn);
   });
   ['p2','p3','p4'].forEach(id=>{
@@ -3682,7 +3684,7 @@ function downloadExcel(){
 const ALL_PERMS = [
   {key:'area_montajes',          label:'Registro MMT Mecánico'},
   {key:'configuraciones',        label:'Configuraciones'},
-  {key:'modulos',                label:'Contador módulos'},
+  {key:'modulos',                label:'Contador Producción'},
   {key:'conteo_recogedores',     label:'Conteo recogedores'},
   {key:'area_asistencia',        label:'Control de asistencia'},
   {key:'hoja_vida',              label:'Hoja de vida de máquina'},
@@ -3716,7 +3718,7 @@ const MENU_MODULE_CARDS = [
     visible:()=>hasPerm('tablero_planta'), action:()=>{ window.location.href='/tablero?tablero=mecanicos'; } },
   { key:'area_asistencia', icon:'📋', name:'Control de Asistencia', desc:'Control de ingreso y asistencia', color:'ac-blue',
     visible:()=>hasPerm('area_asistencia'), action:()=>{ window.location.href='/ingresos?user='+encodeURIComponent(currentUser); } },
-  { key:'modulos', icon:'📱', name:'Contador Módulos', desc:'Login de acceso módulos', color:'ac-green',
+  { key:'modulos', icon:'🏭', name:'Contador Producción', desc:'Producción · calidad · improductivos por módulo', color:'ac-green',
     visible:()=>hasPerm('modulos'), action:()=>elegirArea('produccion') },
   { key:'area_montajes', icon:'🔧', name:'Registro MMT Mecánico', desc:'Alistamiento · Mantenimiento · Multitareas', color:'ac-orange',
     visible:()=>hasPerm('area_montajes')||hasPerm('mantenimiento'), action:()=>{ window.location.href='/registro-mecanicos'; } },
