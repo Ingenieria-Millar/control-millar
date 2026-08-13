@@ -3859,31 +3859,88 @@ function cfgRenderCategorias(body){
 
   const modSection=document.createElement('div');
   modSection.innerHTML='<div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:4px;">Qué categoría(s) tiene cada módulo</div>'
-    +'<div style="font-size:11.5px;color:#94a3b8;margin-bottom:12px;">Un módulo puede marcarse en varias categorías. Si no se marca en ninguna, no aparece en el Menú Principal.</div>';
+    +'<div style="font-size:11.5px;color:#94a3b8;margin-bottom:12px;">Toca un chip para agregar o quitar esa categoría — se guarda al instante. Si un módulo no tiene ninguna, no aparece en el Menú Principal.</div>';
   if(!catsOrdenadas.length){
     modSection.innerHTML+='<div style="color:#94a3b8;font-size:13px;padding:12px 0;">Crea al menos una categoría arriba para poder asignar módulos.</div>';
   } else {
-    const asign=getMenuCategoriaModulos();
-    const scrollWrap=document.createElement('div');
-    scrollWrap.style.cssText='overflow-x:auto;border:1px solid #e2e8f0;border-radius:10px;';
-    const table=document.createElement('table');
-    table.style.cssText='width:100%;border-collapse:collapse;min-width:'+(280+catsOrdenadas.length*110)+'px;';
-    let thead='<thead><tr><th style="text-align:left;padding:9px 12px;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:#64748b;background:#f8fafc;border-bottom:1px solid #e2e8f0;position:sticky;left:0;">Módulo</th>';
-    catsOrdenadas.forEach(cat=>{ thead+='<th style="padding:9px 8px;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:#64748b;background:#f8fafc;border-bottom:1px solid #e2e8f0;text-align:center;white-space:nowrap;">'+cat+'</th>'; });
-    thead+='</tr></thead>';
-    let tbody='<tbody>';
-    ALL_PERMS.filter(p=>p.key!=='configuraciones').slice().sort((a,b)=>a.label.localeCompare(b.label,'es')).forEach(p=>{
-      tbody+='<tr><td style="padding:8px 12px;font-size:13px;color:#0f172a;border-bottom:1px solid #f1f5f9;white-space:nowrap;">'+p.label+'</td>';
+    const searchWrap=document.createElement('div');
+    searchWrap.style.cssText='margin-bottom:14px;';
+    searchWrap.innerHTML='<input id="cat-mod-search" placeholder="🔍 Buscar módulo..." style="width:100%;max-width:280px;padding:9px 13px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:13.5px;outline:none;font-family:Nunito,sans-serif;">';
+    modSection.appendChild(searchWrap);
+
+    // Paleta fija por posición de la categoría (orden alfabético) — mismo color
+    // en toda la pantalla para reconocerla de un vistazo, sin depender de config.
+    const PALETTE=[
+      {bg:'#fff7ed',border:'#fed7aa',text:'#c2410c'},
+      {bg:'#eff6ff',border:'#bfdbfe',text:'#1d4ed8'},
+      {bg:'#f0fdf4',border:'#bbf7d0',text:'#15803d'},
+      {bg:'#faf5ff',border:'#e9d5ff',text:'#7e22ce'},
+      {bg:'#fdf2f8',border:'#fbcfe8',text:'#be185d'},
+      {bg:'#ecfeff',border:'#a5f3fc',text:'#0e7490'}
+    ];
+    const catColor={}; catsOrdenadas.forEach((c,i)=>catColor[c]=PALETTE[i%PALETTE.length]);
+    const iconByKey={};
+    MENU_MODULE_CARDS.forEach(c=>{ if(!iconByKey[c.key]) iconByKey[c.key]=c.icon; });
+
+    const rowsWrap=document.createElement('div');
+    modSection.appendChild(rowsWrap);
+
+    function pintarFila(p, destacar, asign){
+      const row=document.createElement('div');
+      row.style.cssText='display:flex;align-items:center;gap:12px;background:#fff;border:1.5px solid '+(destacar?'#fed7aa':'#e2e8f0')+';'
+        +(destacar?'border-style:dashed;':'')+'border-radius:12px;padding:11px 14px;margin-bottom:8px;flex-wrap:wrap;box-shadow:0 1px 4px rgba(15,23,42,.04);';
+      const icon=document.createElement('div');
+      icon.textContent=iconByKey[p.key]||'⚙️';
+      icon.style.cssText='font-size:18px;width:32px;height:32px;border-radius:8px;background:#f8fafc;display:flex;align-items:center;justify-content:center;flex-shrink:0;';
+      const name=document.createElement('div');
+      name.textContent=p.label;
+      name.style.cssText='font-weight:700;font-size:13.5px;color:#0f172a;min-width:170px;flex-shrink:0;';
+      const catsWrap=document.createElement('div');
+      catsWrap.style.cssText='display:flex;flex-wrap:wrap;gap:6px;flex:1;';
       catsOrdenadas.forEach(cat=>{
-        const marcado=(asign[cat]||[]).includes(p.key);
-        tbody+='<td style="padding:8px;border-bottom:1px solid #f1f5f9;text-align:center;"><input type="checkbox" '+(marcado?'checked':'')+' onchange="toggleModuloCategoria(\''+p.key+'\',\''+cat.replace(/'/g,"\\'")+'\',this.checked)" style="width:16px;height:16px;cursor:pointer;"></td>';
+        const on=(asign[cat]||[]).includes(p.key);
+        const col=catColor[cat];
+        const pill=document.createElement('button');
+        pill.type='button';
+        pill.textContent=(on?'● ':'+ ')+cat;
+        pill.style.cssText='display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid '
+          +(on?col.border:'#e2e8f0')+';background:'+(on?col.bg:'transparent')+';color:'+(on?col.text:'#94a3b8')+';'+(on?'':'border-style:dashed;');
+        pill.onclick=()=>{ toggleModuloCategoria(p.key,cat,!on); renderRows(document.getElementById('cat-mod-search').value); };
+        catsWrap.appendChild(pill);
       });
-      tbody+='</tr>';
-    });
-    tbody+='</tbody>';
-    table.innerHTML=thead+tbody;
-    scrollWrap.appendChild(table);
-    modSection.appendChild(scrollWrap);
+      row.appendChild(icon); row.appendChild(name); row.appendChild(catsWrap);
+      return row;
+    }
+
+    function renderRows(filtro){
+      filtro=(filtro||'').toLowerCase();
+      const asign=getMenuCategoriaModulos();
+      const perms=ALL_PERMS.filter(p=>p.key!=='configuraciones' && p.label.toLowerCase().includes(filtro))
+        .slice().sort((a,b)=>a.label.localeCompare(b.label,'es'));
+      const sinCat=perms.filter(p=>!catsOrdenadas.some(cat=>(asign[cat]||[]).includes(p.key)));
+      const conCat=perms.filter(p=>catsOrdenadas.some(cat=>(asign[cat]||[]).includes(p.key)));
+      rowsWrap.innerHTML='';
+      if(!perms.length){
+        rowsWrap.innerHTML='<div style="color:#94a3b8;font-size:13px;padding:12px 0;text-align:center;">Sin resultados para esa búsqueda.</div>';
+        return;
+      }
+      if(sinCat.length){
+        const h=document.createElement('div');
+        h.style.cssText='display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:#c2410c;margin:14px 0 8px;';
+        h.innerHTML='⚠️ Sin categoría <span style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:20px;padding:1px 9px;font-size:11.5px;">'+sinCat.length+'</span>';
+        rowsWrap.appendChild(h);
+        sinCat.forEach(p=>rowsWrap.appendChild(pintarFila(p,true,asign)));
+      }
+      if(conCat.length){
+        const h=document.createElement('div');
+        h.style.cssText='font-size:12.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:#64748b;margin:14px 0 8px;';
+        h.textContent='Categorizados';
+        rowsWrap.appendChild(h);
+        conCat.forEach(p=>rowsWrap.appendChild(pintarFila(p,false,asign)));
+      }
+    }
+    renderRows('');
+    searchWrap.querySelector('#cat-mod-search').addEventListener('input', e=>renderRows(e.target.value));
   }
   wrap.appendChild(modSection);
   body.appendChild(wrap);
