@@ -3689,6 +3689,7 @@ const ALL_PERMS = [
   {key:'area_montajes',          label:'Registro MMT Mecánico'},
   {key:'configuraciones',        label:'Configuraciones'},
   {key:'modulos',                label:'Contador Producción'},
+  {key:'contador_modulos',       label:'Contador Módulos'},
   {key:'conteo_recogedores',     label:'Conteo recogedores'},
   {key:'area_asistencia',        label:'Control de asistencia'},
   {key:'hoja_vida',              label:'Hoja de vida de máquina'},
@@ -3724,8 +3725,8 @@ const MENU_MODULE_CARDS = [
     visible:()=>hasPerm('area_asistencia'), action:()=>{ window.location.href='/ingresos?user='+encodeURIComponent(currentUser); } },
   { key:'modulos', icon:'🏭', name:'Contador Producción', desc:'Producción · calidad · improductivos por módulo', color:'ac-green',
     visible:()=>hasPerm('modulos'), action:()=>elegirArea('produccion') },
-  { key:'modulos', icon:'📱', name:'Contador Módulos', desc:'Solo improductivos · sin conteo de producción', color:'ac-blue',
-    visible:()=>hasPerm('modulos'), action:()=>elegirArea('produccion', '/contador-modulos') },
+  { key:'contador_modulos', icon:'📱', name:'Contador Módulos', desc:'Solo improductivos · sin conteo de producción', color:'ac-blue',
+    visible:()=>hasPerm('contador_modulos'), action:()=>elegirArea('produccion', '/contador-modulos') },
   { key:'area_montajes', icon:'🔧', name:'Registro MMT Mecánico', desc:'Alistamiento · Mantenimiento · Multitareas', color:'ac-orange',
     visible:()=>hasPerm('area_montajes')||hasPerm('mantenimiento'), action:()=>{ window.location.href='/registro-mecanicos'; } },
   { key:'hoja_vida', icon:'🗂️', name:'Hoja de Vida de Máquina', desc:'Historial de intervenciones por máquina', color:'ac-teal',
@@ -3774,7 +3775,7 @@ function seedMenuCategoriasSiVacio(){
   if(getMenuCategorias().length) return; // ya hay categorías configuradas — no tocar nada
   const categorias=['Control','Mecánicos','Producción','SG-SST','Almacén'];
   const asignacion={
-    'Producción': ['tablero','modulos','ordenes_produccion','tablero_produccion','conteo_recogedores','revision_telas','corte','area_solicitar_insumos'],
+    'Producción': ['tablero','modulos','contador_modulos','ordenes_produccion','tablero_produccion','conteo_recogedores','revision_telas','corte','area_solicitar_insumos'],
     'Mecánicos':  ['tablero_planta','area_montajes','hoja_vida','mmt_locativo'],
     'Control':    ['area_asistencia','consulta_incentivos','control_permisos','visitantes_sst','tablero_ci'],
     'SG-SST':     ['punto_seguro'],
