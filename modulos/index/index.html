@@ -3694,7 +3694,6 @@ const ALL_PERMS = [
   {key:'area_asistencia',        label:'Control de asistencia'},
   {key:'hoja_vida',              label:'Hoja de vida de máquina'},
   {key:'informes',               label:'Informes'},
-  {key:'mantenimiento',          label:'Mantenimiento'},
   {key:'ordenes_produccion',     label:'Órdenes de producción'},
   {key:'area_solicitar_insumos', label:'Solicitar insumos'},
   {key:'tablero_ci',             label:'Tablero CI'},
@@ -3703,7 +3702,7 @@ const ALL_PERMS = [
   {key:'tablero_produccion',     label:'Tablero de producción'},
   {key:'revision_telas',         label:'Control de Revisión de Telas'},
   {key:'corte',                  label:'Corte'},
-  {key:'mmt_locativo',           label:'MMT Locativo'},
+  {key:'mmt_locativo',           label:'Registro MMT Locativo'},
   {key:'ubicaciones',            label:'Ubicación Lotes'},
   {key:'consulta_incentivos',    label:'Consulta de incentivos'},
   {key:'visitantes_sst',         label:'Control de Visitantes SST'},
@@ -3728,7 +3727,7 @@ const MENU_MODULE_CARDS = [
   { key:'contador_modulos', icon:'📱', name:'Contador Módulos', desc:'Solo improductivos · sin conteo de producción', color:'ac-blue',
     visible:()=>hasPerm('contador_modulos'), action:()=>elegirArea('produccion', '/contador-modulos') },
   { key:'area_montajes', icon:'🔧', name:'Registro MMT Mecánico', desc:'Alistamiento · Mantenimiento · Multitareas', color:'ac-orange',
-    visible:()=>hasPerm('area_montajes')||hasPerm('mantenimiento'), action:()=>{ window.location.href='/registro-mecanicos'; } },
+    visible:()=>hasPerm('area_montajes'), action:()=>{ window.location.href='/registro-mecanicos'; } },
   { key:'hoja_vida', icon:'🗂️', name:'Hoja de Vida de Máquina', desc:'Historial de intervenciones por máquina', color:'ac-teal',
     visible:()=>hasPerm('hoja_vida'), action:()=>{ window.location.href='/hoja-vida'; } },
   { key:'area_solicitar_insumos', icon:'📦', name:'Solicitar Insumos', desc:'Reportar faltante de insumos', color:'ac-teal',
@@ -3741,7 +3740,7 @@ const MENU_MODULE_CARDS = [
     visible:()=>hasPerm('revision_telas'), action:()=>{ window.location.href='/revision-telas'; } },
   { key:'corte', icon:'✂️', name:'Corte', desc:'Solicitar telas a Revisión de Telas', color:'ac-orange',
     visible:()=>hasPerm('corte'), action:()=>{ window.location.href='/corte'; } },
-  { key:'mmt_locativo', icon:'🛠️', name:'MMT Locativo', desc:'Mantenimiento de planta · tareas · evidencias', color:'ac-yellow',
+  { key:'mmt_locativo', icon:'🛠️', name:'Registro MMT Locativo', desc:'Mantenimiento de planta · tareas · evidencias', color:'ac-yellow',
     visible:()=>hasPerm('mmt_locativo'), action:()=>{ window.location.href='/mantenimiento'; } },
   { key:'ubicaciones', icon:'🏷️', name:'Ubicación Lotes', desc:'Almacén físico · lotes de producción · QR', color:'ac-blue',
     visible:()=>hasPerm('ubicaciones'), action:()=>{ window.location.href='/ubicaciones'; } },
@@ -3863,11 +3862,6 @@ function cfgRenderCategorias(body){
   if(!catsOrdenadas.length){
     modSection.innerHTML+='<div style="color:#94a3b8;font-size:13px;padding:12px 0;">Crea al menos una categoría arriba para poder asignar módulos.</div>';
   } else {
-    const searchWrap=document.createElement('div');
-    searchWrap.style.cssText='margin-bottom:14px;';
-    searchWrap.innerHTML='<input id="cat-mod-search" placeholder="🔍 Buscar módulo..." style="width:100%;max-width:280px;padding:9px 13px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:13.5px;outline:none;font-family:Nunito,sans-serif;">';
-    modSection.appendChild(searchWrap);
-
     // Paleta fija por posición de la categoría (orden alfabético) — mismo color
     // en toda la pantalla para reconocerla de un vistazo, sin depender de config.
     const PALETTE=[
@@ -3905,25 +3899,20 @@ function cfgRenderCategorias(body){
         pill.textContent=(on?'● ':'+ ')+cat;
         pill.style.cssText='display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid '
           +(on?col.border:'#e2e8f0')+';background:'+(on?col.bg:'transparent')+';color:'+(on?col.text:'#94a3b8')+';'+(on?'':'border-style:dashed;');
-        pill.onclick=()=>{ toggleModuloCategoria(p.key,cat,!on); renderRows(document.getElementById('cat-mod-search').value); };
+        pill.onclick=()=>{ toggleModuloCategoria(p.key,cat,!on); renderRows(); };
         catsWrap.appendChild(pill);
       });
       row.appendChild(icon); row.appendChild(name); row.appendChild(catsWrap);
       return row;
     }
 
-    function renderRows(filtro){
-      filtro=(filtro||'').toLowerCase();
+    function renderRows(){
       const asign=getMenuCategoriaModulos();
-      const perms=ALL_PERMS.filter(p=>p.key!=='configuraciones' && p.label.toLowerCase().includes(filtro))
+      const perms=ALL_PERMS.filter(p=>p.key!=='configuraciones')
         .slice().sort((a,b)=>a.label.localeCompare(b.label,'es'));
       const sinCat=perms.filter(p=>!catsOrdenadas.some(cat=>(asign[cat]||[]).includes(p.key)));
       const conCat=perms.filter(p=>catsOrdenadas.some(cat=>(asign[cat]||[]).includes(p.key)));
       rowsWrap.innerHTML='';
-      if(!perms.length){
-        rowsWrap.innerHTML='<div style="color:#94a3b8;font-size:13px;padding:12px 0;text-align:center;">Sin resultados para esa búsqueda.</div>';
-        return;
-      }
       if(sinCat.length){
         const h=document.createElement('div');
         h.style.cssText='display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:#c2410c;margin:14px 0 8px;';
@@ -3939,8 +3928,7 @@ function cfgRenderCategorias(body){
         conCat.forEach(p=>rowsWrap.appendChild(pintarFila(p,false,asign)));
       }
     }
-    renderRows('');
-    searchWrap.querySelector('#cat-mod-search').addEventListener('input', e=>renderRows(e.target.value));
+    renderRows();
   }
   wrap.appendChild(modSection);
   body.appendChild(wrap);
