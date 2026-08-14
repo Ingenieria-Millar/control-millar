@@ -1865,13 +1865,19 @@ app.post('/api/contador-produccion/registro', (req, res) => {
       return res.status(400).json({ error: 'La cantidad debe ser un número entero mayor a cero' });
     }
     const ahora = new Date();
+    // Fecha y hora en zona Colombia, no en la del servidor: Render corre en UTC
+    // y sellar con toISOString() dejaría la hora 5 h adelantada, rompiendo el
+    // corte por hora del turno y la eficiencia. Mismo criterio que el resto de
+    // la app (ver logHistorial).
+    const bogota = new Date(ahora.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
+    const p2 = n => String(n).padStart(2, '0');
     const nuevo = {
       id: uuidv4(),
       modulo: moduloN, operario: operarioN, turno: String(turno || '').trim(),
       op: opN, ref: String(ref || '').trim(), cliente: String(cliente || '').trim(),
       tipo, cantidad: cantidadN,
-      fecha: ahora.toISOString().split('T')[0],
-      hora: ahora.toTimeString().slice(0, 5),
+      fecha: bogota.getFullYear() + '-' + p2(bogota.getMonth() + 1) + '-' + p2(bogota.getDate()),
+      hora: p2(bogota.getHours()) + ':' + p2(bogota.getMinutes()),
       timestamp: ahora.toISOString()
     };
     const lista = loadDB('contador_produccion') || [];

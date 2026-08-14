@@ -179,9 +179,12 @@ select.qe-ctrl{background-color:#fff;
 .info-lbl{font-size:9px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;color:var(--text-faint);}
 .info-val{font-size:12.5px;font-weight:700;color:var(--text);font-family:var(--font-mono);}
 .info-sep{width:1px;height:20px;background:var(--border);}
-.btn-cambiar-op{padding:7px 14px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);
-  color:var(--text-muted);font-family:var(--font-display);font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;}
-.btn-cambiar-op:hover{background:var(--border);border-color:var(--cyan);color:var(--cyan);}
+/* Botón en relieve: antes era blanco sobre tarjeta blanca y no se distinguía. */
+.btn-cambiar-op{padding:8px 16px;border-radius:9px;border:none;background:var(--accent);
+  color:#fff;font-family:var(--font-display);font-size:12px;font-weight:700;letter-spacing:.5px;
+  cursor:pointer;white-space:nowrap;flex-shrink:0;
+  box-shadow:0 3px 0 var(--accent2),0 4px 8px rgba(30,58,138,.3);transition:transform .1s ease,box-shadow .1s ease;}
+.btn-cambiar-op:active{transform:translateY(3px);box-shadow:0 0 0 var(--accent2),0 1px 3px rgba(30,58,138,.25);}
 
 .improd-panel{flex-shrink:0;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:10px 14px;
   box-shadow:var(--shadow-card);display:none;}
@@ -207,32 +210,40 @@ select.qe-ctrl{background-color:#fff;
 .improd-item .btn-cumplido.ok{background:var(--good);color:#06210f;}
 .improd-item .btn-cumplido.no{background:var(--bg);color:var(--bad);border:1.5px solid var(--bad-border);}
 
-.main-gauge-panel{flex:1 1 auto;min-height:0;background:var(--surface);border:1.5px solid var(--border);border-radius:16px;
-  padding:clamp(6px,1.5vh,20px) 16px;box-shadow:var(--shadow-card);display:flex;flex-direction:column;align-items:center;justify-content:center;}
+/* Panel gris para que el círculo blanco resalte (si el panel fuera blanco,
+   el círculo se pierde contra el fondo). */
+.main-gauge-panel{flex:1 1 auto;min-height:0;background:#eef2f7;border:1.5px solid #dde3ea;border-radius:16px;
+  padding:clamp(6px,1.5vh,20px) 16px;display:flex;flex-direction:column;align-items:center;justify-content:center;}
 .mala-badge{flex-shrink:0;display:flex;align-items:center;gap:8px;padding:6px 14px;border-radius:30px;background:var(--bad-bg);
   border:1.5px solid var(--bad-border);margin-bottom:clamp(6px,1.4vh,14px);cursor:pointer;user-select:none;-webkit-user-select:none;
-  touch-action:manipulation;transition:transform .12s ease;}
-.mala-badge:active{transform:scale(.95);}
-.mala-badge.holding{transform:scale(.92);filter:brightness(1.3);}
+  touch-action:manipulation;transition:transform .1s ease,box-shadow .1s ease;
+  box-shadow:0 3px 0 #f0a0a0,0 4px 7px rgba(163,45,45,.18);}
+.mala-badge:active,.mala-badge.holding{transform:translateY(3px);box-shadow:0 0 0 #f0a0a0,0 1px 3px rgba(163,45,45,.16);}
 .mala-badge-lbl{font-family:var(--font-mono);font-size:10px;font-weight:700;letter-spacing:1.2px;color:var(--bad);}
-.mala-badge-num{font-family:var(--font-mono);font-size:17px;font-weight:700;color:var(--bad);
-  background:var(--bad-border);width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums;}
-.main-gauge{flex-shrink:1;position:relative;width:clamp(110px,min(30vh,45vw),230px);height:clamp(110px,min(30vh,45vw),230px);
+.mala-badge-num{font-family:var(--font-mono);font-size:17px;font-weight:700;color:#7f1d1d;
+  background:#f7b4b4;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums;}
+
+/* Círculo en relieve: se hunde al tocarlo para confirmar el registro. */
+.main-gauge{flex-shrink:1;position:relative;width:clamp(120px,min(32vh,48vw),236px);height:clamp(120px,min(32vh,48vw),236px);
   display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;-webkit-user-select:none;
-  touch-action:manipulation;transition:transform .12s ease;}
-.main-gauge:active{transform:scale(.97);}
-.main-gauge.holding{transform:scale(.94);}
-.main-gauge.holding .main-gauge-center{animation:gauge-charge .55s ease forwards;}
-@keyframes gauge-charge{from{filter:brightness(1);}to{filter:brightness(1.5);}}
-.main-gauge svg{width:100%;height:100%;transform:rotate(-90deg);pointer-events:none;}
+  touch-action:manipulation;border-radius:50%;background:var(--surface);border:1px solid var(--border);
+  box-shadow:0 7px 0 #cbd5e1,0 10px 16px rgba(15,23,42,.2),inset 0 2px 4px rgba(255,255,255,.9);
+  transition:transform .1s ease,box-shadow .1s ease;}
+.main-gauge:active,.main-gauge.holding{transform:translateY(6px);
+  box-shadow:0 1px 0 #cbd5e1,0 2px 5px rgba(15,23,42,.18),inset 0 2px 6px rgba(15,23,42,.09);}
+.main-gauge svg{position:absolute;inset:7px;width:calc(100% - 14px);height:calc(100% - 14px);transform:rotate(-90deg);pointer-events:none;}
 .main-gauge svg circle{fill:none;}
-.main-gauge svg .ticks{stroke:var(--border);stroke-width:2;stroke-dasharray:1 11.5;}
-.main-gauge svg .track{stroke:var(--surface2);stroke-width:11;}
-.main-gauge svg .fill{stroke:url(#gaugeGrad);stroke-width:11;stroke-linecap:round;transition:stroke-dashoffset .5s ease;
-  filter:drop-shadow(0 0 6px rgba(37,99,235,.35));}
-.main-gauge-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;}
-.main-gauge-num{font-family:var(--font-mono);font-size:clamp(30px,8.5vh,58px);font-weight:700;line-height:1;color:var(--text);font-variant-numeric:tabular-nums;}
-.main-gauge-sub{font-size:10.5px;font-weight:700;letter-spacing:3px;color:var(--cyan);font-family:var(--font-mono);}
+.main-gauge svg .track{stroke:var(--border);stroke-width:12;}
+.main-gauge svg .fill{stroke:url(#gaugeGrad);stroke-width:12;stroke-linecap:round;transition:stroke-dashoffset .5s ease;}
+.main-gauge-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:0;padding:0 clamp(26px,5vw,42px);}
+.main-gauge-num{font-family:var(--font-mono);font-size:clamp(28px,7.5vh,50px);font-weight:700;line-height:1;color:var(--text);font-variant-numeric:tabular-nums;}
+.main-gauge-sub{font-size:10.5px;font-weight:600;color:var(--text-muted);margin-top:1px;}
+.gauge-falt{margin-top:clamp(5px,1vh,9px);padding-top:clamp(5px,1vh,9px);border-top:1px solid var(--border);width:100%;text-align:center;}
+.gauge-falt.oculto{display:none;}
+.gauge-falt-num{font-family:var(--font-mono);font-size:clamp(15px,2.6vh,20px);font-weight:700;line-height:1.1;color:var(--warn);font-variant-numeric:tabular-nums;}
+.gauge-falt-num.ok{color:var(--good);}
+.gauge-falt-lbl{font-size:10px;font-weight:600;color:var(--text-faint);}
 .main-gauge-label{flex-shrink:0;font-family:var(--font-display);font-size:13px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;
   color:var(--cyan);margin-top:clamp(6px,1.2vh,12px);}
 /* Equipos de poca altura (tablet apaisada, celular, ventana reducida):
@@ -244,29 +255,40 @@ select.qe-ctrl{background-color:#fff;
   .main-gauge svg .track,.main-gauge svg .fill{stroke-width:9;}
 }
 
-.lote-trio{flex-shrink:0;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
-.lote-stat{background:var(--surface);border:1.5px solid var(--border);border-radius:11px;padding:clamp(6px,1.2vh,12px) 6px;text-align:center;box-shadow:var(--shadow-card);}
-.lote-num{font-family:var(--font-mono);font-size:clamp(18px,3.8vh,25px);font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;}
+.lote-card{flex-shrink:0;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;
+  padding:clamp(7px,1.2vh,12px) 14px;box-shadow:var(--shadow-card);}
+.lote-card-lbl{font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:clamp(4px,.8vh,8px);}
+.lote-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.lote-stat{text-align:center;}
+.lote-num{font-family:var(--font-mono);font-size:clamp(17px,3.4vh,23px);font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;}
 .lote-num.good{color:var(--good);}
 .lote-num.bad{color:var(--warn);}
+.lote-num.def{color:var(--bad);}
 .lote-lbl{font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text-muted);margin-top:2px;}
 
 .efic-row{flex-shrink:0;display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .efic-card{background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:clamp(8px,1.4vh,14px) 14px;box-shadow:var(--shadow-card);}
 .efic-card-lbl{font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-muted);}
+.efic-card-val{display:flex;align-items:baseline;gap:6px;}
 .efic-card-num{font-family:var(--font-mono);font-size:clamp(20px,3.8vh,28px);font-weight:700;font-variant-numeric:tabular-nums;}
 .efic-card-num.alta{color:var(--good);}
 .efic-card-num.media{color:var(--warn);}
 .efic-card-num.baja{color:var(--bad);}
+.efic-trend{font-size:13px;line-height:1;}
+.efic-trend.up{color:var(--good);}
+.efic-trend.down{color:var(--bad);}
 
 .action-row-2{flex-shrink:0;display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.action-btn{border:none;border-radius:11px;cursor:pointer;transition:transform .15s;display:flex;font-family:var(--font-display);width:100%;}
-.action-btn:active{transform:scale(.97);}
+.action-btn{border:none;border-radius:11px;cursor:pointer;display:flex;font-family:var(--font-display);width:100%;
+  transition:transform .1s ease,box-shadow .1s ease;}
+.action-btn:active{transform:translateY(3px);}
 .action-btn.compact{flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:clamp(8px,1.4vh,14px) 6px;}
 .action-btn.compact .a-icon{font-size:19px;}
 .action-btn.compact .a-lbl{font-size:11px;font-weight:800;letter-spacing:.5px;text-align:center;line-height:1.2;}
-.action-btn.improd{background:var(--surface);border:1.5px solid var(--purple-border);color:var(--purple);box-shadow:0 4px 16px rgba(139,92,246,.12);}
-.action-btn.historial{background:var(--surface);border:1.5px solid var(--cyan);color:var(--cyan);box-shadow:0 4px 16px rgba(37,99,235,.12);}
+.action-btn.improd{background:var(--purple);color:#fff;box-shadow:0 4px 0 #5b21b6,0 5px 10px rgba(91,33,182,.28);}
+.action-btn.improd:active{box-shadow:0 1px 0 #5b21b6,0 2px 4px rgba(91,33,182,.24);}
+.action-btn.historial{background:var(--accent);color:#fff;box-shadow:0 4px 0 var(--accent2),0 5px 10px rgba(30,58,138,.28);}
+.action-btn.historial:active{box-shadow:0 1px 0 var(--accent2),0 2px 4px rgba(30,58,138,.24);}
 
 /* Centrado en cualquier pantalla (celular, tablet, PC, televisor). */
 .modal-overlay{display:none;position:fixed;inset:0;background:var(--overlay);z-index:500;
@@ -480,32 +502,45 @@ select.qe-ctrl{background-color:#fff;
     </div>
     <div class="main-gauge" id="gauge-prod-el" role="button" tabindex="0" aria-label="Registrar producción">
       <svg viewBox="0 0 200 200">
-        <circle class="ticks" cx="100" cy="100" r="96"></circle>
         <circle class="track" cx="100" cy="100" r="84"></circle>
         <circle class="fill" id="gauge-prod-fill" cx="100" cy="100" r="84" stroke-dasharray="527.8" stroke-dashoffset="527.8"></circle>
       </svg>
       <div class="main-gauge-center">
         <div class="main-gauge-num" id="gauge-prod-num">0</div>
-        <div class="main-gauge-sub">UNIDADES</div>
+        <div class="main-gauge-sub">Fabricadas</div>
+        <div class="gauge-falt" id="gauge-falt">
+          <div class="gauge-falt-num" id="gauge-falt-num">0</div>
+          <div class="gauge-falt-lbl" id="gauge-falt-lbl">Faltantes</div>
+        </div>
       </div>
     </div>
     <div class="main-gauge-label">Producción</div>
   </div>
 
-  <div class="lote-trio">
-    <div class="lote-stat"><div class="lote-num" id="lote-cantidad">0</div><div class="lote-lbl">Cantidad lote</div></div>
-    <div class="lote-stat"><div class="lote-num good" id="lote-producidas">0</div><div class="lote-lbl">Und. producidas</div></div>
-    <div class="lote-stat"><div class="lote-num bad" id="lote-faltantes">0</div><div class="lote-lbl">Und. faltantes</div></div>
+  <div class="lote-card">
+    <div class="lote-card-lbl">Información de lote</div>
+    <div class="lote-grid">
+      <div class="lote-stat"><div class="lote-num" id="lote-cantidad">0</div><div class="lote-lbl">Cantidad</div></div>
+      <div class="lote-stat"><div class="lote-num good" id="lote-producidas">0</div><div class="lote-lbl">Producidas</div></div>
+      <div class="lote-stat"><div class="lote-num bad" id="lote-faltantes">0</div><div class="lote-lbl">Faltantes</div></div>
+      <div class="lote-stat"><div class="lote-num def" id="lote-defectos">0</div><div class="lote-lbl">Defectos</div></div>
+    </div>
   </div>
 
   <div class="efic-row">
     <div class="efic-card">
       <div class="efic-card-lbl">Eficiencia · Hora</div>
-      <div class="efic-card-num alta" id="efic-hora-num">—</div>
+      <div class="efic-card-val">
+        <span class="efic-card-num alta" id="efic-hora-num">—</span>
+        <span class="efic-trend" id="efic-hora-trend"></span>
+      </div>
     </div>
     <div class="efic-card">
       <div class="efic-card-lbl">Eficiencia · Día</div>
-      <div class="efic-card-num alta" id="efic-dia-num">—</div>
+      <div class="efic-card-val">
+        <span class="efic-card-num alta" id="efic-dia-num">—</span>
+        <span class="efic-trend" id="efic-dia-trend"></span>
+      </div>
     </div>
   </div>
 
@@ -627,12 +662,24 @@ const _params = new URLSearchParams(location.search);
 const selectedMod = _params.get('modulo') || '';
 if (!selectedMod) location.href = '/';
 
+// Se declara aquí arriba porque tick() corre desde el primer segundo y la
+// consulta antes de que se elija una OP.
+let opActiva = null;
+let _ultMinuto=null;
 function tick(){
   const d=new Date();
   document.getElementById('hd-fecha').textContent = d.toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   document.getElementById('hd-clock').textContent = d.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   const qc=document.getElementById('qe-clock');
   if(qc) qc.textContent = d.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  // Al cambiar el minuto se repinta: así el círculo se reinicia solo cuando
+  // entra una hora nueva y la eficiencia sigue el paso del tiempo, sin que la
+  // operaria tenga que tocar nada.
+  const min=d.getHours()*60+d.getMinutes();
+  if(min!==_ultMinuto){
+    _ultMinuto=min;
+    if(opActiva) refreshStats();
+  }
 }
 setInterval(tick,1000); tick();
 document.getElementById('qe-modulo-txt').textContent = selectedMod;
@@ -718,9 +765,11 @@ async function cargarOrdenesModulo(){
       const op=o.opoc;
       if(!op) return;
       const e=enrich[op]||{};
-      // El Cliente de la propia orden manda; el del tablero Kanban queda como
-      // respaldo para órdenes viejas que todavía no tienen el campo.
-      opCache[op] = { op, ref:o.referencia, cliente:o.cliente||e.cliente||'', cantidad:o.cantidad, sam:e.sam, operarios:e.operarios||operariosModulo };
+      // El Cliente y la Meta/Hora de la propia orden mandan; el tablero Kanban
+      // queda como respaldo para órdenes viejas que todavía no tienen el campo.
+      opCache[op] = { op, ref:o.referencia, cliente:o.cliente||e.cliente||'',
+                      cantidad:o.cantidad, metaHora:parseInt(o.metaHora)||0,
+                      sam:e.sam, operarios:e.operarios||operariosModulo };
     });
     renderOrdenLista();
   }catch(e){
@@ -775,7 +824,6 @@ function filtrarOrdenLista(){
   });
 }
 
-let opActiva = null;
 async function seleccionarOrden(orden){
   opActiva = orden;
   document.getElementById('orden-screen').style.display='none';
@@ -815,40 +863,68 @@ async function cargarRegistrosLote(){
     registrosLote = d.registros||[];
   }catch(e){ registrosLote=[]; }
 }
+// Fecha local (no UTC): el turno se mide en hora de Colombia.
+function fechaLocalISO(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+// Momento en que arrancó el turno en curso. En el turno noche, si ya pasó la
+// medianoche el turno arrancó AYER, no hoy.
+function inicioTurnoDate(){
+  const d=new Date();
+  const minAhora=d.getHours()*60+d.getMinutes();
+  const ini=new Date(d);
+  ini.setHours(Math.floor(_turno.inicioMin/60), _turno.inicioMin%60, 0, 0);
+  if(minAhora < _turno.inicioMin) ini.setDate(ini.getDate()-1);
+  return ini;
+}
+// Un turno de noche cae sobre dos fechas distintas, así que hay que pedir las
+// dos; si solo se pidiera la de hoy, se perderían los registros de antes de
+// medianoche (eficiencia del día e historial incompletos).
 async function cargarRegistrosHoy(){
   try{
-    const hoy=new Date().toISOString().split('T')[0];
-    const r=await fetch(`/api/contador-produccion/registros?modulo=${encodeURIComponent(selectedMod)}&fecha=${hoy}`);
-    const d=await r.json();
-    registrosHoy = d.registros||[];
+    const ini=inicioTurnoDate(), ahora=new Date();
+    const fechas=[...new Set([fechaLocalISO(ini), fechaLocalISO(ahora)])];
+    const listas=await Promise.all(fechas.map(f=>
+      fetch(`/api/contador-produccion/registros?modulo=${encodeURIComponent(selectedMod)}&fecha=${f}`)
+        .then(r=>r.json()).catch(()=>({registros:[]}))
+    ));
+    const todos=listas.reduce((acc,d)=>acc.concat(d.registros||[]),[]);
+    // Dejar solo lo que cae dentro del turno en curso.
+    registrosHoy = todos.filter(r=>{
+      const t=fechaHoraDeRegistro(r);
+      return t && t>=ini && t<=ahora;
+    });
   }catch(e){ registrosHoy=[]; }
+}
+function fechaHoraDeRegistro(r){
+  if(!r || !r.fecha || !r.hora) return null;
+  const [a,m,d]=String(r.fecha).split('-').map(Number);
+  const [h,mi]=String(r.hora).split(':').map(Number);
+  if([a,m,d,h,mi].some(n=>isNaN(n))) return null;
+  return new Date(a, m-1, d, h, mi, 0, 0);
 }
 
 const CIRC=527.8; // 2·π·84
 function eficClase(pct){ return pct>=95?'alta':pct>=80?'media':'baja'; }
 function minutosDeHora(hhmm){ const [h,m]=hhmm.split(':').map(Number); return h*60+m; }
+// Flecha de tendencia: arriba si va en meta o por encima, abajo si va corta.
+function pintarTendencia(id, pct){
+  const el=document.getElementById(id);
+  if(!el) return;
+  if(pct===null || pct===undefined){ el.textContent=''; el.className='efic-trend'; return; }
+  const arriba = pct>=100;
+  el.textContent = arriba ? '▲' : '▼';
+  el.className = 'efic-trend '+(arriba?'up':'down');
+}
 
 function refreshStats(){
-  const producidas = registrosLote.filter(r=>r.tipo==='produccion').reduce((s,r)=>s+r.cantidad,0);
-  const mala       = registrosLote.filter(r=>r.tipo==='calidad').reduce((s,r)=>s+r.cantidad,0);
-  const cantidadLote = opActiva.cantidad || 0;
-  const faltan = Math.max(0, cantidadLote-producidas);
-
-  document.getElementById('gauge-prod-num').textContent=producidas;
-  document.getElementById('gauge-prod-fill').setAttribute('stroke-dashoffset',
-    CIRC-(cantidadLote>0?Math.min(1,producidas/cantidadLote):0)*CIRC);
-  document.getElementById('mala-num').textContent=mala;
-  document.getElementById('lote-cantidad').textContent=cantidadLote;
-  document.getElementById('lote-producidas').textContent=producidas;
-  document.getElementById('lote-faltantes').textContent=faltan;
-
-  // Eficiencia hora: producción de ESTA hora de turno / minutos transcurridos en ella,
-  // contra el ritmo esperado (operarios×60/SAM). Eficiencia día: acumulada desde inicio de turno.
+  // ── Tiempo del turno ──────────────────────────────────────────
+  // minDesdeTurno ya contempla el cruce de medianoche (+1440); minEnHora se
+  // deriva de él para que en el turno noche tampoco quede en negativo.
   const ahora=new Date();
   const minAhora = ahora.getHours()*60+ahora.getMinutes();
-  const minEnHora = Math.max(1, (minAhora-_turno.inicioMin) % 60 || (minAhora>=_turno.inicioMin?  (minAhora-_turno.inicioMin)%60 : 1));
   const minDesdeTurno = Math.max(1, minAhora>=_turno.inicioMin ? (minAhora-_turno.inicioMin) : (minAhora+1440-_turno.inicioMin));
-  const horaActualStr = ahora.toTimeString().slice(0,5);
+  const minEnHora = Math.max(1, minDesdeTurno % 60);
   const nHoraActual = Math.floor(minDesdeTurno/60)+1;
 
   const prodEstaHora = registrosHoy.filter(r=>{
@@ -858,13 +934,60 @@ function refreshStats(){
   }).reduce((s,r)=>s+r.cantidad,0);
   const prodHoy = registrosHoy.filter(r=>r.tipo==='produccion').reduce((s,r)=>s+r.cantidad,0);
 
+  // ── Círculo: avance contra la meta de ESTA hora (se reinicia cada hora) ──
+  const metaHora = opActiva.metaHora || 0;
+  document.getElementById('gauge-prod-num').textContent=prodEstaHora;
+  const faltEl=document.getElementById('gauge-falt');
+  const faltNum=document.getElementById('gauge-falt-num');
+  const faltLbl=document.getElementById('gauge-falt-lbl');
+  if(metaHora>0){
+    const faltanHora = Math.max(0, metaHora-prodEstaHora);
+    faltEl.classList.remove('oculto');
+    if(faltanHora>0){
+      faltNum.textContent=faltanHora; faltNum.className='gauge-falt-num';
+      faltLbl.textContent='Faltantes';
+    } else {
+      faltNum.textContent='✓'; faltNum.className='gauge-falt-num ok';
+      faltLbl.textContent='Meta cumplida';
+    }
+    document.getElementById('gauge-prod-fill').setAttribute('stroke-dashoffset',
+      CIRC-Math.min(1, prodEstaHora/metaHora)*CIRC);
+  } else {
+    // Sin Meta/Hora cargada en la orden: no se inventa una meta, solo se
+    // muestran las unidades de la hora y el anillo queda vacío.
+    faltEl.classList.add('oculto');
+    document.getElementById('gauge-prod-fill').setAttribute('stroke-dashoffset', CIRC);
+  }
+
+  // ── Información de lote: acumulado de la OP, todas las fechas ──
+  const producidas = registrosLote.filter(r=>r.tipo==='produccion').reduce((s,r)=>s+r.cantidad,0);
+  const mala       = registrosLote.filter(r=>r.tipo==='calidad').reduce((s,r)=>s+r.cantidad,0);
+  const cantidadLote = opActiva.cantidad || 0;
+  const faltan = Math.max(0, cantidadLote-producidas);
+  document.getElementById('mala-num').textContent=mala;
+  document.getElementById('lote-cantidad').textContent=cantidadLote;
+  document.getElementById('lote-producidas').textContent=producidas;
+  document.getElementById('lote-faltantes').textContent=faltan;
+  document.getElementById('lote-defectos').textContent=mala;
+
+  // ── Eficiencia ────────────────────────────────────────────────
+  // Base preferida: la Meta/Hora de la orden (lo mismo que muestra el círculo,
+  // para que los dos números cuenten la misma historia). Si la orden no la
+  // tiene, se cae al SAM del tablero Kanban como antes.
   const sam = opActiva.sam, operarios = opActiva.operarios || 2;
-  let pctHora='—', pctDia='—', claseHora='alta', claseDia='alta';
-  if(sam>0){
-    const p1=Math.round(prodEstaHora*sam/(minEnHora*operarios)*100);
-    const p2=Math.round(prodHoy*sam/(minDesdeTurno*operarios)*100);
+  let pctHora='—', pctDia='—', claseHora='alta', claseDia='alta', p1=null, p2=null;
+  if(metaHora>0){
+    p1=Math.round(prodEstaHora/(metaHora*minEnHora/60)*100);
+    p2=Math.round(prodHoy/(metaHora*minDesdeTurno/60)*100);
+  } else if(sam>0){
+    p1=Math.round(prodEstaHora*sam/(minEnHora*operarios)*100);
+    p2=Math.round(prodHoy*sam/(minDesdeTurno*operarios)*100);
+  }
+  if(p1!==null){
     pctHora=p1+'%'; pctDia=p2+'%'; claseHora=eficClase(p1); claseDia=eficClase(p2);
   }
+  pintarTendencia('efic-hora-trend', p1);
+  pintarTendencia('efic-dia-trend', p2);
   const hEl=document.getElementById('efic-hora-num'), dEl=document.getElementById('efic-dia-num');
   hEl.textContent=pctHora; hEl.className='efic-card-num '+claseHora;
   dEl.textContent=pctDia; dEl.className='efic-card-num '+claseDia;
@@ -975,7 +1098,12 @@ function construirHistorialHoras(){
     const fmt=d=>String(d.getHours()%24).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
     const ops=Object.values(h.ops).map(o=>{
       const info=opCache[o.op];
-      const meta = info && info.sam>0 ? Math.round((info.operarios||2)*60/info.sam) : 0;
+      // Misma base que el círculo y la eficiencia: Meta/Hora de la orden y,
+      // si no la tiene, el ritmo que sale del SAM del tablero Kanban.
+      const meta = info
+        ? (info.metaHora>0 ? info.metaHora
+          : (info.sam>0 ? Math.round((info.operarios||2)*60/info.sam) : 0))
+        : 0;
       return {...o, meta};
     });
     return {n:h.n, rango: fmt(rangoIni)+' – '+fmt(rangoFin), ops};
