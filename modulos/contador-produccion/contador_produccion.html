@@ -14,48 +14,36 @@ var W=window.WebSocket;function MW(u,p){try{var t=T();if(t&&typeof u==='string'&
 *{box-sizing:border-box;margin:0;padding:0;}
 
 :root{
-  --bg:#080a10; --surface:#12151d; --surface2:#181c26; --border:#232838;
-  --text:#eef2fb; --text-muted:#8791ab; --text-faint:#4c5470;
-  --accent:#2563eb; --accent2:#1e3a8a; --accent-soft:#12203f;
-  --cyan:#22d3ee; --cyan-soft:#0d2530;
-  --good:#22c55e; --good-bg:#0c2118; --good-border:#1c4a2f;
-  --bad:#ef4444; --bad-bg:#2a1216; --bad-border:#5c2229;
-  --warn:#fbbf24; --warn-bg:#241b0a; --warn-border:#4d3a12;
-  --purple:#a78bfa; --purple-bg:#1e1a33; --purple-border:#382f5c; --purple-hover:#241f42;
-  --overlay:rgba(0,0,0,.75);
-  --shadow-card:0 2px 16px rgba(0,0,0,.4);
+  --bg:#f1f5f9; --surface:#ffffff; --surface2:#f8fafc; --border:#e2e8f0;
+  --text:#0f172a; --text-muted:#64748b; --text-faint:#94a3b8;
+  --accent:#2563eb; --accent2:#1e3a8a; --accent-soft:#eff6ff;
+  --cyan:#2563eb; --cyan-soft:#eff6ff;
+  --good:#16a34a; --good-bg:#f0fdf4; --good-border:#bbf7d0;
+  --bad:#dc2626; --bad-bg:#fef2f2; --bad-border:#fecaca;
+  --warn:#c2410c; --warn-bg:#fff7ed; --warn-border:#fed7aa;
+  --purple:#7c3aed; --purple-bg:#f5f3ff; --purple-border:#ddd6fe; --purple-hover:#ede9fe;
+  --overlay:rgba(15,23,42,.55);
+  --shadow-card:0 1px 4px rgba(15,23,42,.06);
   --font-display:'Barlow Condensed','Bahnschrift','Arial Narrow',sans-serif;
   --font-body:'Nunito','Segoe UI',system-ui,sans-serif;
   --font-mono:'IBM Plex Mono','Consolas','SFMono-Regular',monospace;
 }
 html,body{height:100%;}
-body{background:
-    radial-gradient(circle at 1px 1px, rgba(34,211,238,.09) 1px, transparent 0) 0 0/26px 26px,
-    radial-gradient(ellipse 900px 500px at 80% -10%, rgba(37,99,235,.16), transparent 60%),
-    var(--bg);
+body{background:var(--bg);
   font-family:var(--font-body);color:var(--text);overflow:hidden;
   display:flex;flex-direction:column;height:100vh;}
 input,select,textarea,button{font-family:inherit;}
 button{-webkit-tap-highlight-color:transparent;}
 :focus-visible{outline:2.5px solid var(--cyan);outline-offset:2px;}
 
-/* HUD corner brackets */
-.hud{position:relative;}
-.hud::before,.hud::after{content:'';position:absolute;width:12px;height:12px;pointer-events:none;opacity:.85;}
-.hud::before{top:-1px;left:-1px;border-top:2px solid var(--cyan);border-left:2px solid var(--cyan);border-radius:3px 0 0 0;}
-.hud::after{bottom:-1px;right:-1px;border-bottom:2px solid var(--cyan);border-right:2px solid var(--cyan);border-radius:0 0 3px 0;}
-
 header{flex-shrink:0;background:var(--surface);border-bottom:1px solid var(--border);
-  box-shadow:0 1px 6px rgba(0,0,0,.25);padding:0 clamp(12px,2.5vw,24px);min-height:52px;
+  box-shadow:0 1px 6px rgba(15,23,42,.06);padding:0 clamp(12px,2.5vw,24px);min-height:52px;
   display:flex;align-items:center;justify-content:space-between;gap:12px;position:relative;flex-wrap:wrap;row-gap:6px;overflow:hidden;}
 header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;
-  background:linear-gradient(90deg,var(--accent2),var(--accent),var(--cyan));}
-header::before{content:'';position:absolute;top:0;left:-30%;width:30%;height:2px;
-  background:linear-gradient(90deg,transparent,var(--cyan),transparent);animation:scan 3.2s linear infinite;}
-@keyframes scan{0%{left:-30%;}100%{left:100%;}}
+  background:linear-gradient(90deg,var(--accent2),var(--accent),#60a5fa);}
 .hd-left{display:flex;align-items:center;gap:10px;padding:6px 0;}
-.hd-logo{width:38px;height:38px;border-radius:10px;background:#0c1a3a;display:flex;align-items:center;
-  justify-content:center;overflow:hidden;box-shadow:0 0 0 1px var(--border),0 0 14px rgba(34,211,238,.25);flex-shrink:0;}
+.hd-logo{width:38px;height:38px;border-radius:10px;background:#fff;display:flex;align-items:center;
+  justify-content:center;overflow:hidden;box-shadow:0 0 0 1.5px var(--border);flex-shrink:0;}
 .hd-logo img{width:100%;height:100%;object-fit:contain;padding:4px;}
 .hd-title-wrap{display:flex;flex-direction:column;gap:0;}
 .hd-title{font-family:var(--font-display);font-size:clamp(13px,1.8vw,18px);font-weight:800;
@@ -69,8 +57,8 @@ header::before{content:'';position:absolute;top:0;left:-30%;width:30%;height:2px
 .hd-badge b{color:var(--cyan);font-weight:700;}
 .hd-badge.turno-dia{border-color:var(--warn-border);background:var(--warn-bg);color:var(--warn);}
 .hd-badge.turno-dia b{color:var(--warn);}
-.hd-badge.turno-noche{border-color:#382f5c;background:#1e1a33;color:#c4b5fd;}
-.hd-badge.turno-noche b{color:#c4b5fd;}
+.hd-badge.turno-noche{border-color:var(--purple-border);background:var(--purple-bg);color:var(--purple);}
+.hd-badge.turno-noche b{color:var(--purple);}
 .hd-back-btn{padding:6px 14px;border-radius:7px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-muted);
   font-family:var(--font-display);font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;}
 .hd-back-btn:hover{background:var(--surface2);border-color:var(--cyan);}
@@ -140,10 +128,6 @@ header::before{content:'';position:absolute;top:0;left:-30%;width:30%;height:2px
 select.qe-ctrl{background-color:#fff;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%2394a3b8' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:right 12px center;cursor:pointer;}
-.qe-turno-preview{display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:9px;background:#eff6ff;border:1.5px solid #bfdbfe;}
-.qe-turno-preview .dot{width:10px;height:10px;border-radius:50%;background:#fbbf24;flex-shrink:0;box-shadow:0 0 8px rgba(251,191,36,.6);}
-.qe-turno-preview span{font-size:12.5px;font-weight:700;color:#0f172a;}
-.qe-turno-preview small{display:block;font-size:10.5px;font-weight:500;color:#64748b;}
 .qe-submit-btn{margin-top:4px;width:100%;padding:13px;border-radius:9px;border:none;
   background:linear-gradient(135deg,#1e3a8a 0%,#2563eb 100%);color:#fff;
   font-family:var(--font-display);font-size:16px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
@@ -202,7 +186,7 @@ select.qe-ctrl{background-color:#fff;
   background:var(--surface2);margin-bottom:6px;cursor:default;}
 .improd-item:last-child{margin-bottom:0;}
 .improd-item.cumplido{border-left-color:var(--cyan);cursor:pointer;animation:improd-pulse 2s ease-in-out infinite;}
-@keyframes improd-pulse{0%,100%{box-shadow:0 0 0 0 rgba(34,211,238,.3);}50%{box-shadow:0 0 0 6px rgba(34,211,238,0);}}
+@keyframes improd-pulse{0%,100%{box-shadow:0 0 0 0 rgba(37,99,235,.25);}50%{box-shadow:0 0 0 6px rgba(37,99,235,0);}}
 .improd-icon{font-size:15px;flex-shrink:0;}
 .improd-txt{font-size:12px;font-weight:700;color:var(--text);flex:1;}
 .improd-status{font-size:10px;font-weight:700;letter-spacing:.3px;padding:2px 8px;border-radius:20px;white-space:nowrap;font-family:var(--font-mono);}
@@ -237,13 +221,12 @@ select.qe-ctrl{background-color:#fff;
 .main-gauge svg .ticks{stroke:var(--border);stroke-width:2;stroke-dasharray:1 11.5;}
 .main-gauge svg .track{stroke:var(--surface2);stroke-width:11;}
 .main-gauge svg .fill{stroke:url(#gaugeGrad);stroke-width:11;stroke-linecap:round;transition:stroke-dashoffset .5s ease;
-  filter:drop-shadow(0 0 10px rgba(34,211,238,.6));}
+  filter:drop-shadow(0 0 6px rgba(37,99,235,.35));}
 .main-gauge-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;}
 .main-gauge-num{font-family:var(--font-mono);font-size:clamp(30px,8.5vh,58px);font-weight:700;line-height:1;color:var(--text);font-variant-numeric:tabular-nums;}
 .main-gauge-sub{font-size:10.5px;font-weight:700;letter-spacing:3px;color:var(--cyan);font-family:var(--font-mono);}
 .main-gauge-label{flex-shrink:0;font-family:var(--font-display);font-size:13px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;
   color:var(--cyan);margin-top:clamp(6px,1.2vh,12px);}
-.gauge-hint{flex-shrink:0;font-size:9.5px;font-weight:600;color:var(--text-faint);letter-spacing:.2px;text-align:center;margin-top:3px;font-family:var(--font-mono);}
 
 .lote-trio{flex-shrink:0;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
 .lote-stat{background:var(--surface);border:1.5px solid var(--border);border-radius:11px;padding:clamp(6px,1.2vh,12px) 6px;text-align:center;box-shadow:var(--shadow-card);}
@@ -255,7 +238,6 @@ select.qe-ctrl{background-color:#fff;
 .efic-row{flex-shrink:0;display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .efic-card{background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:clamp(8px,1.4vh,14px) 14px;box-shadow:var(--shadow-card);}
 .efic-card-lbl{font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-muted);}
-.efic-card-note{font-size:9px;font-weight:600;color:var(--text-faint);font-family:var(--font-mono);}
 .efic-card-num{font-family:var(--font-mono);font-size:clamp(20px,3.8vh,28px);font-weight:700;font-variant-numeric:tabular-nums;}
 .efic-card-num.alta{color:var(--good);}
 .efic-card-num.media{color:var(--warn);}
@@ -268,7 +250,7 @@ select.qe-ctrl{background-color:#fff;
 .action-btn.compact .a-icon{font-size:19px;}
 .action-btn.compact .a-lbl{font-size:11px;font-weight:800;letter-spacing:.5px;text-align:center;line-height:1.2;}
 .action-btn.improd{background:var(--surface);border:1.5px solid var(--purple-border);color:var(--purple);box-shadow:0 4px 16px rgba(139,92,246,.12);}
-.action-btn.historial{background:var(--surface);border:1.5px solid var(--cyan);color:var(--cyan);box-shadow:0 4px 16px rgba(34,211,238,.15);}
+.action-btn.historial{background:var(--surface);border:1.5px solid var(--cyan);color:var(--cyan);box-shadow:0 4px 16px rgba(37,99,235,.12);}
 
 .modal-overlay{display:none;position:fixed;inset:0;background:var(--overlay);z-index:500;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);}
 .modal-overlay.show{display:flex;}
@@ -285,7 +267,10 @@ select.qe-ctrl{background-color:#fff;
 .qty-btn{width:48px;height:48px;border-radius:11px;border:1.5px solid var(--border);background:var(--surface2);
   font-size:22px;font-weight:700;color:var(--text-muted);cursor:pointer;flex-shrink:0;}
 .qty-btn:active{background:var(--border);}
-.qty-display{font-family:var(--font-mono);font-size:48px;font-weight:700;color:var(--text);min-width:90px;text-align:center;font-variant-numeric:tabular-nums;}
+.qty-display{font-family:var(--font-mono);font-size:48px;font-weight:700;color:var(--text);width:110px;text-align:center;font-variant-numeric:tabular-nums;
+  border:1.5px solid transparent;background:transparent;border-radius:11px;outline:none;-moz-appearance:textfield;}
+.qty-display:focus{border-color:var(--cyan);background:var(--surface2);}
+.qty-display::-webkit-outer-spin-button,.qty-display::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
 .modal-field{margin-bottom:16px;}
 .modal-field label{display:block;font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:5px;letter-spacing:.3px;}
 .modal-select{width:100%;padding:12px 14px;border-radius:9px;border:1.5px solid var(--border);
@@ -301,8 +286,13 @@ select.qe-ctrl{background-color:#fff;
 .btn-modal-confirm:disabled{opacity:.5;cursor:not-allowed;}
 
 .improd-opt{display:flex;align-items:center;gap:14px;padding:14px;border-radius:11px;border:1.5px solid var(--border);
-  background:var(--surface);cursor:pointer;margin-bottom:10px;text-align:left;width:100%;}
+  border-left:4px solid var(--border);background:var(--surface);cursor:pointer;margin-bottom:10px;text-align:left;width:100%;}
 .improd-opt:hover{border-color:var(--purple-border);background:var(--purple-hover);}
+.improd-opt.c-mec{border-left-color:#dc2626;}
+.improd-opt.c-ref{border-left-color:#1d4ed8;}
+.improd-opt.c-ins{border-left-color:#ea580c;}
+.improd-opt.c-prod{border-left-color:#7c3aed;}
+.improd-opt.c-alist{border-left-color:#7f1d1d;}
 .improd-opt .io-icon{font-size:22px;width:40px;height:40px;border-radius:10px;background:var(--surface2);
   display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .improd-opt .io-txt b{display:block;font-size:13.5px;color:var(--text);font-family:var(--font-display);font-weight:800;letter-spacing:.3px;}
@@ -364,7 +354,7 @@ select.qe-ctrl{background-color:#fff;
 <svg width="0" height="0" style="position:absolute">
   <defs>
     <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#22d3ee"/>
+      <stop offset="0%" stop-color="#1e3a8a"/>
       <stop offset="100%" stop-color="#3b82f6"/>
     </linearGradient>
   </defs>
@@ -416,13 +406,6 @@ select.qe-ctrl{background-color:#fff;
               <select class="qe-ctrl" id="sel-operario"><option value="">— Cargando… —</option></select>
             </div>
           </div>
-          <div class="qe-turno-preview">
-            <div class="dot" id="turno-dot"></div>
-            <div>
-              <span id="turno-preview-txt">Detectando turno…</span>
-              <small id="turno-preview-sub"></small>
-            </div>
-          </div>
           <div class="qe-form-error" id="op-error"></div>
           <button class="qe-submit-btn" id="btn-paso1" onclick="irPasoOP()" disabled>Continuar →</button>
         </div>
@@ -442,7 +425,7 @@ select.qe-ctrl{background-color:#fff;
     </div>
     <div class="os-topbar-right">
       <div class="os-mod-badge" id="orden-mod-badge"></div>
-      <button class="os-back-btn" onclick="location.href='/'">← Atrás</button>
+      <button class="os-back-btn" onclick="volverDeOrdenes()">← Atrás</button>
     </div>
   </div>
   <div class="os-body">
@@ -456,7 +439,7 @@ select.qe-ctrl{background-color:#fff;
 
 <div id="main-screen">
 
-  <div class="info-bar hud">
+  <div class="info-bar">
     <div class="info-bar-fields">
       <div class="info-field"><span class="info-lbl">Cliente</span><span class="info-val" id="info-cliente">—</span></div>
       <div class="info-sep"></div>
@@ -475,7 +458,7 @@ select.qe-ctrl{background-color:#fff;
     <div class="improd-list" id="improd-list"></div>
   </div>
 
-  <div class="main-gauge-panel hud">
+  <div class="main-gauge-panel">
     <div class="mala-badge" id="mala-badge" role="button" tabindex="0" aria-label="Registrar mala calidad">
       <span class="mala-badge-lbl">⚠️ MALA CALIDAD</span>
       <span class="mala-badge-num" id="mala-num">0</span>
@@ -492,7 +475,6 @@ select.qe-ctrl{background-color:#fff;
       </div>
     </div>
     <div class="main-gauge-label">Producción</div>
-    <div class="gauge-hint">TOCA +1 · MANTÉN PRESIONADO = CANTIDAD</div>
   </div>
 
   <div class="lote-trio">
@@ -505,12 +487,10 @@ select.qe-ctrl{background-color:#fff;
     <div class="efic-card">
       <div class="efic-card-lbl">Eficiencia · Hora</div>
       <div class="efic-card-num alta" id="efic-hora-num">—</div>
-      <div class="efic-card-note">se reinicia cada hora</div>
     </div>
     <div class="efic-card">
       <div class="efic-card-lbl">Eficiencia · Día</div>
       <div class="efic-card-num alta" id="efic-dia-num">—</div>
-      <div class="efic-card-note" id="efic-dia-note">acumulada desde inicio de turno</div>
     </div>
   </div>
 
@@ -531,7 +511,7 @@ select.qe-ctrl{background-color:#fff;
     <div class="modal-sub" id="reg-sub">¿Cuántas unidades acabas de producir?</div>
     <div class="qty-input-wrap">
       <button class="qty-btn" onclick="qtyStep(-1)" aria-label="Restar">−</button>
-      <div class="qty-display" id="qty-display">5</div>
+      <input class="qty-display" id="qty-display" type="number" min="1" inputmode="numeric" value="5" oninput="onQtyInput(this)">
       <button class="qty-btn" onclick="qtyStep(1)" aria-label="Sumar">+</button>
     </div>
     <div class="modal-btn-row">
@@ -543,29 +523,42 @@ select.qe-ctrl{background-color:#fff;
 
 <div class="modal-overlay" id="modal-improd">
   <div class="modal">
-    <div class="modal-title" style="margin-bottom:18px">¿Qué necesitas solicitar?</div>
-    <button class="improd-opt" onclick="reportarFaltaProduccion()">
-      <div class="io-icon">🛑</div>
-      <div class="io-txt"><b>Falta de Producción</b><small>Avisa a CI que el módulo se quedó sin trabajo</small></div>
+    <div class="modal-title" style="margin-bottom:18px">¿Qué necesitas reportar?</div>
+    <button class="improd-opt c-mec" onclick="onImpMec()">
+      <div class="io-icon">🔧</div>
+      <div class="io-txt"><b>Fallo Mecánico</b><small>Avisa que una máquina del módulo falló</small></div>
     </button>
-    <button class="improd-opt" onclick="closeModal('modal-improd');siOpen();">
+    <button class="improd-opt c-ref" onclick="onImpRef()">
+      <div class="io-icon">🔄</div>
+      <div class="io-txt"><b>Cambio de Referencia</b><small>El módulo está en alistamiento por cambio de referencia</small></div>
+    </button>
+    <button class="improd-opt c-ins" onclick="closeModal('modal-improd');siOpen();">
       <div class="io-icon">🧵</div>
-      <div class="io-txt"><b>Solicitud de Insumos</b><small>Pide elástico, hilo u otro insumo a CI</small></div>
+      <div class="io-txt"><b>Falta de Insumos</b><small>Pide elástico, hilo u otro insumo a CI</small></div>
+    </button>
+    <button class="improd-opt c-prod" onclick="reportarFaltaProduccion()">
+      <div class="io-icon">🛑</div>
+      <div class="io-txt"><b>Solicitud de Producción</b><small>Avisa a CI que el módulo se quedó sin trabajo</small></div>
+    </button>
+    <button class="improd-opt c-alist" onclick="onImpAlist()">
+      <div class="io-icon">🧷</div>
+      <div class="io-txt"><b>Alistamiento</b><small>El módulo está en alistamiento general</small></div>
     </button>
     <button class="btn-modal-cancel" style="width:100%;margin-top:4px" onclick="closeModal('modal-improd')">Cancelar</button>
   </div>
 </div>
 
-<div class="modal-overlay" id="modal-cambiar-op">
+<div class="modal-overlay" id="modal-empleada-mec">
   <div class="modal">
-    <div class="modal-title" style="margin-bottom:14px">Cambiar OP</div>
+    <div class="modal-title" style="margin-bottom:4px">🔴 Fallo Mecánico</div>
+    <div class="modal-sub">Selecciona la empleada del módulo</div>
     <div class="modal-field">
-      <label for="sel-op-cambio">Nueva orden de producción</label>
-      <select class="modal-select" id="sel-op-cambio"></select>
+      <label for="sel-empleada-mec">Empleada</label>
+      <select class="modal-select" id="sel-empleada-mec"><option value="">— Seleccionar —</option></select>
     </div>
     <div class="modal-btn-row">
-      <button class="btn-modal-cancel" onclick="closeModal('modal-cambiar-op')">Cancelar</button>
-      <button class="btn-modal-confirm prod" onclick="confirmarCambioOP()">Cambiar</button>
+      <button class="btn-modal-cancel" onclick="closeModal('modal-empleada-mec')">Cancelar</button>
+      <button class="btn-modal-confirm calidad" onclick="confirmarFalloMec()">Confirmar Fallo</button>
     </div>
   </div>
 </div>
@@ -669,9 +662,6 @@ async function cargarOperarios(){
   }catch(e){ sel.innerHTML='<option value="">— Error al cargar —</option>'; }
   sel.onchange=()=>{ selectedOperario=sel.value; document.getElementById('btn-paso1').disabled=!sel.value; };
 }
-document.getElementById('turno-dot').style.background = _turno.turno==='dia' ? '#fbbf24' : '#a78bfa';
-document.getElementById('turno-preview-txt').textContent = 'Turno detectado automáticamente: '+(_turno.turno==='dia'?'Día ☀️':'Noche 🌙');
-document.getElementById('turno-preview-sub').textContent = _turno.turno==='dia' ? '06:00 a. m. – 05:45 p. m.' : '05:45 p. m. – 06:00 a. m.';
 cargarOperarios();
 
 function irPasoOP(){
@@ -773,6 +763,12 @@ async function seleccionarOrden(orden){
   opActiva = orden;
   document.getElementById('orden-screen').style.display='none';
   document.getElementById('main-screen').style.display='flex';
+  if(_cambiandoOP){
+    _cambiandoOP=false;
+    await inicializarDashboard();
+    showToast('✅ OP cambiada a '+orden.op);
+    return;
+  }
   document.getElementById('hd-badges').style.display='flex';
   document.getElementById('hd-modulo').textContent=selectedMod;
   document.getElementById('hd-operario').textContent=selectedOperario;
@@ -883,7 +879,7 @@ wireTap(document.getElementById('mala-badge'), 'calidad');
 let qty=5, modoActivo='produccion';
 function abrirModalRegistro(tipo){
   modoActivo=tipo; qty=5;
-  document.getElementById('qty-display').textContent=qty;
+  document.getElementById('qty-display').value=qty;
   const icon=document.getElementById('reg-icon'), title=document.getElementById('reg-title'),
         sub=document.getElementById('reg-sub'), btn=document.getElementById('reg-confirm-btn');
   const claseCss = tipo==='produccion'?'prod':'calidad';
@@ -897,8 +893,16 @@ function abrirModalRegistro(tipo){
   }
   document.getElementById('modal-registro').classList.add('show');
 }
-function qtyStep(d){ qty=Math.max(1,qty+d); document.getElementById('qty-display').textContent=qty; }
-function confirmarRegistro(){ enviarRegistro(modoActivo, qty); closeModal('modal-registro'); }
+function qtyStep(d){ qty=Math.max(1,qty+d); document.getElementById('qty-display').value=qty; }
+function onQtyInput(el){
+  const v=parseInt(el.value,10);
+  qty = (v>0) ? v : qty;
+}
+function confirmarRegistro(){
+  const v=parseInt(document.getElementById('qty-display').value,10);
+  qty = (v>0) ? v : 1;
+  enviarRegistro(modoActivo, qty); closeModal('modal-registro');
+}
 
 async function enviarRegistro(tipo, cantidad){
   try{
@@ -917,20 +921,22 @@ async function enviarRegistro(tipo, cantidad){
   }catch(e){ showToast('⚠️ Error de conexión', true); }
 }
 
-// ── Cambiar OP ─────────────────────────────────────────────────────
+// ── Cambiar OP — reusa la misma pantalla completa de tarjetas del login ──
+let _cambiandoOP = false;
 function abrirCambiarOP(){
-  const sel=document.getElementById('sel-op-cambio');
-  sel.innerHTML=Object.values(opCache).map(o=>
-    `<option value="${o.op}"${o.op===opActiva.op?' selected':''}>${o.op} — ${o.ref} (${o.cantidad} uds)</option>`).join('');
-  document.getElementById('modal-cambiar-op').classList.add('show');
+  _cambiandoOP = true;
+  document.getElementById('main-screen').style.display='none';
+  document.getElementById('orden-screen').style.display='flex';
+  cargarOrdenesModulo();
 }
-async function confirmarCambioOP(){
-  const op=document.getElementById('sel-op-cambio').value;
-  if(!op || !opCache[op]) return;
-  opActiva = opCache[op];
-  closeModal('modal-cambiar-op');
-  await inicializarDashboard();
-  showToast('✅ OP cambiada a '+op);
+function volverDeOrdenes(){
+  if(_cambiandoOP){
+    _cambiandoOP=false;
+    document.getElementById('orden-screen').style.display='none';
+    document.getElementById('main-screen').style.display='flex';
+  } else {
+    location.href='/';
+  }
 }
 
 // ── Historial por hora (una hora puede tener varias OP) ───────────
@@ -1063,8 +1069,46 @@ function reportarFaltaProduccion(){
     status:'alert', waitTime:null, resolvedAt:null, obs:'', alertStart: now.getTime(), esMecanico:false
   };
   wsSend({type:'ci_new_request', request:newReq});
+  wsSend({type:'change', id:selectedMod, state:'purple', mecanico:'', empleada:''});
   upsertImprod(newReq); renderImproductivos();
   showToast('🏭 Solicitud de producción enviada a CI');
+}
+
+// ── Fallo Mecánico / Cambio de Referencia / Alistamiento — mismo mensaje
+// 'change' que usa Contador Módulos para pintar la ficha del módulo en
+// Tablero CI / Tablero General / Tablero Mecánicos. No generan una fila en
+// el panel de improductivos de este módulo (ese panel es solo ci_new_request).
+async function onImpMec(){
+  closeModal('modal-improd');
+  if(!selectedMod) return;
+  try{
+    const r=await fetch('/api/ia-records');
+    const recs=await r.json();
+    const hoy=new Date().toISOString().split('T')[0];
+    const empsHoy=(recs||[]).filter(x=>x.area===selectedMod && x.status==='presente' && x.date===hoy);
+    if(!empsHoy.length){ showToast('⚠️ No hay operarias registradas hoy en '+selectedMod, true); return; }
+    const sel=document.getElementById('sel-empleada-mec');
+    sel.innerHTML='<option value="">— Seleccionar —</option>'+
+      empsHoy.map(e=>`<option value="${e.empName}">${e.empName}</option>`).join('');
+    document.getElementById('modal-empleada-mec').classList.add('show');
+  }catch(e){ showToast('⚠️ No se pudo cargar el listado de empleadas', true); }
+}
+function confirmarFalloMec(){
+  const emp=document.getElementById('sel-empleada-mec').value;
+  if(!emp) return;
+  closeModal('modal-empleada-mec');
+  wsSend({type:'change', id:selectedMod, state:'red', mecanico:'', empleada:emp});
+  showToast('🔴 Fallo mecánico reportado');
+}
+function onImpRef(){
+  closeModal('modal-improd');
+  wsSend({type:'change', id:selectedMod, state:'blue', mecanico:'', empleada:''});
+  showToast('🔵 Cambio de referencia reportado');
+}
+function onImpAlist(){
+  closeModal('modal-improd');
+  wsSend({type:'change', id:selectedMod, state:'garnet', mecanico:'', empleada:''});
+  showToast('🧷 Alistamiento reportado');
 }
 
 function connectWS(){
