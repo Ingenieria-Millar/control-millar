@@ -75,31 +75,107 @@ header::before{content:'';position:absolute;top:0;left:-30%;width:30%;height:2px
   font-family:var(--font-display);font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;}
 .hd-back-btn:hover{background:var(--surface2);border-color:var(--cyan);}
 
-#login-screen{flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto;}
-.login-card{background:var(--surface);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.5);
-  padding:clamp(20px,4vh,40px);width:100%;max-width:420px;position:relative;overflow:hidden;border:1px solid var(--border);}
-.login-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent2),var(--accent),var(--cyan));}
-.login-step-label{font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:2.5px;
-  text-transform:uppercase;color:var(--cyan);margin-bottom:6px;}
-.login-title{font-family:var(--font-display);font-size:clamp(22px,4vh,30px);font-weight:800;color:var(--text);margin-bottom:18px;letter-spacing:.5px;}
-.login-field{margin-bottom:14px;}
-.login-field label{display:block;font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:5px;letter-spacing:.3px;}
-.login-select,.login-input{width:100%;padding:12px 14px;border-radius:9px;border:1.5px solid var(--border);
-  font-size:16px;font-weight:600;color:var(--text);background:var(--surface2);}
-.login-select:focus,.login-input:focus{outline:none;border-color:var(--cyan);}
-.login-turno-preview{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;background:var(--cyan-soft);
-  border:1.5px solid var(--cyan);margin-bottom:16px;}
-.login-turno-preview .dot{width:10px;height:10px;border-radius:50%;background:var(--warn);flex-shrink:0;box-shadow:0 0 8px var(--warn);}
-.login-turno-preview span{font-size:12.5px;font-weight:700;color:var(--text);}
-.login-turno-preview small{display:block;font-size:10.5px;font-weight:500;color:var(--text-muted);}
-.btn-login-continue{width:100%;padding:14px;border-radius:9px;border:none;background:linear-gradient(135deg,var(--accent2),var(--accent),var(--cyan));
-  color:#fff;font-family:var(--font-display);font-size:15px;font-weight:800;letter-spacing:1.5px;cursor:pointer;
-  box-shadow:0 8px 24px rgba(37,99,235,.35);}
-.btn-login-continue:disabled{opacity:.5;cursor:not-allowed;}
-.login-dots{display:flex;gap:6px;justify-content:center;margin-top:18px;}
-.login-dots span{width:7px;height:7px;border-radius:50%;background:var(--border);}
-.login-dots span.active{background:var(--cyan);width:22px;border-radius:4px;}
-.login-error{color:var(--bad);font-size:12.5px;font-weight:700;margin-top:8px;min-height:16px;}
+/* ── Pantalla "¿Quién eres?" — panel dividido, mismo estilo que Acceso Módulo ── */
+#login-screen{position:fixed;inset:0;z-index:490;display:flex;overflow:hidden;}
+.qe-left{flex:0 0 35%;position:relative;overflow:hidden;
+  background:linear-gradient(155deg,#020d22 0%,#04163d 30%,#071e55 60%,#0a2570 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 32px;}
+.qe-mesh{position:absolute;inset:0;
+  background:radial-gradient(ellipse 65% 55% at 20% 15%,rgba(0,70,220,.28) 0%,transparent 68%),
+    radial-gradient(ellipse 50% 60% at 82% 82%,rgba(0,25,170,.32) 0%,transparent 65%),
+    radial-gradient(ellipse 40% 50% at 60% 40%,rgba(0,110,255,.13) 0%,transparent 58%);
+  animation:qeMeshA 16s ease-in-out infinite alternate;}
+.qe-dotgrid{position:absolute;inset:0;
+  background-image:radial-gradient(circle,rgba(255,255,255,.07) 1.2px,transparent 1.2px);
+  background-size:38px 38px;
+  mask-image:radial-gradient(ellipse 85% 85% at 50% 50%,black 15%,transparent 80%);
+  animation:qeGridD 22s linear infinite;}
+.qe-orb{position:absolute;border-radius:50%;pointer-events:none;filter:blur(55px);}
+.qe-orb1{width:320px;height:320px;background:radial-gradient(circle,rgba(20,70,240,.2),transparent 70%);top:-80px;left:-80px;animation:qeOb1 11s ease-in-out infinite;}
+.qe-orb2{width:280px;height:280px;background:radial-gradient(circle,rgba(0,40,190,.26),transparent 70%);bottom:-70px;right:-40px;animation:qeOb2 13s ease-in-out infinite;}
+@keyframes qeMeshA{0%{transform:scale(1) translate(0,0);}50%{transform:scale(1.06) translate(2%,1.5%);}100%{transform:scale(1.02) translate(-1%,.5%);}}
+@keyframes qeGridD{0%{background-position:0 0;}100%{background-position:38px 38px;}}
+@keyframes qeOb1{0%,100%{transform:translate(0,0);}50%{transform:translate(28px,-18px);}}
+@keyframes qeOb2{0%,100%{transform:translate(0,0);}50%{transform:translate(-18px,24px);}}
+.qe-user-zone{position:relative;z-index:5;display:flex;flex-direction:column;align-items:center;animation:qeZoneUp .8s cubic-bezier(.22,1,.36,1) .1s both;}
+@keyframes qeZoneUp{from{opacity:0;transform:translateY(36px) scale(.91);}to{opacity:1;transform:none;}}
+.qe-logo-ring{width:148px;height:148px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;
+  box-shadow:0 0 0 5px rgba(255,255,255,.11),0 0 0 15px rgba(255,255,255,.05),0 28px 80px rgba(0,0,0,.55),0 0 70px rgba(20,80,255,.28);
+  animation:qeLogoGlow 5s ease-in-out infinite 1.4s;margin-bottom:24px;flex-shrink:0;}
+.qe-logo-ring img{width:100%;height:100%;object-fit:contain;padding:8px;}
+@keyframes qeLogoGlow{
+  0%,100%{box-shadow:0 0 0 5px rgba(255,255,255,.11),0 0 0 15px rgba(255,255,255,.05),0 28px 80px rgba(0,0,0,.55),0 0 70px rgba(20,80,255,.22);}
+  50%{box-shadow:0 0 0 8px rgba(255,255,255,.18),0 0 0 22px rgba(255,255,255,.08),0 32px 90px rgba(0,0,0,.5),0 0 100px rgba(30,100,255,.45);}}
+.qe-greeting{font-family:var(--font-body);font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:6px;}
+.qe-username{font-family:var(--font-display);font-size:32px;font-weight:700;letter-spacing:1px;color:#fff;text-align:center;line-height:1.15;margin-bottom:10px;}
+.qe-username span{color:#60a5fa;}
+.qe-left-foot{position:absolute;bottom:20px;left:0;right:0;text-align:center;z-index:5;
+  font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:1.5px;color:rgba(255,255,255,.35);}
+
+.qe-right{flex:1;background:#f1f5f9;display:flex;flex-direction:column;position:relative;box-shadow:-18px 0 55px rgba(0,0,0,.35);overflow:hidden;}
+.qe-right::before{content:'';position:absolute;inset:0;
+  background-image:linear-gradient(rgba(203,213,225,.5) 1px,transparent 1px),linear-gradient(90deg,rgba(203,213,225,.5) 1px,transparent 1px);
+  background-size:28px 28px;opacity:.25;pointer-events:none;}
+.qe-right::after{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);}
+.qe-right-header{position:relative;z-index:2;padding:32px 40px 0;flex-shrink:0;}
+.qe-brand-row{display:flex;align-items:center;gap:8px;margin-bottom:20px;}
+.qe-brand-pip{width:3px;height:22px;border-radius:2px;background:linear-gradient(180deg,#2563eb,#60a5fa);}
+.qe-brand-txt{font-family:var(--font-body);font-size:10px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:#64748b;}
+.qe-right-title{font-family:var(--font-display);font-size:34px;font-weight:700;letter-spacing:1px;color:#0f172a;line-height:1;margin-bottom:4px;}
+.qe-right-sub{font-family:var(--font-body);font-size:13px;color:#64748b;font-weight:400;}
+.qe-right-body{position:relative;z-index:1;flex:1;padding:24px 40px;overflow-y:auto;display:flex;align-items:center;}
+.qe-right-body-inner{width:100%;max-width:400px;margin:0 auto;}
+.qe-footer{position:relative;z-index:2;padding:20px 40px 28px;display:flex;align-items:center;justify-content:flex-end;flex-shrink:0;}
+.qe-right-foot{font-family:var(--font-body);font-size:10px;color:#94a3b8;letter-spacing:.5px;}
+
+.qe-form-fields{display:flex;flex-direction:column;gap:16px;}
+.qe-fl{display:flex;flex-direction:column;gap:6px;}
+.qe-fl label{font-family:var(--font-body);font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#475569;}
+.qe-fl-row{position:relative;display:flex;align-items:center;}
+.qe-fl-ico{position:absolute;left:13px;font-size:15px;color:#94a3b8;pointer-events:none;}
+.qe-ctrl{width:100%;padding:12px 12px 12px 40px;border-radius:9px;border:1.5px solid #e2e8f0;
+  background:#fff;font-family:var(--font-body);font-size:14px;font-weight:500;color:#0f172a;
+  outline:none;transition:all .2s;box-shadow:0 1px 3px rgba(0,0,0,.05);appearance:none;-webkit-appearance:none;}
+.qe-ctrl:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.11);}
+select.qe-ctrl{background-color:#fff;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%2394a3b8' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center;cursor:pointer;}
+.qe-turno-preview{display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:9px;background:#eff6ff;border:1.5px solid #bfdbfe;}
+.qe-turno-preview .dot{width:10px;height:10px;border-radius:50%;background:#fbbf24;flex-shrink:0;box-shadow:0 0 8px rgba(251,191,36,.6);}
+.qe-turno-preview span{font-size:12.5px;font-weight:700;color:#0f172a;}
+.qe-turno-preview small{display:block;font-size:10.5px;font-weight:500;color:#64748b;}
+.qe-submit-btn{margin-top:4px;width:100%;padding:13px;border-radius:9px;border:none;
+  background:linear-gradient(135deg,#1e3a8a 0%,#2563eb 100%);color:#fff;
+  font-family:var(--font-display);font-size:16px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
+  cursor:pointer;position:relative;overflow:hidden;box-shadow:0 4px 18px rgba(37,99,235,.38);transition:all .22s;}
+.qe-submit-btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 26px rgba(37,99,235,.48);}
+.qe-submit-btn:disabled{opacity:.5;cursor:not-allowed;}
+.qe-form-error{font-size:12px;color:#ef4444;letter-spacing:.5px;min-height:16px;text-align:center;font-family:var(--font-body);}
+
+/* ── Pantalla "Selecciona la OP" — grid de tarjetas, mismo estilo que Contador Módulos ── */
+#orden-screen{display:none;position:fixed;inset:0;z-index:490;background:#f1f5f9;flex-direction:column;}
+.os-topbar{background:#fff;border-bottom:1px solid #e2e8f0;padding:0 clamp(12px,2.5vw,24px);min-height:60px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;position:relative;flex-shrink:0;}
+.os-topbar-left{display:flex;align-items:center;gap:12px;}
+.os-logo{width:32px;height:32px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 0 0 2px #e2e8f0;}
+.os-logo img{width:100%;height:100%;object-fit:contain;padding:3px;}
+.os-brand{font-family:var(--font-display);font-size:18px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#0f172a;}
+.os-brand span{color:#2563eb;}
+.os-topbar-right{display:flex;align-items:center;gap:10px;}
+.os-mod-badge{font-family:var(--font-display);font-size:13px;font-weight:700;color:#64748b;letter-spacing:1px;text-transform:uppercase;}
+.os-back-btn{padding:6px 14px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;color:#1e3a8a;
+  font-family:var(--font-display);font-size:13px;font-weight:700;cursor:pointer;}
+.os-topbar::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);}
+.os-body{flex:1;overflow-y:auto;padding:24px clamp(12px,3vw,40px);}
+.os-search{width:100%;max-width:420px;padding:10px 16px;border:1.5px solid #e2e8f0;border-radius:10px;
+  font-family:var(--font-body);font-size:14px;color:#0f172a;background:#fff;outline:none;box-shadow:0 1px 4px rgba(0,0,0,.05);}
+.os-search:focus{border-color:#2563eb;}
+.os-title{font-family:var(--font-display);font-size:clamp(20px,3vw,26px);font-weight:800;letter-spacing:1px;color:#0f172a;margin-top:14px;}
+.os-title span{color:#2563eb;}
+.os-sub{font-size:13px;color:#64748b;margin-top:2px;}
+.os-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-top:20px;}
+.os-foot{padding:12px clamp(12px,2.5vw,24px);background:#fff;border-top:1px solid #e2e8f0;text-align:right;flex-shrink:0;}
+.os-foot span{font-size:11px;color:#94a3b8;font-family:var(--font-body);}
 
 #main-screen{display:none;flex-direction:column;flex:1 1 auto;min-height:0;overflow:hidden;
   padding:clamp(6px,1.2vh,14px) clamp(10px,2.5vw,24px);gap:clamp(6px,1.1vh,12px);max-width:640px;width:100%;margin:0 auto;}
@@ -210,6 +286,11 @@ header::before{content:'';position:absolute;top:0;left:-30%;width:30%;height:2px
   font-size:22px;font-weight:700;color:var(--text-muted);cursor:pointer;flex-shrink:0;}
 .qty-btn:active{background:var(--border);}
 .qty-display{font-family:var(--font-mono);font-size:48px;font-weight:700;color:var(--text);min-width:90px;text-align:center;font-variant-numeric:tabular-nums;}
+.modal-field{margin-bottom:16px;}
+.modal-field label{display:block;font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:5px;letter-spacing:.3px;}
+.modal-select{width:100%;padding:12px 14px;border-radius:9px;border:1.5px solid var(--border);
+  font-size:14px;font-weight:600;color:var(--text);background:var(--surface2);outline:none;}
+.modal-select:focus{border-color:var(--cyan);}
 .modal-btn-row{display:flex;gap:10px;}
 .btn-modal-cancel{flex:1;padding:14px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);
   color:var(--text-muted);font-family:var(--font-display);font-size:14px;font-weight:700;cursor:pointer;}
@@ -307,38 +388,70 @@ header::before{content:'';position:absolute;top:0;left:-30%;width:30%;height:2px
 </header>
 
 <div id="login-screen">
-  <div class="login-card">
-    <div id="step-operario">
-      <div class="login-step-label">// Paso 1 de 2</div>
-      <div class="login-title">¿Quién eres?</div>
-      <div class="login-field">
-        <label for="sel-operario">Operario (según asistencia de hoy)</label>
-        <select class="login-select" id="sel-operario"><option value="">— Cargando… —</option></select>
-      </div>
-      <div class="login-turno-preview">
-        <div class="dot" id="turno-dot"></div>
-        <div>
-          <span id="turno-preview-txt">Detectando turno…</span>
-          <small id="turno-preview-sub"></small>
+  <div class="qe-left">
+    <div class="qe-mesh"></div>
+    <div class="qe-dotgrid"></div>
+    <div class="qe-orb qe-orb1"></div>
+    <div class="qe-orb qe-orb2"></div>
+    <div class="qe-user-zone">
+      <div class="qe-logo-ring"><img src="/logo.png" alt="Millar"></div>
+      <div class="qe-greeting">Bienvenido</div>
+      <div class="qe-username">Módulo <span id="qe-modulo-txt"></span></div>
+    </div>
+    <div class="qe-left-foot" id="qe-clock">--:--:--</div>
+  </div>
+  <div class="qe-right">
+    <div class="qe-right-header">
+      <div class="qe-brand-row"><div class="qe-brand-pip"></div><span class="qe-brand-txt">Confecciones Millar</span></div>
+      <div class="qe-right-title">¿Quién eres?</div>
+      <div class="qe-right-sub">Selecciona tu nombre según la asistencia de hoy</div>
+    </div>
+    <div class="qe-right-body">
+      <div class="qe-right-body-inner">
+        <div class="qe-form-fields">
+          <div class="qe-fl">
+            <label>Operario</label>
+            <div class="qe-fl-row">
+              <span class="qe-fl-ico">👤</span>
+              <select class="qe-ctrl" id="sel-operario"><option value="">— Cargando… —</option></select>
+            </div>
+          </div>
+          <div class="qe-turno-preview">
+            <div class="dot" id="turno-dot"></div>
+            <div>
+              <span id="turno-preview-txt">Detectando turno…</span>
+              <small id="turno-preview-sub"></small>
+            </div>
+          </div>
+          <div class="qe-form-error" id="op-error"></div>
+          <button class="qe-submit-btn" id="btn-paso1" onclick="irPasoOP()" disabled>Continuar →</button>
         </div>
       </div>
-      <button class="btn-login-continue" id="btn-paso1" onclick="irPasoOP()" disabled>CONTINUAR →</button>
-      <div class="login-error" id="op-error"></div>
-      <div class="login-dots"><span class="active"></span><span></span></div>
     </div>
-
-    <div id="step-op" style="display:none">
-      <div class="login-step-label">// Paso 2 de 2</div>
-      <div class="login-title">Selecciona la OP activa</div>
-      <div class="login-field">
-        <label for="sel-op">Orden de producción programada en este módulo</label>
-        <select class="login-select" id="sel-op"><option value="">— Cargando… —</option></select>
-      </div>
-      <button class="btn-login-continue" id="btn-paso2" onclick="confirmarLogin()" disabled>INGRESAR AL CONTADOR →</button>
-      <div class="login-error" id="login-error"></div>
-      <div class="login-dots"><span></span><span class="active"></span></div>
+    <div class="qe-footer">
+      <span class="qe-right-foot">© 2026 Ingenieria Confecciones Millar S.A.S.</span>
     </div>
   </div>
+</div>
+
+<div id="orden-screen">
+  <div class="os-topbar">
+    <div class="os-topbar-left">
+      <div class="os-logo"><img src="/logo.png" onerror="this.style.display='none'"></div>
+      <div class="os-brand">CONFECCIONES <span>MILLAR</span></div>
+    </div>
+    <div class="os-topbar-right">
+      <div class="os-mod-badge" id="orden-mod-badge"></div>
+      <button class="os-back-btn" onclick="location.href='/'">← Atrás</button>
+    </div>
+  </div>
+  <div class="os-body">
+    <input id="orden-buscar" class="os-search" type="text" placeholder="🔍  Buscar por referencia o OP..." oninput="filtrarOrdenLista()">
+    <div class="os-title">Órdenes asignadas — Módulo <span id="orden-mod-txt"></span></div>
+    <div class="os-sub">Selecciona la orden con la que vas a trabajar hoy</div>
+    <div id="orden-lista" class="os-grid"></div>
+  </div>
+  <div class="os-foot"><span>© 2026 Ingenieria Confecciones Millar S.A.S.</span></div>
 </div>
 
 <div id="main-screen">
@@ -446,9 +559,9 @@ header::before{content:'';position:absolute;top:0;left:-30%;width:30%;height:2px
 <div class="modal-overlay" id="modal-cambiar-op">
   <div class="modal">
     <div class="modal-title" style="margin-bottom:14px">Cambiar OP</div>
-    <div class="login-field">
+    <div class="modal-field">
       <label for="sel-op-cambio">Nueva orden de producción</label>
-      <select class="login-select" id="sel-op-cambio"></select>
+      <select class="modal-select" id="sel-op-cambio"></select>
     </div>
     <div class="modal-btn-row">
       <button class="btn-modal-cancel" onclick="closeModal('modal-cambiar-op')">Cancelar</button>
@@ -510,8 +623,13 @@ function tick(){
   const d=new Date();
   document.getElementById('hd-fecha').textContent = d.toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   document.getElementById('hd-clock').textContent = d.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const qc=document.getElementById('qe-clock');
+  if(qc) qc.textContent = d.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
 }
 setInterval(tick,1000); tick();
+document.getElementById('qe-modulo-txt').textContent = selectedMod;
+document.getElementById('orden-mod-badge').textContent = '🏭 ' + selectedMod;
+document.getElementById('orden-mod-txt').textContent = selectedMod;
 
 let toastTimer;
 function showToast(msg, isError){
@@ -558,45 +676,102 @@ cargarOperarios();
 
 function irPasoOP(){
   if(!selectedOperario) return;
-  document.getElementById('step-operario').style.display='none';
-  document.getElementById('step-op').style.display='block';
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('orden-screen').style.display='flex';
   cargarOrdenesModulo();
 }
 
-// ── Paso 2: OP activa (tomada de las tarjetas de Producción para este módulo) ──
-let opCache = {}; // op -> {ref, op, cliente, cantidad, sam}
+// ── Paso 2: OP activa — se toma de Órdenes de Producción (asignación real
+// por módulo); se enriquece con SAM/operarios del tablero Kanban de
+// Producción cuando existe una tarjeta con esa misma OP, para poder calcular
+// Eficiencia Hora/Día. Si no hay tarjeta con esa OP, la eficiencia simplemente
+// no se muestra (queda "—") en vez de inventar un dato.
+let opCache = {}; // op -> {ref, op, cliente, cantidad, sam, operarios}
 async function cargarOrdenesModulo(){
-  const sel=document.getElementById('sel-op');
-  sel.innerHTML='<option value="">— Cargando… —</option>';
+  const lista=document.getElementById('orden-lista');
+  lista.innerHTML='<div style="grid-column:1/-1;text-align:center;color:#94a3b8;padding:40px;">Cargando…</div>';
   try{
-    const r=await fetch('/api/produccion');
-    const data=await r.json();
-    opCache={};
+    const [rOrdenes, rProd] = await Promise.all([fetch('/api/ordenes'), fetch('/api/produccion')]);
+    const ordenes = await rOrdenes.json();
+    const prod = await rProd.json();
+
+    const enrich={}; // op -> {sam, cliente, operarios}
     let operariosModulo=2;
-    Object.values(data.boards||{}).forEach(b=>{
+    Object.values(prod.boards||{}).forEach(b=>{
       const md=b.moduleData && b.moduleData[selectedMod];
       if(!md) return;
       operariosModulo = md.operarios || operariosModulo;
       (md.cards||[]).forEach(c=>{
         if(!c.op) return;
-        opCache[c.op] = { op:c.op, ref:c.ref, cliente:c.cliente||'', cantidad:c.cantidad, sam:c.sam, operarios:operariosModulo };
+        enrich[c.op] = { sam:c.sam, cliente:c.cliente||'', operarios: md.operarios||operariosModulo };
       });
     });
     window._operariosModulo = operariosModulo;
-    const ops=Object.values(opCache);
-    sel.innerHTML='<option value="">— Selecciona una OP —</option>'+
-      ops.map(o=>`<option value="${o.op}">${o.op} — ${o.ref}${o.cliente?' — '+o.cliente:''} (${o.cantidad} uds)</option>`).join('');
-    if(!ops.length) sel.innerHTML='<option value="">— No hay OP programadas en este módulo en Producción —</option>';
-  }catch(e){ sel.innerHTML='<option value="">— Error al cargar —</option>'; }
-  sel.onchange=()=>{ document.getElementById('btn-paso2').disabled=!sel.value; };
+
+    opCache={};
+    (ordenes||[]).filter(o=>(o.modulo||'')===selectedMod).forEach(o=>{
+      const op=o.opoc;
+      if(!op) return;
+      const e=enrich[op]||{};
+      opCache[op] = { op, ref:o.referencia, cliente:e.cliente||'', cantidad:o.cantidad, sam:e.sam, operarios:e.operarios||operariosModulo };
+    });
+    renderOrdenLista();
+  }catch(e){
+    lista.innerHTML='<div style="grid-column:1/-1;text-align:center;color:#ef4444;padding:40px;">Error al cargar las órdenes</div>';
+  }
+}
+
+function renderOrdenLista(){
+  const lista=document.getElementById('orden-lista');
+  const buscarEl=document.getElementById('orden-buscar');
+  lista.innerHTML='';
+  const ops=Object.values(opCache);
+  if(!ops.length){
+    if(buscarEl) buscarEl.style.display='none';
+    lista.innerHTML=`
+      <div style="grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:60px 20px;text-align:center;">
+        <div style="font-size:52px;">📋</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;letter-spacing:1px;color:#0f172a;">Sin órdenes asignadas</div>
+        <div style="font-size:14px;color:#64748b;max-width:320px;line-height:1.6;">
+          El módulo <b style="color:#1e40af;">${selectedMod}</b> no tiene órdenes de producción asignadas.<br>
+          Contacta al programador o supervisor para que asigne una orden en Órdenes de Producción.
+        </div>
+        <button onclick="location.href='/'" style="margin-top:8px;padding:12px 32px;border-radius:10px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;cursor:pointer;">← Volver al inicio</button>
+      </div>`;
+    return;
+  }
+  if(buscarEl) buscarEl.style.display='';
+  ops.forEach(o=>{
+    const card=document.createElement('div');
+    card.dataset.ref=o.ref||''; card.dataset.op=o.op||'';
+    card.style.cssText='background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;padding:14px 16px;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;gap:6px;';
+    card.innerHTML=`
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+        <span style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;color:#1e3a8a;">${o.ref||'—'}</span>
+        <span style="font-family:'Courier New',monospace;font-size:13px;font-weight:800;color:#2563eb;background:#eff6ff;padding:3px 10px;border-radius:5px;">${o.op||'—'}</span>
+      </div>
+      <div style="font-size:11px;color:#64748b;">Cantidad: <b style="color:#0f172a;">${o.cantidad||'—'}</b></div>
+      <button style="margin-top:4px;width:100%;padding:8px;border-radius:8px;border:none;background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;cursor:pointer;">Trabajar →</button>`;
+    card.querySelector('button').addEventListener('click', ()=>seleccionarOrden(o));
+    card.addEventListener('mouseenter',()=>{ card.style.borderColor='#2563eb'; card.style.boxShadow='0 4px 16px rgba(37,99,235,.15)'; });
+    card.addEventListener('mouseleave',()=>{ card.style.borderColor='#e2e8f0'; card.style.boxShadow='none'; });
+    lista.appendChild(card);
+  });
+}
+
+function filtrarOrdenLista(){
+  const q=(document.getElementById('orden-buscar')?.value||'').toLowerCase().trim();
+  document.querySelectorAll('#orden-lista > div').forEach(card=>{
+    const ref=(card.dataset.ref||'').toLowerCase();
+    const op=(card.dataset.op||'').toLowerCase();
+    card.style.display=(!q || ref.includes(q) || op.includes(q)) ? '' : 'none';
+  });
 }
 
 let opActiva = null;
-async function confirmarLogin(){
-  const op=document.getElementById('sel-op').value;
-  if(!op) return;
-  opActiva = opCache[op];
-  document.getElementById('login-screen').style.display='none';
+async function seleccionarOrden(orden){
+  opActiva = orden;
+  document.getElementById('orden-screen').style.display='none';
   document.getElementById('main-screen').style.display='flex';
   document.getElementById('hd-badges').style.display='flex';
   document.getElementById('hd-modulo').textContent=selectedMod;
