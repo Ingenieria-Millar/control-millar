@@ -161,6 +161,61 @@ td:last-child{ border-right:none; }
 .modal-btns{ display:flex;gap:10px;margin-top:20px; }
 .modal-btns .btn{ flex:1;justify-content:center; }
 
+/* ── PESTAÑAS DEL FORMULARIO (Información Lote / Operaciones) ── */
+.tabs-row{ display:flex;gap:6px;border-bottom:2px solid var(--border);margin-bottom:18px; }
+.tab-btn{
+  flex:1;padding:10px 12px;border:none;background:none;cursor:pointer;
+  font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;
+  letter-spacing:1px;text-transform:uppercase;color:var(--muted);
+  border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s;
+}
+.tab-btn:hover{ color:var(--accent); }
+.tab-btn.active{ color:var(--accent2);border-bottom-color:var(--accent); }
+.tab-pane{ display:none; }
+.tab-pane.active{ display:block; }
+/* El cuerpo del formulario se desplaza solo si hace falta, para que el modal
+   quepa en cualquier pantalla (celular, tablet, PC, televisor). */
+.form-body{ max-height:min(58vh,520px);overflow-y:auto;padding-right:4px;margin-right:-4px; }
+
+/* ── FOTO DE LA PRENDA ── */
+.foto-zone{ display:flex;align-items:center;gap:14px;flex-wrap:wrap; }
+.foto-preview{
+  width:96px;height:96px;border-radius:12px;border:1.5px dashed var(--border);
+  background:#f8fafc;display:flex;align-items:center;justify-content:center;
+  overflow:hidden;flex-shrink:0;color:#cbd5e1;font-size:28px;
+}
+.foto-preview img{ width:100%;height:100%;object-fit:cover; }
+.foto-actions{ display:flex;flex-direction:column;gap:8px; }
+.foto-hint{ font-family:'Nunito',sans-serif;font-size:11px;color:var(--muted); }
+
+/* ── LISTA DE OPERACIONES ── */
+.ops-head{
+  display:grid;grid-template-columns:1fr 110px 40px;gap:8px;
+  font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--muted);margin-bottom:8px;padding:0 2px;
+}
+.ops-row{ display:grid;grid-template-columns:1fr 110px 40px;gap:8px;margin-bottom:8px;align-items:center; }
+.ops-row input{
+  width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:9px;
+  font-family:'Nunito',sans-serif;font-size:13.5px;color:#0f172a;background:#f8fafc;outline:none;
+}
+.ops-row input:focus{ border-color:var(--accent); }
+.ops-del{
+  border:1.5px solid #fecaca;background:#fff;color:var(--danger);border-radius:9px;
+  padding:8px 0;cursor:pointer;font-size:14px;line-height:1;
+}
+.ops-del:hover{ background:#fef2f2; }
+.ops-empty{ font-family:'Nunito',sans-serif;font-size:13px;color:var(--muted);text-align:center;padding:18px 0; }
+.ops-total{
+  margin-top:12px;padding-top:12px;border-top:1.5px solid var(--border);
+  display:flex;justify-content:space-between;align-items:center;
+  font-family:'Nunito',sans-serif;font-size:12.5px;color:var(--muted);
+}
+.ops-total b{ font-family:'Barlow Condensed',sans-serif;font-size:16px;color:var(--accent2); }
+@media(max-width:560px){
+  .ops-head,.ops-row{ grid-template-columns:1fr 84px 38px; }
+}
+
 /* ── CONFIRM DELETE ── */
 #confirm-del-overlay .modal-box{ max-width:360px; }
 
@@ -277,6 +332,7 @@ td:last-child{ border-right:none; }
           <th>OP / OC</th>
           <th>Cantidad</th>
           <th>Meta/Hora</th>
+          <th>Cliente</th>
           <th>Fecha</th>
           <th>Acciones</th>
         </tr>
@@ -288,6 +344,7 @@ td:last-child{ border-right:none; }
           <td><input class="col-input" id="cf-opoc"       placeholder="Buscar..." oninput="renderTabla()"></td>
           <td><input class="col-input" id="cf-cantidad"   placeholder="Buscar..." oninput="renderTabla()"></td>
           <td><input class="col-input" id="cf-metahora"   placeholder="Buscar..." oninput="renderTabla()"></td>
+          <td><input class="col-input" id="cf-cliente"    placeholder="Buscar..." oninput="renderTabla()"></td>
           <td><input class="col-input" id="cf-fecha"      placeholder="Buscar..." oninput="renderTabla()"></td>
           <td></td>
         </tr>
@@ -302,29 +359,72 @@ td:last-child{ border-right:none; }
 <div class="modal-overlay" id="form-overlay">
   <div class="modal-box">
     <div class="modal-title" id="form-title">Nueva Orden</div>
-    <div class="field">
-      <label>Módulo <span style="color:#ef4444;">*</span></label>
-      <select id="f-modulo">
-        <option value="">— Seleccionar —</option>
-      </select>
+
+    <div class="tabs-row">
+      <button type="button" class="tab-btn active" id="tab-btn-info" onclick="cambiarTab('info')">1 · Información Lote</button>
+      <button type="button" class="tab-btn" id="tab-btn-ops" onclick="cambiarTab('ops')">2 · Operaciones</button>
     </div>
-    <div class="field">
-      <label>Referencia <span style="color:#ef4444;">*</span></label>
-      <input type="text" id="f-referencia" placeholder="Ej: 3201854">
+
+    <div class="form-body">
+      <!-- ── Pestaña 1: Información Lote ── -->
+      <div class="tab-pane active" id="tab-info">
+        <div class="field">
+          <label>Módulo <span style="color:#ef4444;">*</span></label>
+          <select id="f-modulo">
+            <option value="">— Seleccionar —</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Referencia <span style="color:#ef4444;">*</span></label>
+          <input type="text" id="f-referencia" placeholder="Ej: 3201854">
+        </div>
+        <div class="field">
+          <label>OP / OC</label>
+          <input type="text" id="f-opoc" placeholder="Ej: OP-001">
+        </div>
+        <div class="field">
+          <label>Cantidad <span style="color:#ef4444;">*</span></label>
+          <input type="number" id="f-cantidad" min="1" placeholder="Ej: 100">
+        </div>
+        <div class="field">
+          <label>Meta / Hora</label>
+          <input type="number" id="f-metahora" min="1" placeholder="Ej: 60">
+        </div>
+        <div class="field">
+          <label>Cliente</label>
+          <input type="text" id="f-cliente" placeholder="Ej: DECATHLON">
+        </div>
+        <div class="field">
+          <label>Foto de la prenda</label>
+          <div class="foto-zone">
+            <div class="foto-preview" id="f-foto-preview">📷</div>
+            <div class="foto-actions">
+              <button type="button" class="btn" onclick="document.getElementById('f-foto-input').click()">📷 Cargar foto</button>
+              <button type="button" class="btn danger" id="f-foto-quitar" style="display:none;" onclick="quitarFoto()">🗑 Quitar</button>
+              <span class="foto-hint">JPG o PNG · se reduce automáticamente</span>
+            </div>
+            <input type="file" id="f-foto-input" accept="image/*" style="display:none;" onchange="cargarFoto(event)">
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Pestaña 2: Operaciones ── -->
+      <div class="tab-pane" id="tab-ops">
+        <div class="ops-head">
+          <span>Operación</span>
+          <span>Meta / Hora</span>
+          <span></span>
+        </div>
+        <div id="ops-list"></div>
+        <button type="button" class="btn" style="width:100%;justify-content:center;margin-top:6px;" onclick="agregarOperacion()">＋ Agregar operación</button>
+        <div class="ops-total">
+          <span>Operaciones de la prenda</span>
+          <b id="ops-count">0</b>
+        </div>
+      </div>
     </div>
-    <div class="field">
-      <label>OP / OC</label>
-      <input type="text" id="f-opoc" placeholder="Ej: OP-001">
-    </div>
-    <div class="field">
-      <label>Cantidad <span style="color:#ef4444;">*</span></label>
-      <input type="number" id="f-cantidad" min="1" placeholder="Ej: 100">
-    </div>
-    <div class="field">
-      <label>Meta / Hora</label>
-      <input type="number" id="f-metahora" min="1" placeholder="Ej: 60">
-    </div>
-    <div id="form-error" style="display:none;color:#ef4444;font-size:12px;font-weight:700;margin-top:-8px;margin-bottom:8px;"></div>
+
+    <div id="form-error" style="display:none;color:#ef4444;font-size:12px;font-weight:700;margin-top:12px;"></div>
     <div class="modal-btns">
       <button class="btn" onclick="cerrarModal()">Cancelar</button>
       <button class="btn primary" onclick="guardarOrden()">Guardar</button>
@@ -411,6 +511,8 @@ function renderTabla(){
   const cfRef  = (document.getElementById('cf-referencia')?.value||'').toLowerCase().trim();
   const cfOp   = (document.getElementById('cf-opoc')?.value||'').toLowerCase().trim();
   const cfCant = (document.getElementById('cf-cantidad')?.value||'').toLowerCase().trim();
+  const cfMeta = (document.getElementById('cf-metahora')?.value||'').toLowerCase().trim();
+  const cfCli  = (document.getElementById('cf-cliente')?.value||'').toLowerCase().trim();
   const cfFech = (document.getElementById('cf-fecha')?.value||'').toLowerCase().trim();
 
   // Se muestran de más reciente a más antigua (lo último que se monta queda
@@ -421,6 +523,8 @@ function renderTabla(){
   if(cfRef)  rows = rows.filter(r=>(r.referencia||'').toLowerCase().includes(cfRef));
   if(cfOp)   rows = rows.filter(r=>(r.opoc||'').toLowerCase().includes(cfOp));
   if(cfCant) rows = rows.filter(r=>String(r.cantidad||'').includes(cfCant));
+  if(cfMeta) rows = rows.filter(r=>String(r.metaHora||'').includes(cfMeta));
+  if(cfCli)  rows = rows.filter(r=>(r.cliente||'').toLowerCase().includes(cfCli));
   if(cfFech) rows = rows.filter(r=>(r.fecha||'').toLowerCase().includes(cfFech));
 
   const tbody = document.getElementById('ord-tbody');
@@ -428,7 +532,7 @@ function renderTabla(){
   countEl.textContent = rows.length + ' orden' + (rows.length!==1?'es':'');
 
   if(rows.length === 0){
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="9">📋 No hay órdenes para mostrar</td></tr>`;
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="10">📋 No hay órdenes para mostrar</td></tr>`;
     actualizarBtnDel();
     return;
   }
@@ -444,6 +548,7 @@ function renderTabla(){
       <td style="font-family:'Courier New',monospace;font-size:13px;">${r.opoc||'—'}</td>
       <td><span class="td-num">${r.cantidad||'—'}</span></td>
       <td style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;color:#0f172a;text-align:center;">${r.metaHora||'—'}</td>
+      <td>${r.cliente||'—'}</td>
       <td style="font-size:12px;color:#64748b;">${r.fecha||'—'}</td>
       <td>
         <div class="td-actions">
@@ -463,6 +568,112 @@ function renderTabla(){
   if(chkAll) chkAll.checked = rows.length>0 && rows.every(r=>_seleccionados.has(r._idx));
 }
 
+// ── Pestañas del formulario ────────────────────────────
+function cambiarTab(tab){
+  const esInfo = (tab === 'info');
+  document.getElementById('tab-btn-info').classList.toggle('active', esInfo);
+  document.getElementById('tab-btn-ops').classList.toggle('active', !esInfo);
+  document.getElementById('tab-info').classList.toggle('active', esInfo);
+  document.getElementById('tab-ops').classList.toggle('active', !esInfo);
+}
+
+// ── Foto de la prenda ──────────────────────────────────
+// Se guarda como data URI comprimido dentro de la orden (mismo criterio que
+// usa MMT Locativo para sus evidencias) para no depender de subida de archivos.
+let _fotoPrenda = '';
+
+function comprimirImagenDataUrl(dataUrl, maxDim=900, quality=0.7){
+  return new Promise(resolve=>{
+    const img = new Image();
+    img.onload = ()=>{
+      let w = img.width, h = img.height;
+      if(w > maxDim || h > maxDim){
+        if(w >= h){ h = Math.round(h*maxDim/w); w = maxDim; }
+        else { w = Math.round(w*maxDim/h); h = maxDim; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = ()=>resolve(dataUrl); // si algo falla, dejar la original
+    img.src = dataUrl;
+  });
+}
+
+function cargarFoto(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async ev=>{
+    _fotoPrenda = await comprimirImagenDataUrl(ev.target.result);
+    pintarFoto();
+    showToast('📷 Foto cargada');
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+}
+
+function quitarFoto(){
+  _fotoPrenda = '';
+  pintarFoto();
+}
+
+function pintarFoto(){
+  const prev = document.getElementById('f-foto-preview');
+  const btnQ = document.getElementById('f-foto-quitar');
+  if(_fotoPrenda){
+    prev.innerHTML = '<img src="'+_fotoPrenda+'" alt="Prenda">';
+    btnQ.style.display = '';
+  } else {
+    prev.textContent = '📷';
+    btnQ.style.display = 'none';
+  }
+}
+
+// ── Operaciones de la prenda ───────────────────────────
+let _operaciones = [];   // [{nombre, meta}]
+
+function agregarOperacion(nombre, meta){
+  _operaciones.push({ nombre: nombre||'', meta: meta||'' });
+  renderOperaciones();
+  // Enfocar la operación recién agregada para escribir de una
+  const inputs = document.querySelectorAll('#ops-list .ops-row input[data-campo="nombre"]');
+  const ultimo = inputs[inputs.length-1];
+  if(ultimo) ultimo.focus();
+}
+
+function quitarOperacion(i){
+  _operaciones.splice(i, 1);
+  renderOperaciones();
+}
+
+function onOperacionInput(i, campo, valor){
+  if(!_operaciones[i]) return;
+  _operaciones[i][campo] = valor;
+}
+
+function renderOperaciones(){
+  const cont = document.getElementById('ops-list');
+  document.getElementById('ops-count').textContent = _operaciones.length;
+  if(!_operaciones.length){
+    cont.innerHTML = '<div class="ops-empty">Todavía no hay operaciones. Agrega las que lleva la prenda.</div>';
+    return;
+  }
+  cont.innerHTML = _operaciones.map((op,i)=>`
+    <div class="ops-row">
+      <input type="text" data-campo="nombre" placeholder="Ej: Cerrar costado" value="${escaparAttr(op.nombre)}"
+        oninput="onOperacionInput(${i},'nombre',this.value)">
+      <input type="number" min="1" placeholder="Ej: 120" value="${escaparAttr(op.meta)}"
+        oninput="onOperacionInput(${i},'meta',this.value)">
+      <button type="button" class="ops-del" onclick="quitarOperacion(${i})" title="Quitar">🗑</button>
+    </div>`).join('');
+}
+
+function escaparAttr(v){
+  return String(v==null?'':v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
 // ── Modal crear / editar ───────────────────────────────
 function abrirModal(){
   editingIdx = null;
@@ -472,6 +683,10 @@ function abrirModal(){
   document.getElementById('f-opoc').value = '';
   document.getElementById('f-cantidad').value = '';
   document.getElementById('f-metahora').value = '';
+  document.getElementById('f-cliente').value = '';
+  _fotoPrenda = '';   pintarFoto();
+  _operaciones = [];  renderOperaciones();
+  cambiarTab('info');
   document.getElementById('form-error').style.display = 'none';
   ['f-modulo','f-referencia','f-cantidad'].forEach(id=>{
     const el = document.getElementById(id);
@@ -491,6 +706,11 @@ function abrirEditar(idx){
   document.getElementById('f-opoc').value      = o.opoc      || '';
   document.getElementById('f-cantidad').value  = o.cantidad  || '';
   document.getElementById('f-metahora').value  = o.metaHora  || '';
+  document.getElementById('f-cliente').value   = o.cliente   || '';
+  _fotoPrenda  = o.foto || '';                       pintarFoto();
+  _operaciones = Array.isArray(o.operaciones) ? o.operaciones.map(x=>({nombre:x.nombre||'', meta:x.meta||''})) : [];
+  renderOperaciones();
+  cambiarTab('info');
   document.getElementById('form-error').style.display = 'none';
   document.getElementById('form-overlay').classList.add('open');
 }
@@ -506,6 +726,7 @@ function guardarOrden(){
   const opoc       = document.getElementById('f-opoc').value.trim();
   const cantidad   = document.getElementById('f-cantidad').value.trim();
   const metaHora   = document.getElementById('f-metahora').value.trim();
+  const cliente    = document.getElementById('f-cliente').value.trim();
   const errEl      = document.getElementById('form-error');
 
   // Validar obligatorios
@@ -515,13 +736,28 @@ function guardarOrden(){
   if(!cantidad){  document.getElementById('f-cantidad').style.borderColor='#ef4444';  hasError=true; } else document.getElementById('f-cantidad').style.borderColor='#e2e8f0';
 
   if(hasError){
-    errEl.textContent = 'Completa los campos obligatorios';
+    errEl.textContent = 'Completa los campos obligatorios (pestaña Información Lote)';
     errEl.style.display = 'block';
+    cambiarTab('info');
     return;
   }
+
+  // Las operaciones vacías (sin nombre) simplemente no se guardan.
+  const operaciones = _operaciones
+    .filter(op => String(op.nombre||'').trim())
+    .map(op => ({ nombre: String(op.nombre).trim(), meta: parseInt(op.meta)||0 }));
+
   errEl.style.display = 'none';
 
-  const orden = { modulo, referencia, opoc, cantidad: parseInt(cantidad)||0, fecha: new Date().toLocaleDateString('es-CO') };
+  const orden = {
+    modulo, referencia, opoc,
+    cantidad: parseInt(cantidad)||0,
+    metaHora: parseInt(metaHora)||0,
+    cliente,
+    foto: _fotoPrenda || '',
+    operaciones,
+    fecha: new Date().toLocaleDateString('es-CO')
+  };
 
   if(editingIdx !== null){
     orden.numOrden = ordenes[editingIdx].numOrden; // conservar el número al editar
@@ -611,17 +847,21 @@ function eliminarSeleccionados(){
 
 // ── Exportar Excel ─────────────────────────────────────
 function exportarExcel(){
+  // La foto y las operaciones no van al Excel: la foto es una imagen y las
+  // operaciones son varias filas por orden. Ambas viven solo en el sistema.
   const rows = ordenes.length > 0
     ? ordenes.map(o=>({
         'Módulo':     o.modulo||'',
         'Referencia': o.referencia||'',
         'OP / OC':    o.opoc||'',
         'Cantidad':   o.cantidad||0,
+        'Meta/Hora':  o.metaHora||0,
+        'Cliente':    o.cliente||'',
         'Fecha':      o.fecha||''
       }))
-    : [{ 'Módulo':'', 'Referencia':'', 'OP / OC':'', 'Cantidad':0, 'Fecha':'' }]; // plantilla vacía
+    : [{ 'Módulo':'', 'Referencia':'', 'OP / OC':'', 'Cantidad':0, 'Meta/Hora':0, 'Cliente':'', 'Fecha':'' }]; // plantilla vacía
   const ws = XLSX.utils.json_to_sheet(rows);
-  ws['!cols'] = [{wch:12},{wch:20},{wch:14},{wch:12},{wch:14}];
+  ws['!cols'] = [{wch:12},{wch:20},{wch:14},{wch:12},{wch:12},{wch:20},{wch:14}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Órdenes');
   const fecha = new Date().toISOString().split('T')[0];
@@ -650,8 +890,11 @@ function importarExcel(e){
         const referencia = String(row['Referencia']||row['referencia']||'').trim();
         const opoc       = String(row['OP / OC']||row['OP/OC']||row['opoc']||'').trim();
         const cantidad   = parseInt(row['Cantidad']||row['cantidad']||0)||0;
+        const metaHora   = parseInt(row['Meta/Hora']||row['Meta / Hora']||row['metaHora']||0)||0;
+        const cliente    = String(row['Cliente']||row['cliente']||'').trim();
         if(modulo && referencia){
-          ordenes.push({ modulo, referencia, opoc, cantidad, fecha: new Date().toLocaleDateString('es-CO'), numOrden: siguienteNumOrden() });
+          ordenes.push({ modulo, referencia, opoc, cantidad, metaHora, cliente, foto:'', operaciones:[],
+                         fecha: new Date().toLocaleDateString('es-CO'), numOrden: siguienteNumOrden() });
           importadas++;
         }
       });

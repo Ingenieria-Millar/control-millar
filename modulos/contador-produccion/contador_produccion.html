@@ -29,9 +29,13 @@ var W=window.WebSocket;function MW(u,p){try{var t=T();if(t&&typeof u==='string'&
   --font-mono:'IBM Plex Mono','Consolas','SFMono-Regular',monospace;
 }
 html,body{height:100%;}
+/* 100dvh = alto real visible del navegador (descuenta la barra de direcciones
+   en tablet/celular). Sin esto, en tablet la página mide más de lo que se ve
+   y los botones de abajo quedan cortados. 100vh queda como respaldo para
+   navegadores viejos que no soportan dvh. */
 body{background:var(--bg);
   font-family:var(--font-body);color:var(--text);overflow:hidden;
-  display:flex;flex-direction:column;height:100vh;}
+  display:flex;flex-direction:column;height:100vh;height:100dvh;}
 input,select,textarea,button{font-family:inherit;}
 button{-webkit-tap-highlight-color:transparent;}
 :focus-visible{outline:2.5px solid var(--cyan);outline-offset:2px;}
@@ -55,10 +59,6 @@ header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;
 .hd-badge{display:flex;align-items:center;gap:6px;padding:5px 11px;border-radius:7px;border:1.5px solid var(--border);
   background:var(--surface2);font-family:var(--font-mono);font-size:10.5px;font-weight:600;color:var(--text-muted);letter-spacing:.3px;}
 .hd-badge b{color:var(--cyan);font-weight:700;}
-.hd-badge.turno-dia{border-color:var(--warn-border);background:var(--warn-bg);color:var(--warn);}
-.hd-badge.turno-dia b{color:var(--warn);}
-.hd-badge.turno-noche{border-color:var(--purple-border);background:var(--purple-bg);color:var(--purple);}
-.hd-badge.turno-noche b{color:var(--purple);}
 .hd-back-btn{padding:6px 14px;border-radius:7px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-muted);
   font-family:var(--font-display);font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;}
 .hd-back-btn:hover{background:var(--surface2);border-color:var(--cyan);}
@@ -161,8 +161,16 @@ select.qe-ctrl{background-color:#fff;
 .os-foot{padding:12px clamp(12px,2.5vw,24px);background:#fff;border-top:1px solid #e2e8f0;text-align:right;flex-shrink:0;}
 .os-foot span{font-size:11px;color:#94a3b8;font-family:var(--font-body);}
 
-#main-screen{display:none;flex-direction:column;flex:1 1 auto;min-height:0;overflow:hidden;
+/* La pantalla principal está pensada para caber completa sin scroll. El
+   overflow-y:auto es solo red de seguridad: si el equipo es muy bajito
+   (celular apaisado, ventana reducida), se puede desplazar en vez de dejar
+   botones inalcanzables. */
+#main-screen{display:none;flex-direction:column;flex:1 1 auto;min-height:0;overflow-y:auto;
   padding:clamp(6px,1.2vh,14px) clamp(10px,2.5vw,24px);gap:clamp(6px,1.1vh,12px);max-width:640px;width:100%;margin:0 auto;}
+/* Pantallas grandes (monitor / televisor): aprovechar el ancho sin estirar
+   los controles a un tamaño incómodo. */
+@media(min-width:1100px){ #main-screen{max-width:780px;} }
+@media(min-width:1600px){ #main-screen{max-width:900px;} }
 
 .info-bar{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;
   background:var(--surface);border:1.5px solid var(--border);border-radius:10px;padding:9px 14px;box-shadow:var(--shadow-card);}
@@ -227,6 +235,14 @@ select.qe-ctrl{background-color:#fff;
 .main-gauge-sub{font-size:10.5px;font-weight:700;letter-spacing:3px;color:var(--cyan);font-family:var(--font-mono);}
 .main-gauge-label{flex-shrink:0;font-family:var(--font-display);font-size:13px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;
   color:var(--cyan);margin-top:clamp(6px,1.2vh,12px);}
+/* Equipos de poca altura (tablet apaisada, celular, ventana reducida):
+   achicar el círculo para que las tarjetas y los botones de abajo sigan
+   visibles sin tener que desplazar. */
+@media(max-height:780px){
+  .main-gauge{width:clamp(96px,min(26vh,40vw),176px);height:clamp(96px,min(26vh,40vw),176px);}
+  .main-gauge-num{font-size:clamp(26px,7vh,42px);}
+  .main-gauge svg .track,.main-gauge svg .fill{stroke-width:9;}
+}
 
 .lote-trio{flex-shrink:0;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
 .lote-stat{background:var(--surface);border:1.5px solid var(--border);border-radius:11px;padding:clamp(6px,1.2vh,12px) 6px;text-align:center;box-shadow:var(--shadow-card);}
@@ -252,12 +268,12 @@ select.qe-ctrl{background-color:#fff;
 .action-btn.improd{background:var(--surface);border:1.5px solid var(--purple-border);color:var(--purple);box-shadow:0 4px 16px rgba(139,92,246,.12);}
 .action-btn.historial{background:var(--surface);border:1.5px solid var(--cyan);color:var(--cyan);box-shadow:0 4px 16px rgba(37,99,235,.12);}
 
-.modal-overlay{display:none;position:fixed;inset:0;background:var(--overlay);z-index:500;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);}
+/* Centrado en cualquier pantalla (celular, tablet, PC, televisor). */
+.modal-overlay{display:none;position:fixed;inset:0;background:var(--overlay);z-index:500;
+  align-items:center;justify-content:center;backdrop-filter:blur(4px);padding:16px;}
 .modal-overlay.show{display:flex;}
-@media(min-width:640px){.modal-overlay{align-items:center;}}
-.modal{background:var(--surface);border:1px solid var(--border);border-radius:18px 18px 0 0;padding:24px 22px 26px;width:100%;max-width:420px;
-  max-height:85vh;overflow-y:auto;}
-@media(min-width:640px){.modal{border-radius:16px;}}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px 22px 26px;width:100%;max-width:420px;
+  max-height:85vh;max-height:85dvh;overflow-y:auto;box-shadow:0 24px 60px rgba(15,23,42,.25);}
 .modal-icon{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 12px;}
 .modal-icon.prod{background:var(--cyan-soft);}
 .modal-icon.calidad{background:var(--bad-bg);}
@@ -372,7 +388,6 @@ select.qe-ctrl{background-color:#fff;
   <div class="hd-right" id="hd-badges" style="display:none">
     <div class="hd-badge">📍 <b id="hd-modulo"></b></div>
     <div class="hd-badge">👤 <b id="hd-operario"></b></div>
-    <div class="hd-badge" id="hd-turno-badge"><span id="hd-turno-icon">☀️</span> <b id="hd-turno-txt"></b></div>
     <button class="hd-back-btn" onclick="location.href='/'">← Salir</button>
   </div>
 </header>
@@ -511,7 +526,7 @@ select.qe-ctrl{background-color:#fff;
     <div class="modal-sub" id="reg-sub">¿Cuántas unidades acabas de producir?</div>
     <div class="qty-input-wrap">
       <button class="qty-btn" onclick="qtyStep(-1)" aria-label="Restar">−</button>
-      <input class="qty-display" id="qty-display" type="number" min="1" inputmode="numeric" value="5" oninput="onQtyInput(this)">
+      <input class="qty-display" id="qty-display" type="number" min="1" inputmode="numeric" placeholder="0" oninput="onQtyInput(this)">
       <button class="qty-btn" onclick="qtyStep(1)" aria-label="Sumar">+</button>
     </div>
     <div class="modal-btn-row">
@@ -703,7 +718,9 @@ async function cargarOrdenesModulo(){
       const op=o.opoc;
       if(!op) return;
       const e=enrich[op]||{};
-      opCache[op] = { op, ref:o.referencia, cliente:e.cliente||'', cantidad:o.cantidad, sam:e.sam, operarios:e.operarios||operariosModulo };
+      // El Cliente de la propia orden manda; el del tablero Kanban queda como
+      // respaldo para órdenes viejas que todavía no tienen el campo.
+      opCache[op] = { op, ref:o.referencia, cliente:o.cliente||e.cliente||'', cantidad:o.cantidad, sam:e.sam, operarios:e.operarios||operariosModulo };
     });
     renderOrdenLista();
   }catch(e){
@@ -772,10 +789,6 @@ async function seleccionarOrden(orden){
   document.getElementById('hd-badges').style.display='flex';
   document.getElementById('hd-modulo').textContent=selectedMod;
   document.getElementById('hd-operario').textContent=selectedOperario;
-  const tb=document.getElementById('hd-turno-badge');
-  tb.className='hd-badge turno-'+_turno.turno;
-  document.getElementById('hd-turno-icon').textContent = _turno.turno==='dia'?'☀️':'🌙';
-  document.getElementById('hd-turno-txt').textContent = _turno.turno==='dia'?'Día':'Noche';
   await inicializarDashboard();
   connectWS();
 }
@@ -876,10 +889,12 @@ function wireTap(el, tipo){
 wireTap(document.getElementById('gauge-prod-el'), 'produccion');
 wireTap(document.getElementById('mala-badge'), 'calidad');
 
-let qty=5, modoActivo='produccion';
+// qty arranca vacío: la operaria escribe la cantidad, no se sugiere ninguna.
+let qty=0, modoActivo='produccion';
 function abrirModalRegistro(tipo){
-  modoActivo=tipo; qty=5;
-  document.getElementById('qty-display').value=qty;
+  modoActivo=tipo; qty=0;
+  const inp=document.getElementById('qty-display');
+  inp.value='';
   const icon=document.getElementById('reg-icon'), title=document.getElementById('reg-title'),
         sub=document.getElementById('reg-sub'), btn=document.getElementById('reg-confirm-btn');
   const claseCss = tipo==='produccion'?'prod':'calidad';
@@ -892,15 +907,21 @@ function abrirModalRegistro(tipo){
     sub.textContent='¿Cuántas unidades presentan mala calidad?'; btn.textContent='Registrar mala calidad';
   }
   document.getElementById('modal-registro').classList.add('show');
+  // Enfocar el campo para poder escribir de una (y que salga el teclado en tablet).
+  setTimeout(()=>{ try{ inp.focus(); }catch(e){} }, 60);
 }
-function qtyStep(d){ qty=Math.max(1,qty+d); document.getElementById('qty-display').value=qty; }
+function qtyStep(d){
+  qty = Math.max(1, (qty||0) + d);   // desde vacío, "+" arranca en 1
+  document.getElementById('qty-display').value = qty;
+}
 function onQtyInput(el){
   const v=parseInt(el.value,10);
-  qty = (v>0) ? v : qty;
+  qty = (v>0) ? v : 0;               // campo vacío = sin cantidad todavía
 }
 function confirmarRegistro(){
   const v=parseInt(document.getElementById('qty-display').value,10);
-  qty = (v>0) ? v : 1;
+  if(!(v>0)){ showToast('⚠️ Escribe cuántas unidades vas a registrar', true); return; }
+  qty=v;
   enviarRegistro(modoActivo, qty); closeModal('modal-registro');
 }
 
