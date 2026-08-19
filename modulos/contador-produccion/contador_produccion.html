@@ -353,6 +353,11 @@ select.qe-ctrl{background-color:#fff;
 .efic-pill.media{background:var(--warn-bg);color:var(--warn);}
 .efic-pill.baja{background:var(--bad-bg);color:var(--bad);}
 .efic-pill.curso{background:var(--surface2);color:var(--text-faint);}
+.hora-total{display:flex;align-items:center;gap:10px;margin-top:10px;padding-top:10px;
+  border-top:1.5px solid var(--border);font-size:12px;font-weight:700;color:var(--text-muted);}
+.hora-total span:first-child{flex:1;}
+.hora-total-n{font-family:var(--font-mono);color:var(--text);white-space:nowrap;}
+.hora-nota{font-size:11px;color:var(--text-faint);line-height:1.5;margin-top:8px;}
 .hora-empty{text-align:center;color:var(--text-faint);font-size:12.5px;padding:20px 0;}
 
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--accent);color:#fff;
@@ -919,6 +924,35 @@ function eficClase(pct){
   return 'baja';
 }
 function minutosDeHora(hhmm){ const [h,m]=hhmm.split(':').map(Number); return h*60+m; }
+
+// ── Minutos ganados ───────────────────────────────────────────────
+// Dentro de una misma hora se pueden trabajar varias referencias con metas
+// distintas, y entonces las unidades NO se pueden sumar entre sí: 1 unidad de
+// una referencia de 60/hora cuesta el doble que una de 120/hora. Por eso todo
+// se convierte a minutos de trabajo producido (cada unidad vale 60/meta
+// minutos) y así sí se pueden sumar. Con una sola referencia da exactamente el
+// mismo resultado que dividir unidades entre la meta.
+function metaDeOP(op){
+  const info = opCache[op];
+  if(!info) return 0;
+  if(info.metaHora>0) return info.metaHora;
+  if(info.sam>0) return Math.round((info.operarios||2)*60/info.sam);
+  return 0;
+}
+// Devuelve null si ninguna referencia del periodo tiene meta conocida (no se
+// puede calcular eficiencia sin una referencia contra la cual comparar).
+function minutosGanados(regs){
+  let min=0, huboMeta=false;
+  regs.forEach(r=>{
+    if(r.tipo!=='produccion') return;
+    const m=metaDeOP(r.op);
+    if(m>0){ min += r.cantidad*60/m; huboMeta=true; }
+  });
+  return huboMeta ? min : null;
+}
+function horaDeTurnoDe(r){
+  return Math.floor((minutosDeHora(r.hora)-_turno.inicioMin+1440)%1440/60)+1;
+}
 // Flecha de tendencia: usa el MISMO corte del semáforo (verde) para no mostrar
 // un número en verde con flecha roja al lado.
 function pintarTendencia(id, pct){
@@ -940,31 +974,38 @@ function refreshStats(){
   const minEnHora = Math.max(1, minDesdeTurno % 60);
   const nHoraActual = Math.floor(minDesdeTurno/60)+1;
 
-  const prodEstaHora = registrosHoy.filter(r=>{
-    if(r.tipo!=='produccion') return false;
-    const n=Math.floor((minutosDeHora(r.hora)-_turno.inicioMin+1440)%1440/60)+1;
-    return n===nHoraActual;
-  }).reduce((s,r)=>s+r.cantidad,0);
-  const prodHoy = registrosHoy.filter(r=>r.tipo==='produccion').reduce((s,r)=>s+r.cantidad,0);
+  const regsEstaHora = registrosHoy.filter(r=>r.tipo==='produccion' && horaDeTurnoDe(r)===nHoraActual);
+  const regsHoy      = registrosHoy.filter(r=>r.tipo==='produccion');
+  const prodEstaHora = regsEstaHora.reduce((s,r)=>s+r.cantidad,0);
+  const prodHoy      = regsHoy.reduce((s,r)=>s+r.cantidad,0);
+  // Trabajo producido en minutos — suma correctamente aunque en la hora se
+  // hayan trabajado varias referencias con metas distintas.
+  const ganadosHora = minutosGanados(regsEstaHora);
+  const ganadosDia  = minutosGanados(regsHoy);
 
   // ── Círculo: avance contra la meta de ESTA hora (se reinicia cada hora) ──
-  const metaHora = opActiva.metaHora || 0;
+  // El número grande son las unidades reales de la hora (todas las
+  // referencias). Las faltantes se expresan en unidades de la referencia
+  // activa, que es la que la operaria está cosiendo en este momento.
+  const metaActiva = metaDeOP(opActiva.op);
+  const gh = ganadosHora || 0;
   document.getElementById('gauge-prod-num').textContent=prodEstaHora;
   const faltEl=document.getElementById('gauge-falt');
   const faltNum=document.getElementById('gauge-falt-num');
   const faltLbl=document.getElementById('gauge-falt-lbl');
-  if(metaHora>0){
-    const faltanHora = Math.max(0, metaHora-prodEstaHora);
+  if(metaActiva>0){
+    const minRestantes = Math.max(0, 60-gh);
+    const faltanUnidades = Math.ceil(minRestantes*metaActiva/60);
     faltEl.classList.remove('oculto');
-    if(faltanHora>0){
-      faltNum.textContent=faltanHora; faltNum.className='gauge-falt-num';
+    if(faltanUnidades>0){
+      faltNum.textContent=faltanUnidades; faltNum.className='gauge-falt-num';
       faltLbl.textContent='Faltantes';
     } else {
       faltNum.textContent='✓'; faltNum.className='gauge-falt-num ok';
       faltLbl.textContent='Meta cumplida';
     }
     document.getElementById('gauge-prod-fill').setAttribute('stroke-dashoffset',
-      CIRC-Math.min(1, prodEstaHora/metaHora)*CIRC);
+      CIRC-Math.min(1, gh/60)*CIRC);
   } else {
     // Sin Meta/Hora cargada en la orden: no se inventa una meta, solo se
     // muestran las unidades de la hora y el anillo queda vacío.
@@ -984,24 +1025,21 @@ function refreshStats(){
   document.getElementById('lote-defectos').textContent=mala;
 
   // ── Eficiencia ────────────────────────────────────────────────
-  // Base preferida: la Meta/Hora de la orden (lo mismo que muestra el círculo,
-  // para que los dos números cuenten la misma historia). Si la orden no la
-  // tiene, se cae al SAM del tablero Kanban como antes.
-  const sam = opActiva.sam, operarios = opActiva.operarios || 2;
+  // Se compara el trabajo producido (minutos ganados) contra el tiempo
+  // disponible. Al trabajar en minutos y no en unidades, una hora con varias
+  // referencias de metas distintas queda bien calculada.
   let pctHora='—', pctDia='—', claseHora='alta', claseDia='alta', p1=null, p2=null;
-  if(metaHora>0){
+  if(ganadosHora!==null || ganadosDia!==null){
+    const gHora = ganadosHora || 0, gDia = ganadosDia || 0;
     if(_cfgProd.baseEficiencia==='meta'){
-      // Contra la meta completa de la hora, sin prorratear el tiempo.
-      p1=Math.round(prodEstaHora/metaHora*100);
-      p2=Math.round(prodHoy/(metaHora*Math.max(1,Math.ceil(minDesdeTurno/60)))*100);
+      // Contra la hora completa (60 min de trabajo), sin prorratear el tiempo.
+      p1=Math.round(gHora/60*100);
+      p2=Math.round(gDia/(Math.max(1,Math.ceil(minDesdeTurno/60))*60)*100);
     } else {
       // Contra lo que debería llevar a esta altura de la hora (ritmo).
-      p1=Math.round(prodEstaHora/(metaHora*minEnHora/60)*100);
-      p2=Math.round(prodHoy/(metaHora*minDesdeTurno/60)*100);
+      p1=Math.round(gHora/minEnHora*100);
+      p2=Math.round(gDia/minDesdeTurno*100);
     }
-  } else if(sam>0){
-    p1=Math.round(prodEstaHora*sam/(minEnHora*operarios)*100);
-    p2=Math.round(prodHoy*sam/(minDesdeTurno*operarios)*100);
   }
   if(p1!==null){
     pctHora=p1+'%'; pctDia=p2+'%'; claseHora=eficClase(p1); claseDia=eficClase(p2);
@@ -1111,29 +1149,41 @@ function volverDeOrdenes(){
 }
 
 // ── Historial por hora (una hora puede tener varias OP) ───────────
+// Historial por hora. Una hora puede tener varias referencias con metas
+// distintas, así que la eficiencia de la hora se calcula con minutos ganados,
+// no sumando unidades ni sumando metas (sumar metas daría un número sin
+// sentido: 60+90+120 no es la meta de esa hora, la meta de una hora siempre
+// son 60 minutos de trabajo).
 function construirHistorialHoras(){
   const porHora={};
   registrosHoy.filter(r=>r.tipo==='produccion').forEach(r=>{
-    const n=Math.floor((minutosDeHora(r.hora)-_turno.inicioMin+1440)%1440/60)+1;
-    if(!porHora[n]) porHora[n]={n, ops:{}};
+    const n=horaDeTurnoDe(r);
+    if(!porHora[n]) porHora[n]={n, ops:{}, regs:[]};
     if(!porHora[n].ops[r.op]) porHora[n].ops[r.op]={ref:r.ref||opCache[r.op]?.ref||r.op, op:r.op, real:0};
     porHora[n].ops[r.op].real += r.cantidad;
+    porHora[n].regs.push(r);
   });
+  const nAhora = (()=>{ const d=new Date(), m=d.getHours()*60+d.getMinutes();
+    const desde = m>=_turno.inicioMin ? (m-_turno.inicioMin) : (m+1440-_turno.inicioMin);
+    return Math.floor(Math.max(0,desde)/60)+1; })();
+
   return Object.values(porHora).sort((a,b)=>a.n-b.n).map(h=>{
     const rangoIni = new Date(0,0,0,0,_turno.inicioMin + (h.n-1)*60);
     const rangoFin = new Date(0,0,0,0,_turno.inicioMin + h.n*60);
     const fmt=d=>String(d.getHours()%24).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+    // Cada referencia se mide contra la hora completa (60 min), de modo que el
+    // porcentaje de la hora es la SUMA de los de cada referencia: si una quedó
+    // en 40% y otra en 30%, la hora quedó en 70%. Nunca se promedia.
     const ops=Object.values(h.ops).map(o=>{
-      const info=opCache[o.op];
-      // Misma base que el círculo y la eficiencia: Meta/Hora de la orden y,
-      // si no la tiene, el ritmo que sale del SAM del tablero Kanban.
-      const meta = info
-        ? (info.metaHora>0 ? info.metaHora
-          : (info.sam>0 ? Math.round((info.operarios||2)*60/info.sam) : 0))
-        : 0;
-      return {...o, meta};
+      const meta = metaDeOP(o.op);
+      const ganados = meta>0 ? o.real*60/meta : 0;   // minutos que aportó
+      return {...o, meta, ganados, pct: meta>0 ? Math.round(ganados/60*100) : null};
     });
-    return {n:h.n, rango: fmt(rangoIni)+' – '+fmt(rangoFin), ops};
+    const ganados = minutosGanados(h.regs);
+    const pct = ganados===null ? null : Math.round(ganados/60*100);
+    return {n:h.n, rango: fmt(rangoIni)+' – '+fmt(rangoFin), ops,
+            ganados: ganados===null?0:ganados, pct, enCurso: h.n===nAhora,
+            totalUnidades: ops.reduce((s,o)=>s+o.real,0)};
   });
 }
 let horaSeleccionada=null;
@@ -1152,11 +1202,12 @@ function abrirHistorialModal(){
 }
 function renderHoraChips(horas){
   document.getElementById('hora-chip-row').innerHTML = horas.map(h=>{
-    const totMeta=h.ops.reduce((s,o)=>s+o.meta,0), totReal=h.ops.reduce((s,o)=>s+o.real,0);
-    const pct = totMeta? Math.round(totReal/totMeta*100) : 0;
     const sel = h.n===horaSeleccionada?'sel':'';
+    const pill = h.pct===null
+      ? `<span class="efic-pill curso">—</span>`
+      : `<span class="efic-pill ${eficClase(h.pct)}">${h.pct}%</span>`;
     return `<button class="hora-chip ${sel}" onclick="seleccionarHora(${h.n})">
-      <span class="hc-n">${h.n}ª Hora</span><span class="efic-pill ${eficClase(pct)}">${pct}%</span>
+      <span class="hc-n">${h.n}ª Hora</span>${pill}
     </button>`;
   }).join('');
 }
@@ -1167,16 +1218,24 @@ function seleccionarHora(n){
 }
 function renderHoraDetail(horas){
   const h=horas.find(x=>x.n===horaSeleccionada); if(!h) return;
+  const mezcla = h.ops.length>1;
   document.getElementById('hora-detail').innerHTML = `
-    <div class="hora-detail-range">${h.rango}</div>
-    ${h.ops.map(o=>{
-      const pct = o.meta ? Math.round(o.real/o.meta*100) : 0;
-      return `<div class="hora-op-row">
+    <div class="hora-detail-range">${h.rango}${h.enCurso?' · en curso':''}</div>
+    ${h.ops.map(o=>`
+      <div class="hora-op-row">
         <div class="hor-ref"><b>${o.ref}</b><small>${o.op}</small></div>
-        <div class="hor-nums"><span>Meta <b>${o.meta||'—'}</b></span><span>Hizo <b>${o.real}</b></span></div>
-        <span class="efic-pill ${o.meta?eficClase(pct):'curso'}">${o.meta?pct+'%':'—'}</span>
-      </div>`;
-    }).join('')}
+        <div class="hor-nums">
+          <span>Meta <b>${o.meta||'—'}</b></span>
+          <span>Hizo <b>${o.real}</b></span>
+        </div>
+        <span class="efic-pill ${o.pct===null?'curso':eficClase(o.pct)}">${o.pct===null?'—':o.pct+'%'}</span>
+      </div>`).join('')}
+    <div class="hora-total">
+      <span>Total de la hora${mezcla?' ('+h.ops.length+' referencias)':''}</span>
+      <span class="hora-total-n">${h.totalUnidades} und</span>
+      ${h.pct===null?'<span class="efic-pill curso">—</span>':`<span class="efic-pill ${eficClase(h.pct)}">${h.pct}%</span>`}
+    </div>
+    ${mezcla?`<div class="hora-nota">${h.ops.map(o=>o.pct===null?'—':o.pct+'%').join(' + ')} = ${h.pct}% de la hora.</div>`:''}
   `;
 }
 
