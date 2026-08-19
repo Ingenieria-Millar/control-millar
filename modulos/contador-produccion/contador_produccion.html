@@ -664,7 +664,7 @@ select.qe-ctrl{background-color:#fff;
     <div class="modal-sub" id="det-sub">—</div>
     <div class="det-datos" id="det-datos"></div>
     <div id="det-acciones"></div>
-    <button class="btn-modal-cancel" style="width:100%;margin-top:10px" onclick="closeModal('modal-imp-detalle')">Cerrar ventana</button>
+    <button class="btn-modal-cancel" id="det-cerrar" style="width:100%;margin-top:10px" onclick="closeModal('modal-imp-detalle')">Cerrar ventana</button>
     <button class="det-forzar" id="det-forzar" onclick="abrirCierreEstado(_impDetalleId)">Cierre forzado con clave</button>
   </div>
 </div>
@@ -803,7 +803,13 @@ function showToast(msg, isError){
 }
 function closeModal(id){ document.getElementById(id).classList.remove('show'); }
 document.querySelectorAll('.modal-overlay').forEach(ov=>{
-  ov.addEventListener('click',e=>{ if(e.target===ov) ov.classList.remove('show'); });
+  ov.addEventListener('click',e=>{
+    if(e.target!==ov) return;
+    // La confirmación de una entrega de CI es obligatoria: no se cierra
+    // tocando por fuera, hay que aceptar o rechazar.
+    if(ov.id==='modal-imp-detalle' && _mostrandoCumplido) return;
+    ov.classList.remove('show');
+  });
 });
 
 // ── Turno: regla local (misma que usa Revisión de Telas — sin helper
@@ -855,7 +861,29 @@ function ventanaTurno(turno, diaAbr){
   if(finMin==null) return null;
   return { inicioMin, finMin, cruzaMedianoche: finMin<=inicioMin };
 }
-let _turnosCatalogo=[];
+// Bloques de hora del turno, tal como están definidos en Configuraciones. El
+// campo "minutos" de cada hora son los minutos PRODUCTIVOS (una hora de reloj
+// puede tener 45 productivos si adentro hay un descanso), y contra eso se mide
+// la eficiencia — no contra 60 fijos.
+function bloquesDelTurno(turno, diaAbr){
+  const horas=(turno.horas||[]).filter(h=>!h.disabled && (h.dias||[]).includes(diaAbr));
+  const ini=horas.find(h=>h.iniciaTurno);
+  if(!ini) return [];
+  const inicioMin=horaAMin(ini.comienza);
+  if(inicioMin==null) return [];
+  const lista=horas.map(h=>{
+    const a=horaAMin(h.comienza), b=horaAMin(h.termina);
+    if(a==null||b==null) return null;
+    const duracion=((b-a+1440)%1440)||60;      // minutos de reloj del bloque
+    const m=parseInt(h.minutos,10);
+    return { nombre:h.nombre||'', iniMin:a, finMin:b, duracion,
+             minutos:(m>0?Math.min(m,duracion):duracion),   // productivos
+             desdeInicio:(a-inicioMin+1440)%1440 };
+  }).filter(Boolean).sort((x,y)=>x.desdeInicio-y.desdeInicio);
+  lista.forEach((b,i)=>{ b.n=i+1; });
+  return lista;
+}
+let _turnosCatalogo=[], _bloquesHora=[];
 function detectarTurno(){
   const d=new Date();
   const min=d.getHours()*60+d.getMinutes();
@@ -865,14 +893,19 @@ function detectarTurno(){
     // que arrancó ayer sigue vigente después de medianoche.
     for(const desplazamiento of [0,-1]){
       const f=new Date(d); f.setDate(f.getDate()+desplazamiento);
-      const v=ventanaTurno(t, DIAS_ABR[f.getDay()]);
+      const diaAbr=DIAS_ABR[f.getDay()];
+      const v=ventanaTurno(t, diaAbr);
       if(!v) continue;
       const dentro = v.cruzaMedianoche
         ? (desplazamiento===0 ? min>=v.inicioMin : min<=v.finMin)
         : (desplazamiento===0 && min>=v.inicioMin && min<=v.finMin);
-      if(dentro) return { turno:(t.nombre||'turno'), inicioMin:v.inicioMin, delCatalogo:true };
+      if(dentro){
+        _bloquesHora = bloquesDelTurno(t, diaAbr);
+        return { turno:(t.nombre||'turno'), inicioMin:v.inicioMin, delCatalogo:true };
+      }
     }
   }
+  _bloquesHora=[];
   return detectarTurnoFijo();
 }
 let _turno = detectarTurno();   // arranca con la regla fija; se recalcula al cargar el catálogo
@@ -885,6 +918,37 @@ async function cargarTurnosCatalogo(){
       _turno=detectarTurno();
     }
   }catch(e){ /* sin catálogo se mantiene el horario fijo */ }
+}
+
+// ── Hora del turno a la que pertenece un minuto del día ───────────
+// Con catálogo se usan los bloques configurados; sin catálogo, bloques de 60
+// minutos desde el inicio del turno (comportamiento de siempre).
+function infoHoraDe(minDelDia){
+  if(_bloquesHora.length){
+    for(const b of _bloquesHora){
+      const dentro = b.finMin>b.iniMin
+        ? (minDelDia>=b.iniMin && minDelDia<b.finMin)
+        : (minDelDia>=b.iniMin || minDelDia<b.finMin);   // cruza medianoche
+      if(dentro){
+        const transcurrido=(minDelDia-b.iniMin+1440)%1440;
+        return { n:b.n, nombre:b.nombre, minutos:b.minutos, duracion:b.duracion,
+                 transcurrido, iniMin:b.iniMin, finMin:b.finMin };
+      }
+    }
+    return null;   // fuera de las horas del turno (descanso largo, ya terminó)
+  }
+  const desde=(minDelDia-_turno.inicioMin+1440)%1440;
+  const ini=(_turno.inicioMin+Math.floor(desde/60)*60)%1440;
+  return { n:Math.floor(desde/60)+1, nombre:'', minutos:60, duracion:60,
+           transcurrido:desde%60, iniMin:ini, finMin:(ini+60)%1440 };
+}
+// Minutos productivos que "deberían llevarse" a esta altura del bloque. Si el
+// bloque dura 75 min de reloj pero solo 60 son productivos, a la mitad del
+// bloque corresponden 30 productivos.
+function productivosTranscurridos(info){
+  if(!info) return 1;
+  const prop = info.duracion>0 ? (info.transcurrido/info.duracion) : 1;
+  return Math.max(1, Math.min(info.minutos, info.minutos*prop));
 }
 
 // ── Paso 1: operario (asistencia de hoy en este módulo) ──────────
@@ -1129,7 +1193,8 @@ function minutosGanados(regs){
   return huboMeta ? min : null;
 }
 function horaDeTurnoDe(r){
-  return Math.floor((minutosDeHora(r.hora)-_turno.inicioMin+1440)%1440/60)+1;
+  const info=infoHoraDe(minutosDeHora(r.hora));
+  return info ? info.n : null;
 }
 // Flecha de tendencia: usa el MISMO corte del semáforo (verde) para no mostrar
 // un número en verde con flecha roja al lado.
@@ -1144,15 +1209,22 @@ function pintarTendencia(id, pct){
 
 function refreshStats(){
   // ── Tiempo del turno ──────────────────────────────────────────
-  // minDesdeTurno ya contempla el cruce de medianoche (+1440); minEnHora se
-  // deriva de él para que en el turno noche tampoco quede en negativo.
+  // La hora en curso sale del catálogo de Configuraciones (con sus minutos
+  // productivos); si no hay catálogo, bloques de 60 min desde el inicio del
+  // turno. minDesdeTurno contempla el cruce de medianoche (+1440).
   const ahora=new Date();
   const minAhora = ahora.getHours()*60+ahora.getMinutes();
   const minDesdeTurno = Math.max(1, minAhora>=_turno.inicioMin ? (minAhora-_turno.inicioMin) : (minAhora+1440-_turno.inicioMin));
-  const minEnHora = Math.max(1, minDesdeTurno % 60);
-  const nHoraActual = Math.floor(minDesdeTurno/60)+1;
+  const infoHora = infoHoraDe(minAhora);
+  const nHoraActual = infoHora ? infoHora.n : null;
+  const minEnHora = productivosTranscurridos(infoHora);
+  // Minutos productivos del turno hasta ahora: los bloques ya cerrados
+  // completos más lo corrido del actual (con catálogo descuenta descansos).
+  const minProductivosDia = _bloquesHora.length
+    ? Math.max(1, _bloquesHora.filter(b=>!infoHora||b.n<infoHora.n).reduce((s,b)=>s+b.minutos,0) + (infoHora?minEnHora:0))
+    : minDesdeTurno;
 
-  const regsEstaHora = registrosHoy.filter(r=>r.tipo==='produccion' && horaDeTurnoDe(r)===nHoraActual);
+  const regsEstaHora = registrosHoy.filter(r=>r.tipo==='produccion' && nHoraActual!==null && horaDeTurnoDe(r)===nHoraActual);
   const regsHoy      = registrosHoy.filter(r=>r.tipo==='produccion');
   const prodHoy      = regsHoy.reduce((s,r)=>s+r.cantidad,0);
   // Trabajo producido en minutos — suma correctamente aunque en la hora se
@@ -1165,13 +1237,18 @@ function refreshStats(){
   // 0 y los faltantes son su meta completa. Lo ya producido en otras
   // referencias no se pierde: sigue contando en la eficiencia y el historial.
   const metaActiva = metaDeOP(opActiva.op);
+  // La meta del bloque se ajusta a sus minutos productivos: si la hora tiene
+  // 45 productivos (15 de descanso), la meta de ese bloque es 45/60 de la
+  // meta por hora, no la meta completa.
+  const minutosBloque = infoHora ? infoHora.minutos : 60;
+  const metaBloque = metaActiva>0 ? Math.max(1, Math.round(metaActiva*minutosBloque/60)) : 0;
   const prodOPHora = regsEstaHora.filter(r=>r.op===opActiva.op).reduce((s,r)=>s+r.cantidad,0);
   document.getElementById('gauge-prod-num').textContent=prodOPHora;
   const faltEl=document.getElementById('gauge-falt');
   const faltNum=document.getElementById('gauge-falt-num');
   const faltLbl=document.getElementById('gauge-falt-lbl');
-  if(metaActiva>0){
-    const faltanUnidades = Math.max(0, metaActiva-prodOPHora);
+  if(metaBloque>0){
+    const faltanUnidades = Math.max(0, metaBloque-prodOPHora);
     faltEl.classList.remove('oculto');
     if(faltanUnidades>0){
       faltNum.textContent=faltanUnidades; faltNum.className='gauge-falt-num';
@@ -1181,7 +1258,7 @@ function refreshStats(){
       faltLbl.textContent='Meta cumplida';
     }
     document.getElementById('gauge-prod-fill').setAttribute('stroke-dashoffset',
-      CIRC-Math.min(1, prodOPHora/metaActiva)*CIRC);
+      CIRC-Math.min(1, prodOPHora/metaBloque)*CIRC);
   } else {
     // Sin Meta/Hora cargada en la orden: no se inventa una meta, solo se
     // muestran las unidades de la hora y el anillo queda vacío.
@@ -1194,7 +1271,7 @@ function refreshStats(){
   // ganados) y se traduce a unidades de la referencia que está cosiendo.
   const ritmoEl=document.getElementById('ritmo-pill');
   const gh = ganadosHora || 0;
-  if(metaActiva>0){
+  if(metaActiva>0 && infoHora){
     const difMin = gh - minEnHora;                       // + adelantada, − caída
     const difUnd = Math.round(difMin*metaActiva/60);
     ritmoEl.classList.remove('oculto');
@@ -1234,13 +1311,17 @@ function refreshStats(){
   if(ganadosHora!==null || ganadosDia!==null){
     const gHora = ganadosHora || 0, gDia = ganadosDia || 0;
     if(_cfgProd.baseEficiencia==='meta'){
-      // Contra la hora completa (60 min de trabajo), sin prorratear el tiempo.
-      p1=Math.round(gHora/60*100);
-      p2=Math.round(gDia/(Math.max(1,Math.ceil(minDesdeTurno/60))*60)*100);
+      // Contra los minutos productivos completos del bloque y del turno.
+      const totalDia = _bloquesHora.length
+        ? Math.max(1, _bloquesHora.filter(b=>!infoHora||b.n<=infoHora.n).reduce((s,b)=>s+b.minutos,0))
+        : Math.max(1,Math.ceil(minDesdeTurno/60))*60;
+      p1=Math.round(gHora/minutosBloque*100);
+      p2=Math.round(gDia/totalDia*100);
     } else {
-      // Contra lo que debería llevar a esta altura de la hora (ritmo).
+      // Contra lo que debería llevar a esta altura (ritmo), ya descontados los
+      // descansos que estén definidos en el turno.
       p1=Math.round(gHora/minEnHora*100);
-      p2=Math.round(gDia/minDesdeTurno*100);
+      p2=Math.round(gDia/minProductivosDia*100);
     }
   }
   if(p1!==null){
@@ -1364,30 +1445,35 @@ function construirHistorialHoras(){
   const porHora={};
   registrosHoy.filter(r=>r.tipo==='produccion').forEach(r=>{
     const n=horaDeTurnoDe(r);
+    if(n===null) return;                   // registro fuera de las horas del turno
     if(!porHora[n]) porHora[n]={n, ops:{}, regs:[]};
     if(!porHora[n].ops[r.op]) porHora[n].ops[r.op]={ref:r.ref||opCache[r.op]?.ref||r.op, op:r.op, real:0};
     porHora[n].ops[r.op].real += r.cantidad;
     porHora[n].regs.push(r);
   });
-  const nAhora = (()=>{ const d=new Date(), m=d.getHours()*60+d.getMinutes();
-    const desde = m>=_turno.inicioMin ? (m-_turno.inicioMin) : (m+1440-_turno.inicioMin);
-    return Math.floor(Math.max(0,desde)/60)+1; })();
+  const ahoraMin=(()=>{ const d=new Date(); return d.getHours()*60+d.getMinutes(); })();
+  const infoAhora=infoHoraDe(ahoraMin);
+  const nAhora=infoAhora?infoAhora.n:null;
+  const fmtMin=m=>String(Math.floor(((m%1440)+1440)%1440/60)).padStart(2,'0')+':'+String(((m%60)+60)%60).padStart(2,'0');
 
   return Object.values(porHora).sort((a,b)=>a.n-b.n).map(h=>{
-    const rangoIni = new Date(0,0,0,0,_turno.inicioMin + (h.n-1)*60);
-    const rangoFin = new Date(0,0,0,0,_turno.inicioMin + h.n*60);
-    const fmt=d=>String(d.getHours()%24).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
-    // Cada referencia se mide contra la hora completa (60 min), de modo que el
-    // porcentaje de la hora es la SUMA de los de cada referencia: si una quedó
-    // en 40% y otra en 30%, la hora quedó en 70%. Nunca se promedia.
+    // Cada bloque se mide contra SUS minutos productivos (los que se definieron
+    // en Configuraciones), no contra 60 fijos. Así el porcentaje de la hora es
+    // la SUMA de los de cada referencia: 40% + 30% = 70%. Nunca se promedia.
+    const bloque=_bloquesHora.find(b=>b.n===h.n);
+    const minutosBloque = bloque ? bloque.minutos : 60;
+    const iniMin = bloque ? bloque.iniMin : (_turno.inicioMin+(h.n-1)*60);
+    const finMin = bloque ? bloque.finMin : (_turno.inicioMin+h.n*60);
     const ops=Object.values(h.ops).map(o=>{
       const meta = metaDeOP(o.op);
       const ganados = meta>0 ? o.real*60/meta : 0;   // minutos que aportó
-      return {...o, meta, ganados, pct: meta>0 ? Math.round(ganados/60*100) : null};
+      return {...o, meta, ganados, pct: meta>0 ? Math.round(ganados/minutosBloque*100) : null};
     });
     const ganados = minutosGanados(h.regs);
-    const pct = ganados===null ? null : Math.round(ganados/60*100);
-    return {n:h.n, rango: fmt(rangoIni)+' – '+fmt(rangoFin), ops,
+    const pct = ganados===null ? null : Math.round(ganados/minutosBloque*100);
+    const etiqueta = (bloque && bloque.nombre) ? bloque.nombre : (h.n+'ª Hora');
+    return {n:h.n, etiqueta, minutosBloque,
+            rango: fmtMin(iniMin)+' – '+fmtMin(finMin), ops,
             ganados: ganados===null?0:ganados, pct, enCurso: h.n===nAhora,
             totalUnidades: ops.reduce((s,o)=>s+o.real,0)};
   });
@@ -1413,7 +1499,7 @@ function renderHoraChips(horas){
       ? `<span class="efic-pill curso">—</span>`
       : `<span class="efic-pill ${eficClase(h.pct)}">${h.pct}%</span>`;
     return `<button class="hora-chip ${sel}" onclick="seleccionarHora(${h.n})">
-      <span class="hc-n">${h.n}ª Hora</span>${pill}
+      <span class="hc-n">${h.etiqueta}</span>${pill}
     </button>`;
   }).join('');
 }
@@ -1442,6 +1528,7 @@ function renderHoraDetail(horas){
       ${h.pct===null?'<span class="efic-pill curso">—</span>':`<span class="efic-pill ${eficClase(h.pct)}">${h.pct}%</span>`}
     </div>
     ${mezcla?`<div class="hora-nota">${h.ops.map(o=>o.pct===null?'—':o.pct+'%').join(' + ')} = ${h.pct}% de la hora.</div>`:''}
+    ${h.minutosBloque!==60?`<div class="hora-nota">Esta hora tiene ${h.minutosBloque} minutos productivos según el turno configurado.</div>`:''}
   `;
 }
 
@@ -1572,6 +1659,57 @@ function abrirDetalleImprod(id, esCI){
   pintarDetalleImprod();
   document.getElementById('modal-imp-detalle').classList.add('show');
 }
+
+// ── Confirmaciones de CI: aviso obligatorio ───────────────────────
+// Cuando CI marca una solicitud como cumplida, la ventana se abre sola y solo
+// se cierra aceptando o rechazando. Se alimenta por dos vías para que nunca se
+// pierda: el mensaje en vivo y, al reconectar, TODAS las que sigan pendientes
+// (tablet apagada, recargada o sin red cuando CI la marcó).
+let _colaCumplidos=[], _mostrandoCumplido=null;
+function encolarCumplido(req){
+  if(!req || req.module!==selectedMod || req.status!=='cumplido') return;
+  if(_mostrandoCumplido===req._id) return;
+  if(!_colaCumplidos.includes(req._id)) _colaCumplidos.push(req._id);
+  sonarAvisoCI();
+  procesarColaCumplidos();
+}
+function procesarColaCumplidos(){
+  if(_mostrandoCumplido) return;                    // ya hay una en pantalla
+  if(!_colaCumplidos.length) return;
+  // No interrumpir otra ventana abierta (por ejemplo escribiendo una cantidad):
+  // se reintenta en el siguiente segundo.
+  if(document.querySelector('.modal-overlay.show') ||
+     document.getElementById('si-overlay').style.display==='flex'){
+    setTimeout(procesarColaCumplidos, 1000); return;
+  }
+  const id=_colaCumplidos[0];
+  const req=improductivosActivos.find(r=>r._id===id);
+  if(!req || req.status!=='cumplido'){ _colaCumplidos.shift(); procesarColaCumplidos(); return; }
+  _mostrandoCumplido=id;
+  abrirDetalleImprod(id, true);
+}
+function responderCumplido(id, aceptado){
+  resolverCumplido(id, aceptado);
+  _colaCumplidos=_colaCumplidos.filter(x=>x!==id);
+  _mostrandoCumplido=null;
+  closeModal('modal-imp-detalle');
+  setTimeout(procesarColaCumplidos, 350);           // si hay otra pendiente, sigue
+}
+// Mismo aviso sonoro que Contador Módulos.
+function sonarAvisoCI(){
+  try{
+    const ctx=new (window.AudioContext||window.webkitAudioContext)();
+    [{f:880,t:0},{f:1100,t:.18},{f:880,t:.36}].forEach(({f,t})=>{
+      const o=ctx.createOscillator(), g=ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value=f; o.type='sine';
+      g.gain.setValueAtTime(0, ctx.currentTime+t);
+      g.gain.linearRampToValueAtTime(.5, ctx.currentTime+t+.04);
+      g.gain.linearRampToValueAtTime(0, ctx.currentTime+t+.14);
+      o.start(ctx.currentTime+t); o.stop(ctx.currentTime+t+.15);
+    });
+  }catch(e){}
+}
 function pintarDetalleImprod(){
   const acc=document.getElementById('det-acciones');
   const datos=document.getElementById('det-datos');
@@ -1590,10 +1728,13 @@ function pintarDetalleImprod(){
       + (req.ref?`<div>Referencia: <b>${req.ref}</b></div>`:'');
     // Estas no se cierran a mano: las cierra CI y la operaria confirma.
     acc.innerHTML = req.status==='cumplido'
-      ? `<button class="det-accion ok" onclick="resolverCumplido('${req._id}',true);closeModal('modal-imp-detalle')">✅ Aceptar</button>
-         <button class="det-accion no" onclick="resolverCumplido('${req._id}',false);closeModal('modal-imp-detalle')">✖ Rechazar</button>`
+      ? `<button class="det-accion ok" onclick="responderCumplido('${req._id}',true)">✅ Aceptar</button>
+         <button class="det-accion no" onclick="responderCumplido('${req._id}',false)">✖ Rechazar</button>`
       : `<div class="det-espera">⏳ Esperando confirmación del CI</div>`;
     forzar.classList.add('oculto');
+    // Cuando CI ya confirmó, la respuesta es obligatoria: sin botón de cerrar
+    // y sin poder salir tocando por fuera.
+    document.getElementById('det-cerrar').style.display = req.status==='cumplido' ? 'none' : '';
     return;
   }
 
@@ -1608,6 +1749,7 @@ function pintarDetalleImprod(){
     + (imp.empleada?`<div>Operaria: <b>${imp.empleada}</b></div>`:'')
     + (imp.mecanico?`<div>Mecánico: <b>${imp.mecanico}</b></div>`:'');
 
+  document.getElementById('det-cerrar').style.display='';
   if(t==='red')          acc.innerHTML=`<button class="det-accion" onclick="pedirMecanico('atendio')">¿Quién llegó a atender? →</button>`;
   else if(t==='garnet')  acc.innerHTML=`<button class="det-accion" onclick="pedirMecanico('alistamiento')">¿Quién va a realizar el alistamiento? →</button>`;
   else if(t==='yellow')  acc.innerHTML=`<button class="det-accion ok" onclick="pedirMecanico('soluciono')">¿Quién solucionó la falla? →</button>`;
@@ -1775,6 +1917,10 @@ function connectWS(){
       // la tablet se reinició con el módulo en rojo), con su tiempo real.
       _multiImps = ((msg.multiImps && msg.multiImps[selectedMod]) || []).slice();
       renderImproductivos();
+      // Recuperar TODAS las confirmaciones que quedaron pendientes mientras la
+      // tablet estaba fuera de línea. Este es el camino que garantiza que un
+      // "cumplido" marcado en CI nunca se pierda.
+      (msg.ciCumplido||[]).filter(r=>r.module===selectedMod).forEach(encolarCumplido);
       return;
     }
     // El mecánico tomó el caso, o alguien cerró el improductivo desde otra
@@ -1785,7 +1931,9 @@ function connectWS(){
     }
     if(msg.type==='ci_cumplido_request'){
       const req=msg.request;
-      if(req && req.module===selectedMod){ upsertImprod(req); renderImproductivos(); showToast('🔔 CI marcó una solicitud como lista'); }
+      if(req && req.module===selectedMod){
+        upsertImprod(req); renderImproductivos(); encolarCumplido(req);
+      }
       return;
     }
     if(msg.type==='ci_update_request'){
