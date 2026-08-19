@@ -186,36 +186,48 @@ select.qe-ctrl{background-color:#fff;
   box-shadow:0 3px 0 var(--accent2),0 4px 8px rgba(30,58,138,.3);transition:transform .1s ease,box-shadow .1s ease;}
 .btn-cambiar-op:active{transform:translateY(3px);box-shadow:0 0 0 var(--accent2),0 1px 3px rgba(30,58,138,.25);}
 
-.improd-panel{flex-shrink:0;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:10px 14px;
-  box-shadow:var(--shadow-card);display:none;}
-.improd-panel.show{display:block;}
-.improd-panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;}
-.improd-panel-head span:first-child{font-family:var(--font-mono);font-size:10.5px;font-weight:700;letter-spacing:1.5px;color:var(--text-muted);}
-.improd-count{background:var(--warn-bg);color:var(--warn);font-family:var(--font-mono);font-weight:700;font-size:11px;padding:1px 8px;border-radius:20px;}
-.improd-list{max-height:clamp(60px,14vh,120px);overflow-y:auto;}
-.improd-item{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:9px;border-left:3px solid var(--warn);
-  background:var(--surface2);margin-bottom:6px;cursor:default;}
-.improd-item:last-child{margin-bottom:0;}
-.improd-item.cumplido{border-left-color:var(--cyan);cursor:pointer;animation:improd-pulse 2s ease-in-out infinite;}
-@keyframes improd-pulse{0%,100%{box-shadow:0 0 0 0 rgba(37,99,235,.25);}50%{box-shadow:0 0 0 6px rgba(37,99,235,0);}}
-.improd-item.estado{border-left-color:var(--bad);}
-.improd-icon{font-size:15px;flex-shrink:0;}
-.improd-txt{font-size:12px;font-weight:700;color:var(--text);flex:1;min-width:0;}
-.improd-timer{font-family:var(--font-mono);font-size:11.5px;font-weight:700;color:var(--text-muted);
-  white-space:nowrap;font-variant-numeric:tabular-nums;flex-shrink:0;}
-.btn-cerrar-imp{padding:6px 13px;border-radius:8px;border:none;background:var(--good);color:#fff;
-  font-family:var(--font-display);font-size:11.5px;font-weight:800;letter-spacing:.4px;cursor:pointer;
-  white-space:nowrap;flex-shrink:0;box-shadow:0 3px 0 #14532d;transition:transform .1s,box-shadow .1s;}
-.btn-cerrar-imp:active{transform:translateY(3px);box-shadow:0 0 0 #14532d;}
-.improd-status{font-size:10px;font-weight:700;letter-spacing:.3px;padding:2px 8px;border-radius:20px;white-space:nowrap;font-family:var(--font-mono);}
-.improd-status.espera{background:var(--warn-bg);color:var(--warn);}
-.improd-status.cumplido{background:var(--cyan-soft);color:var(--cyan);}
-.improd-expand{display:none;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);}
-.improd-expand.show{display:flex;}
-.improd-item .btn-cumplido{padding:7px 14px;border-radius:8px;border:none;font-family:var(--font-display);
-  font-size:12px;font-weight:800;letter-spacing:.4px;cursor:pointer;flex:1;}
-.improd-item .btn-cumplido.ok{background:var(--good);color:#06210f;}
-.improd-item .btn-cumplido.no{background:var(--bg);color:var(--bad);border:1.5px solid var(--bad-border);}
+/* Franja de improductivos: una sola línea con scroll lateral, para no quitarle
+   altura al círculo (antes el panel lo dejaba ovalado). */
+.imp-strip{flex-shrink:0;display:none;gap:7px;overflow-x:auto;overflow-y:hidden;padding:1px 1px 3px;}
+.imp-strip.show{display:flex;}
+.imp-strip::-webkit-scrollbar{height:4px;}
+.imp-strip::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+.imp-chip{flex-shrink:0;display:inline-flex;align-items:center;gap:7px;padding:7px 12px;border-radius:20px;
+  background:var(--surface);border:1.5px solid var(--border);border-left:4px solid var(--text-faint);
+  cursor:pointer;white-space:nowrap;box-shadow:var(--shadow-card);transition:transform .1s;}
+.imp-chip:active{transform:scale(.97);}
+.imp-chip.t-red,.imp-chip.t-yellow{border-left-color:var(--bad);}
+.imp-chip.t-blue{border-left-color:var(--accent);}
+.imp-chip.t-garnet,.imp-chip.t-pink{border-left-color:#7f1d1d;}
+.imp-chip.t-ci{border-left-color:var(--purple);}
+.imp-chip.avisa{border-color:var(--good);animation:imp-pulse 2s ease-in-out infinite;}
+@keyframes imp-pulse{0%,100%{box-shadow:0 0 0 0 rgba(22,163,74,.35);}50%{box-shadow:0 0 0 6px rgba(22,163,74,0);}}
+.imp-chip-ico{font-size:14px;}
+.imp-chip-txt{font-size:11.5px;font-weight:700;color:var(--text);}
+.imp-chip-t{font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--text-muted);font-variant-numeric:tabular-nums;}
+.imp-chip-alerta{font-size:10px;font-weight:800;color:var(--good);}
+
+/* Detalle del improductivo */
+.det-datos{background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;
+  padding:10px 13px;margin-bottom:14px;font-size:12.5px;color:var(--text-muted);}
+.det-datos b{color:var(--text);}
+.det-datos div+div{margin-top:4px;}
+.det-accion{width:100%;padding:14px;border-radius:10px;border:none;color:#fff;font-family:var(--font-display);
+  font-size:14.5px;font-weight:800;letter-spacing:.5px;cursor:pointer;margin-bottom:8px;
+  box-shadow:0 4px 0 var(--accent2);transition:transform .1s,box-shadow .1s;background:var(--accent);}
+.det-accion:active{transform:translateY(4px);box-shadow:0 0 0 var(--accent2);}
+.det-accion.ok{background:var(--good);box-shadow:0 4px 0 #14532d;}
+.det-accion.ok:active{box-shadow:0 0 0 #14532d;}
+.det-accion.no{background:var(--bad);box-shadow:0 4px 0 #7f1d1d;}
+.det-accion.no:active{box-shadow:0 0 0 #7f1d1d;}
+.det-espera{text-align:center;font-size:12.5px;color:var(--text-muted);padding:10px 0 14px;}
+.det-forzar{display:block;width:100%;margin-top:10px;background:none;border:none;color:var(--text-faint);
+  font-size:11.5px;font-weight:600;cursor:pointer;text-decoration:underline;}
+.det-forzar.oculto{display:none;}
+.mec-list{display:flex;flex-direction:column;gap:8px;max-height:min(42vh,320px);overflow-y:auto;}
+.mec-list button{padding:12px 14px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);
+  font-size:14px;font-weight:700;color:var(--text);cursor:pointer;text-align:left;}
+.mec-list button:hover{border-color:var(--accent);background:var(--accent-soft);}
 
 /* Panel gris para que el círculo blanco resalte (si el panel fuera blanco,
    el círculo se pierde contra el fondo). */
@@ -231,7 +243,9 @@ select.qe-ctrl{background-color:#fff;
   background:#f7b4b4;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums;}
 
 /* Círculo en relieve: se hunde al tocarlo para confirmar el registro. */
-.main-gauge{flex-shrink:1;position:relative;width:clamp(120px,min(32vh,48vw),236px);height:clamp(120px,min(32vh,48vw),236px);
+/* aspect-ratio + flex-shrink:0: en una columna flex el alto se encogía y el
+   ancho no, y el círculo quedaba ovalado con el texto desbordado. */
+.main-gauge{flex-shrink:0;position:relative;aspect-ratio:1;width:clamp(120px,min(32vh,48vw),236px);height:auto;
   display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;-webkit-user-select:none;
   touch-action:manipulation;border-radius:50%;background:var(--surface);border:1px solid var(--border);
   box-shadow:0 7px 0 #cbd5e1,0 10px 16px rgba(15,23,42,.2),inset 0 2px 4px rgba(255,255,255,.9);
@@ -263,7 +277,7 @@ select.qe-ctrl{background-color:#fff;
    achicar el círculo para que las tarjetas y los botones de abajo sigan
    visibles sin tener que desplazar. */
 @media(max-height:780px){
-  .main-gauge{width:clamp(96px,min(26vh,40vw),176px);height:clamp(96px,min(26vh,40vw),176px);}
+  .main-gauge{width:clamp(96px,min(26vh,40vw),176px);height:auto;}
   .main-gauge-num{font-size:clamp(26px,7vh,42px);}
   .main-gauge svg .track,.main-gauge svg .fill{stroke-width:9;}
 }
@@ -512,13 +526,8 @@ select.qe-ctrl{background-color:#fff;
     <button class="btn-cambiar-op" onclick="abrirCambiarOP()">Cambiar OP</button>
   </div>
 
-  <div class="improd-panel" id="improd-panel">
-    <div class="improd-panel-head">
-      <span>⚡ IMPRODUCTIVOS ACTIVOS</span>
-      <span class="improd-count" id="improd-count">0</span>
-    </div>
-    <div class="improd-list" id="improd-list"></div>
-  </div>
+  <!-- Franja compacta: una sola línea para no comerle altura al círculo -->
+  <div class="imp-strip" id="imp-strip"></div>
 
   <div class="main-gauge-panel">
     <div class="mala-badge" id="mala-badge" role="button" tabindex="0" aria-label="Registrar mala calidad">
@@ -647,12 +656,36 @@ select.qe-ctrl{background-color:#fff;
   </div>
 </div>
 
-<!-- Cierre de improductivo de estado (mecánico / referencia / alistamiento) -->
+<!-- Detalle de un improductivo: desde aquí avanza el flujo -->
+<div class="modal-overlay" id="modal-imp-detalle">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-icon" id="det-icon">🔧</div>
+    <div class="modal-title" id="det-titulo">Improductivo</div>
+    <div class="modal-sub" id="det-sub">—</div>
+    <div class="det-datos" id="det-datos"></div>
+    <div id="det-acciones"></div>
+    <button class="btn-modal-cancel" style="width:100%;margin-top:10px" onclick="closeModal('modal-imp-detalle')">Cerrar ventana</button>
+    <button class="det-forzar" id="det-forzar" onclick="abrirCierreEstado(_impDetalleId)">Cierre forzado con clave</button>
+  </div>
+</div>
+
+<!-- Selección de mecánico (¿quién atendió? / ¿quién solucionó?) -->
+<div class="modal-overlay" id="modal-mecanico">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-icon" style="background:var(--warn-bg)">🔧</div>
+    <div class="modal-title" id="mec-titulo">¿Quién llegó a atender?</div>
+    <div class="modal-sub" id="mec-sub">Selecciona el mecánico</div>
+    <div class="mec-list" id="mec-list"></div>
+    <button class="btn-modal-cancel" style="width:100%;margin-top:12px" onclick="closeModal('modal-mecanico')">Cancelar</button>
+  </div>
+</div>
+
+<!-- Cierre forzado (salida de emergencia, no el flujo normal) -->
 <div class="modal-overlay" id="modal-cierre-imp">
   <div class="modal" style="max-width:380px">
-    <div class="modal-icon" style="background:var(--good-bg)">✅</div>
-    <div class="modal-title">Cerrar improductivo</div>
-    <div class="modal-sub">Ingresa la clave para confirmar que ya se solucionó</div>
+    <div class="modal-icon" style="background:var(--bad-bg)">🔒</div>
+    <div class="modal-title">Cierre forzado</div>
+    <div class="modal-sub">Cierra el improductivo sin registrar quién lo atendió. Ingresa la clave.</div>
     <div class="modal-field">
       <input class="modal-select" id="cierre-pass" type="password" inputmode="numeric"
         style="text-align:center;font-size:22px;letter-spacing:6px;" placeholder="••••">
@@ -1497,43 +1530,136 @@ setInterval(()=>{
 },1000);
 
 function renderImproductivos(){
-  const panel=document.getElementById('improd-panel');
-  const list=document.getElementById('improd-list');
-  const filas=[];
+  const strip=document.getElementById('imp-strip');
+  const chips=[];
 
-  // Improductivos de estado (pueden ser varios a la vez)
+  // Improductivos de estado (varios a la vez). Tocar el chip abre el detalle.
   _multiImps.forEach(imp=>{
     const t=tipoDe(imp);
     const lbl=LABELS_ESTADO[t]||'Improductivo', ico=ICONOS_ESTADO[t]||'⚙️';
     const desde=imp.inicio||Date.now();
-    filas.push(`<div class="improd-item estado">
-      <span class="improd-icon">${ico}</span>
-      <span class="improd-txt">${lbl}</span>
-      <span class="improd-timer" data-imp-timer="${desde}">⏱ ${fmtTiempo(Date.now()-desde)}</span>
-      <button class="btn-cerrar-imp" onclick="abrirCierreEstado('${imp.id}')">Solucionado</button>
-    </div>`);
+    chips.push(`<button class="imp-chip t-${t}" onclick="abrirDetalleImprod('${imp.id}',false)">
+      <span class="imp-chip-ico">${ico}</span>
+      <span class="imp-chip-txt">${lbl}</span>
+      <span class="imp-chip-t" data-imp-timer="${desde}">⏱ ${fmtTiempo(Date.now()-desde)}</span>
+    </button>`);
   });
 
   // Solicitudes a CI (producción / insumos)
   improductivosActivos.forEach(req=>{
     const cumplido = req.status==='cumplido';
     const desde = req.alertStart || Date.parse(req.timestamp||'') || Date.now();
-    filas.push(`<div class="improd-item ${cumplido?'cumplido':''}">
-      <span class="improd-icon">${iconoImprod(req)}</span>
-      <span class="improd-txt">${req.categoria||req.tipo||'Improductivo'}</span>
-      <span class="improd-timer" data-imp-timer="${desde}">⏱ ${fmtTiempo(Date.now()-desde)}</span>
-      <span class="improd-status ${cumplido?'cumplido':'espera'}">${cumplido?'¿Lo recibiste?':'En espera'}</span>
-    </div>
-    ${cumplido?`<div class="improd-expand show">
-      <button class="btn-cumplido no" onclick="resolverCumplido('${req._id}',false)">✖ Rechazar</button>
-      <button class="btn-cumplido ok" onclick="resolverCumplido('${req._id}',true)">✅ Aceptar</button>
-    </div>`:''}`);
+    chips.push(`<button class="imp-chip t-ci ${cumplido?'avisa':''}" onclick="abrirDetalleImprod('${req._id}',true)">
+      <span class="imp-chip-ico">${iconoImprod(req)}</span>
+      <span class="imp-chip-txt">${req.categoria||req.tipo||'Improductivo'}</span>
+      <span class="imp-chip-t" data-imp-timer="${desde}">⏱ ${fmtTiempo(Date.now()-desde)}</span>
+      ${cumplido?'<span class="imp-chip-alerta">¿LO RECIBISTE?</span>':''}
+    </button>`);
   });
 
-  document.getElementById('improd-count').textContent = filas.length;
-  if(!filas.length){ panel.classList.remove('show'); return; }
-  panel.classList.add('show');
-  list.innerHTML = filas.join('');
+  if(!chips.length){ strip.classList.remove('show'); strip.innerHTML=''; return; }
+  strip.classList.add('show');
+  strip.innerHTML = chips.join('');
+}
+
+// ── Detalle de un improductivo y avance del flujo ─────────────────
+// Mismo recorrido que Contador Módulos: Espera Mecánico → ¿quién llegó a
+// atender? → Atendiendo → ¿quién solucionó? → cerrado. Así queda registrado
+// el mecánico en cada paso (es lo que alimenta la hoja de vida de máquina).
+let _impDetalleId=null, _impDetalleEsCI=false;
+function abrirDetalleImprod(id, esCI){
+  _impDetalleId=id; _impDetalleEsCI=!!esCI;
+  pintarDetalleImprod();
+  document.getElementById('modal-imp-detalle').classList.add('show');
+}
+function pintarDetalleImprod(){
+  const acc=document.getElementById('det-acciones');
+  const datos=document.getElementById('det-datos');
+  const forzar=document.getElementById('det-forzar');
+
+  if(_impDetalleEsCI){
+    const req=improductivosActivos.find(r=>r._id===_impDetalleId);
+    if(!req){ closeModal('modal-imp-detalle'); return; }
+    const desde=req.alertStart||Date.parse(req.timestamp||'')||Date.now();
+    document.getElementById('det-icon').textContent=iconoImprod(req);
+    document.getElementById('det-icon').className='modal-icon';
+    document.getElementById('det-titulo').textContent=req.categoria||req.tipo||'Improductivo';
+    document.getElementById('det-sub').textContent = req.status==='cumplido'
+      ? 'CI confirma la entrega' : 'Solicitud enviada a CI';
+    datos.innerHTML=`<div>Tiempo: <b data-imp-timer="${desde}">⏱ ${fmtTiempo(Date.now()-desde)}</b></div>`
+      + (req.ref?`<div>Referencia: <b>${req.ref}</b></div>`:'');
+    // Estas no se cierran a mano: las cierra CI y la operaria confirma.
+    acc.innerHTML = req.status==='cumplido'
+      ? `<button class="det-accion ok" onclick="resolverCumplido('${req._id}',true);closeModal('modal-imp-detalle')">✅ Aceptar</button>
+         <button class="det-accion no" onclick="resolverCumplido('${req._id}',false);closeModal('modal-imp-detalle')">✖ Rechazar</button>`
+      : `<div class="det-espera">⏳ Esperando confirmación del CI</div>`;
+    forzar.classList.add('oculto');
+    return;
+  }
+
+  const imp=_multiImps.find(i=>i.id===_impDetalleId);
+  if(!imp){ closeModal('modal-imp-detalle'); return; }
+  const t=tipoDe(imp), desde=imp.inicio||Date.now();
+  document.getElementById('det-icon').textContent=ICONOS_ESTADO[t]||'⚙️';
+  document.getElementById('det-icon').className='modal-icon';
+  document.getElementById('det-titulo').textContent=LABELS_ESTADO[t]||'Improductivo';
+  document.getElementById('det-sub').textContent='Improductivo del módulo '+selectedMod;
+  datos.innerHTML=`<div>Tiempo: <b data-imp-timer="${desde}">⏱ ${fmtTiempo(Date.now()-desde)}</b></div>`
+    + (imp.empleada?`<div>Operaria: <b>${imp.empleada}</b></div>`:'')
+    + (imp.mecanico?`<div>Mecánico: <b>${imp.mecanico}</b></div>`:'');
+
+  if(t==='red')          acc.innerHTML=`<button class="det-accion" onclick="pedirMecanico('atendio')">¿Quién llegó a atender? →</button>`;
+  else if(t==='garnet')  acc.innerHTML=`<button class="det-accion" onclick="pedirMecanico('alistamiento')">¿Quién va a realizar el alistamiento? →</button>`;
+  else if(t==='yellow')  acc.innerHTML=`<button class="det-accion ok" onclick="pedirMecanico('soluciono')">¿Quién solucionó la falla? →</button>`;
+  else                   acc.innerHTML=`<button class="det-accion ok" onclick="cerrarImprodEstado(_impDetalleId);closeModal('modal-imp-detalle')">✅ Solucionado</button>`;
+  forzar.classList.remove('oculto');
+}
+
+// ── Selección de mecánico (misma lista que Contador Módulos) ──────
+let _pasoMecanico=null;
+function pedirMecanico(paso){
+  _pasoMecanico=paso;
+  const titulos={ atendio:['¿Quién llegó a atender?','Mecánico que atendió el llamado'],
+                  alistamiento:['¿Quién va a realizar el alistamiento?','Mecánico que llegó al alistamiento'],
+                  soluciono:['¿Quién solucionó la falla?','Mecánico que resolvió el problema'] };
+  const [tit,sub]=titulos[paso]||titulos.atendio;
+  document.getElementById('mec-titulo').textContent=tit;
+  document.getElementById('mec-sub').textContent=sub;
+  const list=document.getElementById('mec-list');
+  list.innerHTML='<div style="color:var(--text-faint);font-size:13px;padding:8px;">Cargando…</div>';
+  document.getElementById('modal-mecanico').classList.add('show');
+  fetch('/api/mecanicos').then(r=>r.json()).then(mecs=>{
+    list.innerHTML='';
+    const nombres=(mecs||[]).map(m=>typeof m==='string'?m:(m.name||m.nombre||'')).filter(Boolean);
+    if(!nombres.length){ list.innerHTML='<div style="color:var(--text-faint);font-size:13px;padding:8px;">Sin mecánicos registrados</div>'; return; }
+    nombres.forEach(n=>{
+      const b=document.createElement('button');
+      b.textContent=n;
+      b.onclick=()=>seleccionarMecanico(n);
+      list.appendChild(b);
+    });
+  }).catch(()=>{ list.innerHTML='<div style="color:var(--bad);font-size:13px;padding:8px;">No se pudo cargar la lista</div>'; });
+}
+function seleccionarMecanico(nombre){
+  closeModal('modal-mecanico');
+  const imp=_multiImps.find(i=>i.id===_impDetalleId);
+  if(!imp){ closeModal('modal-imp-detalle'); return; }
+  if(_pasoMecanico==='soluciono'){
+    // Último paso: se cierra y queda registrado quién lo resolvió.
+    imp.mecanico=nombre;
+    wsSend({type:'multi_imp_change', modId:selectedMod, action:'update', imp:{id:imp.id, mecanico:nombre}});
+    cerrarImprodEstado(imp.id);
+    closeModal('modal-imp-detalle');
+    showToast('✅ Improductivo cerrado por '+nombre);
+    return;
+  }
+  // Pasa a "Atendiendo" con el mecánico que llegó.
+  imp.tipoActual='yellow'; imp.mecanico=nombre;
+  wsSend({type:'multi_imp_change', modId:selectedMod, action:'update',
+          imp:{id:imp.id, tipoActual:'yellow', mecanico:nombre}});
+  renderImproductivos();
+  pintarDetalleImprod();
+  showToast('🔧 '+nombre+' está atendiendo');
 }
 
 // ── Cerrar el improductivo de estado ──────────────────────────────
@@ -1557,6 +1683,7 @@ function confirmarCierreEstado(){
     return;
   }
   closeModal('modal-cierre-imp');
+  closeModal('modal-imp-detalle');
   if(_impACerrar) cerrarImprodEstado(_impACerrar);
   _impACerrar=null;
   showToast('✅ Improductivo cerrado');
