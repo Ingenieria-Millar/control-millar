@@ -1951,6 +1951,8 @@ app.post('/api/contador-produccion/registro', (req, res) => {
     const lista = loadDB('contador_produccion') || [];
     lista.push(nuevo);
     if (!saveDB('contador_produccion', lista)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
+    // Avisar a las demás tablets del mismo módulo para que se actualicen solas.
+    broadcast({ type: 'cp_registro', registro: nuevo });
     res.json({ ok: true, registro: nuevo });
   } catch (e) {
     console.error('Error [POST contador-produccion/registro]:', e.message);
@@ -1976,6 +1978,8 @@ app.put('/api/contador-produccion/registro/:id', requireProgramador, (req, res) 
     }
     lista[idx] = { ...lista[idx], cantidad, editadoPor: req.auth.user, editadoEn: new Date().toISOString() };
     if (!saveDB('contador_produccion', lista)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
+    // Una corrección del admin también debe verse en las tablets del piso.
+    broadcast({ type: 'cp_registro_update', accion: 'editar', registro: lista[idx] });
     res.json({ ok: true, registro: lista[idx] });
   } catch (e) {
     console.error('Error [PUT contador-produccion/registro]:', e.message);
@@ -1988,8 +1992,10 @@ app.delete('/api/contador-produccion/registro/:id', requireProgramador, (req, re
     const lista = loadDB('contador_produccion') || [];
     const idx = lista.findIndex(r => r.id === req.params.id);
     if (idx < 0) return res.status(404).json({ error: 'Registro no encontrado' });
+    const borrado = lista[idx];
     lista.splice(idx, 1);
     if (!saveDB('contador_produccion', lista)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
+    broadcast({ type: 'cp_registro_update', accion: 'eliminar', registro: borrado });
     res.json({ ok: true });
   } catch (e) {
     console.error('Error [DELETE contador-produccion/registro]:', e.message);
@@ -2503,6 +2509,8 @@ const MSG_TOPICS = {
   'ia_save_state':       'ia',
   'prod_update':         'prod',
   'rt_update':           'rt',
+  'cp_registro':         'cp',
+  'cp_registro_update':  'cp',
 };
 
 function broadcast(payload, excludeWs = null) {

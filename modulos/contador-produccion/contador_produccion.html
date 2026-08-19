@@ -244,8 +244,14 @@ select.qe-ctrl{background-color:#fff;
 .gauge-falt-num{font-family:var(--font-mono);font-size:clamp(15px,2.6vh,20px);font-weight:700;line-height:1.1;color:var(--warn);font-variant-numeric:tabular-nums;}
 .gauge-falt-num.ok{color:var(--good);}
 .gauge-falt-lbl{font-size:10px;font-weight:600;color:var(--text-faint);}
-.main-gauge-label{flex-shrink:0;font-family:var(--font-display);font-size:13px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;
-  color:var(--cyan);margin-top:clamp(6px,1.2vh,12px);}
+/* Indicador de ritmo: por cuántas unidades va caída o adelantada respecto al
+   tiempo corrido de la hora. Va donde antes estaba el rótulo "Producción". */
+.ritmo-pill{flex-shrink:0;display:inline-flex;align-items:center;gap:7px;margin-top:clamp(7px,1.3vh,13px);
+  padding:7px 16px;border-radius:24px;border:1.5px solid;font-size:13px;font-weight:700;white-space:nowrap;}
+.ritmo-pill.baja{background:var(--bad-bg);border-color:var(--bad-border);color:var(--bad);}
+.ritmo-pill.alta{background:var(--good-bg);border-color:var(--good-border);color:var(--good);}
+.ritmo-pill.par{background:var(--accent-soft);border-color:#bfdbfe;color:var(--accent);}
+.ritmo-pill.oculto{display:none;}
 /* Equipos de poca altura (tablet apaisada, celular, ventana reducida):
    achicar el círculo para que las tarjetas y los botones de abajo sigan
    visibles sin tener que desplazar. */
@@ -284,8 +290,8 @@ select.qe-ctrl{background-color:#fff;
 .action-btn.compact{flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:clamp(8px,1.4vh,14px) 6px;}
 .action-btn.compact .a-icon{font-size:19px;}
 .action-btn.compact .a-lbl{font-size:11px;font-weight:800;letter-spacing:.5px;text-align:center;line-height:1.2;}
-.action-btn.improd{background:var(--purple);color:#fff;box-shadow:0 4px 0 #5b21b6,0 5px 10px rgba(91,33,182,.28);}
-.action-btn.improd:active{box-shadow:0 1px 0 #5b21b6,0 2px 4px rgba(91,33,182,.24);}
+.action-btn.improd{background:#64748b;color:#fff;box-shadow:0 4px 0 #475569,0 5px 10px rgba(71,85,105,.28);}
+.action-btn.improd:active{box-shadow:0 1px 0 #475569,0 2px 4px rgba(71,85,105,.24);}
 .action-btn.historial{background:var(--accent);color:#fff;box-shadow:0 4px 0 var(--accent2),0 5px 10px rgba(30,58,138,.28);}
 .action-btn.historial:active{box-shadow:0 1px 0 var(--accent2),0 2px 4px rgba(30,58,138,.24);}
 
@@ -295,6 +301,14 @@ select.qe-ctrl{background-color:#fff;
 .modal-overlay.show{display:flex;}
 .modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px 22px 26px;width:100%;max-width:420px;
   max-height:85vh;max-height:85dvh;overflow-y:auto;box-shadow:0 24px 60px rgba(15,23,42,.25);}
+/* Historial: ventana más amplia y con la lista de horas desplazable, para que
+   quepan varias referencias por hora sin desbordar la pantalla de la tablet. */
+.modal.modal-ancho{max-width:680px;}
+.modal.modal-ancho .hora-detail{max-height:min(46vh,420px);overflow-y:auto;}
+.modal-x{position:absolute;top:12px;right:14px;width:32px;height:32px;border-radius:50%;
+  border:1.5px solid var(--border);background:var(--surface2);color:var(--text-muted);
+  font-size:14px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.modal-x:hover{background:var(--border);color:var(--text);}
 .modal-icon{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 12px;}
 .modal-icon.prod{background:var(--cyan-soft);}
 .modal-icon.calidad{background:var(--bad-bg);}
@@ -518,7 +532,7 @@ select.qe-ctrl{background-color:#fff;
         </div>
       </div>
     </div>
-    <div class="main-gauge-label">Producción</div>
+    <div class="ritmo-pill" id="ritmo-pill"><span id="ritmo-ico">✓</span> <span id="ritmo-txt">Al día con la meta</span></div>
   </div>
 
   <div class="lote-card">
@@ -617,12 +631,25 @@ select.qe-ctrl{background-color:#fff;
 </div>
 
 <div class="modal-overlay" id="modal-historial">
-  <div class="modal" style="max-width:480px">
+  <div class="modal modal-ancho">
     <div class="modal-title" style="margin-bottom:4px">Historial por hora</div>
     <div class="modal-sub">Selecciona la hora que quieres revisar</div>
     <div class="hora-chip-row" id="hora-chip-row"></div>
     <div class="hora-detail" id="hora-detail"></div>
     <button class="btn-modal-cancel" style="width:100%;margin-top:14px" onclick="closeModal('modal-historial')">Cerrar</button>
+  </div>
+</div>
+
+<!-- Aviso informativo: faltan pocos minutos para que cierre la hora -->
+<div class="modal-overlay" id="modal-fin-hora">
+  <div class="modal" style="max-width:420px;position:relative;">
+    <button class="modal-x" onclick="closeModal('modal-fin-hora')" aria-label="Cerrar">✕</button>
+    <div class="modal-icon" style="background:var(--warn-bg)">⏰</div>
+    <div class="modal-title">Queda poco para cerrar la hora</div>
+    <div class="modal-sub" id="fin-hora-txt" style="margin-bottom:20px">
+      En 5 minutos termina la hora. Recuerda registrar las unidades que tengas pendientes.
+    </div>
+    <button class="btn-modal-confirm prod" style="width:100%" onclick="closeModal('modal-fin-hora')">Entendido</button>
   </div>
 </div>
 
@@ -681,8 +708,28 @@ function tick(){
   const min=d.getHours()*60+d.getMinutes();
   if(min!==_ultMinuto){
     _ultMinuto=min;
-    if(opActiva) refreshStats();
+    if(opActiva){ refreshStats(); revisarAvisoFinHora(); }
   }
+}
+
+// Aviso de cierre de hora. Se muestra UNA sola vez por hora (si no, volvería a
+// abrirse cada minuto durante los últimos 5) y nunca encima de otro modal
+// abierto, para no interrumpir un registro a medio hacer.
+const AVISO_MIN_ANTES = 5;
+let _avisoHoraMostrada = null;
+function revisarAvisoFinHora(){
+  const d=new Date();
+  const minAhora=d.getHours()*60+d.getMinutes();
+  const desde = minAhora>=_turno.inicioMin ? (minAhora-_turno.inicioMin) : (minAhora+1440-_turno.inicioMin);
+  const nHora = Math.floor(Math.max(0,desde)/60)+1;
+  const restan = 60 - (desde % 60);
+  if(restan>AVISO_MIN_ANTES || restan<=0) return;
+  if(_avisoHoraMostrada===nHora) return;
+  if(document.querySelector('.modal-overlay.show') || document.getElementById('si-overlay').style.display==='flex') return;
+  _avisoHoraMostrada = nHora;
+  document.getElementById('fin-hora-txt').textContent =
+    'En '+restan+' minuto'+(restan===1?'':'s')+' termina la hora. Recuerda registrar las unidades que tengas pendientes.';
+  document.getElementById('modal-fin-hora').classList.add('show');
 }
 setInterval(tick,1000); tick();
 document.getElementById('qe-modulo-txt').textContent = selectedMod;
@@ -976,26 +1023,24 @@ function refreshStats(){
 
   const regsEstaHora = registrosHoy.filter(r=>r.tipo==='produccion' && horaDeTurnoDe(r)===nHoraActual);
   const regsHoy      = registrosHoy.filter(r=>r.tipo==='produccion');
-  const prodEstaHora = regsEstaHora.reduce((s,r)=>s+r.cantidad,0);
   const prodHoy      = regsHoy.reduce((s,r)=>s+r.cantidad,0);
   // Trabajo producido en minutos — suma correctamente aunque en la hora se
   // hayan trabajado varias referencias con metas distintas.
   const ganadosHora = minutosGanados(regsEstaHora);
   const ganadosDia  = minutosGanados(regsHoy);
 
-  // ── Círculo: avance contra la meta de ESTA hora (se reinicia cada hora) ──
-  // El número grande son las unidades reales de la hora (todas las
-  // referencias). Las faltantes se expresan en unidades de la referencia
-  // activa, que es la que la operaria está cosiendo en este momento.
+  // ── Círculo: SOLO la OP activa dentro de esta hora ────────────
+  // Al cambiar a una OP que todavía no tiene unidades en la hora, arranca en
+  // 0 y los faltantes son su meta completa. Lo ya producido en otras
+  // referencias no se pierde: sigue contando en la eficiencia y el historial.
   const metaActiva = metaDeOP(opActiva.op);
-  const gh = ganadosHora || 0;
-  document.getElementById('gauge-prod-num').textContent=prodEstaHora;
+  const prodOPHora = regsEstaHora.filter(r=>r.op===opActiva.op).reduce((s,r)=>s+r.cantidad,0);
+  document.getElementById('gauge-prod-num').textContent=prodOPHora;
   const faltEl=document.getElementById('gauge-falt');
   const faltNum=document.getElementById('gauge-falt-num');
   const faltLbl=document.getElementById('gauge-falt-lbl');
   if(metaActiva>0){
-    const minRestantes = Math.max(0, 60-gh);
-    const faltanUnidades = Math.ceil(minRestantes*metaActiva/60);
+    const faltanUnidades = Math.max(0, metaActiva-prodOPHora);
     faltEl.classList.remove('oculto');
     if(faltanUnidades>0){
       faltNum.textContent=faltanUnidades; faltNum.className='gauge-falt-num';
@@ -1005,12 +1050,38 @@ function refreshStats(){
       faltLbl.textContent='Meta cumplida';
     }
     document.getElementById('gauge-prod-fill').setAttribute('stroke-dashoffset',
-      CIRC-Math.min(1, gh/60)*CIRC);
+      CIRC-Math.min(1, prodOPHora/metaActiva)*CIRC);
   } else {
     // Sin Meta/Hora cargada en la orden: no se inventa una meta, solo se
     // muestran las unidades de la hora y el anillo queda vacío.
     faltEl.classList.add('oculto');
     document.getElementById('gauge-prod-fill').setAttribute('stroke-dashoffset', CIRC);
+  }
+
+  // ── Ritmo: por cuántas unidades va caída o adelantada ──────────
+  // Se mide sobre la hora completa (todas las referencias, en minutos
+  // ganados) y se traduce a unidades de la referencia que está cosiendo.
+  const ritmoEl=document.getElementById('ritmo-pill');
+  const gh = ganadosHora || 0;
+  if(metaActiva>0){
+    const difMin = gh - minEnHora;                       // + adelantada, − caída
+    const difUnd = Math.round(difMin*metaActiva/60);
+    ritmoEl.classList.remove('oculto');
+    if(difUnd<0){
+      ritmoEl.className='ritmo-pill baja';
+      document.getElementById('ritmo-ico').textContent='▼';
+      document.getElementById('ritmo-txt').textContent='Caída por '+Math.abs(difUnd)+' und';
+    } else if(difUnd>0){
+      ritmoEl.className='ritmo-pill alta';
+      document.getElementById('ritmo-ico').textContent='▲';
+      document.getElementById('ritmo-txt').textContent='Adelantada por '+difUnd+' und';
+    } else {
+      ritmoEl.className='ritmo-pill par';
+      document.getElementById('ritmo-ico').textContent='✓';
+      document.getElementById('ritmo-txt').textContent='Al día con la meta';
+    }
+  } else {
+    ritmoEl.classList.add('oculto');
   }
 
   // ── Información de lote: acumulado de la OP, todas las fechas ──
@@ -1120,7 +1191,11 @@ async function enviarRegistro(tipo, cantidad){
     });
     const d=await r.json();
     if(!r.ok){ showToast('⚠️ '+(d.error||'No se pudo registrar'), true); return; }
-    registrosLote.push(d.registro); registrosHoy.push(d.registro);
+    // Se inserta por id, no con push: el aviso por WebSocket de este mismo
+    // registro puede llegar antes que esta respuesta y, si se empujara a
+    // ciegas, la unidad quedaría contada dos veces.
+    upsertRegistro(registrosLote, d.registro);
+    upsertRegistro(registrosHoy,  d.registro);
     refreshStats();
     // El signo se arma según sea suma o corrección, para no mostrar "+-5".
     const n=Math.abs(cantidad), resta=cantidad<0;
@@ -1350,7 +1425,7 @@ function connectWS(){
   const proto = location.protocol==='https:'?'wss':'ws';
   ws = new window.WebSocket(`${proto}://${location.host}`);
   ws.onopen=()=>{
-    ws.send(JSON.stringify({type:'subscribe', topics:['modulos','ci']}));
+    ws.send(JSON.stringify({type:'subscribe', topics:['modulos','ci','cp']}));
     while(_wsQueue.length>0 && ws.readyState===WebSocket.OPEN) ws.send(JSON.stringify(_wsQueue.shift()));
   };
   ws.onclose=()=>{ setTimeout(connectWS, 2000); };
@@ -1375,7 +1450,42 @@ function connectWS(){
       upsertImprod(req); renderImproductivos();
       return;
     }
+    // ── Otra tablet del mismo módulo registró o corrigió unidades ──
+    if(msg.type==='cp_registro' || msg.type==='cp_registro_update'){
+      const reg=msg.registro;
+      if(!reg || reg.modulo!==selectedMod) return;
+      aplicarRegistroRemoto(reg, msg.type==='cp_registro' ? 'crear' : msg.accion);
+      return;
+    }
   };
+}
+
+// Inserta o reemplaza un registro en una lista según su id (nunca duplica).
+function upsertRegistro(lista, reg){
+  const i=lista.findIndex(r=>r.id===reg.id);
+  if(i>-1) lista[i]=reg; else lista.push(reg);
+}
+// Aplica en esta pantalla un registro que llegó de otro dispositivo. Se
+// identifica por id para no contar dos veces el que uno mismo acaba de hacer.
+function aplicarRegistroRemoto(reg, accion){
+  const sincronizar=(lista)=>{
+    const i=lista.findIndex(r=>r.id===reg.id);
+    if(accion==='eliminar'){ if(i>-1) lista.splice(i,1); return i>-1; }
+    upsertRegistro(lista, reg); return true;
+  };
+  let cambio=false;
+  // El lote es por OP: solo afecta si el registro es de la OP que está abierta.
+  if(opActiva && reg.op===opActiva.op) cambio = sincronizar(registrosLote) || cambio;
+  // La hora/eficiencia sí cuentan todas las OP del módulo, pero solo las del
+  // turno en curso.
+  const t=fechaHoraDeRegistro(reg);
+  if(t && t>=inicioTurnoDate() && t<=new Date()) cambio = sincronizar(registrosHoy) || cambio;
+  if(!cambio) return;
+  refreshStats();
+  if(document.getElementById('modal-historial').classList.contains('show')){
+    const horas=construirHistorialHoras();
+    if(horas.length){ renderHoraChips(horas); renderHoraDetail(horas); }
+  }
 }
 
 // ── Solicitud de Insumos — mismo flujo que Contador Módulos ───────
