@@ -198,8 +198,15 @@ select.qe-ctrl{background-color:#fff;
 .improd-item:last-child{margin-bottom:0;}
 .improd-item.cumplido{border-left-color:var(--cyan);cursor:pointer;animation:improd-pulse 2s ease-in-out infinite;}
 @keyframes improd-pulse{0%,100%{box-shadow:0 0 0 0 rgba(37,99,235,.25);}50%{box-shadow:0 0 0 6px rgba(37,99,235,0);}}
+.improd-item.estado{border-left-color:var(--bad);}
 .improd-icon{font-size:15px;flex-shrink:0;}
-.improd-txt{font-size:12px;font-weight:700;color:var(--text);flex:1;}
+.improd-txt{font-size:12px;font-weight:700;color:var(--text);flex:1;min-width:0;}
+.improd-timer{font-family:var(--font-mono);font-size:11.5px;font-weight:700;color:var(--text-muted);
+  white-space:nowrap;font-variant-numeric:tabular-nums;flex-shrink:0;}
+.btn-cerrar-imp{padding:6px 13px;border-radius:8px;border:none;background:var(--good);color:#fff;
+  font-family:var(--font-display);font-size:11.5px;font-weight:800;letter-spacing:.4px;cursor:pointer;
+  white-space:nowrap;flex-shrink:0;box-shadow:0 3px 0 #14532d;transition:transform .1s,box-shadow .1s;}
+.btn-cerrar-imp:active{transform:translateY(3px);box-shadow:0 0 0 #14532d;}
 .improd-status{font-size:10px;font-weight:700;letter-spacing:.3px;padding:2px 8px;border-radius:20px;white-space:nowrap;font-family:var(--font-mono);}
 .improd-status.espera{background:var(--warn-bg);color:var(--warn);}
 .improd-status.cumplido{background:var(--cyan-soft);color:var(--cyan);}
@@ -640,6 +647,24 @@ select.qe-ctrl{background-color:#fff;
   </div>
 </div>
 
+<!-- Cierre de improductivo de estado (mecánico / referencia / alistamiento) -->
+<div class="modal-overlay" id="modal-cierre-imp">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-icon" style="background:var(--good-bg)">✅</div>
+    <div class="modal-title">Cerrar improductivo</div>
+    <div class="modal-sub">Ingresa la clave para confirmar que ya se solucionó</div>
+    <div class="modal-field">
+      <input class="modal-select" id="cierre-pass" type="password" inputmode="numeric"
+        style="text-align:center;font-size:22px;letter-spacing:6px;" placeholder="••••">
+    </div>
+    <div id="cierre-error" style="display:none;color:var(--bad);font-size:12.5px;font-weight:700;text-align:center;margin-bottom:12px;">Clave incorrecta</div>
+    <div class="modal-btn-row">
+      <button class="btn-modal-cancel" onclick="closeModal('modal-cierre-imp')">Cancelar</button>
+      <button class="btn-modal-confirm prod" onclick="confirmarCierreEstado()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Aviso informativo: faltan pocos minutos para que cierre la hora -->
 <div class="modal-overlay" id="modal-fin-hora">
   <div class="modal" style="max-width:420px;position:relative;">
@@ -751,13 +776,83 @@ document.querySelectorAll('.modal-overlay').forEach(ov=>{
 // ── Turno: regla local (misma que usa Revisión de Telas — sin helper
 // compartido, cada módulo la resuelve por su cuenta según el patrón ya
 // establecido en la app). Cambia a Noche a las 17:45.
-function detectarTurno(){
+function detectarTurnoFijo(){
   const d=new Date();
   const mins=d.getHours()*60+d.getMinutes();
   const esDia = mins>=360 && mins<1065; // 06:00–17:45
   return { turno: esDia?'dia':'noche', inicioMin: esDia?360:1065 };
 }
-const _turno = detectarTurno();
+
+// ── Turnos del catálogo de Configuraciones (/api/turnos) ──────────
+// Antes el corte día/noche estaba escrito fijo aquí: si la empresa cambiaba el
+// horario en Configuraciones, este módulo seguía con el viejo y la eficiencia
+// salía mal. Ahora se lee el catálogo y solo se cae al horario fijo si no hay
+// turnos configurados o ninguno cubre la hora actual — mismo criterio que ya
+// usa Revisión de Telas.
+const DIAS_ABR=['DO','LN','MR','XR','JU','VI','SB']; // Date.getDay(): 0=domingo
+function horaAMin(v){
+  if(v==null||v==='') return null;
+  if(typeof v==='string' && v.includes(':')){
+    const m=v.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+    if(m){
+      let h=parseInt(m[1],10); const mn=parseInt(m[2],10);
+      const ap=m[3]?m[3].toUpperCase():null;
+      if(ap==='PM' && h!==12) h+=12;
+      if(ap==='AM' && h===12) h=0;
+      return (h*60+mn)%1440;
+    }
+  }
+  const f=parseFloat(v);
+  return isNaN(f) ? null : Math.round(f*1440)%1440;
+}
+// Ventana del turno para un día: desde la hora marcada "inicia turno" hasta la
+// marcada "finaliza turno". null si al turno le falta alguna de las dos.
+function ventanaTurno(turno, diaAbr){
+  const horas=(turno.horas||[]).filter(h=>!h.disabled && (h.dias||[]).includes(diaAbr));
+  const ini=horas.find(h=>h.iniciaTurno);
+  if(!ini) return null;
+  const inicioMin=horaAMin(ini.comienza);
+  if(inicioMin==null) return null;
+  let finMin=null, mejor=-1;
+  horas.filter(h=>h.finalizaTurno).forEach(h=>{
+    const m=horaAMin(h.termina); if(m==null) return;
+    const transcurrido=(m-inicioMin+1440)%1440;
+    if(transcurrido>mejor){ mejor=transcurrido; finMin=m; }
+  });
+  if(finMin==null) return null;
+  return { inicioMin, finMin, cruzaMedianoche: finMin<=inicioMin };
+}
+let _turnosCatalogo=[];
+function detectarTurno(){
+  const d=new Date();
+  const min=d.getHours()*60+d.getMinutes();
+  for(const t of _turnosCatalogo){
+    if(t.disabled || t.activo===false) continue;
+    // Se prueba con el día de hoy y con el de ayer, porque un turno de noche
+    // que arrancó ayer sigue vigente después de medianoche.
+    for(const desplazamiento of [0,-1]){
+      const f=new Date(d); f.setDate(f.getDate()+desplazamiento);
+      const v=ventanaTurno(t, DIAS_ABR[f.getDay()]);
+      if(!v) continue;
+      const dentro = v.cruzaMedianoche
+        ? (desplazamiento===0 ? min>=v.inicioMin : min<=v.finMin)
+        : (desplazamiento===0 && min>=v.inicioMin && min<=v.finMin);
+      if(dentro) return { turno:(t.nombre||'turno'), inicioMin:v.inicioMin, delCatalogo:true };
+    }
+  }
+  return detectarTurnoFijo();
+}
+let _turno = detectarTurno();   // arranca con la regla fija; se recalcula al cargar el catálogo
+async function cargarTurnosCatalogo(){
+  try{
+    const r=await fetch('/api/turnos');
+    const lista=await r.json();
+    if(Array.isArray(lista) && lista.length){
+      _turnosCatalogo=lista;
+      _turno=detectarTurno();
+    }
+  }catch(e){ /* sin catálogo se mantiene el horario fijo */ }
+}
 
 // ── Paso 1: operario (asistencia de hoy en este módulo) ──────────
 let selectedOperario = '';
@@ -903,6 +998,9 @@ let registrosHoy  = [];  // registros de hoy en este módulo (para historial por
 
 async function inicializarDashboard(){
   renderInfoBar();
+  // El turno se resuelve antes de pedir registros: define desde qué momento
+  // se cuenta el turno en curso.
+  await cargarTurnosCatalogo();
   await Promise.all([cargarConfigProduccion(), cargarRegistrosLote(), cargarRegistrosHoy()]);
   refreshStats();
 }
@@ -1331,26 +1429,138 @@ function iconoImprod(req){
   if(req.categoria==='Falta de Insumos') return '📦';
   return '🏭';
 }
+
+// ── Improductivos de estado (mecánico / referencia / alistamiento) ─
+// No generan solicitud a CI: pintan el módulo en Tablero CI/General/Mecánicos.
+// Se manejan con el MISMO protocolo multi_imp_change que ya usa Contador
+// Módulos (el servidor lleva la lista), así se pueden tener varios abiertos a
+// la vez y no se duplica lógica.
+const LABELS_ESTADO = {
+  red:'Espera Mecánico', yellow:'Atendiendo', blue:'Cambio Ref.',
+  garnet:'Alistamiento Mec.', pink:'Alistamiento'
+};
+const ICONOS_ESTADO = { red:'🔧', yellow:'🔧', blue:'🔄', garnet:'🧷', pink:'🧷' };
+const MAX_IMPRODS = 4;
+let _multiImps = [];   // [{id, tipo, tipoActual, inicio, empleada, mecanico}]
+
+function nuevoIdImp(){ return Date.now()+'-'+Math.random().toString(36).slice(2,8); }
+function tipoDe(imp){ return imp.tipoActual || imp.tipo; }
+
+function abrirImprodEstado(tipo, empleada){
+  if(_multiImps.length>=MAX_IMPRODS){
+    showToast('⚠️ Ya hay '+MAX_IMPRODS+' improductivos abiertos', true); return false;
+  }
+  // Un mismo tipo dos veces no aporta nada y confunde al cerrarlo.
+  const yaEsta=_multiImps.some(i=>i.tipo===tipo || tipoDe(i)===tipo ||
+    (tipo==='red' && tipoDe(i)==='yellow'));   // yellow = el mismo caso ya atendido
+  if(yaEsta){ showToast('⚠️ Ese improductivo ya está abierto', true); return false; }
+  const imp={ id:nuevoIdImp(), tipo, tipoActual:tipo, inicio:Date.now(),
+              empleada:empleada||'', mecanico:'', ciRequestId:null, esPrincipal:false };
+  wsSend({type:'multi_imp_change', modId:selectedMod, action:'open', imp});
+  _multiImps.push(imp);           // el servidor no devuelve el eco al emisor
+  renderImproductivos();
+  return true;
+}
+function cerrarImprodEstado(impId){
+  wsSend({type:'multi_imp_change', modId:selectedMod, action:'close', impId});
+  const i=_multiImps.findIndex(x=>x.id===impId);
+  if(i>-1) _multiImps.splice(i,1);
+  renderImproductivos();
+}
+function sincronizarMultiImp(msg){
+  if(msg.action==='open'){
+    if(msg.imp && !_multiImps.some(i=>i.id===msg.imp.id)) _multiImps.push(msg.imp);
+  } else if(msg.action==='update'){
+    const i=_multiImps.findIndex(x=>x.id===(msg.imp&&msg.imp.id));
+    if(i>-1) Object.assign(_multiImps[i], msg.imp);
+  } else if(msg.action==='close'){
+    const id=msg.impId||(msg.imp&&msg.imp.id);
+    const i=_multiImps.findIndex(x=>x.id===id);
+    if(i>-1) _multiImps.splice(i,1);
+  }
+  renderImproductivos();
+}
+
+function fmtTiempo(ms){
+  const s=Math.max(0,Math.floor(ms/1000)), m=Math.floor(s/60), h=Math.floor(m/60);
+  if(h>0) return h+'h '+String(m%60).padStart(2,'0')+'m';
+  if(m>0) return m+'m '+String(s%60).padStart(2,'0')+'s';
+  return s+'s';
+}
+// Un solo temporizador para todos los cronómetros en pantalla.
+setInterval(()=>{
+  const ahora=Date.now();
+  document.querySelectorAll('[data-imp-timer]').forEach(el=>{
+    const ini=parseInt(el.dataset.impTimer,10);
+    if(ini) el.textContent='⏱ '+fmtTiempo(ahora-ini);
+  });
+},1000);
+
 function renderImproductivos(){
   const panel=document.getElementById('improd-panel');
   const list=document.getElementById('improd-list');
-  document.getElementById('improd-count').textContent=improductivosActivos.length;
-  if(!improductivosActivos.length){ panel.classList.remove('show'); return; }
-  panel.classList.add('show');
-  list.innerHTML = improductivosActivos.map(req=>{
+  const filas=[];
+
+  // Improductivos de estado (pueden ser varios a la vez)
+  _multiImps.forEach(imp=>{
+    const t=tipoDe(imp);
+    const lbl=LABELS_ESTADO[t]||'Improductivo', ico=ICONOS_ESTADO[t]||'⚙️';
+    const desde=imp.inicio||Date.now();
+    filas.push(`<div class="improd-item estado">
+      <span class="improd-icon">${ico}</span>
+      <span class="improd-txt">${lbl}</span>
+      <span class="improd-timer" data-imp-timer="${desde}">⏱ ${fmtTiempo(Date.now()-desde)}</span>
+      <button class="btn-cerrar-imp" onclick="abrirCierreEstado('${imp.id}')">Solucionado</button>
+    </div>`);
+  });
+
+  // Solicitudes a CI (producción / insumos)
+  improductivosActivos.forEach(req=>{
     const cumplido = req.status==='cumplido';
-    return `<div class="improd-item ${cumplido?'cumplido':''}" ${cumplido?`onclick="toggleImprodExpand('${req._id}')"`:''}>
+    const desde = req.alertStart || Date.parse(req.timestamp||'') || Date.now();
+    filas.push(`<div class="improd-item ${cumplido?'cumplido':''}">
       <span class="improd-icon">${iconoImprod(req)}</span>
       <span class="improd-txt">${req.categoria||req.tipo||'Improductivo'}</span>
-      <span class="improd-status ${cumplido?'cumplido':'espera'}">${cumplido?'Pendiente de aceptación':'En espera'}</span>
+      <span class="improd-timer" data-imp-timer="${desde}">⏱ ${fmtTiempo(Date.now()-desde)}</span>
+      <span class="improd-status ${cumplido?'cumplido':'espera'}">${cumplido?'¿Lo recibiste?':'En espera'}</span>
     </div>
-    ${cumplido?`<div class="improd-expand" id="expand-${req._id}">
-      <button class="btn-cumplido no" onclick="event.stopPropagation();resolverCumplido('${req._id}',false)">Rechazar</button>
-      <button class="btn-cumplido ok" onclick="event.stopPropagation();resolverCumplido('${req._id}',true)">✓ Recibido</button>
-    </div>`:''}`;
-  }).join('');
+    ${cumplido?`<div class="improd-expand show">
+      <button class="btn-cumplido no" onclick="resolverCumplido('${req._id}',false)">✖ Rechazar</button>
+      <button class="btn-cumplido ok" onclick="resolverCumplido('${req._id}',true)">✅ Aceptar</button>
+    </div>`:''}`);
+  });
+
+  document.getElementById('improd-count').textContent = filas.length;
+  if(!filas.length){ panel.classList.remove('show'); return; }
+  panel.classList.add('show');
+  list.innerHTML = filas.join('');
 }
-function toggleImprodExpand(id){ document.getElementById('expand-'+id)?.classList.toggle('show'); }
+
+// ── Cerrar el improductivo de estado ──────────────────────────────
+// Pide la misma clave que Contador Módulos para no cambiar el criterio entre
+// los dos módulos (evita cierres accidentales que borrarían tiempo perdido).
+let _impACerrar=null;
+function abrirCierreEstado(impId){
+  _impACerrar=impId;
+  const inp=document.getElementById('cierre-pass');
+  inp.value=''; inp.style.borderColor='';
+  document.getElementById('cierre-error').style.display='none';
+  document.getElementById('modal-cierre-imp').classList.add('show');
+  setTimeout(()=>{ try{ inp.focus(); }catch(e){} },80);
+}
+function confirmarCierreEstado(){
+  const inp=document.getElementById('cierre-pass');
+  const err=document.getElementById('cierre-error');
+  if(inp.value!=='2'){
+    inp.value=''; inp.style.borderColor='var(--bad)'; err.style.display='block';
+    setTimeout(()=>{ inp.style.borderColor=''; err.style.display='none'; try{inp.focus();}catch(e){} },1200);
+    return;
+  }
+  closeModal('modal-cierre-imp');
+  if(_impACerrar) cerrarImprodEstado(_impACerrar);
+  _impACerrar=null;
+  showToast('✅ Improductivo cerrado');
+}
 function resolverCumplido(id, aceptado){
   const req=improductivosActivos.find(r=>r._id===id); if(!req) return;
   if(aceptado){
@@ -1407,18 +1617,15 @@ function confirmarFalloMec(){
   const emp=document.getElementById('sel-empleada-mec').value;
   if(!emp) return;
   closeModal('modal-empleada-mec');
-  wsSend({type:'change', id:selectedMod, state:'red', mecanico:'', empleada:emp});
-  showToast('🔴 Fallo mecánico reportado');
+  if(abrirImprodEstado('red', emp)) showToast('🔴 Fallo mecánico reportado');
 }
 function onImpRef(){
   closeModal('modal-improd');
-  wsSend({type:'change', id:selectedMod, state:'blue', mecanico:'', empleada:''});
-  showToast('🔵 Cambio de referencia reportado');
+  if(abrirImprodEstado('blue')) showToast('🔵 Cambio de referencia reportado');
 }
 function onImpAlist(){
   closeModal('modal-improd');
-  wsSend({type:'change', id:selectedMod, state:'garnet', mecanico:'', empleada:''});
-  showToast('🧷 Alistamiento reportado');
+  if(abrirImprodEstado('garnet')) showToast('🧷 Alistamiento reportado');
 }
 
 function connectWS(){
@@ -1437,7 +1644,16 @@ function connectWS(){
       improductivosActivos=[];
       (msg.ciAbiertas||[]).filter(r=>r.module===selectedMod).forEach(upsertImprod);
       (msg.ciCumplido||[]).filter(r=>r.module===selectedMod).forEach(upsertImprod);
+      // Recuperar los improductivos que ya estuvieran abiertos (por ejemplo si
+      // la tablet se reinició con el módulo en rojo), con su tiempo real.
+      _multiImps = ((msg.multiImps && msg.multiImps[selectedMod]) || []).slice();
       renderImproductivos();
+      return;
+    }
+    // El mecánico tomó el caso, o alguien cerró el improductivo desde otra
+    // pantalla: la fila se actualiza sola, sin que la operaria toque nada.
+    if(msg.type==='multi_imp_change' && msg.modId===selectedMod){
+      sincronizarMultiImp(msg);
       return;
     }
     if(msg.type==='ci_cumplido_request'){
