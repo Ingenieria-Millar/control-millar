@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<script>/* millar-auth: adjunta token de sesión a fetch (transparente si no hay token) */
+(function(){function T(){try{var s=JSON.parse(localStorage.getItem('cm_session')||'{}');return s&&s.token||'';}catch(e){return '';}}
+var F=window.fetch;window.fetch=function(u,o){o=o||{};var t=T();if(t){var h=new Headers(o.headers||{});if(!h.has('Authorization'))h.set('Authorization','Bearer '+t);o.headers=h;}return F.call(this,u,o);};})();</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Configuración de Producción | Millar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Nunito:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#f1f5f9; --card:#fff; --border:#e2e8f0;
+  --ink:#0f172a; --muted:#64748b; --faint:#94a3b8;
+  --accent:#2563eb; --accent2:#1e3a8a;
+  --good:#16a34a; --warn:#d97706; --bad:#dc2626;
+}
+body{background:var(--bg);font-family:'Nunito',sans-serif;color:var(--ink);min-height:100vh;min-height:100dvh;}
+input,select,button{font-family:inherit;}
+
+header{background:#fff;border-bottom:1px solid var(--border);box-shadow:0 1px 6px rgba(15,23,42,.06);
+  padding:0 clamp(12px,2.5vw,24px);min-height:64px;display:flex;align-items:center;justify-content:space-between;
+  gap:12px;position:sticky;top:0;z-index:10;flex-wrap:wrap;row-gap:8px;}
+header::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,#1e3a8a,#2563eb,#60a5fa);}
+.hd-title{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;}
+.hd-title span{color:var(--accent);}
+.hd-back{padding:8px 16px;border-radius:9px;border:none;background:var(--accent);color:#fff;
+  font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:.5px;cursor:pointer;
+  box-shadow:0 3px 0 var(--accent2),0 4px 8px rgba(30,58,138,.3);transition:transform .1s,box-shadow .1s;}
+.hd-back:active{transform:translateY(3px);box-shadow:0 0 0 var(--accent2),0 1px 3px rgba(30,58,138,.25);}
+
+main{max-width:760px;margin:0 auto;padding:24px clamp(14px,3vw,28px) 70px;}
+.denied{max-width:440px;margin:70px auto;text-align:center;background:#fff;border:1.5px solid #fecaca;
+  border-radius:16px;padding:36px 24px;}
+.denied .ic{font-size:40px;margin-bottom:10px;}
+
+.card{background:var(--card);border:1.5px solid var(--border);border-radius:14px;padding:22px 24px;margin-bottom:16px;
+  box-shadow:0 1px 4px rgba(15,23,42,.05);}
+.card-t{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;letter-spacing:1.2px;
+  text-transform:uppercase;color:var(--accent2);margin-bottom:4px;}
+.card-s{font-size:13px;color:var(--muted);margin-bottom:18px;line-height:1.55;}
+
+.lbl{display:block;font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--muted);margin-bottom:6px;}
+.num-row{display:flex;gap:14px;flex-wrap:wrap;}
+.num-f{flex:1;min-width:140px;}
+.num-f input{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;
+  font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;color:var(--ink);background:#f8fafc;outline:none;}
+.num-f input:focus{border-color:var(--accent);}
+
+.preview{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;}
+.pv{flex:1;min-width:120px;border-radius:10px;padding:11px 12px;text-align:center;border:1.5px solid;}
+.pv-n{font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:700;}
+.pv-l{font-size:11px;font-weight:700;margin-top:2px;}
+.pv.rojo{background:#fef2f2;border-color:#fecaca;} .pv.rojo .pv-n,.pv.rojo .pv-l{color:var(--bad);}
+.pv.amar{background:#fffbeb;border-color:#fde68a;} .pv.amar .pv-n,.pv.amar .pv-l{color:var(--warn);}
+.pv.verd{background:#f0fdf4;border-color:#bbf7d0;} .pv.verd .pv-n,.pv.verd .pv-l{color:var(--good);}
+
+.opt{display:flex;gap:12px;align-items:flex-start;padding:14px;border:1.5px solid var(--border);
+  border-radius:11px;cursor:pointer;margin-bottom:10px;background:#f8fafc;transition:all .15s;}
+.opt:hover{border-color:#93c5fd;}
+.opt.sel{border-color:var(--accent);background:#eff6ff;}
+.opt input{margin-top:3px;width:17px;height:17px;accent-color:var(--accent);flex-shrink:0;cursor:pointer;}
+.opt b{display:block;font-size:14px;font-weight:700;color:var(--ink);margin-bottom:2px;}
+.opt small{font-size:12.5px;color:var(--muted);line-height:1.5;}
+
+.sw-row{display:flex;align-items:center;justify-content:space-between;gap:14px;}
+.sw-txt b{display:block;font-size:14px;font-weight:700;}
+.sw-txt small{font-size:12.5px;color:var(--muted);line-height:1.5;}
+.sw{width:48px;height:27px;border-radius:14px;background:#cbd5e1;cursor:pointer;position:relative;
+  transition:background .2s;flex-shrink:0;border:none;}
+.sw.on{background:var(--accent);}
+.sw i{position:absolute;top:3px;left:3px;width:21px;height:21px;border-radius:50%;background:#fff;
+  transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.25);}
+.sw.on i{left:24px;}
+
+.bar{position:sticky;bottom:0;background:rgba(241,245,249,.94);backdrop-filter:blur(6px);
+  padding:14px 0 6px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
+.btn-save{padding:13px 28px;border-radius:10px;border:none;background:var(--accent);color:#fff;
+  font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1.5px;
+  text-transform:uppercase;cursor:pointer;box-shadow:0 4px 0 var(--accent2),0 5px 10px rgba(30,58,138,.28);
+  transition:transform .1s,box-shadow .1s;}
+.btn-save:active{transform:translateY(4px);box-shadow:0 0 0 var(--accent2),0 1px 3px rgba(30,58,138,.25);}
+.msg{font-size:13px;font-weight:700;}
+.msg.ok{color:var(--good);} .msg.err{color:var(--bad);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hd-title">CONFIGURACIÓN <span>PRODUCCIÓN</span></div>
+  <button class="hd-back" onclick="location.href='/'">← Volver</button>
+</header>
+
+<main id="app"><div style="text-align:center;color:#94a3b8;padding:50px;">Verificando permisos…</div></main>
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+//  Configuración del módulo Contador Producción.
+//  Solo el perfil Programador/Admin puede entrar y guardar.
+// ══════════════════════════════════════════════════════════════════
+let cfg = null;
+
+async function verificar(){
+  try{
+    const raw = localStorage.getItem('cm_session');
+    const s = raw ? JSON.parse(raw) : null;
+    if(!s || !s.token) return denegar('No hay una sesión activa. Inicia sesión con tu usuario.');
+    const r = await fetch('/api/me');
+    if(!r.ok) return denegar('Tu sesión expiró. Inicia sesión de nuevo.');
+    const d = await r.json();
+    if(d.rol !== 'programador') return denegar('Esta pantalla es solo para el perfil Programador/Admin.');
+    await cargar();
+  }catch(e){ denegar('No se pudo verificar tu sesión.'); }
+}
+function denegar(msg){
+  document.getElementById('app').innerHTML =
+    '<div class="denied"><div class="ic">🔒</div>'+
+    '<div style="font-family:\'Barlow Condensed\',sans-serif;font-size:18px;font-weight:800;letter-spacing:1px;margin-bottom:8px;">Acceso restringido</div>'+
+    '<div style="font-size:13.5px;color:#64748b;">'+msg+'</div></div>';
+}
+
+async function cargar(){
+  try{
+    const r = await fetch('/api/config-produccion');
+    const d = await r.json();
+    cfg = d.config;
+  }catch(e){
+    document.getElementById('app').innerHTML='<div class="denied"><div class="ic">⚠️</div><div>No se pudo cargar la configuración.</div></div>';
+    return;
+  }
+  render();
+}
+
+function render(){
+  document.getElementById('app').innerHTML = `
+    <div class="card">
+      <div class="card-t">Semáforo de eficiencia</div>
+      <div class="card-s">Define con qué color se muestra el porcentaje de eficiencia en la pantalla del módulo.</div>
+      <div class="num-row">
+        <div class="num-f">
+          <label class="lbl">Rojo por debajo de</label>
+          <input id="f-rojo" type="number" min="1" max="500" value="${cfg.semaforoRojo}" oninput="pintarPreview()">
+        </div>
+        <div class="num-f">
+          <label class="lbl">Verde desde</label>
+          <input id="f-verde" type="number" min="1" max="500" value="${cfg.semaforoVerde}" oninput="pintarPreview()">
+        </div>
+      </div>
+      <div class="preview" id="preview"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-t">Cómo se calcula la eficiencia</div>
+      <div class="card-s">Con una meta de 60 por hora, si la operaria lleva 61 unidades a los 50 minutos:</div>
+      <label class="opt ${cfg.baseEficiencia==='ritmo'?'sel':''}" id="opt-ritmo">
+        <input type="radio" name="base" value="ritmo" ${cfg.baseEficiencia==='ritmo'?'checked':''} onchange="cambiarBase('ritmo')">
+        <span>
+          <b>Contra el ritmo (122%)</b>
+          <small>Compara con lo que debería llevar a esta altura de la hora. A los 50 minutos debería llevar 50, lleva 61, va adelantada. Mide si el ritmo alcanza para cumplir.</small>
+        </span>
+      </label>
+      <label class="opt ${cfg.baseEficiencia==='meta'?'sel':''}" id="opt-meta">
+        <input type="radio" name="base" value="meta" ${cfg.baseEficiencia==='meta'?'checked':''} onchange="cambiarBase('meta')">
+        <span>
+          <b>Contra la meta completa (102%)</b>
+          <small>Compara con la meta total de la hora sin importar el tiempo transcurrido. Más fácil de leer, pero al inicio de cada hora siempre marcará porcentajes bajos.</small>
+        </span>
+      </label>
+    </div>
+
+    <div class="card">
+      <div class="card-t">Correcciones</div>
+      <div class="card-s">Los operarios no pueden editar ni borrar registros. Esta opción les permite corregir un conteo equivocado registrando una cantidad en negativo.</div>
+      <div class="sw-row">
+        <div class="sw-txt">
+          <b>Permitir cantidades negativas</b>
+          <small>Escribir −5 descuenta 5 unidades. Nunca deja el total de la orden por debajo de cero.</small>
+        </div>
+        <button class="sw ${cfg.permitirNegativos?'on':''}" id="sw-neg" onclick="toggleNeg()" aria-label="Permitir cantidades negativas"><i></i></button>
+      </div>
+    </div>
+
+    <div class="bar">
+      <button class="btn-save" onclick="guardar()">Guardar cambios</button>
+      <span class="msg" id="msg"></span>
+    </div>`;
+  pintarPreview();
+}
+
+function pintarPreview(){
+  const rojo = parseInt(document.getElementById('f-rojo').value,10);
+  const verde = parseInt(document.getElementById('f-verde').value,10);
+  const cont = document.getElementById('preview');
+  if(!(rojo>0) || !(verde>0) || rojo>=verde){
+    cont.innerHTML = '<div style="font-size:12.5px;color:#dc2626;font-weight:700;">El umbral rojo debe ser menor que el verde.</div>';
+    return;
+  }
+  cont.innerHTML =
+    `<div class="pv rojo"><div class="pv-n">&lt; ${rojo}%</div><div class="pv-l">Rojo</div></div>
+     <div class="pv amar"><div class="pv-n">${rojo}% – ${verde-1}%</div><div class="pv-l">Amarillo</div></div>
+     <div class="pv verd"><div class="pv-n">≥ ${verde}%</div><div class="pv-l">Verde</div></div>`;
+}
+
+function cambiarBase(v){
+  cfg.baseEficiencia = v;
+  document.getElementById('opt-ritmo').classList.toggle('sel', v==='ritmo');
+  document.getElementById('opt-meta').classList.toggle('sel', v==='meta');
+}
+function toggleNeg(){
+  cfg.permitirNegativos = !cfg.permitirNegativos;
+  document.getElementById('sw-neg').classList.toggle('on', cfg.permitirNegativos);
+}
+
+async function guardar(){
+  const msg = document.getElementById('msg');
+  const rojo = parseInt(document.getElementById('f-rojo').value,10);
+  const verde = parseInt(document.getElementById('f-verde').value,10);
+  if(!(rojo>0) || !(verde>0) || rojo>=verde){
+    msg.textContent='⚠️ Revisa los umbrales: el rojo debe ser menor que el verde.'; msg.className='msg err'; return;
+  }
+  const cuerpo = {
+    semaforoRojo: rojo, semaforoVerde: verde,
+    baseEficiencia: cfg.baseEficiencia, permitirNegativos: cfg.permitirNegativos
+  };
+  try{
+    const r = await fetch('/api/config-produccion', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(cuerpo)
+    });
+    const d = await r.json();
+    if(!r.ok){ msg.textContent='⚠️ '+(d.error||'No se pudo guardar'); msg.className='msg err'; return; }
+    cfg = d.config;
+    msg.textContent='✅ Cambios guardados'; msg.className='msg ok';
+    setTimeout(()=>{ msg.textContent=''; }, 3000);
+  }catch(e){ msg.textContent='⚠️ Error de conexión'; msg.className='msg err'; }
+}
+
+verificar();
+</script>
+</body>
+</html>

@@ -255,6 +255,7 @@ const FILES = {
   lt_tipos_prenda: path.join(DATA_DIR, 'lt_tipos_prenda.json'),
   lt_colores:     path.join(DATA_DIR, 'lt_colores.json'),
   contador_produccion: path.join(DATA_DIR, 'contador_produccion.json'),
+  config_produccion:   path.join(DATA_DIR, 'config_produccion.json'),
 };
 
 // ══════════════════════════════════════════════════════════════════
@@ -961,6 +962,9 @@ app.get('/contador-produccion', (req, res) =>
 );
 app.get('/contador-produccion/admin', (req, res) =>
   res.sendFile(path.join(__dirname, 'modulos/contador-produccion/contador_produccion_admin.html'))
+);
+app.get('/configuracion-produccion', (req, res) =>
+  res.sendFile(path.join(__dirname, 'modulos/contador-produccion/configuracion_produccion.html'))
 );
 
 // ── Recogedores ───────────────────────────────────────────────────
@@ -1802,6 +1806,54 @@ registrarCatalogoSimple('lt-clientes', 'lt_clientes', 'cliente');
 registrarCatalogoSimple('lt-tipos-prenda', 'lt_tipos_prenda', 'tipoPrenda');
 registrarCatalogoSimple('lt-colores', 'lt_colores', 'color');
 
+// ── Configuración de Producción ──────────────────────────────────
+// Parámetros que antes estaban fijos en el código del módulo y que ahora la
+// empresa administra sin desarrollo: umbrales del semáforo de eficiencia,
+// cómo se calcula la eficiencia y si se aceptan cantidades negativas.
+const CONFIG_PRODUCCION_DEFAULT = {
+  semaforoRojo: 70,        // por debajo de este % → rojo
+  semaforoVerde: 100,      // desde este % → verde (en medio: amarillo)
+  baseEficiencia: 'ritmo', // 'ritmo' = contra lo que debería llevar a esta altura de la hora
+                           // 'meta'  = contra la meta completa de la hora
+  permitirNegativos: true  // permite registrar cantidades en negativo para corregir
+};
+function getConfigProduccion() {
+  const guardada = loadDB('config_produccion');
+  const c = (guardada && !Array.isArray(guardada)) ? guardada : {};
+  return { ...CONFIG_PRODUCCION_DEFAULT, ...c };
+}
+app.get('/api/config-produccion', (req, res) => {
+  try { res.json({ ok: true, config: getConfigProduccion() }); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+app.post('/api/config-produccion', (req, res) => {
+  try {
+    const b = req.body || {};
+    const rojo  = Number(b.semaforoRojo);
+    const verde = Number(b.semaforoVerde);
+    if (!Number.isFinite(rojo) || !Number.isFinite(verde) || rojo < 0 || verde < 0) {
+      return res.status(400).json({ error: 'Los umbrales deben ser números positivos' });
+    }
+    if (rojo >= verde) {
+      return res.status(400).json({ error: 'El umbral rojo debe ser menor que el verde' });
+    }
+    if (b.baseEficiencia !== 'ritmo' && b.baseEficiencia !== 'meta') {
+      return res.status(400).json({ error: 'Base de eficiencia inválida' });
+    }
+    const nueva = {
+      semaforoRojo: Math.round(rojo),
+      semaforoVerde: Math.round(verde),
+      baseEficiencia: b.baseEficiencia,
+      permitirNegativos: !!b.permitirNegativos
+    };
+    if (!saveDB('config_produccion', nueva)) return res.status(500).json({ error: 'No se pudo guardar. Intenta de nuevo.' });
+    res.json({ ok: true, config: nueva });
+  } catch (e) {
+    console.error('Error [POST config-produccion]:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── API Contador Producción ──────────────────────────────────────
 // Cada registro es un evento inmutable (una toma de producción o de mala
 // calidad). El operario SOLO puede crear registros — nunca editar ni borrar
@@ -1861,8 +1913,24 @@ app.post('/api/contador-produccion/registro', (req, res) => {
     if (tipo !== 'produccion' && tipo !== 'calidad') {
       return res.status(400).json({ error: 'Tipo inválido' });
     }
-    if (!cantidadN || cantidadN <= 0 || !Number.isInteger(cantidadN)) {
-      return res.status(400).json({ error: 'La cantidad debe ser un número entero mayor a cero' });
+    // Se aceptan cantidades negativas para corregir un conteo mal registrado
+    // (el operario no puede editar registros, así que corrige creando uno en
+    // contra). Cero nunca tiene sentido.
+    const cfg = getConfigProduccion();
+    if (!Number.isInteger(cantidadN) || cantidadN === 0) {
+      return res.status(400).json({ error: 'La cantidad debe ser un número entero distinto de cero' });
+    }
+    if (cantidadN < 0 && !cfg.permitirNegativos) {
+      return res.status(400).json({ error: 'Las cantidades negativas están desactivadas en Configuraciones' });
+    }
+    if (cantidadN < 0) {
+      // Una corrección no puede dejar el acumulado de esa OP en negativo.
+      const previos = (loadDB('contador_produccion') || [])
+        .filter(r => r.modulo === moduloN && r.op === opN && r.tipo === tipo)
+        .reduce((s, r) => s + (Number(r.cantidad) || 0), 0);
+      if (previos + cantidadN < 0) {
+        return res.status(400).json({ error: `No se puede descontar ${Math.abs(cantidadN)}: solo hay ${previos} registradas en esta OP` });
+      }
     }
     const ahora = new Date();
     // Fecha y hora en zona Colombia, no en la del servidor: Render corre en UTC

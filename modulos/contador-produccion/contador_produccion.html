@@ -260,10 +260,9 @@ select.qe-ctrl{background-color:#fff;
 .lote-card-lbl{font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-muted);margin-bottom:clamp(4px,.8vh,8px);}
 .lote-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
 .lote-stat{text-align:center;}
+/* Los cuatro datos del lote van en negro: son cifras de referencia, no
+   estados que haya que semaforizar. */
 .lote-num{font-family:var(--font-mono);font-size:clamp(17px,3.4vh,23px);font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;}
-.lote-num.good{color:var(--good);}
-.lote-num.bad{color:var(--warn);}
-.lote-num.def{color:var(--bad);}
 .lote-lbl{font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text-muted);margin-top:2px;}
 
 .efic-row{flex-shrink:0;display:grid;grid-template-columns:1fr 1fr;gap:10px;}
@@ -301,13 +300,13 @@ select.qe-ctrl{background-color:#fff;
 .modal-icon.calidad{background:var(--bad-bg);}
 .modal-title{font-family:var(--font-display);font-size:20px;font-weight:800;text-align:center;color:var(--text);margin-bottom:4px;}
 .modal-sub{font-size:12.5px;color:var(--text-muted);text-align:center;margin-bottom:18px;font-weight:600;}
-.qty-input-wrap{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:20px;}
-.qty-btn{width:48px;height:48px;border-radius:11px;border:1.5px solid var(--border);background:var(--surface2);
-  font-size:22px;font-weight:700;color:var(--text-muted);cursor:pointer;flex-shrink:0;}
-.qty-btn:active{background:var(--border);}
-.qty-display{font-family:var(--font-mono);font-size:48px;font-weight:700;color:var(--text);width:110px;text-align:center;font-variant-numeric:tabular-nums;
-  border:1.5px solid transparent;background:transparent;border-radius:11px;outline:none;-moz-appearance:textfield;}
-.qty-display:focus{border-color:var(--cyan);background:var(--surface2);}
+.qty-input-wrap{display:flex;align-items:center;justify-content:center;margin-bottom:6px;}
+.qty-display{font-family:var(--font-mono);font-size:48px;font-weight:700;color:var(--text);width:190px;text-align:center;font-variant-numeric:tabular-nums;
+  border:1.5px solid var(--border);background:var(--surface2);border-radius:12px;outline:none;-moz-appearance:textfield;padding:6px 8px;}
+.qty-display:focus{border-color:var(--cyan);}
+.qty-display.neg{color:var(--bad);}
+.qty-hint{font-size:11.5px;font-weight:600;color:var(--text-faint);text-align:center;margin-bottom:18px;}
+.qty-hint.oculto{display:none;}
 .qty-display::-webkit-outer-spin-button,.qty-display::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
 .modal-field{margin-bottom:16px;}
 .modal-field label{display:block;font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:5px;letter-spacing:.3px;}
@@ -521,9 +520,9 @@ select.qe-ctrl{background-color:#fff;
     <div class="lote-card-lbl">Información de lote</div>
     <div class="lote-grid">
       <div class="lote-stat"><div class="lote-num" id="lote-cantidad">0</div><div class="lote-lbl">Cantidad</div></div>
-      <div class="lote-stat"><div class="lote-num good" id="lote-producidas">0</div><div class="lote-lbl">Producidas</div></div>
-      <div class="lote-stat"><div class="lote-num bad" id="lote-faltantes">0</div><div class="lote-lbl">Faltantes</div></div>
-      <div class="lote-stat"><div class="lote-num def" id="lote-defectos">0</div><div class="lote-lbl">Defectos</div></div>
+      <div class="lote-stat"><div class="lote-num" id="lote-producidas">0</div><div class="lote-lbl">Producidas</div></div>
+      <div class="lote-stat"><div class="lote-num" id="lote-faltantes">0</div><div class="lote-lbl">Faltantes</div></div>
+      <div class="lote-stat"><div class="lote-num" id="lote-defectos">0</div><div class="lote-lbl">Defectos</div></div>
     </div>
   </div>
 
@@ -560,10 +559,9 @@ select.qe-ctrl{background-color:#fff;
     <div class="modal-title" id="reg-title">Registrar producción</div>
     <div class="modal-sub" id="reg-sub">¿Cuántas unidades acabas de producir?</div>
     <div class="qty-input-wrap">
-      <button class="qty-btn" onclick="qtyStep(-1)" aria-label="Restar">−</button>
-      <input class="qty-display" id="qty-display" type="number" min="1" inputmode="numeric" placeholder="0" oninput="onQtyInput(this)">
-      <button class="qty-btn" onclick="qtyStep(1)" aria-label="Sumar">+</button>
+      <input class="qty-display" id="qty-display" type="number" inputmode="numeric" placeholder="0" oninput="onQtyInput(this)">
     </div>
+    <div class="qty-hint" id="qty-hint">Escribe el número en negativo para descontar</div>
     <div class="modal-btn-row">
       <button class="btn-modal-cancel" onclick="closeModal('modal-registro')">Cancelar</button>
       <button class="btn-modal-confirm prod" id="reg-confirm-btn" onclick="confirmarRegistro()">Registrar</button>
@@ -853,7 +851,7 @@ let registrosHoy  = [];  // registros de hoy en este módulo (para historial por
 
 async function inicializarDashboard(){
   renderInfoBar();
-  await Promise.all([cargarRegistrosLote(), cargarRegistrosHoy()]);
+  await Promise.all([cargarConfigProduccion(), cargarRegistrosLote(), cargarRegistrosHoy()]);
   refreshStats();
 }
 async function cargarRegistrosLote(){
@@ -905,14 +903,29 @@ function fechaHoraDeRegistro(r){
 }
 
 const CIRC=527.8; // 2·π·84
-function eficClase(pct){ return pct>=95?'alta':pct>=80?'media':'baja'; }
+// Parámetros administrables desde Configuraciones > Producción. Se usan estos
+// valores por defecto solo mientras llega la respuesta del servidor.
+let _cfgProd = { semaforoRojo:70, semaforoVerde:100, baseEficiencia:'ritmo', permitirNegativos:true };
+async function cargarConfigProduccion(){
+  try{
+    const r=await fetch('/api/config-produccion');
+    const d=await r.json();
+    if(d && d.config) _cfgProd=d.config;
+  }catch(e){ /* si falla, quedan los valores por defecto */ }
+}
+function eficClase(pct){
+  if(pct>=_cfgProd.semaforoVerde) return 'alta';
+  if(pct>=_cfgProd.semaforoRojo)  return 'media';
+  return 'baja';
+}
 function minutosDeHora(hhmm){ const [h,m]=hhmm.split(':').map(Number); return h*60+m; }
-// Flecha de tendencia: arriba si va en meta o por encima, abajo si va corta.
+// Flecha de tendencia: usa el MISMO corte del semáforo (verde) para no mostrar
+// un número en verde con flecha roja al lado.
 function pintarTendencia(id, pct){
   const el=document.getElementById(id);
   if(!el) return;
   if(pct===null || pct===undefined){ el.textContent=''; el.className='efic-trend'; return; }
-  const arriba = pct>=100;
+  const arriba = pct>=_cfgProd.semaforoVerde;
   el.textContent = arriba ? '▲' : '▼';
   el.className = 'efic-trend '+(arriba?'up':'down');
 }
@@ -977,8 +990,15 @@ function refreshStats(){
   const sam = opActiva.sam, operarios = opActiva.operarios || 2;
   let pctHora='—', pctDia='—', claseHora='alta', claseDia='alta', p1=null, p2=null;
   if(metaHora>0){
-    p1=Math.round(prodEstaHora/(metaHora*minEnHora/60)*100);
-    p2=Math.round(prodHoy/(metaHora*minDesdeTurno/60)*100);
+    if(_cfgProd.baseEficiencia==='meta'){
+      // Contra la meta completa de la hora, sin prorratear el tiempo.
+      p1=Math.round(prodEstaHora/metaHora*100);
+      p2=Math.round(prodHoy/(metaHora*Math.max(1,Math.ceil(minDesdeTurno/60)))*100);
+    } else {
+      // Contra lo que debería llevar a esta altura de la hora (ritmo).
+      p1=Math.round(prodEstaHora/(metaHora*minEnHora/60)*100);
+      p2=Math.round(prodHoy/(metaHora*minDesdeTurno/60)*100);
+    }
   } else if(sam>0){
     p1=Math.round(prodEstaHora*sam/(minEnHora*operarios)*100);
     p2=Math.round(prodHoy*sam/(minDesdeTurno*operarios)*100);
@@ -1022,28 +1042,31 @@ function abrirModalRegistro(tipo){
         sub=document.getElementById('reg-sub'), btn=document.getElementById('reg-confirm-btn');
   const claseCss = tipo==='produccion'?'prod':'calidad';
   icon.className='modal-icon '+claseCss; btn.className='btn-modal-confirm '+claseCss;
+  inp.className='qty-display';
+  sub.textContent='¿Cuántas unidades deseas registrar?';
   if(tipo==='produccion'){
-    icon.textContent='➕'; title.textContent='Registrar producción';
-    sub.textContent='¿Cuántas unidades acabas de producir?'; btn.textContent='Registrar producción';
+    icon.textContent='➕'; title.textContent='Registrar producción'; btn.textContent='Registrar producción';
   } else {
-    icon.textContent='⚠️'; title.textContent='Registrar mala calidad';
-    sub.textContent='¿Cuántas unidades presentan mala calidad?'; btn.textContent='Registrar mala calidad';
+    icon.textContent='⚠️'; title.textContent='Registrar mala calidad'; btn.textContent='Registrar mala calidad';
   }
+  document.getElementById('qty-hint').classList.toggle('oculto', !_cfgProd.permitirNegativos);
   document.getElementById('modal-registro').classList.add('show');
   // Enfocar el campo para poder escribir de una (y que salga el teclado en tablet).
   setTimeout(()=>{ try{ inp.focus(); }catch(e){} }, 60);
 }
-function qtyStep(d){
-  qty = Math.max(1, (qty||0) + d);   // desde vacío, "+" arranca en 1
-  document.getElementById('qty-display').value = qty;
-}
 function onQtyInput(el){
   const v=parseInt(el.value,10);
-  qty = (v>0) ? v : 0;               // campo vacío = sin cantidad todavía
+  qty = Number.isInteger(v) ? v : 0;   // campo vacío = sin cantidad todavía
+  el.classList.toggle('neg', qty<0);   // en rojo cuando es una corrección
 }
 function confirmarRegistro(){
   const v=parseInt(document.getElementById('qty-display').value,10);
-  if(!(v>0)){ showToast('⚠️ Escribe cuántas unidades vas a registrar', true); return; }
+  if(!Number.isInteger(v) || v===0){
+    showToast('⚠️ Escribe cuántas unidades vas a registrar', true); return;
+  }
+  if(v<0 && !_cfgProd.permitirNegativos){
+    showToast('⚠️ Las cantidades negativas están desactivadas', true); return;
+  }
   qty=v;
   enviarRegistro(modoActivo, qty); closeModal('modal-registro');
 }
@@ -1061,7 +1084,11 @@ async function enviarRegistro(tipo, cantidad){
     if(!r.ok){ showToast('⚠️ '+(d.error||'No se pudo registrar'), true); return; }
     registrosLote.push(d.registro); registrosHoy.push(d.registro);
     refreshStats();
-    showToast(tipo==='produccion' ? `✅ +${cantidad} unidades registradas` : `⚠️ +${cantidad} unidades de mala calidad`);
+    // El signo se arma según sea suma o corrección, para no mostrar "+-5".
+    const n=Math.abs(cantidad), resta=cantidad<0;
+    showToast(resta
+      ? `↩️ ${n} unidades descontadas de ${tipo==='produccion'?'producción':'mala calidad'}`
+      : (tipo==='produccion' ? `✅ +${n} unidades registradas` : `⚠️ +${n} unidades de mala calidad`));
   }catch(e){ showToast('⚠️ Error de conexión', true); }
 }
 
