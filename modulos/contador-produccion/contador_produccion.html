@@ -20,7 +20,9 @@ var W=window.WebSocket;function MW(u,p){try{var t=T();if(t&&typeof u==='string'&
   --cyan:#2563eb; --cyan-soft:#eff6ff;
   --good:#16a34a; --good-bg:#f0fdf4; --good-border:#bbf7d0;
   --bad:#dc2626; --bad-bg:#fef2f2; --bad-border:#fecaca;
-  --warn:#c2410c; --warn-bg:#fff7ed; --warn-border:#fed7aa;
+  /* Ámbar bien separado del rojo: antes era #c2410c (naranja quemado) y un
+     93% en amarillo se veía casi igual que un 50% en rojo. */
+  --warn:#b45309; --warn-bg:#fffbeb; --warn-border:#fde68a;
   --purple:#7c3aed; --purple-bg:#f5f3ff; --purple-border:#ddd6fe; --purple-hover:#ede9fe;
   --overlay:rgba(15,23,42,.55);
   --shadow-card:0 1px 4px rgba(15,23,42,.06);
@@ -292,17 +294,22 @@ select.qe-ctrl{background-color:#fff;
 .lote-num{font-family:var(--font-mono);font-size:clamp(17px,3.4vh,23px);font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;}
 .lote-lbl{font-size:9px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text-muted);margin-top:2px;}
 
-.efic-row{flex-shrink:0;display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.efic-card{background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:clamp(8px,1.4vh,14px) 14px;box-shadow:var(--shadow-card);}
-.efic-card-lbl{font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-muted);}
-.efic-card-val{display:flex;align-items:baseline;gap:6px;}
-.efic-card-num{font-family:var(--font-mono);font-size:clamp(20px,3.8vh,28px);font-weight:700;font-variant-numeric:tabular-nums;}
-.efic-card-num.alta{color:var(--good);}
-.efic-card-num.media{color:var(--warn);}
-.efic-card-num.baja{color:var(--bad);}
-.efic-trend{font-size:13px;line-height:1;}
-.efic-trend.up{color:var(--good);}
-.efic-trend.down{color:var(--bad);}
+/* Tres indicadores por cada periodo: Hora y Día, uno al lado del otro. */
+.kpi-row{flex-shrink:0;display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.kpi-grupo{background:var(--surface);border:1.5px solid var(--border);border-radius:12px;
+  padding:clamp(6px,1vh,10px) clamp(6px,1vw,12px);box-shadow:var(--shadow-card);}
+.kpi-grupo-t{font-family:var(--font-display);font-size:12px;font-weight:800;letter-spacing:1.8px;
+  text-transform:uppercase;color:var(--text-muted);text-align:center;margin-bottom:5px;}
+.kpi-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;}
+.kpi{text-align:center;min-width:0;}
+.kpi-l{font-size:8.5px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:var(--text-faint);
+  line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.kpi-n{font-family:var(--font-mono);font-size:clamp(17px,3.2vh,23px);font-weight:700;
+  font-variant-numeric:tabular-nums;line-height:1.15;margin-top:1px;}
+.kpi-n.alta{color:var(--good);}
+.kpi-n.media{color:var(--warn);}
+.kpi-n.baja{color:var(--bad);}
+@media(max-width:420px){ .kpi-l{font-size:8px;} }
 
 .action-row-2{flex-shrink:0;display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .action-btn{border:none;border-radius:11px;cursor:pointer;display:flex;font-family:var(--font-display);width:100%;
@@ -325,7 +332,6 @@ select.qe-ctrl{background-color:#fff;
 /* Historial: ventana más amplia y con la lista de horas desplazable, para que
    quepan varias referencias por hora sin desbordar la pantalla de la tablet. */
 .modal.modal-ancho{max-width:680px;}
-.modal.modal-ancho .hora-detail{max-height:min(46vh,420px);overflow-y:auto;}
 .modal-x{position:absolute;top:12px;right:14px;width:32px;height:32px;border-radius:50%;
   border:1.5px solid var(--border);background:var(--surface2);color:var(--text-muted);
   font-size:14px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;}
@@ -370,29 +376,60 @@ select.qe-ctrl{background-color:#fff;
 .improd-opt .io-txt b{display:block;font-size:13.5px;color:var(--text);font-family:var(--font-display);font-weight:800;letter-spacing:.3px;}
 .improd-opt .io-txt small{font-size:11.5px;color:var(--text-muted);font-weight:500;}
 
-.hora-chip-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:14px;}
-.hora-chip{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;padding:9px 13px;
-  border-radius:10px;border:1.5px solid var(--border);background:var(--surface2);cursor:pointer;}
-.hora-chip.sel{border-color:var(--cyan);background:var(--cyan-soft);}
-.hc-n{font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--text);white-space:nowrap;}
-.hora-detail-range{font-size:11.5px;font-weight:700;color:var(--text-muted);margin-bottom:10px;text-align:center;font-family:var(--font-mono);}
-.hora-op-row{display:flex;align-items:center;gap:10px;padding:10px;border-radius:11px;background:var(--surface2);margin-bottom:8px;}
-.hora-op-row:last-child{margin-bottom:0;}
-.hor-ref{flex:1;min-width:0;}
-.hor-ref b{display:block;font-size:12.5px;color:var(--text);font-family:var(--font-display);font-weight:800;letter-spacing:.2px;}
-.hor-ref small{font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);}
-.hor-nums{display:flex;flex-direction:column;gap:1px;text-align:right;font-size:10.5px;color:var(--text-muted);font-weight:600;white-space:nowrap;font-family:var(--font-mono);}
-.hor-nums b{color:var(--text);font-family:var(--font-mono);font-size:12.5px;}
-.efic-pill{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;font-family:var(--font-mono);}
-.efic-pill.alta{background:var(--good-bg);color:var(--good);}
-.efic-pill.media{background:var(--warn-bg);color:var(--warn);}
-.efic-pill.baja{background:var(--bad-bg);color:var(--bad);}
-.efic-pill.curso{background:var(--surface2);color:var(--text-faint);}
-.hora-total{display:flex;align-items:center;gap:10px;margin-top:10px;padding-top:10px;
-  border-top:1.5px solid var(--border);font-size:12px;font-weight:700;color:var(--text-muted);}
-.hora-total span:first-child{flex:1;}
-.hora-total-n{font-family:var(--font-mono);color:var(--text);white-space:nowrap;}
-.hora-nota{font-size:11px;color:var(--text-faint);line-height:1.5;margin-top:8px;}
+/* ── Historial del turno ── Todas las horas visibles a la vez, con letra
+   grande para leerse desde la maquina. Al tocar una hora se despliega su
+   tabla de referencias y los improductivos que la afectaron. */
+.hist-res{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0 16px;}
+.hist-res>div{background:var(--surface2);border-radius:10px;padding:10px 6px;text-align:center;}
+.hist-res .n{font-family:var(--font-mono);font-size:19px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;}
+.hist-res .l{font-size:11px;color:var(--text-muted);margin-top:2px;}
+.hist-lista{max-height:min(46vh,430px);overflow-y:auto;padding-right:2px;}
+.hist-h{display:grid;grid-template-columns:1fr 58px 76px 16px;gap:9px;align-items:center;width:100%;
+  padding:12px;border-radius:11px;border:1.5px solid var(--border);background:var(--surface);
+  margin-bottom:8px;cursor:pointer;text-align:left;font-family:inherit;}
+.hist-h.cero{background:var(--surface2);border-style:dashed;}
+.hist-h.curso{border-color:var(--accent);border-width:2px;}
+.hist-h-n{font-size:15px;font-weight:700;color:var(--text);}
+.hist-h-r{font-family:var(--font-mono);font-size:12.5px;color:var(--text-faint);}
+.hist-h-r.warn{color:var(--warn);}
+.hist-imp-b{display:inline-block;background:var(--bad-bg);color:var(--bad);font-size:11px;
+  font-family:var(--font-mono);padding:1px 7px;border-radius:20px;margin-top:3px;}
+.hist-h-u{font-family:var(--font-mono);font-size:16px;color:var(--text);text-align:right;font-variant-numeric:tabular-nums;}
+.hist-h-ul{font-size:11px;color:var(--text-faint);text-align:right;}
+.hist-pc{font-family:var(--font-mono);font-size:17px;font-weight:700;text-align:center;padding:6px 0;
+  border-radius:8px;font-variant-numeric:tabular-nums;}
+.hist-pc.alta{background:var(--good-bg);color:var(--good);}
+.hist-pc.media{background:var(--warn-bg);color:var(--warn);}
+.hist-pc.baja{background:var(--bad-bg);color:var(--bad);}
+.hist-pc.nula{background:var(--surface2);color:var(--text-faint);}
+.hist-fl{color:var(--text-faint);font-size:13px;transition:transform .18s;}
+.hist-fl.ab{transform:rotate(90deg);}
+.hist-tag{display:inline-block;background:var(--accent-soft);color:var(--accent);font-size:11px;
+  padding:1px 7px;border-radius:20px;margin-left:6px;}
+.hist-det{margin:-4px 0 10px;}
+.hist-tabla{overflow-x:auto;border:1.5px solid var(--border);border-radius:10px;}
+.hist-tabla table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:400px;}
+.hist-tabla th{background:var(--surface2);color:var(--text-muted);font-size:11px;font-weight:700;
+  letter-spacing:.6px;text-transform:uppercase;padding:9px;text-align:center;
+  border-bottom:1.5px solid var(--border);white-space:nowrap;}
+.hist-tabla th:first-child,.hist-tabla td:first-child{text-align:left;}
+.hist-tabla td{padding:9px;text-align:center;border-bottom:1px solid var(--surface2);color:var(--text);}
+.hist-tabla tr:last-child td{border-bottom:none;}
+.hist-tabla td.mono{font-family:var(--font-mono);font-size:13px;}
+.hist-tabla td.ef{font-family:var(--font-mono);font-weight:700;}
+.hist-tabla td.ef.alta{color:var(--good);} .hist-tabla td.ef.media{color:var(--warn);}
+.hist-tabla td.ef.baja{color:var(--bad);}
+.hist-tabla tfoot td{background:var(--surface2);font-weight:700;border-top:1.5px solid var(--border);}
+.hist-imps{margin-top:9px;border:1.5px solid var(--bad-border);border-radius:10px;overflow:hidden;}
+.hist-imps-h{background:var(--bad-bg);color:var(--bad);font-size:11px;font-weight:700;
+  letter-spacing:.6px;text-transform:uppercase;padding:8px 11px;}
+.hist-imps-r{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;
+  padding:9px 11px;font-size:13.5px;color:var(--text);}
+.hist-imps-r+.hist-imps-r{border-top:1px solid var(--surface2);}
+.hist-imps-r .h{font-family:var(--font-mono);font-size:12.5px;color:var(--text-faint);}
+.hist-imps-r .m{font-family:var(--font-mono);font-size:13.5px;color:var(--bad);min-width:58px;text-align:right;}
+.hist-vacio{border:1.5px solid var(--border);border-radius:10px;padding:14px;text-align:center;
+  color:var(--text-faint);font-size:13.5px;}
 .hora-empty{text-align:center;color:var(--text-faint);font-size:12.5px;padding:20px 0;}
 
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--accent);color:#fff;
@@ -561,19 +598,21 @@ select.qe-ctrl{background-color:#fff;
     </div>
   </div>
 
-  <div class="efic-row">
-    <div class="efic-card">
-      <div class="efic-card-lbl">Eficiencia · Hora</div>
-      <div class="efic-card-val">
-        <span class="efic-card-num alta" id="efic-hora-num">—</span>
-        <span class="efic-trend" id="efic-hora-trend"></span>
+  <div class="kpi-row">
+    <div class="kpi-grupo">
+      <div class="kpi-grupo-t">Hora</div>
+      <div class="kpi-cols">
+        <div class="kpi"><div class="kpi-l">Eficiencia</div><div class="kpi-n" id="kpi-h-efi">—</div></div>
+        <div class="kpi"><div class="kpi-l">Productividad</div><div class="kpi-n" id="kpi-h-pro">—</div></div>
+        <div class="kpi"><div class="kpi-l">Calidad</div><div class="kpi-n" id="kpi-h-cal">—</div></div>
       </div>
     </div>
-    <div class="efic-card">
-      <div class="efic-card-lbl">Eficiencia · Día</div>
-      <div class="efic-card-val">
-        <span class="efic-card-num alta" id="efic-dia-num">—</span>
-        <span class="efic-trend" id="efic-dia-trend"></span>
+    <div class="kpi-grupo">
+      <div class="kpi-grupo-t">Día</div>
+      <div class="kpi-cols">
+        <div class="kpi"><div class="kpi-l">Eficiencia</div><div class="kpi-n" id="kpi-d-efi">—</div></div>
+        <div class="kpi"><div class="kpi-l">Productividad</div><div class="kpi-n" id="kpi-d-pro">—</div></div>
+        <div class="kpi"><div class="kpi-l">Calidad</div><div class="kpi-n" id="kpi-d-cal">—</div></div>
       </div>
     </div>
   </div>
@@ -648,10 +687,10 @@ select.qe-ctrl{background-color:#fff;
 
 <div class="modal-overlay" id="modal-historial">
   <div class="modal modal-ancho">
-    <div class="modal-title" style="margin-bottom:4px">Historial por hora</div>
-    <div class="modal-sub">Selecciona la hora que quieres revisar</div>
-    <div class="hora-chip-row" id="hora-chip-row"></div>
-    <div class="hora-detail" id="hora-detail"></div>
+    <div class="modal-title" style="margin-bottom:2px">Historial del turno</div>
+    <div class="modal-sub" id="hist-sub">—</div>
+    <div class="hist-res" id="hist-res"></div>
+    <div class="hist-lista" id="hist-lista"></div>
     <button class="btn-modal-cancel" style="width:100%;margin-top:14px" onclick="closeModal('modal-historial')">Cerrar</button>
   </div>
 </div>
@@ -829,15 +868,21 @@ function detectarTurnoFijo(){
 // turnos configurados o ninguno cubre la hora actual — mismo criterio que ya
 // usa Revisión de Telas.
 const DIAS_ABR=['DO','LN','MR','XR','JU','VI','SB']; // Date.getDay(): 0=domingo
+// Acepta "07:30" (catálogo de turnos, 24 h) y también el formato que guarda el
+// servidor en español: "1:30:00 p. m.". Ojo con esa variante — el "p. m." va
+// con puntos y espacios, así que hay que limpiarlo antes de compararlo; si no,
+// toda la tarde se leería como madrugada y los improductivos caerían en la
+// hora equivocada.
 function horaAMin(v){
   if(v==null||v==='') return null;
   if(typeof v==='string' && v.includes(':')){
-    const m=v.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+    const s=v.trim();
+    const m=s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?/);
     if(m){
       let h=parseInt(m[1],10); const mn=parseInt(m[2],10);
-      const ap=m[3]?m[3].toUpperCase():null;
-      if(ap==='PM' && h!==12) h+=12;
-      if(ap==='AM' && h===12) h=0;
+      const meridiano=s.slice(m[0].length).replace(/[.\s ]/g,'').toUpperCase();
+      if(meridiano.startsWith('PM') && h!==12) h+=12;
+      if(meridiano.startsWith('AM') && h===12) h=0;
       return (h*60+mn)%1440;
     }
   }
@@ -1098,7 +1143,7 @@ async function inicializarDashboard(){
   // El turno se resuelve antes de pedir registros: define desde qué momento
   // se cuenta el turno en curso.
   await cargarTurnosCatalogo();
-  await Promise.all([cargarConfigProduccion(), cargarRegistrosLote(), cargarRegistrosHoy()]);
+  await Promise.all([cargarConfigProduccion(), cargarRegistrosLote(), cargarRegistrosHoy(), cargarImproductivosTurno()]);
   refreshStats();
 }
 async function cargarRegistrosLote(){
@@ -1140,6 +1185,38 @@ async function cargarRegistrosHoy(){
       return t && t>=ini && t<=ahora;
     });
   }catch(e){ registrosHoy=[]; }
+}
+// ── Improductivos del turno (para separar eficiencia de productividad) ──
+// El servidor ya guarda cada improductivo cerrado en su historial, con hora de
+// inicio, fin y duración. Se lee de ahí; no se crea un registro nuevo.
+let improdTurno = [];   // [{iniMin, finMin, tipo, minutos}]
+async function cargarImproductivosTurno(){
+  try{
+    const ini=inicioTurnoDate(), ahora=new Date();
+    const fechas=[...new Set([fechaLocalISO(ini), fechaLocalISO(ahora)])];
+    const r=await fetch('/api/historial');
+    const h=await r.json();
+    improdTurno=(h||[])
+      .filter(x=>x.modulo===selectedMod && fechas.includes(x.fechaISO) && (x.durMinutos||0)>0)
+      .map(x=>{
+        const a=horaAMin(x.horaInicio), b=horaAMin(x.hora);
+        if(a==null||b==null) return null;
+        return { iniMin:a, finMin:b, tipo:x.estadoAnterior||x.tipo||'', minutos:x.durMinutos };
+      }).filter(Boolean);
+  }catch(e){ improdTurno=[]; }
+}
+// Minutos de improductivo que caen dentro de una ventana [desde, hasta] del
+// día. Si un improductivo cruza de una hora a otra, a cada una le corresponde
+// solo la parte que le toca.
+function improdEnVentana(desdeMin, hastaMin){
+  let total=0;
+  improdTurno.forEach(im=>{
+    const a=im.iniMin, b=im.finMin>=im.iniMin ? im.finMin : im.finMin+1440;
+    const d=desdeMin, e=hastaMin>=desdeMin ? hastaMin : hastaMin+1440;
+    const solape=Math.min(b,e)-Math.max(a,d);
+    if(solape>0) total+=solape;
+  });
+  return total;
 }
 function fechaHoraDeRegistro(r){
   if(!r || !r.fecha || !r.hora) return null;
@@ -1195,16 +1272,6 @@ function minutosGanados(regs){
 function horaDeTurnoDe(r){
   const info=infoHoraDe(minutosDeHora(r.hora));
   return info ? info.n : null;
-}
-// Flecha de tendencia: usa el MISMO corte del semáforo (verde) para no mostrar
-// un número en verde con flecha roja al lado.
-function pintarTendencia(id, pct){
-  const el=document.getElementById(id);
-  if(!el) return;
-  if(pct===null || pct===undefined){ el.textContent=''; el.className='efic-trend'; return; }
-  const arriba = pct>=_cfgProd.semaforoVerde;
-  el.textContent = arriba ? '▲' : '▼';
-  el.className = 'efic-trend '+(arriba?'up':'down');
 }
 
 function refreshStats(){
@@ -1303,35 +1370,47 @@ function refreshStats(){
   document.getElementById('lote-faltantes').textContent=faltan;
   document.getElementById('lote-defectos').textContent=mala;
 
-  // ── Eficiencia ────────────────────────────────────────────────
-  // Se compara el trabajo producido (minutos ganados) contra el tiempo
-  // disponible. Al trabajar en minutos y no en unidades, una hora con varias
-  // referencias de metas distintas queda bien calculada.
-  let pctHora='—', pctDia='—', claseHora='alta', claseDia='alta', p1=null, p2=null;
-  if(ganadosHora!==null || ganadosDia!==null){
-    const gHora = ganadosHora || 0, gDia = ganadosDia || 0;
-    if(_cfgProd.baseEficiencia==='meta'){
-      // Contra los minutos productivos completos del bloque y del turno.
-      const totalDia = _bloquesHora.length
-        ? Math.max(1, _bloquesHora.filter(b=>!infoHora||b.n<=infoHora.n).reduce((s,b)=>s+b.minutos,0))
-        : Math.max(1,Math.ceil(minDesdeTurno/60))*60;
-      p1=Math.round(gHora/minutosBloque*100);
-      p2=Math.round(gDia/totalDia*100);
-    } else {
-      // Contra lo que debería llevar a esta altura (ritmo), ya descontados los
-      // descansos que estén definidos en el turno.
-      p1=Math.round(gHora/minEnHora*100);
-      p2=Math.round(gDia/minProductivosDia*100);
-    }
+  // ── Indicadores: Eficiencia · Productividad · Calidad ─────────
+  // Eficiencia    = minutos ganados ÷ minutos REALMENTE trabajados
+  //                 (descuenta el tiempo perdido en improductivos)
+  // Productividad = minutos ganados ÷ minutos totales disponibles
+  //                 (incluye ese tiempo perdido)
+  // La diferencia entre las dos es exactamente el tiempo de improductivo: si
+  // eficiencia va bien y productividad mal, el problema no es el ritmo de la
+  // operaria sino las paradas.
+  // Calidad       = (producidas − defectos) ÷ producidas
+  const disponiblesHora = _cfgProd.baseEficiencia==='meta' ? minutosBloque : minEnHora;
+  const disponiblesDia  = _cfgProd.baseEficiencia==='meta'
+    ? (_bloquesHora.length
+        ? Math.max(1,_bloquesHora.filter(b=>!infoHora||b.n<=infoHora.n).reduce((s,b)=>s+b.minutos,0))
+        : Math.max(1,Math.ceil(minDesdeTurno/60))*60)
+    : minProductivosDia;
+
+  // Minutos perdidos: los de esta hora y los de todo el turno hasta ahora.
+  const improdHora = infoHora ? improdEnVentana(infoHora.iniMin, minAhora) : 0;
+  const improdDia  = improdEnVentana(_turno.inicioMin, minAhora);
+
+  // Unidades y defectos de la hora en curso, para la calidad de esa hora.
+  const defHora = registrosHoy.filter(r=>r.tipo==='calidad' && nHoraActual!==null && horaDeTurnoDe(r)===nHoraActual)
+                              .reduce((s,r)=>s+r.cantidad,0);
+  const prodUnidHora = regsEstaHora.reduce((s,r)=>s+r.cantidad,0);
+  const defDia = registrosHoy.filter(r=>r.tipo==='calidad').reduce((s,r)=>s+r.cantidad,0);
+
+  function pintarKpi(id, valor){
+    const el=document.getElementById(id);
+    if(valor===null){ el.textContent='—'; el.className='kpi-n'; return; }
+    el.textContent=valor+'%'; el.className='kpi-n '+eficClase(valor);
   }
-  if(p1!==null){
-    pctHora=p1+'%'; pctDia=p2+'%'; claseHora=eficClase(p1); claseDia=eficClase(p2);
-  }
-  pintarTendencia('efic-hora-trend', p1);
-  pintarTendencia('efic-dia-trend', p2);
-  const hEl=document.getElementById('efic-hora-num'), dEl=document.getElementById('efic-dia-num');
-  hEl.textContent=pctHora; hEl.className='efic-card-num '+claseHora;
-  dEl.textContent=pctDia; dEl.className='efic-card-num '+claseDia;
+  const hayMeta = (ganadosHora!==null || ganadosDia!==null);
+  const gHora = ganadosHora||0, gDia = ganadosDia||0;
+
+  pintarKpi('kpi-h-efi', hayMeta ? Math.round(gHora/Math.max(1, disponiblesHora-improdHora)*100) : null);
+  pintarKpi('kpi-h-pro', hayMeta ? Math.round(gHora/Math.max(1, disponiblesHora)*100) : null);
+  pintarKpi('kpi-h-cal', prodUnidHora>0 ? Math.round((prodUnidHora-defHora)/prodUnidHora*100) : null);
+
+  pintarKpi('kpi-d-efi', hayMeta ? Math.round(gDia/Math.max(1, disponiblesDia-improdDia)*100) : null);
+  pintarKpi('kpi-d-pro', hayMeta ? Math.round(gDia/Math.max(1, disponiblesDia)*100) : null);
+  pintarKpi('kpi-d-cal', prodHoy>0 ? Math.round((prodHoy-defDia)/prodHoy*100) : null);
 }
 
 // ── Registrar producción / mala calidad (toca +1 · mantén = cantidad) ──
@@ -1441,95 +1520,159 @@ function volverDeOrdenes(){
 // no sumando unidades ni sumando metas (sumar metas daría un número sin
 // sentido: 60+90+120 no es la meta de esa hora, la meta de una hora siempre
 // son 60 minutos de trabajo).
+// ── Historial del turno ───────────────────────────────────────────
+// Se listan TODAS las horas desde el inicio del turno hasta la que va
+// corriendo, aunque no tengan producción: una hora en cero es información
+// (normalmente significa que hubo un improductivo). Las horas que todavía no
+// han llegado no se muestran, para no dar a entender que se perdieron.
+function bloquesHastaAhora(){
+  const d=new Date(), minAhora=d.getHours()*60+d.getMinutes();
+  const infoAhora=infoHoraDe(minAhora);
+  if(_bloquesHora.length){
+    const hasta = infoAhora ? infoAhora.n : _bloquesHora.length;
+    return _bloquesHora.filter(b=>b.n<=hasta)
+      .map(b=>({n:b.n, nombre:b.nombre, iniMin:b.iniMin, finMin:b.finMin, minutos:b.minutos}));
+  }
+  // Sin catálogo de turnos: bloques de 60 minutos desde el inicio.
+  const desde=(minAhora-_turno.inicioMin+1440)%1440;
+  const total=Math.floor(desde/60)+1;
+  const lista=[];
+  for(let i=0;i<total;i++){
+    lista.push({ n:i+1, nombre:'', minutos:60,
+                 iniMin:(_turno.inicioMin+i*60)%1440, finMin:(_turno.inicioMin+(i+1)*60)%1440 });
+  }
+  return lista;
+}
+function fmtMinHora(m){
+  const x=((m%1440)+1440)%1440;
+  return String(Math.floor(x/60)).padStart(2,'0')+':'+String(x%60).padStart(2,'0');
+}
 function construirHistorialHoras(){
   const porHora={};
   registrosHoy.filter(r=>r.tipo==='produccion').forEach(r=>{
     const n=horaDeTurnoDe(r);
     if(n===null) return;                   // registro fuera de las horas del turno
-    if(!porHora[n]) porHora[n]={n, ops:{}, regs:[]};
+    if(!porHora[n]) porHora[n]={ops:{}, regs:[]};
     if(!porHora[n].ops[r.op]) porHora[n].ops[r.op]={ref:r.ref||opCache[r.op]?.ref||r.op, op:r.op, real:0};
     porHora[n].ops[r.op].real += r.cantidad;
     porHora[n].regs.push(r);
   });
-  const ahoraMin=(()=>{ const d=new Date(); return d.getHours()*60+d.getMinutes(); })();
-  const infoAhora=infoHoraDe(ahoraMin);
+  const d=new Date(), minAhora=d.getHours()*60+d.getMinutes();
+  const infoAhora=infoHoraDe(minAhora);
   const nAhora=infoAhora?infoAhora.n:null;
-  const fmtMin=m=>String(Math.floor(((m%1440)+1440)%1440/60)).padStart(2,'0')+':'+String(((m%60)+60)%60).padStart(2,'0');
 
-  return Object.values(porHora).sort((a,b)=>a.n-b.n).map(h=>{
-    // Cada bloque se mide contra SUS minutos productivos (los que se definieron
-    // en Configuraciones), no contra 60 fijos. Así el porcentaje de la hora es
-    // la SUMA de los de cada referencia: 40% + 30% = 70%. Nunca se promedia.
-    const bloque=_bloquesHora.find(b=>b.n===h.n);
-    const minutosBloque = bloque ? bloque.minutos : 60;
-    const iniMin = bloque ? bloque.iniMin : (_turno.inicioMin+(h.n-1)*60);
-    const finMin = bloque ? bloque.finMin : (_turno.inicioMin+h.n*60);
-    const ops=Object.values(h.ops).map(o=>{
-      const meta = metaDeOP(o.op);
-      const ganados = meta>0 ? o.real*60/meta : 0;   // minutos que aportó
-      return {...o, meta, ganados, pct: meta>0 ? Math.round(ganados/minutosBloque*100) : null};
+  return bloquesHastaAhora().map(b=>{
+    const datos=porHora[b.n]||{ops:{}, regs:[]};
+    // Cada bloque se mide contra SUS minutos productivos, no contra 60 fijos.
+    // Así el porcentaje de la hora es la SUMA de los de cada referencia:
+    // 40% + 30% = 70%. Nunca se promedia.
+    const ops=Object.values(datos.ops).map(o=>{
+      const meta=metaDeOP(o.op);
+      const ganados = meta>0 ? o.real*60/meta : 0;
+      return {...o, meta, ganados, pct: meta>0 ? Math.round(ganados/b.minutos*100) : null};
     });
-    const ganados = minutosGanados(h.regs);
-    const pct = ganados===null ? null : Math.round(ganados/minutosBloque*100);
-    const etiqueta = (bloque && bloque.nombre) ? bloque.nombre : (h.n+'ª Hora');
-    return {n:h.n, etiqueta, minutosBloque,
-            rango: fmtMin(iniMin)+' – '+fmtMin(finMin), ops,
-            ganados: ganados===null?0:ganados, pct, enCurso: h.n===nAhora,
-            totalUnidades: ops.reduce((s,o)=>s+o.real,0)};
+    const ganados=minutosGanados(datos.regs);
+    const enCurso=(b.n===nAhora);
+    // Improductivos que afectaron esta hora. Si uno cruza de una hora a otra,
+    // a cada una le corresponde solo la parte que le toca.
+    const hasta = enCurso ? minAhora : b.finMin;
+    const imps=improdTurno.map(im=>{
+      const a=im.iniMin, bb=im.finMin>=im.iniMin ? im.finMin : im.finMin+1440;
+      const dd=b.iniMin, ee=hasta>=b.iniMin ? hasta : hasta+1440;
+      const solape=Math.min(bb,ee)-Math.max(a,dd);
+      return solape>0 ? { tipo:im.tipo, minutos:Math.round(solape),
+                          rango:fmtMinHora(im.iniMin)+' – '+fmtMinHora(im.finMin) } : null;
+    }).filter(Boolean);
+    return {
+      n:b.n,
+      etiqueta: b.nombre || (b.n+'ª Hora'),
+      rango: fmtMinHora(b.iniMin)+' – '+fmtMinHora(b.finMin),
+      minutosBloque: b.minutos,
+      ops, imps, enCurso,
+      ganados: ganados===null?0:ganados,
+      pct: ganados===null ? 0 : Math.round(ganados/b.minutos*100),
+      sinDatos: ops.length===0,
+      improdMin: imps.reduce((s,x)=>s+x.minutos,0),
+      totalUnidades: ops.reduce((s,o)=>s+o.real,0)
+    };
   });
 }
-let horaSeleccionada=null;
+
+let _histAbierta=null;
 function abrirHistorialModal(){
-  const horas=construirHistorialHoras();
-  if(!horas.length){
-    document.getElementById('hora-chip-row').innerHTML='';
-    document.getElementById('hora-detail').innerHTML='<div class="hora-empty">Todavía no hay producción registrada hoy.</div>';
-    document.getElementById('modal-historial').classList.add('show');
-    return;
-  }
-  horaSeleccionada = horas[horas.length-1].n;
-  renderHoraChips(horas);
-  renderHoraDetail(horas);
+  _histAbierta=null;
+  renderHistorial();
   document.getElementById('modal-historial').classList.add('show');
 }
-function renderHoraChips(horas){
-  document.getElementById('hora-chip-row').innerHTML = horas.map(h=>{
-    const sel = h.n===horaSeleccionada?'sel':'';
-    const pill = h.pct===null
-      ? `<span class="efic-pill curso">—</span>`
-      : `<span class="efic-pill ${eficClase(h.pct)}">${h.pct}%</span>`;
-    return `<button class="hora-chip ${sel}" onclick="seleccionarHora(${h.n})">
-      <span class="hc-n">${h.etiqueta}</span>${pill}
-    </button>`;
-  }).join('');
+function toggleHistHora(n){
+  _histAbierta = (_histAbierta===n) ? null : n;
+  renderHistorial();
 }
-function seleccionarHora(n){
-  horaSeleccionada=n;
+function renderHistorial(){
   const horas=construirHistorialHoras();
-  renderHoraChips(horas); renderHoraDetail(horas);
-}
-function renderHoraDetail(horas){
-  const h=horas.find(x=>x.n===horaSeleccionada); if(!h) return;
-  const mezcla = h.ops.length>1;
-  document.getElementById('hora-detail').innerHTML = `
-    <div class="hora-detail-range">${h.rango}${h.enCurso?' · en curso':''}</div>
-    ${h.ops.map(o=>`
-      <div class="hora-op-row">
-        <div class="hor-ref"><b>${o.ref}</b><small>${o.op}</small></div>
-        <div class="hor-nums">
-          <span>Meta <b>${o.meta||'—'}</b></span>
-          <span>Hizo <b>${o.real}</b></span>
-        </div>
-        <span class="efic-pill ${o.pct===null?'curso':eficClase(o.pct)}">${o.pct===null?'—':o.pct+'%'}</span>
-      </div>`).join('')}
-    <div class="hora-total">
-      <span>Total de la hora${mezcla?' ('+h.ops.length+' referencias)':''}</span>
-      <span class="hora-total-n">${h.totalUnidades} und</span>
-      ${h.pct===null?'<span class="efic-pill curso">—</span>':`<span class="efic-pill ${eficClase(h.pct)}">${h.pct}%</span>`}
-    </div>
-    ${mezcla?`<div class="hora-nota">${h.ops.map(o=>o.pct===null?'—':o.pct+'%').join(' + ')} = ${h.pct}% de la hora.</div>`:''}
-    ${h.minutosBloque!==60?`<div class="hora-nota">Esta hora tiene ${h.minutosBloque} minutos productivos según el turno configurado.</div>`:''}
-  `;
+  document.getElementById('hist-sub').textContent =
+    'Módulo '+selectedMod+' · '+(_turno.turno==='dia'?'Día':(_turno.turno==='noche'?'Noche':_turno.turno));
+
+  const totUnid=horas.reduce((s,h)=>s+h.totalUnidades,0);
+  const totGan =horas.reduce((s,h)=>s+h.ganados,0);
+  const totImp =horas.reduce((s,h)=>s+h.improdMin,0);
+  const totMin =horas.reduce((s,h)=>s+(h.enCurso?Math.max(1,productivosTranscurridos(infoHoraDe(new Date().getHours()*60+new Date().getMinutes()))):h.minutosBloque),0);
+  const pctTot = totMin>0 ? Math.round(totGan/totMin*100) : 0;
+  document.getElementById('hist-res').innerHTML =
+    '<div><div class="n">'+totUnid+'</div><div class="l">Unidades</div></div>'+
+    '<div><div class="n">'+Math.round(totGan)+'</div><div class="l">Min. ganados</div></div>'+
+    '<div><div class="n" style="color:var(--bad)">'+Math.round(totImp)+'</div><div class="l">Min. improd.</div></div>'+
+    '<div><div class="n '+eficClase(pctTot)+'" style="color:var(--'+(pctTot>=_cfgProd.semaforoVerde?'good':pctTot>=_cfgProd.semaforoRojo?'warn':'bad')+')">'+pctTot+'%</div><div class="l">Eficiencia</div></div>';
+
+  const cont=document.getElementById('hist-lista');
+  if(!horas.length){
+    cont.innerHTML='<div class="hora-empty">El turno todavía no ha comenzado.</div>';
+    return;
+  }
+  cont.innerHTML='';
+  horas.forEach(h=>{
+    const b=document.createElement('button');
+    b.className='hist-h'+(h.sinDatos?' cero':'')+(h.enCurso?' curso':'');
+    b.onclick=()=>toggleHistHora(h.n);
+    b.innerHTML =
+      '<div><div class="hist-h-n">'+h.etiqueta+(h.enCurso?'<span class="hist-tag">en curso</span>':'')+'</div>'+
+      '<div class="hist-h-r">'+h.rango+'</div>'+
+      (h.minutosBloque!==60?'<div class="hist-h-r warn">'+h.minutosBloque+' min productivos</div>':'')+
+      (h.sinDatos?'<div class="hist-h-r">Sin reporte</div>':'')+
+      (h.improdMin>0?'<div class="hist-imp-b">⚡ '+h.improdMin+' min improd.</div>':'')+'</div>'+
+      '<div><div class="hist-h-u">'+h.totalUnidades+'</div><div class="hist-h-ul">und</div></div>'+
+      '<div class="hist-pc '+(h.sinDatos&&h.pct===0?'nula':eficClase(h.pct))+'">'+h.pct+'%</div>'+
+      '<span class="hist-fl'+(_histAbierta===h.n?' ab':'')+'">›</span>';
+    cont.appendChild(b);
+
+    if(_histAbierta===h.n){
+      const d=document.createElement('div');
+      d.className='hist-det';
+      let html='';
+      if(h.ops.length){
+        html+='<div class="hist-tabla"><table><thead><tr>'+
+          '<th>Referencia</th><th>OP</th><th>Meta</th><th>Hizo</th><th>Eficiencia</th></tr></thead><tbody>'+
+          h.ops.map(o=>'<tr><td>'+o.ref+'</td><td class="mono">'+o.op+'</td>'+
+            '<td class="mono">'+(o.meta||'—')+'</td><td class="mono">'+o.real+'</td>'+
+            '<td class="ef '+(o.pct===null?'':eficClase(o.pct))+'">'+(o.pct===null?'—':o.pct+'%')+'</td></tr>').join('')+
+          '</tbody>'+
+          (h.ops.length>1
+            ? '<tfoot><tr><td colspan="3">Total de la hora</td><td class="mono">'+h.totalUnidades+'</td>'+
+              '<td class="ef '+eficClase(h.pct)+'">'+h.pct+'%</td></tr></tfoot>'
+            : '')+'</table></div>';
+      } else {
+        html+='<div class="hist-vacio">No se registraron unidades en esta hora</div>';
+      }
+      if(h.imps.length){
+        html+='<div class="hist-imps"><div class="hist-imps-h">Improductivos</div>'+
+          h.imps.map(x=>'<div class="hist-imps-r"><div>'+(ICONOS_ESTADO[x.tipo]||'⚡')+' '+
+            (LABELS_ESTADO[x.tipo]||'Improductivo')+'</div>'+
+            '<div class="h">'+x.rango+'</div><div class="m">'+x.minutos+' min</div></div>').join('')+'</div>';
+      }
+      d.innerHTML=html;
+      cont.appendChild(d);
+    }
+  });
 }
 
 // ── Improductivos: WebSocket real, protocolo ci_* sin cambios ─────
@@ -1973,10 +2116,9 @@ function aplicarRegistroRemoto(reg, accion){
   if(t && t>=inicioTurnoDate() && t<=new Date()) cambio = sincronizar(registrosHoy) || cambio;
   if(!cambio) return;
   refreshStats();
-  if(document.getElementById('modal-historial').classList.contains('show')){
-    const horas=construirHistorialHoras();
-    if(horas.length){ renderHoraChips(horas); renderHoraDetail(horas); }
-  }
+  // Si el historial está abierto, se repinta para que refleje lo que acaba de
+  // llegar de otra tablet sin tener que cerrarlo y abrirlo.
+  if(document.getElementById('modal-historial').classList.contains('show')) renderHistorial();
 }
 
 // ── Solicitud de Insumos — mismo flujo que Contador Módulos ───────
